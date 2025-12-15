@@ -223,14 +223,16 @@ export default function InvoiceViewPage() {
             <thead>
               <tr style={{ borderBottom: '0.5px solid black' }}>
                 <th className="border-r border-black p-0.5 text-center" style={{ width: '4%' }}>Qty</th>
-                <th className="border-r border-black p-0.5 text-center" style={{ width: '4%' }}>Free</th>
-                <th className="border-r border-black p-0.5 text-left" style={{ width: '26%' }}>Product Name</th>
-                <th className="border-r border-black p-0.5 text-center" style={{ width: '8%' }}>HSN</th>
-                <th className="border-r border-black p-0.5 text-center" style={{ width: '10%' }}>Batch</th>
-                <th className="border-r border-black p-0.5 text-center" style={{ width: '6%' }}>Exp</th>
-                <th className="border-r border-black p-0.5 text-right" style={{ width: '10%' }}>Rate</th>
-                <th className="border-r border-black p-0.5 text-center" style={{ width: '5%' }}>GST%</th>
-                <th className="p-0.5 text-right" style={{ width: '12%' }}>Amount</th>
+                <th className="border-r border-black p-0.5 text-center" style={{ width: '3%' }}>Fr</th>
+                <th className="border-r border-black p-0.5 text-left" style={{ width: '20%' }}>Product Name</th>
+                <th className="border-r border-black p-0.5 text-center" style={{ width: '7%' }}>HSN</th>
+                <th className="border-r border-black p-0.5 text-center" style={{ width: '8%' }}>Batch</th>
+                <th className="border-r border-black p-0.5 text-center" style={{ width: '5%' }}>Exp</th>
+                <th className="border-r border-black p-0.5 text-right" style={{ width: '8%' }}>MRP</th>
+                <th className="border-r border-black p-0.5 text-right" style={{ width: '8%' }}>Rate</th>
+                <th className="border-r border-black p-0.5 text-center" style={{ width: '5%' }}>Disc%</th>
+                <th className="border-r border-black p-0.5 text-center" style={{ width: '4%' }}>GST%</th>
+                <th className="p-0.5 text-right" style={{ width: '10%' }}>Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -248,7 +250,9 @@ export default function InvoiceViewPage() {
                     <td className="border-r border-black p-0.5 text-center">{item.product?.hsnCode}</td>
                     <td className="border-r border-black p-0.5 text-center">{item.product?.batchNo}</td>
                     <td className="border-r border-black p-0.5 text-center">{expDate}</td>
+                    <td className="border-r border-black p-0.5 text-right">{item.product?.newMRP?.toFixed(2) || '-'}</td>
                     <td className="border-r border-black p-0.5 text-right">{item.ratePerUnit.toFixed(2)}</td>
+                    <td className="border-r border-black p-0.5 text-center">{item.schemeDiscount || 0}%</td>
                     <td className="border-r border-black p-0.5 text-center">{item.product?.gstPercentage}%</td>
                     <td className="p-0.5 text-right font-semibold">{itemAmount.toFixed(2)}</td>
                   </tr>
@@ -281,9 +285,20 @@ export default function InvoiceViewPage() {
                   <td className="py-0">SGST:</td>
                   <td className="text-right">₹{invoice.totals?.totalSGST?.toFixed(2)}</td>
                 </tr>
+                <tr>
+                  <td className="py-0">Round Off:</td>
+                  <td className="text-right">
+                    {(() => {
+                      const net = invoice.totals?.netTotal || 0;
+                      const rounded = Math.round(net);
+                      const diff = rounded - net;
+                      return diff >= 0 ? `+₹${diff.toFixed(2)}` : `-₹${Math.abs(diff).toFixed(2)}`;
+                    })()}
+                  </td>
+                </tr>
                 <tr className="border-t border-black">
                   <td className="py-0.5 font-bold">NET:</td>
-                  <td className="text-right font-bold text-[8px]">₹{invoice.totals?.netTotal?.toFixed(2)}</td>
+                  <td className="text-right font-bold text-[8px]">₹{Math.round(invoice.totals?.netTotal || 0)}</td>
                 </tr>
               </tbody>
             </table>
