@@ -164,6 +164,147 @@ export default function InvoiceViewPage() {
 
   const StatusIcon = statusConfig[invoice.status]?.icon || FileText;
 
+  // Reusable Invoice Copy Component
+  const InvoiceCopy = ({ copyType }) => (
+    <div 
+      className="invoice-copy bg-white flex flex-col"
+      style={{ 
+        width: '100%',
+        minHeight: '130mm',
+        fontSize: '8px',
+        color: '#000000',
+        padding: '3mm',
+        boxSizing: 'border-box'
+      }}
+    >
+      {/* Copy Type Label */}
+      <div className="text-center mb-1">
+        <span className="text-[8px] font-bold border border-black px-2 py-0.5">
+          {copyType}
+        </span>
+      </div>
+
+      {/* Main content wrapper */}
+      <div className="flex flex-col flex-1">
+        {/* Header */}
+        <div className="grid grid-cols-2 gap-2 border-b border-black pb-1 mb-1">
+          <div className="text-left">
+            <h1 className="font-bold mb-0.5" style={{ fontSize: '11px' }}>BHARAT ENTERPRISES</h1>
+            <p className="text-[6px] leading-tight">{invoice.distributor?.firmAddress || 'Address Line 1, City, State - PIN'}</p>
+          </div>
+          <div className="text-right text-[6px] leading-tight">
+            <p>Phone: {invoice.distributor?.firmPhone || 'XXXXXXXXXX'}</p>
+            <p>DL No: DL-XXXXX-XXXXX</p>
+            <p>GSTIN: {invoice.distributor?.firmGSTIN || 'XXXXXXXXXXXX'}</p>
+          </div>
+        </div>
+
+        {/* Buyer & Invoice Details */}
+        <div className="grid grid-cols-3 gap-2 mb-1 text-[6px]">
+          <div>
+            <p className="font-bold mb-0.5">M/s {invoice.customer?.customerName}</p>
+            <p className="leading-tight">{invoice.customer?.address || 'Address not provided'}</p>
+            <p className="mt-0.5">Ph: {invoice.customer?.phone}</p>
+          </div>
+          <div className="border-l border-black pl-2">
+            {invoice.customer?.gstin && <p>GSTIN: {invoice.customer.gstin}</p>}
+            {invoice.customer?.dlNo && <p>DL No: {invoice.customer.dlNo}</p>}
+          </div>
+          <div className="text-right">
+            <p><span className="font-bold">Invoice No:</span> {invoice.invoiceNumber}</p>
+            <p><span className="font-bold">Date:</span> {formatDate(invoice.invoiceDate)}</p>
+            <p><span className="font-bold">Bill Type:</span> {invoice.paymentType?.toUpperCase() || 'CREDIT'}</p>
+          </div>
+        </div>
+
+        {/* Products Table */}
+        <div className="mb-1">
+          <table className="w-full border-collapse text-[5px]" style={{ border: '0.5px solid black' }}>
+            <thead>
+              <tr style={{ borderBottom: '0.5px solid black' }}>
+                <th className="border-r border-black p-0.5 text-center" style={{ width: '4%' }}>Qty</th>
+                <th className="border-r border-black p-0.5 text-center" style={{ width: '4%' }}>Free</th>
+                <th className="border-r border-black p-0.5 text-left" style={{ width: '26%' }}>Product Name</th>
+                <th className="border-r border-black p-0.5 text-center" style={{ width: '8%' }}>HSN</th>
+                <th className="border-r border-black p-0.5 text-center" style={{ width: '10%' }}>Batch</th>
+                <th className="border-r border-black p-0.5 text-center" style={{ width: '6%' }}>Exp</th>
+                <th className="border-r border-black p-0.5 text-right" style={{ width: '10%' }}>Rate</th>
+                <th className="border-r border-black p-0.5 text-center" style={{ width: '5%' }}>GST%</th>
+                <th className="p-0.5 text-right" style={{ width: '12%' }}>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {invoice.items?.map((item, index) => {
+                const expDate = item.product?.expiryDate 
+                  ? new Date(item.product.expiryDate).toLocaleDateString('en-GB', { month: '2-digit', year: '2-digit' })
+                  : 'N/A';
+                const itemAmount = item.quantitySold * item.ratePerUnit;
+                
+                return (
+                  <tr key={index} style={{ borderBottom: index < invoice.items.length - 1 ? '0.5px solid #ddd' : 'none' }}>
+                    <td className="border-r border-black p-0.5 text-center">{item.quantitySold}</td>
+                    <td className="border-r border-black p-0.5 text-center">{item.freeQuantity || 0}</td>
+                    <td className="border-r border-black p-0.5">{item.product?.productName}</td>
+                    <td className="border-r border-black p-0.5 text-center">{item.product?.hsnCode}</td>
+                    <td className="border-r border-black p-0.5 text-center">{item.product?.batchNo}</td>
+                    <td className="border-r border-black p-0.5 text-center">{expDate}</td>
+                    <td className="border-r border-black p-0.5 text-right">{item.ratePerUnit.toFixed(2)}</td>
+                    <td className="border-r border-black p-0.5 text-center">{item.product?.gstPercentage}%</td>
+                    <td className="p-0.5 text-right font-semibold">{itemAmount.toFixed(2)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Summary and Footer */}
+      <div className="mt-auto">
+        <div className="grid grid-cols-2 gap-2 mb-1">
+          <div className="text-[6px]">
+            <p className="font-bold mb-0.5">Amount in Words:</p>
+            <p className="uppercase">{invoice.totals?.amountInWords || 'Rupees Zero Only'}</p>
+          </div>
+          <div className="text-[6px]">
+            <table className="w-full">
+              <tbody>
+                <tr>
+                  <td className="py-0">Taxable:</td>
+                  <td className="text-right font-semibold">₹{invoice.totals?.totalTaxable?.toFixed(2)}</td>
+                </tr>
+                <tr>
+                  <td className="py-0">CGST:</td>
+                  <td className="text-right">₹{invoice.totals?.totalCGST?.toFixed(2)}</td>
+                </tr>
+                <tr>
+                  <td className="py-0">SGST:</td>
+                  <td className="text-right">₹{invoice.totals?.totalSGST?.toFixed(2)}</td>
+                </tr>
+                <tr className="border-t border-black">
+                  <td className="py-0.5 font-bold">NET:</td>
+                  <td className="text-right font-bold text-[8px]">₹{invoice.totals?.netTotal?.toFixed(2)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="border-t border-black pt-1 text-[6px]">
+          <div className="flex justify-between items-end">
+            <div>
+              <p>E & O E</p>
+            </div>
+            <div className="text-center">
+              <div className="h-6"></div>
+              <p className="border-t border-black pt-0.5">Authorized Signatory</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <motion.div
       variants={pageVariants}
@@ -239,7 +380,7 @@ export default function InvoiceViewPage() {
           Share
         </motion.button>
 
-        {/* Cancel Invoice Button - Only show if not already cancelled */}
+        {/* Cancel Invoice Button */}
         <AnimatePresence>
           {invoice.status !== 'Cancelled' && (
             <motion.button
@@ -269,167 +410,35 @@ export default function InvoiceViewPage() {
         </motion.div>
       </motion.div>
 
-      {/* Traditional Pharma GST Bill - A5 Format */}
+      {/* Invoice Print Area - Two Copies on A4 */}
       <div className="flex justify-center">
         <motion.div
           ref={printRef}
           variants={cardVariants}
-          className="invoice-print bg-white border-2 border-slate-300 shadow-lg flex flex-col"
+          className="invoice-print bg-white border-2 border-slate-300 shadow-lg"
           style={{ 
-            width: '144mm',
-            minHeight: '130mm',    /* Position footer slightly above middle of A4 */
+            width: '190mm',
             fontSize: '8px',
             color: '#000000',
             margin: '0 auto',
             padding: '2mm'
           }}
         >
-        {/* Main content wrapper that allows footer to be pushed to bottom */}
-        <div className="flex flex-col flex-1">
-        <div className="grid grid-cols-2 gap-2 border-b border-black pb-1 mb-1">
-          {/* Left: Company & Address */}
-          <div className="text-left">
-            <h1 className="font-bold mb-0.5" style={{ fontSize: '12px' }}>BHARAT ENTERPRISES</h1>
-            <p className="text-[7px] leading-tight">{invoice.distributor?.firmAddress || 'Address Line 1, City, State - PIN'}</p>
+          {/* Customer Copy - Top Half */}
+          <InvoiceCopy copyType="CUSTOMER COPY" />
+          
+          {/* Cut Line */}
+          <div className="flex items-center my-2" style={{ borderTop: '1px dashed #000' }}>
+            <span className="text-[7px] text-gray-600 mx-auto bg-white px-2" style={{ marginTop: '-8px' }}>
+              ✂ Cut Here
+            </span>
           </div>
           
-          {/* Right: Contact & Compliance */}
-          <div className="text-right text-[7px] leading-tight">
-            <p>Phone: {invoice.distributor?.firmPhone || 'XXXXXXXXXX'}</p>
-            <p>DL No: DL-XXXXX-XXXXX</p>
-            <p>GSTIN: {invoice.distributor?.firmGSTIN || 'XXXXXXXXXXXX'}</p>
-          </div>
-        </div>
-
-        {/* Buyer & Invoice Details */}
-        <div className="grid grid-cols-3 gap-2 mb-1 text-[7px]">
-          {/* Left: Customer Info */}
-          <div>
-            <p className="font-bold mb-0.5">M/s {invoice.customer?.customerName}</p>
-            <p className="leading-tight">{invoice.customer?.address || 'Address not provided'}</p>
-            <p className="mt-0.5">Ph: {invoice.customer?.phone}</p>
-          </div>
-          
-          {/* Center: Customer Compliance (with left border) */}
-          <div className="border-l border-black pl-2">
-            {invoice.customer?.gstin && <p>GSTIN: {invoice.customer.gstin}</p>}
-            {invoice.customer?.dlNo && <p>DL No: {invoice.customer.dlNo}</p>}
-          </div>
-          
-          {/* Right: Invoice Details */}
-          <div className="text-right">
-            <p><span className="font-bold">Invoice No:</span> {invoice.invoiceNumber}</p>
-            <p><span className="font-bold">Date:</span> {formatDate(invoice.invoiceDate)}</p>
-            <p><span className="font-bold">Bill Type:</span> {invoice.paymentType?.toUpperCase() || 'CREDIT'}</p>
-          </div>
-        </div>
-
-        {/* Products Table */}
-        <div className="mb-1">
-          <table className="w-full border-collapse text-[6px]" style={{ border: '0.5px solid black' }}>
-            <thead>
-              <tr style={{ borderBottom: '0.5px solid black' }}>
-                <th className="border-r border-black p-0.5 text-center" style={{ width: '4%' }}>Qty</th>
-                <th className="border-r border-black p-0.5 text-center" style={{ width: '4%' }}>Free</th>
-                <th className="border-r border-black p-0.5 text-left" style={{ width: '24%' }}>Product Name</th>
-                <th className="border-r border-black p-0.5 text-center" style={{ width: '8%' }}>HSN</th>
-                <th className="border-r border-black p-0.5 text-center" style={{ width: '9%' }}>Pack</th>
-                <th className="border-r border-black p-0.5 text-center" style={{ width: '10%' }}>Batch No</th>
-                <th className="border-r border-black p-0.5 text-center" style={{ width: '6%' }}>Exp</th>
-                <th className="border-r border-black p-0.5 text-right" style={{ width: '10%' }}>Rate</th>
-                <th className="border-r border-black p-0.5 text-center" style={{ width: '5%' }}>GST%</th>
-                <th className="p-0.5 text-right" style={{ width: '14%' }}>Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {invoice.items?.map((item, index) => {
-                const expDate = item.product?.expiryDate 
-                  ? new Date(item.product.expiryDate).toLocaleDateString('en-GB', { month: '2-digit', year: '2-digit' })
-                  : 'N/A';
-                const itemAmount = item.quantitySold * item.ratePerUnit;
-                
-                return (
-                  <tr key={index} style={{ borderBottom: index < invoice.items.length - 1 ? '0.5px solid #ddd' : 'none' }}>
-                    <td className="border-r border-black p-0.5 text-center">{item.quantitySold}</td>
-                    <td className="border-r border-black p-0.5 text-center">{item.freeQuantity || 0}</td>
-                    <td className="border-r border-black p-0.5">{item.product?.productName}</td>
-                    <td className="border-r border-black p-0.5 text-center">{item.product?.hsnCode}</td>
-                    <td className="border-r border-black p-0.5 text-center">{item.product?.pack || '-'}</td>
-                    <td className="border-r border-black p-0.5 text-center">{item.product?.batchNo}</td>
-                    <td className="border-r border-black p-0.5 text-center">{expDate}</td>
-                    <td className="border-r border-black p-0.5 text-right">{item.ratePerUnit.toFixed(2)}</td>
-                    <td className="border-r border-black p-0.5 text-center">{item.product?.gstPercentage}%</td>
-                    <td className="p-0.5 text-right font-semibold">{itemAmount.toFixed(2)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        </div>
-        {/* End of main content wrapper */}
-
-        {/* Summary and Footer - pushed to bottom with mt-auto */}
-        <div className="mt-auto">
-        {/* Summary */}
-        <div className="grid grid-cols-2 gap-2 mb-1">
-          {/* Amount in Words */}
-          <div className="text-[7px]">
-            <p className="font-bold mb-0.5">Amount in Words:</p>
-            <p className="uppercase">{invoice.totals?.amountInWords || 'Rupees Zero Only'}</p>
-          </div>
-
-          {/* Totals */}
-          <div className="text-[7px]">
-            <table className="w-full">
-              <tbody>
-                <tr>
-                  <td className="py-0">Taxable Amount:</td>
-                  <td className="text-right font-semibold">₹{invoice.totals?.totalTaxable?.toFixed(2)}</td>
-                </tr>
-                <tr>
-                  <td className="py-0">CGST:</td>
-                  <td className="text-right">₹{invoice.totals?.totalCGST?.toFixed(2)}</td>
-                </tr>
-                <tr>
-                  <td className="py-0">SGST:</td>
-                  <td className="text-right">₹{invoice.totals?.totalSGST?.toFixed(2)}</td>
-                </tr>
-                <tr>
-                  <td className="py-0">GST Total:</td>
-                  <td className="text-right">₹{invoice.totals?.totalGST?.toFixed(2)}</td>
-                </tr>
-                {invoice.totals?.totalDiscount > 0 && (
-                  <tr>
-                    <td className="py-0">Discount:</td>
-                    <td className="text-right">-₹{invoice.totals?.totalDiscount?.toFixed(2)}</td>
-                  </tr>
-                )}
-                <tr className="border-t border-black">
-                  <td className="py-0.5 font-bold">NET AMOUNT:</td>
-                  <td className="text-right font-bold text-[9px]">₹{invoice.totals?.netTotal?.toFixed(2)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="border-t border-black pt-1 mt-1 text-[7px]">
-          <div className="flex justify-between items-end">
-            <div>
-              <p className="mb-0.5">E & O E</p>
-              <p className="text-[6px] text-gray-500">Printed: {new Date().toLocaleString('en-IN')}</p>
-            </div>
-            <div className="text-center">
-              <div className="h-8"></div>
-              <p className="border-t border-black pt-0.5">Authorized Signatory</p>
-            </div>
-          </div>
-        </div>
-        </div>
+          {/* Office Copy - Bottom Half */}
+          <InvoiceCopy copyType="OFFICE COPY" />
         </motion.div>
       </div>
     </motion.div>
   );
 }
+
