@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Menu, 
@@ -12,8 +13,11 @@ import {
   Moon,
   Sun
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Header({ onMenuClick, title }) {
+  const { admin, logout } = useAuth();
+  const navigate = useNavigate();
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -232,14 +236,14 @@ export default function Header({ onMenuClick, title }) {
                       animate={{ opacity: 1 }}
                       transition={{ delay: 0.1 }}
                     >
-                      <p className="text-white font-semibold">John Doe</p>
-                      <p className="text-slate-400 text-sm">john@example.com</p>
+                      <p className="text-white font-semibold">{admin?.firmName || 'Admin'}</p>
+                      <p className="text-slate-400 text-sm">{admin?.email || 'admin@bharat.com'}</p>
                     </motion.div>
 
                     {/* Menu items */}
                     <div className="py-2">
                       {[
-                        { icon: User, label: 'Profile', onClick: () => {} },
+                        { icon: User, label: 'Profile', onClick: () => { setProfileOpen(false); navigate('/profile'); } },
                         { icon: Settings, label: 'Settings', onClick: () => {} },
                         { icon: Moon, label: 'Dark Mode', onClick: () => {} }
                       ].map((item, index) => (
@@ -266,6 +270,7 @@ export default function Header({ onMenuClick, title }) {
                       transition={{ delay: 0.2 }}
                     >
                       <motion.button
+                        onClick={() => { setProfileOpen(false); logout(); }}
                         className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-500/10 text-red-400 hover:text-red-300 transition-colors rounded-lg"
                         whileHover={{ x: 4 }}
                         whileTap={{ scale: 0.98 }}

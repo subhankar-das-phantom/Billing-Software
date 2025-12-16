@@ -28,6 +28,8 @@ const protect = async (req, res, next) => {
     req.admin = await Admin.findById(decoded.id).select('-password');
 
     if (!req.admin) {
+      // Clear invalid cookie if admin not found
+      res.clearCookie('token');
       return res.status(401).json({
         success: false,
         message: 'Not authorized - admin not found'
@@ -36,10 +38,17 @@ const protect = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error('Auth middleware error:', error);
+    // Clear invalid/expired token cookie to prevent repeated errors
+    res.clearCookie('token');
+    
+    // Log only the error type, not the full stack trace
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Auth: ${error.name} - ${error.message}`);
+    }
+    
     return res.status(401).json({
       success: false,
-      message: 'Not authorized - token invalid'
+      message: 'Not authorized - token invalid or expired'
     });
   }
 };

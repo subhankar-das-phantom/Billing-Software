@@ -6,6 +6,7 @@ import { ToastProvider } from './context/ToastContext';
 // Eager load - needed immediately
 import DashboardLayout from './components/Layout/DashboardLayout';
 import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 
 // Lazy load - loaded on-demand for better initial performance
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
@@ -15,6 +16,7 @@ const CustomerDetailsPage = lazy(() => import('./pages/CustomerDetailsPage'));
 const InvoicesPage = lazy(() => import('./pages/InvoicesPage'));
 const InvoiceCreatePage = lazy(() => import('./pages/InvoiceCreatePage'));
 const InvoiceViewPage = lazy(() => import('./pages/InvoiceViewPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 // Page loading spinner
@@ -80,6 +82,14 @@ function AppRoutes() {
             </PublicRoute>
           }
         />
+        <Route
+          path="/register"
+          element={
+            <PublicRoute>
+              <RegisterPage />
+            </PublicRoute>
+          }
+        />
         
         {/* Protected Routes */}
         <Route
@@ -96,6 +106,7 @@ function AppRoutes() {
           <Route path="/invoices" element={<InvoicesPage />} />
           <Route path="/invoices/create" element={<InvoiceCreatePage />} />
           <Route path="/invoices/:id" element={<InvoiceViewPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
         </Route>
         
         {/* 404 */}

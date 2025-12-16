@@ -327,7 +327,7 @@ export default function InvoiceCreatePage() {
       className="space-y-12"
     >
       {/* Customer Selection */}
-      <motion.div variants={cardVariants} className="glass-card p-6">
+      <motion.div variants={cardVariants} className="glass-card p-6 relative z-20">
         <div className="flex items-center gap-3 mb-6">
           <motion.div
             className="p-2 bg-blue-500/20 rounded-lg"
@@ -339,7 +339,7 @@ export default function InvoiceCreatePage() {
           <h2 className="text-lg font-semibold text-white">Customer Details</h2>
         </div>
         
-        <div className="relative">
+        <div className={`relative ${showCustomerDropdown && customerSearch && filteredCustomers.length > 0 ? 'pb-64' : ''}`}>
           <motion.div
             className="relative"
             whileFocus={{ scale: 1.01 }}

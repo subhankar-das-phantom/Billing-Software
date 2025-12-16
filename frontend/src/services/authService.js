@@ -31,6 +31,27 @@ export const authService = {
   },
 
   /**
+   * Register new user account
+   * @param {object} userData - User registration data
+   * @returns {Promise<{success: boolean, admin: object, message: string}>}
+   */
+  register: async (userData) => {
+    try {
+      const response = await api.post('/auth/register', userData);
+      
+      // Store user info in localStorage
+      if (response.data?.admin) {
+        localStorage.setItem('admin', JSON.stringify(response.data.admin));
+        localStorage.setItem('lastLoginTime', Date.now().toString());
+      }
+      
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
    * Get current authenticated user information
    * @returns {Promise<{success: boolean, admin: object}>}
    */

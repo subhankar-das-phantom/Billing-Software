@@ -31,6 +31,40 @@ const loginValidator = [
   validate
 ];
 
+const registerValidator = [
+  body('email')
+    .trim()
+    .isEmail()
+    .withMessage('Please provide a valid email')
+    .normalizeEmail(),
+  body('password')
+    .notEmpty()
+    .withMessage('Password is required')
+    .isLength({ min: 6 })
+    .withMessage('Password must be at least 6 characters'),
+  body('firmName')
+    .optional()
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage('Firm name must be less than 100 characters'),
+  body('firmAddress')
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage('Address must be less than 500 characters'),
+  body('firmPhone')
+    .optional()
+    .trim()
+    .matches(/^[0-9+\-\s()]*$/)
+    .withMessage('Invalid phone format'),
+  body('firmGSTIN')
+    .optional()
+    .trim()
+    .matches(/^[0-9A-Z]{15}$|^$/)
+    .withMessage('GSTIN must be 15 alphanumeric characters'),
+  validate
+];
+
 const updateProfileValidator = [
   body('firmName')
     .optional()
@@ -244,6 +278,7 @@ const paginationQuery = [
 
 module.exports = {
   // Auth
+  registerValidator,
   loginValidator,
   updateProfileValidator,
   

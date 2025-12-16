@@ -13,7 +13,8 @@ import {
   Settings,
   HelpCircle,
   BarChart3,
-  Sparkles
+  Sparkles,
+  User
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { invoiceService } from '../../services/invoiceService';
@@ -27,6 +28,7 @@ const getMenuItems = (invoiceCount) => [
 ];
 
 const quickActions = [
+  { path: '/profile', label: 'Profile', icon: User },
   { path: '/analytics', label: 'Analytics', icon: BarChart3 },
   { path: '/settings', label: 'Settings', icon: Settings },
   { path: '/help', label: 'Help Center', icon: HelpCircle },

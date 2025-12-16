@@ -1,21 +1,35 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useRef } from 'react';
 
 const ToastContext = createContext(null);
 
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
+  const toastIdsRef = useRef(new Set()); // Track active toast messages
 
   const addToast = useCallback((message, type = 'info', duration = 4000) => {
+    // Create a unique key based on message and type to prevent duplicates
+    const toastKey = `${type}-${message}`;
+    
+    // Check if this toast is already showing
+    if (toastIdsRef.current.has(toastKey)) {
+      return; // Don't add duplicate toast
+    }
+
     const id = Date.now();
-    setToasts(prev => [...prev, { id, message, type }]);
+    toastIdsRef.current.add(toastKey);
+    setToasts(prev => [...prev, { id, message, type, toastKey }]);
     
     setTimeout(() => {
       setToasts(prev => prev.filter(toast => toast.id !== id));
+      toastIdsRef.current.delete(toastKey);
     }, duration);
   }, []);
 
-  const removeToast = useCallback((id) => {
+  const removeToast = useCallback((id, toastKey) => {
     setToasts(prev => prev.filter(toast => toast.id !== id));
+    if (toastKey) {
+      toastIdsRef.current.delete(toastKey);
+    }
   }, []);
 
   const success = useCallback((message) => addToast(message, 'success'), [addToast]);
@@ -39,7 +53,7 @@ const ToastContainer = ({ toasts, removeToast }) => {
         <div
           key={toast.id}
           className={`toast toast-${toast.type}`}
-          onClick={() => removeToast(toast.id)}
+          onClick={() => removeToast(toast.id, toast.toastKey)}
         >
           {toast.type === 'success' && (
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

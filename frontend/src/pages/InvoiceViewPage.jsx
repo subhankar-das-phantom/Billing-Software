@@ -189,7 +189,7 @@ export default function InvoiceViewPage() {
         {/* Header */}
         <div className="grid grid-cols-2 gap-2 border-b border-black pb-1 mb-1">
           <div className="text-left">
-            <h1 className="font-bold mb-0.5" style={{ fontSize: '11px' }}>BHARAT ENTERPRISES</h1>
+            <h1 className="font-bold mb-0.5" style={{ fontSize: '11px' }}>{invoice.distributor?.firmName || 'BHARAT ENTERPRISES'}</h1>
             <p className="text-[6px] leading-tight">{invoice.distributor?.firmAddress || 'Address Line 1, City, State - PIN'}</p>
           </div>
           <div className="text-right text-[6px] leading-tight">

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, 
@@ -25,6 +25,7 @@ const navItems = [
 export default function Navbar() {
   const location = useLocation();
   const { admin, logout } = useAuth();
+  const navigate = useNavigate();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   return (
@@ -188,7 +189,7 @@ export default function Navbar() {
                       <motion.button
                         onClick={() => {
                           setUserMenuOpen(false);
-                          // Navigate to profile
+                          navigate('/profile');
                         }}
                         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 transition-colors text-left"
                         whileHover={{ x: 4 }}

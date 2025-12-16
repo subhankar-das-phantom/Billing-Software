@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LogIn, 
@@ -307,7 +307,7 @@ export default function LoginPage() {
                 <motion.button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-white transition-colors"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-blue-400 transition-colors"
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                 >
@@ -427,6 +427,22 @@ export default function LoginPage() {
                 </p>
               </div>
             </div>
+          </motion.div>
+
+          {/* Register Link */}
+          <motion.div
+            variants={itemVariants}
+            className="mt-6 text-center"
+          >
+            <p className="text-slate-400 text-sm">
+              Don't have an account?{' '}
+              <Link 
+                to="/register" 
+                className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
+              >
+                Create one here
+              </Link>
+            </p>
           </motion.div>
 
           {/* Security Badge */}

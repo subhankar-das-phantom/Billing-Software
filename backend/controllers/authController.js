@@ -8,6 +8,62 @@ const generateToken = (id) => {
   });
 };
 
+// @desc    Register new admin
+// @route   POST /api/auth/register
+// @access  Public
+exports.register = async (req, res, next) => {
+  try {
+    const { email, password, firmName, firmAddress, firmPhone, firmGSTIN } = req.body;
+
+    // Check if admin with email already exists
+    const existingAdmin = await Admin.findOne({ email });
+    if (existingAdmin) {
+      return res.status(400).json({
+        success: false,
+        message: 'An account with this email already exists'
+      });
+    }
+
+    // Create admin
+    const admin = await Admin.create({
+      email,
+      password,
+      firmName: firmName || 'My Enterprise',
+      firmAddress: firmAddress || '',
+      firmPhone: firmPhone || '',
+      firmGSTIN: firmGSTIN || ''
+    });
+
+    // Generate token
+    const token = generateToken(admin._id);
+
+    // Set HTTP-only cookie
+    const cookieOptions = {
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      sameSite: 'strict',
+      secure: process.env.NODE_ENV === 'production'
+    };
+
+    res.cookie('token', token, cookieOptions);
+
+    res.status(201).json({
+      success: true,
+      message: 'Account created successfully',
+      admin: {
+        id: admin._id,
+        email: admin.email,
+        firmName: admin.firmName,
+        firmAddress: admin.firmAddress,
+        firmPhone: admin.firmPhone,
+        firmGSTIN: admin.firmGSTIN
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Login admin
 // @route   POST /api/auth/login
 // @access  Public
@@ -123,6 +179,61 @@ exports.updateProfile = async (req, res, next) => {
         firmPhone: admin.firmPhone,
         firmGSTIN: admin.firmGSTIN
       }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Change password
+// @route   PUT /api/auth/change-password
+// @access  Private
+exports.changePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    // Validate input
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide current and new password'
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be at least 6 characters'
+      });
+    }
+
+    // Get admin with password
+    const admin = await Admin.findById(req.admin.id).select('+password');
+
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: 'Admin not found'
+      });
+    }
+
+    // Check current password
+    const isMatch = await admin.matchPassword(currentPassword);
+
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: 'Current password is incorrect'
+      });
+    }
+
+    // Update password (will be hashed by pre-save hook)
+    admin.password = newPassword;
+    await admin.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Password changed successfully'
     });
   } catch (error) {
     next(error);
