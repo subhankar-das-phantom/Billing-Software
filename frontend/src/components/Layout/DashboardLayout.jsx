@@ -9,7 +9,6 @@ import PageTransition from '../Common/PageTransition';
 
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [prevPath, setPrevPath] = useState('');
   const location = useLocation();
 
   useEffect(() => {
@@ -37,23 +36,10 @@ export default function DashboardLayout() {
     return LayoutDashboard;
   };
 
-  // Determine animation direction based on navigation
+  // Use consistent fade animation to avoid horizontal shifting issues
   const getTransitionVariant = () => {
-    const paths = ['/', '/products', '/customers', '/invoices'];
-    const currentIndex = paths.findIndex(p => location.pathname.startsWith(p));
-    const prevIndex = paths.findIndex(p => prevPath.startsWith(p));
-    
-    if (currentIndex > prevIndex) {
-      return 'slideLeft';
-    } else if (currentIndex < prevIndex) {
-      return 'slideRight';
-    }
     return 'fadeUp';
   };
-
-  useEffect(() => {
-    setPrevPath(location.pathname);
-  }, [location.pathname]);
 
   return (
     <div className="flex min-h-screen bg-slate-950">
@@ -61,9 +47,8 @@ export default function DashboardLayout() {
       <AnimatePresence mode="wait">
         {sidebarOpen && (
           <>
-            {/* Backdrop overlay */}
             <motion.div
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0, transition: { delay: 0.2 } }}
@@ -73,7 +58,7 @@ export default function DashboardLayout() {
             
             {/* Sidebar panel */}
             <motion.div
-              className="fixed inset-y-0 left-0 z-50 md:hidden"
+              className="fixed inset-y-0 left-0 z-50 lg:hidden"
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
@@ -90,14 +75,14 @@ export default function DashboardLayout() {
       </AnimatePresence>
       
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Desktop Navbar - only visible on medium and larger screens */}
-        <div className="hidden md:block">
+        {/* Desktop Navbar - only visible on large screens */}
+        <div className="hidden lg:block">
           <Navbar />
         </div>
 
-        {/* Mobile Header - only visible on small screens */}
+        {/* Mobile Header - visible on small and medium screens */}
         <motion.div
-          className="md:hidden"
+          className="lg:hidden"
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ 
@@ -113,7 +98,7 @@ export default function DashboardLayout() {
         </motion.div>
 
         {/* Main content area */}
-        <main className="flex-1 p-6 md:p-8 md:pt-24 lg:p-10 lg:pt-24 overflow-y-auto overflow-x-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 max-w-full">
+        <main className="flex-1 p-6 lg:p-8 lg:pt-24 xl:p-10 xl:pt-24 overflow-y-auto overflow-x-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 max-w-full">
           <div className="max-w-[1600px] mx-auto w-full">
             <AnimatePresence mode="wait">
             <PageTransition 

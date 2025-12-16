@@ -42,7 +42,7 @@ export default function Header({ onMenuClick, title }) {
           {/* Mobile menu button */}
           <motion.button
             onClick={onMenuClick}
-            className="md:hidden p-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+            className="lg:hidden p-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
             aria-label="Open menu"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95, rotate: 90 }}
