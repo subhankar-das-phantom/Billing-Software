@@ -164,19 +164,19 @@ api.interceptors.response.use(
     // Handle 401 Unauthorized
     if (error.response?.status === 401) {
       const isAuthCheck = config?.url?.includes('/auth/me');
-      const isLoginPage = window.location.pathname === '/login';
+      const isLoginPage = window.location.hash === '#/login' || window.location.hash.startsWith('#/login');
       const isLoginRequest = config?.url?.includes('/auth/login');
       
       if (!isAuthCheck && !isLoginPage && !isLoginRequest) {
         localStorage.removeItem('admin');
         
         // Store intended destination for redirect after login
-        const currentPath = window.location.pathname;
-        if (currentPath !== '/') {
-          sessionStorage.setItem('redirectAfterLogin', currentPath);
+        const currentHash = window.location.hash.slice(1) || '/'; // Remove '#' prefix
+        if (currentHash !== '/' && currentHash !== '/login') {
+          sessionStorage.setItem('redirectAfterLogin', currentHash);
         }
         
-        window.location.href = '/login';
+        window.location.href = '/#/login';
       }
     }
 
