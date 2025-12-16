@@ -41,8 +41,8 @@ exports.register = async (req, res, next) => {
     const cookieOptions = {
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      sameSite: 'strict',
-      secure: process.env.NODE_ENV === 'production'
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+      secure: process.env.NODE_ENV === 'production' // HTTPS only in production, required for sameSite: 'none'
     };
 
     res.cookie('token', token, cookieOptions);
@@ -110,8 +110,8 @@ exports.login = async (req, res, next) => {
     const cookieOptions = {
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      sameSite: 'strict',
-      secure: process.env.NODE_ENV === 'production' // HTTPS only in production
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+      secure: process.env.NODE_ENV === 'production' // HTTPS only in production, required for sameSite: 'none'
     };
 
     res.cookie('token', token, cookieOptions);
@@ -247,7 +247,9 @@ exports.logout = async (req, res, next) => {
   try {
     res.cookie('token', '', {
       httpOnly: true,
-      expires: new Date(0)
+      expires: new Date(0),
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+      secure: process.env.NODE_ENV === 'production'
     });
 
     res.status(200).json({
