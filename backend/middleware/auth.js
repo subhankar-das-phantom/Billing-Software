@@ -29,7 +29,11 @@ const protect = async (req, res, next) => {
 
     if (!req.admin) {
       // Clear invalid cookie if admin not found
-      res.clearCookie('token');
+      res.clearCookie('token', {
+        httpOnly: true,
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+        secure: process.env.NODE_ENV === 'production'
+      });
       return res.status(401).json({
         success: false,
         message: 'Not authorized - admin not found'
@@ -39,7 +43,11 @@ const protect = async (req, res, next) => {
     next();
   } catch (error) {
     // Clear invalid/expired token cookie to prevent repeated errors
-    res.clearCookie('token');
+    res.clearCookie('token', {
+      httpOnly: true,
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+      secure: process.env.NODE_ENV === 'production'
+    });
     
     // Log only the error type, not the full stack trace
     if (process.env.NODE_ENV === 'development') {
