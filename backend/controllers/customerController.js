@@ -10,7 +10,12 @@ exports.getCustomers = async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 50;
     const skip = (page - 1) * limit;
 
-    const query = { isActive: true };
+    const query = {};
+    
+    // Only filter by isActive if includeInactive is not set
+    if (req.query.includeInactive !== 'true') {
+      query.isActive = true;
+    }
 
     // Search
     if (req.query.search) {
