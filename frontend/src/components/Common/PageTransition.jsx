@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Loader2 } from 'lucide-react';
+import { useMotionConfig } from '../../hooks';
 
 // Multiple transition variants for different pages
 const transitionVariants = {
@@ -66,38 +67,30 @@ const transitionVariants = {
   }
 };
 
-// Transition configurations
-const transitionConfigs = {
-  default: {
-    type: 'tween',
-    ease: 'anticipate',
-    duration: 0.5
-  },
-  spring: {
-    type: 'spring',
-    stiffness: 300,
-    damping: 30
-  },
-  smooth: {
-    type: 'tween',
-    ease: [0.43, 0.13, 0.23, 0.96],
-    duration: 0.6
-  },
-  bouncy: {
-    type: 'spring',
-    stiffness: 400,
-    damping: 20
-  },
-  slow: {
-    type: 'tween',
-    ease: 'easeInOut',
-    duration: 0.8
-  },
-  fast: {
-    type: 'tween',
-    ease: 'easeOut',
-    duration: 0.3
-  }
+// Desktop transition configurations (richer, longer)
+const desktopConfigs = {
+  default: { type: 'tween', ease: 'anticipate', duration: 0.5 },
+  spring: { type: 'spring', stiffness: 300, damping: 30 },
+  smooth: { type: 'tween', ease: [0.43, 0.13, 0.23, 0.96], duration: 0.6 },
+  bouncy: { type: 'spring', stiffness: 400, damping: 20 },
+  slow: { type: 'tween', ease: 'easeInOut', duration: 0.8 },
+  fast: { type: 'tween', ease: 'easeOut', duration: 0.3 }
+};
+
+// Mobile transition configurations (snappier, efficient)
+const mobileConfigs = {
+  default: { type: 'tween', ease: 'easeOut', duration: 0.25 },
+  spring: { type: 'spring', stiffness: 400, damping: 35 },
+  smooth: { type: 'tween', ease: [0.25, 0.1, 0.25, 1], duration: 0.3 },
+  bouncy: { type: 'spring', stiffness: 450, damping: 28 },
+  slow: { type: 'tween', ease: 'easeInOut', duration: 0.4 },
+  fast: { type: 'tween', ease: 'easeOut', duration: 0.15 }
+};
+
+// Get transition config based on device
+const getTransitionConfig = (transition, isMobile) => {
+  const configs = isMobile ? mobileConfigs : desktopConfigs;
+  return configs[transition] || configs.default;
 };
 
 const PageTransition = ({ 
@@ -108,9 +101,20 @@ const PageTransition = ({
   delay = 0,
   showLoadingIndicator = false
 }) => {
-  const selectedVariant = transitionVariants[variant] || transitionVariants.fadeUp;
+  const motionConfig = useMotionConfig();
+  
+  // Use simpler variants on mobile for better performance
+  const getVariant = () => {
+    // On mobile, simplify complex variants to basic fade
+    if (motionConfig.isMobile && ['flip', 'blur', 'rotate'].includes(variant)) {
+      return transitionVariants.fadeUp;
+    }
+    return transitionVariants[variant] || transitionVariants.fadeUp;
+  };
+  
+  const selectedVariant = getVariant();
   const selectedTransition = {
-    ...transitionConfigs[transition] || transitionConfigs.default,
+    ...getTransitionConfig(transition, motionConfig.isMobile),
     delay
   };
 
@@ -129,7 +133,7 @@ const PageTransition = ({
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
           exit={{ scaleX: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: motionConfig.isMobile ? 0.3 : 0.5 }}
         />
       )}
       {children}
