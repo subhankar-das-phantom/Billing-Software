@@ -6,40 +6,27 @@ import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 import Header from './Header';
 import PageTransition from '../Common/PageTransition';
+import { useMotionConfig } from '../../hooks';
 
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const motionConfig = useMotionConfig();
 
   useEffect(() => {
     // Close sidebar on route change (mobile)
     setSidebarOpen(false);
   }, [location.pathname]);
 
-  const getTitle = () => {
-    if (pageTitles[location.pathname]) {
-      return pageTitles[location.pathname];
-    }
-    if (location.pathname.startsWith('/customers/')) return 'Customer Details';
-    if (location.pathname.startsWith('/invoices/')) return 'Invoice Details';
-    if (location.pathname.startsWith('/products/')) return 'Product Details';
-    return 'Dashboard';
-  };
-
-  const getIcon = () => {
-    if (pageIcons[location.pathname]) {
-      return pageIcons[location.pathname];
-    }
-    if (location.pathname.startsWith('/customers/')) return Users;
-    if (location.pathname.startsWith('/invoices/')) return FileText;
-    if (location.pathname.startsWith('/products/')) return Package;
-    return LayoutDashboard;
-  };
-
   // Use consistent fade animation to avoid horizontal shifting issues
   const getTransitionVariant = () => {
     return 'fadeUp';
   };
+
+  // Adaptive transition based on device
+  const sidebarTransition = motionConfig.isMobile 
+    ? { type: 'tween', duration: 0.25, ease: 'easeOut' }
+    : { type: 'spring', stiffness: 300, damping: 30 };
 
   return (
     <div className="flex min-h-screen bg-slate-950">
@@ -51,8 +38,8 @@ export default function DashboardLayout() {
               className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0, transition: { delay: 0.2 } }}
-              transition={{ duration: 0.3 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
               onClick={() => setSidebarOpen(false)}
             />
             
@@ -62,11 +49,7 @@ export default function DashboardLayout() {
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
-              transition={{ 
-                type: 'spring',
-                stiffness: 300,
-                damping: 30
-              }}
+              transition={sidebarTransition}
             >
               <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
             </motion.div>
@@ -85,11 +68,7 @@ export default function DashboardLayout() {
           className="lg:hidden"
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ 
-            type: 'spring',
-            stiffness: 300,
-            damping: 30
-          }}
+          transition={motionConfig.transition.default}
         >
           <Header 
             onMenuClick={() => setSidebarOpen(true)} 
@@ -107,35 +86,37 @@ export default function DashboardLayout() {
               transition="smooth"
               className="h-full"
             >
-              {/* Content wrapper with stagger effect */}
+              {/* Content wrapper */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
+                transition={{ duration: motionConfig.duration.fast }}
               >
                 <Outlet />
               </motion.div>
             </PageTransition>
           </AnimatePresence>
 
-          {/* Animated background gradient */}
-          <motion.div
-            className="fixed inset-0 pointer-events-none opacity-30"
-            animate={{
-              background: [
-                'radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 50%)',
-                'radial-gradient(circle at 80% 50%, rgba(139, 92, 246, 0.1) 0%, transparent 50%)',
-                'radial-gradient(circle at 50% 80%, rgba(59, 130, 246, 0.1) 0%, transparent 50%)',
-                'radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 50%)'
-              ]
-            }}
-            transition={{
-              duration: 20,
-              repeat: Infinity,
-              ease: 'linear'
-            }}
-          />
+          {/* Animated background gradient - Desktop only for performance */}
+          {motionConfig.shouldInfiniteAnimate && (
+            <motion.div
+              className="fixed inset-0 pointer-events-none opacity-30"
+              animate={{
+                background: [
+                  'radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 50%)',
+                  'radial-gradient(circle at 80% 50%, rgba(139, 92, 246, 0.1) 0%, transparent 50%)',
+                  'radial-gradient(circle at 50% 80%, rgba(59, 130, 246, 0.1) 0%, transparent 50%)',
+                  'radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 50%)'
+                ]
+              }}
+              transition={{
+                duration: 20,
+                repeat: Infinity,
+                ease: 'linear'
+              }}
+            />
+          )}
           </div>
         </main>
 
@@ -157,9 +138,9 @@ export default function DashboardLayout() {
         className="fixed bottom-6 right-6 p-3 bg-blue-500 text-white rounded-full shadow-lg hover:shadow-xl z-30"
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        whileHover={{ scale: 1.1 }}
+        whileHover={motionConfig.shouldHover ? { scale: 1.1 } : undefined}
         whileTap={{ scale: 0.9 }}
-        transition={{ type: 'spring', stiffness: 300 }}
+        transition={motionConfig.spring.normal}
         onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
         aria-label="Scroll to top"
       >
@@ -168,3 +149,4 @@ export default function DashboardLayout() {
     </div>
   );
 }
+
