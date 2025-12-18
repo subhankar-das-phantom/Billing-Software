@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -27,44 +27,45 @@ import { formatCurrency, formatDate } from '../utils/formatters';
 import { PageLoader } from '../components/Common/Loader';
 import ExportModal from '../components/Common/ExportModal';
 import { useToast } from '../context/ToastContext';
+import { useMotionConfig } from '../hooks';
 
-const pageVariants = {
+// Factory functions for adaptive variants
+const createPageVariants = (isMobile, shouldStagger) => ({
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.1,
-      delayChildren: 0.1
+      staggerChildren: shouldStagger ? 0.1 : 0,
+      delayChildren: isMobile ? 0 : 0.1
     }
   }
-};
+});
 
-const cardVariants = {
-  hidden: { opacity: 0, y: 20 },
+const createCardVariants = (isMobile) => ({
+  hidden: { opacity: 0, y: isMobile ? 15 : 20 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: {
-      type: 'spring',
-      stiffness: 300,
-      damping: 24
-    }
+    transition: isMobile 
+      ? { type: 'tween', duration: 0.25, ease: 'easeOut' }
+      : { type: 'spring', stiffness: 300, damping: 24 }
   }
-};
+});
 
-const tableRowVariants = {
+const createTableRowVariants = (isMobile, shouldStagger) => ({
   hidden: { opacity: 0, x: -20 },
   visible: (i) => ({
     opacity: 1,
     x: 0,
     transition: {
-      delay: i * 0.03,
-      type: 'spring',
-      stiffness: 300,
-      damping: 24
+      delay: shouldStagger ? i * 0.03 : 0,
+      type: isMobile ? 'tween' : 'spring',
+      duration: isMobile ? 0.2 : undefined,
+      stiffness: isMobile ? undefined : 300,
+      damping: isMobile ? undefined : 24
     }
   })
-};
+});
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState([]);
@@ -80,6 +81,12 @@ export default function InvoicesPage() {
   });
   const [showExportModal, setShowExportModal] = useState(false);
   const { success, error } = useToast();
+  
+  // Adaptive motion configuration
+  const motionConfig = useMotionConfig();
+  const pageVariants = useMemo(() => createPageVariants(motionConfig.isMobile, motionConfig.shouldStagger), [motionConfig.isMobile, motionConfig.shouldStagger]);
+  const cardVariants = useMemo(() => createCardVariants(motionConfig.isMobile), [motionConfig.isMobile]);
+  const tableRowVariants = useMemo(() => createTableRowVariants(motionConfig.isMobile, motionConfig.shouldStagger), [motionConfig.isMobile, motionConfig.shouldStagger]);
 
   useEffect(() => {
     loadInvoices();
