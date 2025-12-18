@@ -1,6 +1,7 @@
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { ArrowUpRight, Sparkles } from 'lucide-react';
 import { useState } from 'react';
+import { useMotionConfig } from '../../hooks';
 
 const MotionCard = ({ 
   children, 
@@ -13,40 +14,27 @@ const MotionCard = ({
   ...props 
 }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const motionConfig = useMotionConfig();
 
-  // Animation variants
-  const variants = {
+  // Desktop animation variants (GPU-friendly: using y and scale instead of box-shadow)
+  const desktopVariants = {
     default: {
       hover: {
         y: -5,
-        boxShadow: '0 10px 30px -10px rgba(0, 0, 0, 0.3)',
-        borderColor: 'rgba(59, 130, 246, 0.5)',
-        transition: { 
-          type: 'spring',
-          stiffness: 400,
-          damping: 17
-        }
+        transition: { type: 'spring', stiffness: 400, damping: 17 }
       },
       tap: { scale: 0.98 }
     },
     lift: {
       hover: {
-        y: -12,
+        y: -8,
         scale: 1.02,
-        boxShadow: '0 20px 40px -15px rgba(59, 130, 246, 0.4)',
-        borderColor: 'rgba(59, 130, 246, 0.8)',
-        transition: {
-          type: 'spring',
-          stiffness: 300,
-          damping: 20
-        }
+        transition: { type: 'spring', stiffness: 300, damping: 20 }
       },
-      tap: { scale: 0.97, y: -8 }
+      tap: { scale: 0.97, y: -4 }
     },
     glow: {
       hover: {
-        boxShadow: '0 0 30px rgba(59, 130, 246, 0.6), 0 10px 30px -10px rgba(0, 0, 0, 0.3)',
-        borderColor: 'rgba(59, 130, 246, 1)',
         scale: 1.01,
         transition: { duration: 0.3 }
       },
@@ -61,28 +49,40 @@ const MotionCard = ({
     }
   };
 
+  // Mobile variants (simpler, no hover needed)
+  const mobileVariants = {
+    default: { tap: { scale: 0.98 } },
+    lift: { tap: { scale: 0.97 } },
+    glow: { tap: { scale: 0.98 } },
+    minimal: { tap: { scale: 0.99 } }
+  };
+
+  const variants = motionConfig.isDesktop ? desktopVariants : mobileVariants;
   const selectedVariant = variants[variant] || variants.default;
 
-  // Tilt effect (3D rotation on hover)
-  if (variant === 'tilt') {
+  // On mobile, fallback tilt to lift (no 3D rotation - expensive)
+  if (variant === 'tilt' && motionConfig.isDesktop) {
     return <TiltCard delay={delay} className={className} {...props}>
       {children}
     </TiltCard>;
   }
+
+  // Determine if hoverable based on device
+  const shouldHover = hoverable && motionConfig.shouldHover;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ 
-        duration: 0.5, 
+        duration: motionConfig.duration.normal, 
         delay,
-        ease: [0.22, 1, 0.36, 1] // Custom easing curve
+        ease: [0.22, 1, 0.36, 1]
       }}
-      whileHover={hoverable ? selectedVariant.hover : undefined}
+      whileHover={shouldHover ? selectedVariant.hover : undefined}
       whileTap={clickable ? selectedVariant.tap : undefined}
-      onHoverStart={() => setIsHovered(true)}
-      onHoverEnd={() => setIsHovered(false)}
+      onHoverStart={() => shouldHover && setIsHovered(true)}
+      onHoverEnd={() => shouldHover && setIsHovered(false)}
       className={`glass-card relative overflow-hidden ${clickable ? 'cursor-pointer' : ''} ${className}`}
       {...props}
     >
