@@ -65,86 +65,37 @@ const Toast = ({ message, type = 'success', onClose }) => {
   );
 };
 
-// Loading screen component
+// Loading screen component - Simplified for iOS Safari performance
 const AuthLoadingScreen = () => {
   return (
     <motion.div
       className="fixed inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 z-50 flex items-center justify-center"
       initial={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.5 }}
+      transition={{ duration: 0.3 }}
     >
       <div className="text-center">
-        {/* Logo with pulse animation */}
-        <motion.div
-          className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-2xl shadow-blue-500/30"
-          animate={{
-            scale: [1, 1.05, 1],
-            rotate: [0, 5, -5, 0]
-          }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: 'easeInOut'
-          }}
-        >
+        {/* Logo - static on mobile, subtle animation on desktop */}
+        <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-2xl shadow-blue-500/30">
           <Shield className="w-10 h-10 text-white" strokeWidth={2.5} />
-        </motion.div>
+        </div>
 
-        {/* Spinner */}
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-          className="inline-block mb-4"
-        >
-          <Loader2 className="w-8 h-8 text-blue-500" />
-        </motion.div>
+        {/* Simple CSS-based spinner - much better iOS performance */}
+        <div className="inline-block mb-4">
+          <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
 
-        {/* Loading text */}
+        {/* Loading text - simple fade in, no infinite animations */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.1, duration: 0.3 }}
         >
           <h2 className="text-xl font-semibold text-white mb-2">
             Authenticating
           </h2>
-          <div className="flex justify-center gap-1">
-            {[0, 1, 2].map((index) => (
-              <motion.div
-                key={index}
-                className="w-2 h-2 bg-blue-500 rounded-full"
-                animate={{
-                  scale: [1, 1.5, 1],
-                  opacity: [0.5, 1, 0.5]
-                }}
-                transition={{
-                  duration: 1.5,
-                  repeat: Infinity,
-                  delay: index * 0.2
-                }}
-              />
-            ))}
-          </div>
+          <p className="text-sm text-slate-400">Please wait...</p>
         </motion.div>
-
-        {/* Animated background gradient */}
-        <motion.div
-          className="fixed inset-0 pointer-events-none opacity-30"
-          animate={{
-            background: [
-              'radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.3) 0%, transparent 50%)',
-              'radial-gradient(circle at 80% 50%, rgba(139, 92, 246, 0.3) 0%, transparent 50%)',
-              'radial-gradient(circle at 50% 80%, rgba(59, 130, 246, 0.3) 0%, transparent 50%)',
-              'radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.3) 0%, transparent 50%)'
-            ]
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: 'linear'
-          }}
-        />
       </div>
     </motion.div>
   );
@@ -291,12 +242,8 @@ export const AuthProvider = ({ children }) => {
               <motion.div
                 className="flex flex-col items-center gap-4"
               >
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                >
-                  <LogIn className="w-12 h-12 text-blue-500" />
-                </motion.div>
+                {/* CSS spinner instead of infinite framer-motion */}
+                <div className="w-12 h-12 rounded-full border-3 border-blue-500 border-t-transparent animate-spin"></div>
                 <div className="text-center">
                   <h3 className="text-xl font-semibold text-white mb-2">
                     Signing you in...
@@ -327,12 +274,8 @@ export const AuthProvider = ({ children }) => {
               <motion.div
                 className="flex flex-col items-center gap-4"
               >
-                <motion.div
-                  animate={{ rotate: -360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                >
-                  <LogOutIcon className="w-12 h-12 text-red-500" />
-                </motion.div>
+                {/* CSS spinner instead of infinite framer-motion */}
+                <div className="w-12 h-12 rounded-full border-3 border-red-500 border-t-transparent animate-spin"></div>
                 <div className="text-center">
                   <h3 className="text-xl font-semibold text-white mb-2">
                     Signing you out...
