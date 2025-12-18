@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Package,
@@ -32,6 +32,59 @@ import Modal from '../components/Common/Modal';
 import ConfirmDialog from '../components/Common/ConfirmDialog';
 import EnhancedButton from '../components/Common/EnhancedButton';
 import { useToast } from '../context/ToastContext';
+import { useMotionConfig } from '../hooks';
+
+// Helper to create adaptive variants
+const createPageVariants = (isMobile, shouldStagger) => ({
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: shouldStagger ? 0.1 : 0,
+      delayChildren: isMobile ? 0 : 0.1
+    }
+  }
+});
+
+const createCardVariants = (isMobile) => ({
+  hidden: { opacity: 0, y: isMobile ? 15 : 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: isMobile 
+      ? { type: 'tween', duration: 0.25, ease: 'easeOut' }
+      : { type: 'spring', stiffness: 300, damping: 24 }
+  }
+});
+
+const createTableRowVariants = (isMobile, shouldStagger) => ({
+  hidden: { opacity: 0, x: -20 },
+  visible: (i) => ({
+    opacity: 1,
+    x: 0,
+    transition: {
+      delay: shouldStagger ? i * 0.03 : 0,
+      type: isMobile ? 'tween' : 'spring',
+      duration: isMobile ? 0.2 : undefined,
+      stiffness: isMobile ? undefined : 300,
+      damping: isMobile ? undefined : 24
+    }
+  })
+});
+
+const createFormItemVariants = (shouldStagger) => ({
+  hidden: { opacity: 0, x: -20 },
+  visible: (i) => ({
+    opacity: 1,
+    x: 0,
+    transition: {
+      delay: shouldStagger ? i * 0.05 : 0,
+      type: 'spring',
+      stiffness: 300,
+      damping: 24
+    }
+  })
+});
 
 const initialProductState = {
   productName: '',
