@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, AnimatePresence, useMotionValue, useSpring, useTransform, useInView, animate } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useSpring, useInView, animate } from 'framer-motion';
 import { 
   Package, 
   Users, 
@@ -23,25 +23,30 @@ import { dashboardService } from '../services/dashboardService';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { PageLoader } from '../components/Common/Loader';
 import MotionCard from '../components/Common/MotionCard';
+import { useMotionConfig } from '../hooks';
 
-// Animated Counter Component
-const AnimatedCounter = ({ value, duration = 2, decimals = 0, prefix = '', suffix = '' }) => {
+// Animated Counter Component with adaptive duration
+const AnimatedCounter = ({ value, duration, decimals = 0, prefix = '', suffix = '', isMobile = false }) => {
   const ref = useRef(null);
   const motionValue = useMotionValue(0);
-  const springValue = useSpring(motionValue, { 
-    damping: 50,
-    stiffness: 100
-  });
-  const isInView = useInView(ref, { once: true, amount: 0.5 });
+  
+  // Faster animation on mobile for snappier feel
+  const actualDuration = isMobile ? Math.min(duration * 0.4, 0.8) : duration;
+  const springConfig = isMobile 
+    ? { damping: 60, stiffness: 150 }  // Stiffer, less bouncy on mobile
+    : { damping: 50, stiffness: 100 };
+    
+  const springValue = useSpring(motionValue, springConfig);
+  const isInView = useInView(ref, { once: true, amount: 0.3 });
 
   useEffect(() => {
     if (isInView) {
       animate(motionValue, value, { 
-        duration,
+        duration: actualDuration,
         ease: 'easeOut'
       });
     }
-  }, [isInView, value, motionValue, duration]);
+  }, [isInView, value, motionValue, actualDuration]);
 
   useEffect(() => {
     const unsubscribe = springValue.on('change', (latest) => {
@@ -58,7 +63,8 @@ const AnimatedCounter = ({ value, duration = 2, decimals = 0, prefix = '', suffi
   return <span ref={ref}>{prefix}0{suffix}</span>;
 };
 
-const containerVariants = {
+// Desktop container variants (with stagger)
+const containerVariantsDesktop = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
@@ -69,7 +75,20 @@ const containerVariants = {
   }
 };
 
-const itemVariants = {
+// Mobile container variants (no stagger for smoother scrolling)
+const containerVariantsMobile = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0,
+      delayChildren: 0
+    }
+  }
+};
+
+// Desktop item variants
+const itemVariantsDesktop = {
   hidden: { opacity: 0, y: 30, scale: 0.95 },
   show: { 
     opacity: 1, 
@@ -83,13 +102,32 @@ const itemVariants = {
   }
 };
 
+// Mobile item variants (simpler, faster)
+const itemVariantsMobile = {
+  hidden: { opacity: 0, y: 15 },
+  show: { 
+    opacity: 1, 
+    y: 0,
+    transition: {
+      type: 'tween',
+      duration: 0.25,
+      ease: 'easeOut'
+    }
+  }
+};
+
 export default function DashboardPage() {
   const [stats, setStats] = useState(null);
   const [recentInvoices, setRecentInvoices] = useState([]);
   const [lowStock, setLowStock] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [invoicePeriod, setInvoicePeriod] = useState('all'); // 'all', '1m', '6m', '1y'
+  const [invoicePeriod, setInvoicePeriod] = useState('all');
   const [filteredInvoiceCount, setFilteredInvoiceCount] = useState(0);
+  
+  // Adaptive motion configuration
+  const motionConfig = useMotionConfig();
+  const containerVariants = motionConfig.isMobile ? containerVariantsMobile : containerVariantsDesktop;
+  const itemVariants = motionConfig.isMobile ? itemVariantsMobile : itemVariantsDesktop;
 
   useEffect(() => {
     loadDashboard();
@@ -206,17 +244,14 @@ export default function DashboardPage() {
         variants={itemVariants}
         className="glass-card p-8 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-transparent border-blue-500/20 relative overflow-hidden"
       >
-        <motion.div
-          className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-transparent"
-          animate={{
-            x: ['-100%', '100%']
-          }}
-          transition={{
-            duration: 3,
-            repeat: Infinity,
-            ease: 'linear'
-          }}
-        />
+        {/* Animated shimmer - Desktop only */}
+        {motionConfig.shouldInfiniteAnimate && (
+          <motion.div
+            className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-transparent"
+            animate={{ x: ['-100%', '100%'] }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+          />
+        )}
         <div className="relative z-10 flex items-center justify-between">
             <div>
               <motion.h1 
@@ -254,10 +289,7 @@ export default function DashboardPage() {
           <motion.div
             key={index}
             variants={itemVariants}
-            whileHover={{ 
-              y: -8,
-              boxShadow: '0 20px 40px -15px rgba(59, 130, 246, 0.4)'
-            }}
+            whileHover={motionConfig.shouldHover ? { y: -8 } : undefined}
             className="stat-card border-none glass-card p-6 relative overflow-hidden group cursor-pointer"
           >
             {/* Animated background gradient */}
@@ -271,36 +303,30 @@ export default function DashboardPage() {
                   className="text-sm text-slate-400 mb-3 font-medium tracking-wide"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 0.2 + index * 0.1 }}
+                  transition={{ delay: motionConfig.isMobile ? 0 : (0.2 + index * 0.1) }}
                 >
                   {stat.label}
                 </motion.p>
                 <motion.p 
                   className="text-3xl font-bold text-white tracking-tight leading-tight"
-                  initial={{ opacity: 0, scale: 0.5 }}
+                  initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.3 + index * 0.1, type: 'spring', stiffness: 200 }}
+                  transition={{ delay: motionConfig.isMobile ? 0 : (0.3 + index * 0.1), type: 'spring', stiffness: 200 }}
                 >
                   {stat.isCurrency ? (
-                    <>₹<AnimatedCounter value={stat.value} duration={2} /></>
+                    <>₹<AnimatedCounter value={stat.value} duration={2} isMobile={motionConfig.isMobile} /></>
                   ) : (
-                    <AnimatedCounter value={stat.value} duration={2} />
+                    <AnimatedCounter value={stat.value} duration={2} isMobile={motionConfig.isMobile} />
                   )}
                 </motion.p>
               </div>
               
               <motion.div 
                 className={`p-3 rounded-xl bg-gradient-to-br ${stat.color} shadow-lg ${stat.shadow} relative overflow-hidden`}
-                whileHover={{ rotate: 360, scale: 1.1 }}
-                transition={{ duration: 0.6 }}
+                whileHover={motionConfig.shouldHover ? { scale: 1.1 } : undefined}
+                transition={{ duration: 0.3 }}
               >
                 <stat.icon className="w-6 h-6 text-white relative z-10" />
-                <motion.div
-                  className="absolute inset-0 bg-white"
-                  initial={{ scale: 0, opacity: 0 }}
-                  whileHover={{ scale: 1, opacity: 0.2 }}
-                  transition={{ duration: 0.3 }}
-                />
               </motion.div>
             </div>
 
@@ -360,15 +386,10 @@ export default function DashboardPage() {
           <div className="flex items-center gap-5">
             <motion.div 
               className="p-4 rounded-xl bg-blue-500/20 text-blue-400 relative overflow-hidden"
-              whileHover={{ rotate: [0, -10, 10, 0], scale: 1.1 }}
-              transition={{ duration: 0.5 }}
+              whileHover={motionConfig.shouldHover ? { scale: 1.1 } : undefined}
+              transition={{ duration: 0.3 }}
             >
               <FileText size={28} className="relative z-10" />
-              <motion.div
-                className="absolute inset-0 bg-white"
-                initial={{ scale: 0, opacity: 0 }}
-                whileHover={{ scale: 1, opacity: 0.1 }}
-              />
             </motion.div>
             <div>
               <motion.p 
@@ -376,7 +397,7 @@ export default function DashboardPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
               >
-                <AnimatedCounter value={filteredInvoiceCount} duration={1.5} />
+                <AnimatedCounter value={filteredInvoiceCount} duration={1.5} isMobile={motionConfig.isMobile} />
               </motion.p>
               <p className="text-sm text-slate-400 font-medium leading-relaxed">
                 {invoicePeriod === 'all' ? 'Total Invoices' : 
@@ -390,21 +411,16 @@ export default function DashboardPage() {
         {/* Today's Invoices */}
         <motion.div
           variants={itemVariants}
-          whileHover={{ scale: 1.03, y: -4 }}
+          whileHover={motionConfig.shouldHover ? { scale: 1.02, y: -4 } : undefined}
           className="glass-card p-6 hover:border-slate-600 transition-colors cursor-pointer group"
         >
           <div className="flex items-center gap-5">
             <motion.div 
               className="p-4 rounded-xl bg-green-500/20 text-green-400 relative overflow-hidden"
-              whileHover={{ rotate: [0, -10, 10, 0], scale: 1.1 }}
-              transition={{ duration: 0.5 }}
+              whileHover={motionConfig.shouldHover ? { scale: 1.1 } : undefined}
+              transition={{ duration: 0.3 }}
             >
               <FileClock size={28} className="relative z-10" />
-              <motion.div
-                className="absolute inset-0 bg-white"
-                initial={{ scale: 0, opacity: 0 }}
-                whileHover={{ scale: 1, opacity: 0.1 }}
-              />
             </motion.div>
             <div>
               <motion.p 
@@ -412,7 +428,7 @@ export default function DashboardPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
               >
-                <AnimatedCounter value={stats?.todayInvoices || 0} duration={1.5} />
+                <AnimatedCounter value={stats?.todayInvoices || 0} duration={1.5} isMobile={motionConfig.isMobile} />
               </motion.p>
               <p className="text-sm text-slate-400 font-medium leading-relaxed">Today's Invoices</p>
             </div>
@@ -422,21 +438,16 @@ export default function DashboardPage() {
         {/* Low Stock Items */}
         <motion.div
           variants={itemVariants}
-          whileHover={{ scale: 1.03, y: -4 }}
+          whileHover={motionConfig.shouldHover ? { scale: 1.02, y: -4 } : undefined}
           className="glass-card p-6 hover:border-slate-600 transition-colors cursor-pointer group"
         >
           <div className="flex items-center gap-5">
             <motion.div 
               className={`p-4 rounded-xl ${(stats?.lowStockCount || 0) > 0 ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'} relative overflow-hidden`}
-              whileHover={{ rotate: [0, -10, 10, 0], scale: 1.1 }}
-              transition={{ duration: 0.5 }}
+              whileHover={motionConfig.shouldHover ? { scale: 1.1 } : undefined}
+              transition={{ duration: 0.3 }}
             >
               <AlertTriangle size={28} className="relative z-10" />
-              <motion.div
-                className="absolute inset-0 bg-white"
-                initial={{ scale: 0, opacity: 0 }}
-                whileHover={{ scale: 1, opacity: 0.1 }}
-              />
             </motion.div>
             <div>
               <motion.p 
@@ -444,7 +455,7 @@ export default function DashboardPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
               >
-                <AnimatedCounter value={stats?.lowStockCount || 0} duration={1.5} />
+                <AnimatedCounter value={stats?.lowStockCount || 0} duration={1.5} isMobile={motionConfig.isMobile} />
               </motion.p>
               <p className="text-sm text-slate-400 font-medium leading-relaxed">Low Stock Items</p>
             </div>
@@ -460,8 +471,8 @@ export default function DashboardPage() {
             <div className="flex items-center gap-4">
               <motion.div
                 className="p-2 bg-blue-500/20 rounded-lg"
-                whileHover={{ rotate: 360 }}
-                transition={{ duration: 0.6 }}
+                whileHover={motionConfig.shouldHover ? { scale: 1.1 } : undefined}
+                transition={{ duration: 0.3 }}
               >
                 <TrendingUp size={20} className="text-blue-400" />
               </motion.div>
@@ -469,12 +480,16 @@ export default function DashboardPage() {
             </div>
             <Link to="/invoices" className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors group">
               View all 
-              <motion.div
-                animate={{ x: [0, 4, 0] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-              >
+              {motionConfig.shouldInfiniteAnimate ? (
+                <motion.div
+                  animate={{ x: [0, 4, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                >
+                  <ArrowRight size={14} />
+                </motion.div>
+              ) : (
                 <ArrowRight size={14} />
-              </motion.div>
+              )}
             </Link>
           </div>
           
@@ -497,7 +512,7 @@ export default function DashboardPage() {
                   initial="hidden"
                   animate="show"
                   variants={{
-                    show: { transition: { staggerChildren: 0.05 } }
+                    show: { transition: { staggerChildren: motionConfig.shouldStagger ? 0.05 : 0 } }
                   }}
                 >
                   {recentInvoices.map((invoice, index) => (
@@ -507,7 +522,7 @@ export default function DashboardPage() {
                         hidden: { opacity: 0, x: -20 },
                         show: { opacity: 1, x: 0 }
                       }}
-                      whileHover={{ x: 4, backgroundColor: 'rgba(51, 65, 85, 0.8)' }}
+                      whileHover={motionConfig.shouldHover ? { x: 4, backgroundColor: 'rgba(51, 65, 85, 0.8)' } : undefined}
                     >
                       <Link 
                         to={`/invoices/${invoice._id}`}
@@ -516,7 +531,7 @@ export default function DashboardPage() {
                         <div className="flex items-center gap-4">
                           <motion.div 
                             className="w-10 h-10 rounded-lg bg-slate-700/50 flex items-center justify-center text-slate-400 group-hover:bg-blue-500/20 group-hover:text-blue-400 transition-colors"
-                            whileHover={{ rotate: 360 }}
+                            whileHover={motionConfig.shouldHover ? { scale: 1.1 } : undefined}
                             transition={{ duration: 0.5 }}
                           >
                             <FileText size={20} />
