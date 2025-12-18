@@ -25,6 +25,7 @@ import Modal from '../components/Common/Modal';
 import ConfirmDialog from '../components/Common/ConfirmDialog';
 import EnhancedButton from '../components/Common/EnhancedButton';
 import { useToast } from '../context/ToastContext';
+import { useMotionConfig } from '../hooks';
 
 const initialCustomerState = {
   customerName: '',
@@ -47,6 +48,9 @@ export default function CustomersPage() {
   const [saving, setSaving] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, customer: null });
   const { success, error } = useToast();
+  
+  // Adaptive motion configuration
+  const motionConfig = useMotionConfig();
 
   useEffect(() => {
     loadCustomers();
@@ -136,8 +140,8 @@ export default function CustomersPage() {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.08,
-        delayChildren: 0.1
+        staggerChildren: motionConfig.shouldStagger ? 0.08 : 0,
+        delayChildren: motionConfig.isMobile ? 0 : 0.1
       }
     }
   };
@@ -145,18 +149,16 @@ export default function CustomersPage() {
   const cardVariants = {
     hidden: { 
       opacity: 0, 
-      y: 30,
-      scale: 0.95
+      y: motionConfig.isMobile ? 15 : 30,
+      scale: motionConfig.isMobile ? 1 : 0.95
     },
     visible: {
       opacity: 1,
       y: 0,
       scale: 1,
-      transition: {
-        type: 'spring',
-        stiffness: 300,
-        damping: 24
-      }
+      transition: motionConfig.isMobile 
+        ? { type: 'tween', duration: 0.25, ease: 'easeOut' }
+        : { type: 'spring', stiffness: 300, damping: 24 }
     }
   };
 
@@ -166,7 +168,7 @@ export default function CustomersPage() {
       opacity: 1,
       x: 0,
       transition: {
-        delay: i * 0.05,
+        delay: motionConfig.shouldStagger ? i * 0.05 : 0,
         type: 'spring',
         stiffness: 300,
         damping: 24
@@ -311,10 +313,7 @@ export default function CustomersPage() {
                 key={customer._id}
                 variants={cardVariants}
                 layout
-                whileHover={{ 
-                  y: -8,
-                  boxShadow: '0 20px 40px -15px rgba(59, 130, 246, 0.3)'
-                }}
+                whileHover={motionConfig.shouldHover ? { y: -6 } : undefined}
                 className="glass-card p-6 hover:border-blue-500/50 transition-colors cursor-pointer group"
               >
                 <div className="flex items-start justify-between mb-4">
@@ -322,7 +321,7 @@ export default function CustomersPage() {
                     {/* Avatar */}
                     <motion.div
                       className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center relative overflow-hidden shadow-lg shadow-emerald-500/30"
-                      whileHover={{ scale: 1.1, rotate: 5 }}
+                      whileHover={motionConfig.shouldHover ? { scale: 1.1 } : undefined}
                       transition={{ type: 'spring', stiffness: 400 }}
                     >
                       <span className="text-white font-bold text-lg relative z-10">
