@@ -91,6 +91,39 @@ const tableRowVariants = {
   }
 };
 
+const DRAFT_STORAGE_KEY = 'invoice_draft';
+
+// Helper to load draft from localStorage
+const loadDraftFromStorage = () => {
+  try {
+    const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (e) {
+    console.error('Failed to load invoice draft:', e);
+  }
+  return null;
+};
+
+// Helper to save draft to localStorage
+const saveDraftToStorage = (draft) => {
+  try {
+    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+  } catch (e) {
+    console.error('Failed to save invoice draft:', e);
+  }
+};
+
+// Helper to clear draft from localStorage
+const clearDraftFromStorage = () => {
+  try {
+    localStorage.removeItem(DRAFT_STORAGE_KEY);
+  } catch (e) {
+    console.error('Failed to clear invoice draft:', e);
+  }
+};
+
 export default function InvoiceCreatePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -110,6 +143,27 @@ export default function InvoiceCreatePage() {
   const [invoiceItems, setInvoiceItems] = useState([]);
   const [paymentType, setPaymentType] = useState('Credit');
   const [notes, setNotes] = useState('');
+  
+  const [draftLoaded, setDraftLoaded] = useState(false);
+
+  // Save draft to localStorage whenever relevant state changes
+  useEffect(() => {
+    if (!draftLoaded) return; // Don't save until draft is loaded/initialized
+    
+    const draft = {
+      selectedCustomer,
+      customerSearch,
+      invoiceItems,
+      paymentType,
+      notes,
+      savedAt: new Date().toISOString()
+    };
+    
+    // Only save if there's meaningful data
+    if (selectedCustomer || invoiceItems.length > 0 || notes) {
+      saveDraftToStorage(draft);
+    }
+  }, [selectedCustomer, customerSearch, invoiceItems, paymentType, notes, draftLoaded]);
 
   useEffect(() => {
     loadInitialData();
@@ -125,6 +179,7 @@ export default function InvoiceCreatePage() {
       setProducts(productsData.products || []);
       setCustomers(customersData.customers || []);
 
+      // Check for customer from URL params (takes priority)
       const customerId = searchParams.get('customer');
       if (customerId) {
         const customer = customersData.customers?.find(c => c._id === customerId);
@@ -132,11 +187,50 @@ export default function InvoiceCreatePage() {
           setSelectedCustomer(customer);
           setCustomerSearch(customer.customerName);
         }
+      } else {
+        // Restore draft from localStorage if no URL param
+        const draft = loadDraftFromStorage();
+        if (draft) {
+          // Restore customer if still exists in the customers list
+          if (draft.selectedCustomer) {
+            const customer = customersData.customers?.find(c => c._id === draft.selectedCustomer._id);
+            if (customer) {
+              setSelectedCustomer(customer);
+              setCustomerSearch(draft.customerSearch || customer.customerName);
+            }
+          }
+          
+          // Restore invoice items - validate products still exist and have stock
+          if (draft.invoiceItems && draft.invoiceItems.length > 0) {
+            const validItems = draft.invoiceItems.filter(item => {
+              const product = productsData.products?.find(p => p._id === item.product._id);
+              return product && product.currentStockQty > 0;
+            }).map(item => {
+              // Update stock info from current product data
+              const product = productsData.products?.find(p => p._id === item.product._id);
+              return {
+                ...item,
+                product: {
+                  ...item.product,
+                  currentStock: product?.currentStockQty || 0
+                }
+              };
+            });
+            setInvoiceItems(validItems);
+          }
+          
+          // Restore other fields
+          if (draft.paymentType) setPaymentType(draft.paymentType);
+          if (draft.notes) setNotes(draft.notes);
+          
+          success('Draft restored');
+        }
       }
     } catch (err) {
       error('Failed to load data');
     } finally {
       setLoading(false);
+      setDraftLoaded(true); // Mark as loaded to enable auto-save
     }
   };
 
@@ -306,6 +400,10 @@ export default function InvoiceCreatePage() {
       };
 
       const result = await invoiceService.createInvoice(invoiceData);
+      
+      // Clear the draft after successful creation
+      clearDraftFromStorage();
+      
       success('Invoice created successfully!');
       navigate(`/invoices/${result.invoice._id}`);
     } catch (err) {
@@ -313,6 +411,17 @@ export default function InvoiceCreatePage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  // Clear draft and reset form
+  const handleClearDraft = () => {
+    setSelectedCustomer(null);
+    setCustomerSearch('');
+    setInvoiceItems([]);
+    setPaymentType('Credit');
+    setNotes('');
+    clearDraftFromStorage();
+    success('Draft cleared');
   };
 
   if (loading) {
@@ -328,15 +437,32 @@ export default function InvoiceCreatePage() {
     >
       {/* Customer Selection */}
       <motion.div variants={cardVariants} className="glass-card p-6 relative z-20">
-        <div className="flex items-center gap-3 mb-6">
-          <motion.div
-            className="p-2 bg-blue-500/20 rounded-lg"
-            whileHover={{ rotate: 360 }}
-            transition={{ duration: 0.6 }}
-          >
-            <User className="w-5 h-5 text-blue-400" />
-          </motion.div>
-          <h2 className="text-lg font-semibold text-white">Customer Details</h2>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <motion.div
+              className="p-2 bg-blue-500/20 rounded-lg"
+              whileHover={{ rotate: 360 }}
+              transition={{ duration: 0.6 }}
+            >
+              <User className="w-5 h-5 text-blue-400" />
+            </motion.div>
+            <h2 className="text-lg font-semibold text-white">Customer Details</h2>
+          </div>
+          
+          {/* Clear Draft Button - only show when there's data */}
+          {(selectedCustomer || invoiceItems.length > 0) && (
+            <motion.button
+              onClick={handleClearDraft}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Trash2 className="w-4 h-4" />
+              Clear Draft
+            </motion.button>
+          )}
         </div>
         
         <div className={`relative ${showCustomerDropdown && customerSearch && filteredCustomers.length > 0 ? 'pb-64' : ''}`}>
