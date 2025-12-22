@@ -256,6 +256,49 @@ const updateInvoiceStatusValidator = [
   validate
 ];
 
+// ==================== NOTE VALIDATORS ====================
+const createNoteValidator = [
+  body('title')
+    .trim()
+    .notEmpty()
+    .withMessage('Title is required')
+    .isLength({ max: 200 })
+    .withMessage('Title must be less than 200 characters'),
+  body('content')
+    .optional()
+    .trim()
+    .isLength({ max: 5000 })
+    .withMessage('Content must be less than 5000 characters'),
+  body('color')
+    .optional()
+    .trim()
+    .matches(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i)
+    .withMessage('Invalid color format'),
+  validate
+];
+
+const updateNoteValidator = [
+  param('id')
+    .isMongoId()
+    .withMessage('Invalid note ID'),
+  body('title')
+    .optional()
+    .trim()
+    .isLength({ max: 200 })
+    .withMessage('Title must be less than 200 characters'),
+  body('content')
+    .optional()
+    .trim()
+    .isLength({ max: 5000 })
+    .withMessage('Content must be less than 5000 characters'),
+  body('color')
+    .optional()
+    .trim()
+    .matches(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i)
+    .withMessage('Invalid color format'),
+  validate
+];
+
 // ==================== COMMON VALIDATORS ====================
 const mongoIdParam = [
   param('id')
@@ -294,6 +337,14 @@ module.exports = {
   // Invoices
   createInvoiceValidator,
   updateInvoiceStatusValidator,
+  
+  // Invoices
+  createInvoiceValidator,
+  updateInvoiceStatusValidator,
+  
+  // Notes
+  createNoteValidator,
+  updateNoteValidator,
   
   // Common
   mongoIdParam,
