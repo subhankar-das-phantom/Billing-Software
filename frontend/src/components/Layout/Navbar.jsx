@@ -10,7 +10,8 @@ import {
   LogOut,
   User,
   ChevronDown,
-  Sparkles
+  Sparkles,
+  StickyNote
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -19,6 +20,7 @@ const navItems = [
   { path: '/products', label: 'Products', icon: Package },
   { path: '/customers', label: 'Customers', icon: Users },
   { path: '/invoices', label: 'Invoices', icon: FileText },
+  { path: '/notes', label: 'Notes', icon: StickyNote },
   { path: '/invoices/create', label: 'Create Invoice', icon: FilePlus, highlight: true },
 ];
 
@@ -139,7 +141,7 @@ export default function Navbar() {
                   {admin?.firmName?.charAt(0) || 'A'}
                 </span>
               </div>
-              <div className="hidden md:block text-left">
+              <div className="hidden xl:block text-left">
                 <p className="text-sm font-medium text-white truncate max-w-[150px]">
                   {admin?.firmName || 'Admin'}
                 </p>
