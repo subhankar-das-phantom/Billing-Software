@@ -93,10 +93,10 @@ const tableRowVariants = {
 
 const DRAFT_STORAGE_KEY = 'invoice_draft';
 
-// Helper to load draft from localStorage
+// Helper to load draft from sessionStorage (tab-specific)
 const loadDraftFromStorage = () => {
   try {
-    const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
+    const saved = sessionStorage.getItem(DRAFT_STORAGE_KEY);
     if (saved) {
       return JSON.parse(saved);
     }
@@ -106,19 +106,19 @@ const loadDraftFromStorage = () => {
   return null;
 };
 
-// Helper to save draft to localStorage
+// Helper to save draft to sessionStorage (tab-specific)
 const saveDraftToStorage = (draft) => {
   try {
-    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+    sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
   } catch (e) {
     console.error('Failed to save invoice draft:', e);
   }
 };
 
-// Helper to clear draft from localStorage
+// Helper to clear draft from sessionStorage (tab-specific)
 const clearDraftFromStorage = () => {
   try {
-    localStorage.removeItem(DRAFT_STORAGE_KEY);
+    sessionStorage.removeItem(DRAFT_STORAGE_KEY);
   } catch (e) {
     console.error('Failed to clear invoice draft:', e);
   }
