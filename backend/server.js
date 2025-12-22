@@ -63,6 +63,7 @@ app.use('/api/products', generalLimiter, require('./routes/products'));
 app.use('/api/customers', generalLimiter, require('./routes/customers'));
 app.use('/api/invoices', generalLimiter, require('./routes/invoices'));
 app.use('/api/dashboard', generalLimiter, require('./routes/dashboard'));
+app.use('/api/notes', generalLimiter, require('./routes/notes'));
 
 // Health check
 app.get('/api/health', (req, res) => {
