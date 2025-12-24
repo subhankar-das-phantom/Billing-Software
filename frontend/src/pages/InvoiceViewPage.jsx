@@ -177,13 +177,6 @@ export default function InvoiceViewPage() {
         boxSizing: 'border-box'
       }}
     >
-      {/* Copy Type Label */}
-      <div className="text-center mb-1">
-        <span className="text-[8px] font-bold border border-black px-2 py-0.5">
-          {copyType}
-        </span>
-      </div>
-
       {/* Main content wrapper */}
       <div className="flex flex-col flex-1">
         {/* Header */}
@@ -440,7 +433,7 @@ export default function InvoiceViewPage() {
           }}
         >
           {/* Customer Copy - Top Half */}
-          <InvoiceCopy copyType="CUSTOMER COPY" />
+          <InvoiceCopy />
           
           {/* Cut Line */}
           <div className="flex items-center my-2" style={{ borderTop: '1px dashed #000' }}>
@@ -450,7 +443,7 @@ export default function InvoiceViewPage() {
           </div>
           
           {/* Office Copy - Bottom Half */}
-          <InvoiceCopy copyType="OFFICE COPY" />
+          <InvoiceCopy  />
         </motion.div>
       </div>
     </motion.div>
