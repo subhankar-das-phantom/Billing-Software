@@ -4,6 +4,7 @@ const {
   getInvoices,
   getInvoice,
   createInvoice,
+  updateInvoice,
   getCustomerInvoices,
   updateInvoiceStatus,
   exportInvoices
@@ -28,8 +29,10 @@ router.route('/')
 router.get('/customer/:customerId', getCustomerInvoices);
 
 router.route('/:id')
-  .get(mongoIdParam, getInvoice);
+  .get(mongoIdParam, getInvoice)
+  .put(mongoIdParam, updateInvoice);
 
 router.put('/:id/status', updateInvoiceStatusValidator, updateInvoiceStatus);
 
 module.exports = router;
+

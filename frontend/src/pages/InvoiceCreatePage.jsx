@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { useNavigate, useSearchParams, useParams, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
@@ -92,11 +92,18 @@ const tableRowVariants = {
 };
 
 const DRAFT_STORAGE_KEY = 'invoice_draft';
+const EDIT_DRAFT_STORAGE_KEY_PREFIX = 'invoice_edit_draft_';
+
+// Helper to get storage key based on mode
+const getDraftStorageKey = (invoiceId = null) => {
+  return invoiceId ? `${EDIT_DRAFT_STORAGE_KEY_PREFIX}${invoiceId}` : DRAFT_STORAGE_KEY;
+};
 
 // Helper to load draft from sessionStorage (tab-specific)
-const loadDraftFromStorage = () => {
+const loadDraftFromStorage = (invoiceId = null) => {
   try {
-    const saved = sessionStorage.getItem(DRAFT_STORAGE_KEY);
+    const key = getDraftStorageKey(invoiceId);
+    const saved = sessionStorage.getItem(key);
     if (saved) {
       return JSON.parse(saved);
     }
@@ -107,18 +114,20 @@ const loadDraftFromStorage = () => {
 };
 
 // Helper to save draft to sessionStorage (tab-specific)
-const saveDraftToStorage = (draft) => {
+const saveDraftToStorage = (draft, invoiceId = null) => {
   try {
-    sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+    const key = getDraftStorageKey(invoiceId);
+    sessionStorage.setItem(key, JSON.stringify(draft));
   } catch (e) {
     console.error('Failed to save invoice draft:', e);
   }
 };
 
 // Helper to clear draft from sessionStorage (tab-specific)
-const clearDraftFromStorage = () => {
+const clearDraftFromStorage = (invoiceId = null) => {
   try {
-    sessionStorage.removeItem(DRAFT_STORAGE_KEY);
+    const key = getDraftStorageKey(invoiceId);
+    sessionStorage.removeItem(key);
   } catch (e) {
     console.error('Failed to clear invoice draft:', e);
   }
@@ -127,7 +136,12 @@ const clearDraftFromStorage = () => {
 export default function InvoiceCreatePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { id: editInvoiceId } = useParams();
+  const location = useLocation();
   const { success, error } = useToast();
+
+  // Detect if we're in edit mode
+  const isEditMode = Boolean(editInvoiceId && location.pathname.includes('/edit'));
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -145,8 +159,9 @@ export default function InvoiceCreatePage() {
   const [notes, setNotes] = useState('');
   
   const [draftLoaded, setDraftLoaded] = useState(false);
+  const [originalInvoice, setOriginalInvoice] = useState(null);
 
-  // Save draft to localStorage whenever relevant state changes
+  // Save draft to sessionStorage whenever relevant state changes (works for both create and edit modes)
   useEffect(() => {
     if (!draftLoaded) return; // Don't save until draft is loaded/initialized
     
@@ -161,13 +176,13 @@ export default function InvoiceCreatePage() {
     
     // Only save if there's meaningful data
     if (selectedCustomer || invoiceItems.length > 0 || notes) {
-      saveDraftToStorage(draft);
+      saveDraftToStorage(draft, isEditMode ? editInvoiceId : null);
     }
-  }, [selectedCustomer, customerSearch, invoiceItems, paymentType, notes, draftLoaded]);
+  }, [selectedCustomer, customerSearch, invoiceItems, paymentType, notes, draftLoaded, isEditMode, editInvoiceId]);
 
   useEffect(() => {
     loadInitialData();
-  }, []);
+  }, [editInvoiceId]);
 
   const loadInitialData = async () => {
     try {
@@ -179,51 +194,130 @@ export default function InvoiceCreatePage() {
       setProducts(productsData.products || []);
       setCustomers(customersData.customers || []);
 
-      // Check for customer from URL params (takes priority)
-      const customerId = searchParams.get('customer');
-      if (customerId) {
-        const customer = customersData.customers?.find(c => c._id === customerId);
-        if (customer) {
-          setSelectedCustomer(customer);
-          setCustomerSearch(customer.customerName);
-        }
-      } else {
-        // Restore draft from localStorage if no URL param
-        const draft = loadDraftFromStorage();
-        if (draft) {
-          // Restore customer if still exists in the customers list
-          if (draft.selectedCustomer) {
-            const customer = customersData.customers?.find(c => c._id === draft.selectedCustomer._id);
-            if (customer) {
-              setSelectedCustomer(customer);
-              setCustomerSearch(draft.customerSearch || customer.customerName);
-            }
+      // If in edit mode, first check for saved draft, then load from database
+      if (isEditMode && editInvoiceId) {
+        // Check for saved edit draft first
+        const editDraft = loadDraftFromStorage(editInvoiceId);
+        
+        if (editDraft && editDraft.invoiceItems?.length > 0) {
+          // Restore from saved edit draft
+          if (editDraft.selectedCustomer) {
+            setSelectedCustomer(editDraft.selectedCustomer);
+            setCustomerSearch(editDraft.customerSearch || editDraft.selectedCustomer.customerName);
           }
           
-          // Restore invoice items - validate products still exist and have stock
-          if (draft.invoiceItems && draft.invoiceItems.length > 0) {
-            const validItems = draft.invoiceItems.filter(item => {
-              const product = productsData.products?.find(p => p._id === item.product._id);
-              return product && product.currentStockQty > 0;
-            }).map(item => {
-              // Update stock info from current product data
-              const product = productsData.products?.find(p => p._id === item.product._id);
+          // Restore items - update stock info from current product data
+          const restoredItems = editDraft.invoiceItems.map(item => {
+            const currentProduct = productsData.products?.find(p => p._id === item.product._id);
+            return {
+              ...item,
+              product: {
+                ...item.product,
+                currentStock: currentProduct?.currentStockQty || item.product.currentStock || 0
+              }
+            };
+          });
+          setInvoiceItems(restoredItems);
+          
+          if (editDraft.paymentType) setPaymentType(editDraft.paymentType);
+          if (editDraft.notes !== undefined) setNotes(editDraft.notes);
+          
+          success('Edit draft restored');
+        } else {
+          // No draft found, load from database
+          try {
+            const invoiceData = await invoiceService.getInvoice(editInvoiceId, false);
+            const invoice = invoiceData.invoice;
+            setOriginalInvoice(invoice);
+            
+            // Set customer
+            setSelectedCustomer(invoice.customer);
+            setCustomerSearch(invoice.customer.customerName);
+            
+            // Set items - reconstruct with current stock info
+            const loadedItems = invoice.items.map(item => {
+              const currentProduct = productsData.products?.find(p => p._id === item.product._id);
+              const baseRate = item.ratePerUnit;
+              const amounts = calculateItemAmounts(
+                item.quantitySold,
+                baseRate,
+                item.product.gstPercentage,
+                item.schemeDiscount || 0
+              );
+              
               return {
-                ...item,
                 product: {
                   ...item.product,
-                  currentStock: product?.currentStockQty || 0
-                }
+                  rate: item.product.newMRP,
+                  currentStock: (currentProduct?.currentStockQty || 0) + item.quantitySold + (item.freeQuantity || 0)
+                },
+                quantitySold: item.quantitySold,
+                freeQuantity: item.freeQuantity || 0,
+                baseRate: baseRate,
+                netRate: round(baseRate * (1 + item.product.gstPercentage / 100), 2),
+                schemeDiscount: item.schemeDiscount || 0,
+                ...amounts
               };
             });
-            setInvoiceItems(validItems);
+            setInvoiceItems(loadedItems);
+            
+            // Set other fields
+            setPaymentType(invoice.paymentType || 'Credit');
+            setNotes(invoice.notes || '');
+            
+          } catch (err) {
+            error('Failed to load invoice for editing');
+            navigate('/invoices');
+            return;
           }
-          
-          // Restore other fields
-          if (draft.paymentType) setPaymentType(draft.paymentType);
-          if (draft.notes) setNotes(draft.notes);
-          
-          success('Draft restored');
+        }
+      } else {
+        // Check for customer from URL params (takes priority)
+        const customerId = searchParams.get('customer');
+        if (customerId) {
+          const customer = customersData.customers?.find(c => c._id === customerId);
+          if (customer) {
+            setSelectedCustomer(customer);
+            setCustomerSearch(customer.customerName);
+          }
+        } else {
+          // Restore draft from localStorage if no URL param
+          const draft = loadDraftFromStorage();
+          if (draft) {
+            // Restore customer if still exists in the customers list
+            if (draft.selectedCustomer) {
+              const customer = customersData.customers?.find(c => c._id === draft.selectedCustomer._id);
+              if (customer) {
+                setSelectedCustomer(customer);
+                setCustomerSearch(draft.customerSearch || customer.customerName);
+              }
+            }
+            
+            // Restore invoice items - validate products still exist and have stock
+            if (draft.invoiceItems && draft.invoiceItems.length > 0) {
+              const validItems = draft.invoiceItems.filter(item => {
+                const product = productsData.products?.find(p => p._id === item.product._id);
+                return product && product.currentStockQty > 0;
+              }).map(item => {
+                // Update stock info from current product data
+                const product = productsData.products?.find(p => p._id === item.product._id);
+                return {
+                  ...item,
+                  product: {
+                    ...item.product,
+                    currentStock: product?.currentStockQty || 0
+                  }
+                };
+              });
+              setInvoiceItems(validItems);
+            }
+            
+            // Restore other fields
+            if (draft.paymentType) setPaymentType(draft.paymentType);
+            if (draft.notes) setNotes(draft.notes);
+            
+            success('Draft restored');
+          }
         }
       }
     } catch (err) {
@@ -262,6 +356,7 @@ export default function InvoiceCreatePage() {
     // Calculate base rate (without GST) for display
     const baseRate = removeGST(product.rate, product.gstPercentage);
     const amounts = calculateItemAmounts(1, baseRate, product.gstPercentage, 0);
+    const netRate = round(baseRate * (1 + product.gstPercentage / 100), 2);
     
     setInvoiceItems(prev => [...prev, {
       product: {
@@ -278,6 +373,7 @@ export default function InvoiceCreatePage() {
       quantitySold: 1,
       freeQuantity: 0,
       baseRate: round(baseRate, 2),
+      netRate: netRate,
       schemeDiscount: 0,
       ...amounts
     }]);
@@ -325,18 +421,55 @@ export default function InvoiceCreatePage() {
         );
         // But keep the user-entered totalAmount
         updated[index] = { ...item, ...amounts, totalAmount: newValue };
-      } else {
-        item[field] = newValue;
+      } else if (field === 'netRate') {
+        // Store the user-entered netRate directly (allow empty string while typing)
+        item.netRate = value === '' ? '' : newValue;
         
-        // Use baseRate for calculations (this is the rate without GST)
+        // Only recalculate if we have a valid number
+        if (value !== '' && newValue > 0) {
+          // Net Rate = baseRate * (1 + gst/100), so baseRate = netRate / (1 + gst/100)
+          const gstMultiplier = (100 + item.product.gstPercentage) / 100;
+          item.baseRate = round(newValue / gstMultiplier, 2);
+          
+          // Recalculate all amounts based on new baseRate
+          const amounts = calculateItemAmounts(
+            item.quantitySold,
+            item.baseRate,
+            item.product.gstPercentage,
+            item.schemeDiscount
+          );
+          updated[index] = { ...item, ...amounts, netRate: newValue };
+        } else {
+          updated[index] = { ...item, netRate: value === '' ? '' : newValue };
+        }
+      } else if (field === 'baseAmount') {
+        // baseAmount = baseRate * qty, so baseRate = baseAmount / qty
+        const qty = item.quantitySold || 1;
+        item.baseRate = round(newValue / qty, 2);
+        item.baseAmount = newValue;
+        
+        // Recalculate all amounts based on new baseRate
         const amounts = calculateItemAmounts(
           item.quantitySold,
           item.baseRate,
           item.product.gstPercentage,
           item.schemeDiscount
         );
+        // Keep the user-entered baseAmount but update netRate
+        const netRate = round(item.baseRate * (1 + item.product.gstPercentage / 100), 2);
+        updated[index] = { ...item, ...amounts, baseAmount: newValue, netRate };
+      } else {
+        item[field] = newValue;
         
-        updated[index] = { ...item, ...amounts };
+        // Use baseRate for calculations (this is the rate without GST)
+        const amounts2 = calculateItemAmounts(
+          item.quantitySold,
+          item.baseRate,
+          item.product.gstPercentage,
+          item.schemeDiscount
+        );
+        
+        updated[index] = { ...item, ...amounts2, netRate: round(item.baseRate * (1 + item.product.gstPercentage / 100), 2) };
       }
       
       return updated;
@@ -347,20 +480,22 @@ export default function InvoiceCreatePage() {
     setInvoiceItems(prev => prev.filter((_, i) => i !== index));
   };
 
-  let totals;
-  try {
-    totals = calculateInvoiceTotals(invoiceItems);
-  } catch (err) {
-    console.error('Error calculating totals:', err);
-    totals = {
-      baseAmount: 0,
-      totalDiscount: 0,
-      totalTaxable: 0,
-      totalCGST: 0,
-      totalSGST: 0,
-      netTotal: 0
-    };
-  }
+  // Use useMemo to ensure totals recalculate when invoiceItems changes
+  const totals = useMemo(() => {
+    try {
+      return calculateInvoiceTotals(invoiceItems);
+    } catch (err) {
+      console.error('Error calculating totals:', err);
+      return {
+        baseAmount: 0,
+        totalDiscount: 0,
+        totalTaxable: 0,
+        totalCGST: 0,
+        totalSGST: 0,
+        netTotal: 0
+      };
+    }
+  }, [invoiceItems]);
 
   const validateInvoice = () => {
     if (!selectedCustomer) {
@@ -399,15 +534,22 @@ export default function InvoiceCreatePage() {
         notes
       };
 
-      const result = await invoiceService.createInvoice(invoiceData);
+      let result;
+      if (isEditMode && editInvoiceId) {
+        result = await invoiceService.updateInvoice(editInvoiceId, invoiceData);
+        // Clear the edit draft after successful update
+        clearDraftFromStorage(editInvoiceId);
+        success('Invoice updated successfully!');
+      } else {
+        result = await invoiceService.createInvoice(invoiceData);
+        // Clear the create draft after successful creation
+        clearDraftFromStorage();
+        success('Invoice created successfully!');
+      }
       
-      // Clear the draft after successful creation
-      clearDraftFromStorage();
-      
-      success('Invoice created successfully!');
       navigate(`/invoices/${result.invoice._id}`);
     } catch (err) {
-      error(err.response?.data?.message || 'Failed to create invoice');
+      error(err.response?.data?.message || `Failed to ${isEditMode ? 'update' : 'create'} invoice`);
     } finally {
       setSaving(false);
     }
@@ -420,7 +562,7 @@ export default function InvoiceCreatePage() {
     setInvoiceItems([]);
     setPaymentType('Credit');
     setNotes('');
-    clearDraftFromStorage();
+    clearDraftFromStorage(isEditMode ? editInvoiceId : null);
     success('Draft cleared');
   };
 
@@ -694,6 +836,7 @@ export default function InvoiceCreatePage() {
                       <th className="w-20">Qty</th>
                       <th className="w-20">Free</th>
                       <th className="w-24">Base</th>
+                      <th className="w-24">Net Rate</th>
                       <th className="w-20">Disc %</th>
                       <th className="w-20">GST</th>
                       <th className="w-28">Total</th>
@@ -750,6 +893,26 @@ export default function InvoiceCreatePage() {
                               step="0.01"
                             />
                           </td>
+                          <td className="text-center text-blue-400 font-medium">
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              value={item.netRate !== undefined ? item.netRate : round(item.baseRate * (1 + item.product.gstPercentage / 100), 2)}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                // Allow empty, numbers, and decimals
+                                if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                  updateItemQuantity(index, 'netRate', val);
+                                }
+                              }}
+                              onBlur={(e) => {
+                                // On blur, ensure we have a valid number
+                                const val = parseFloat(e.target.value) || 0;
+                                updateItemQuantity(index, 'netRate', val.toString());
+                              }}
+                              className="input py-1.5 text-center text-blue-400"
+                            />
+                          </td>
                           <td>
                             <input
                               type="number"
@@ -769,8 +932,8 @@ export default function InvoiceCreatePage() {
                           <td>
                             <input
                               type="number"
-                              value={item.totalAmount}
-                              onChange={(e) => updateItemQuantity(index, 'totalAmount', e.target.value)}
+                              value={item.baseAmount}
+                              onChange={(e) => updateItemQuantity(index, 'baseAmount', e.target.value)}
                               className="input py-1.5 text-center text-emerald-400 font-medium"
                               min="0"
                               step="0.01"

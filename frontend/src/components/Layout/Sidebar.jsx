@@ -218,8 +218,22 @@ export default function Sidebar({ isOpen, onClose }) {
             
             <ul className="space-y-1">
               {menuItems.map((item, index) => {
-                const isActive = location.pathname === item.path || 
-                  (item.path !== '/' && location.pathname.startsWith(item.path));
+                // Check if we're on an edit page
+                const isEditPage = location.pathname.includes('/edit');
+                
+                let isActive;
+                if (item.path === '/invoices/create') {
+                  // Create Invoice is active for both /invoices/create and /invoices/:id/edit
+                  isActive = location.pathname === '/invoices/create' || isEditPage;
+                } else if (item.path === '/invoices') {
+                  // All Invoices is active only for exact /invoices path (not edit pages)
+                  isActive = location.pathname === '/invoices' || 
+                    (location.pathname.startsWith('/invoices/') && !isEditPage && !location.pathname.includes('/create'));
+                } else {
+                  // Default logic for other items
+                  isActive = location.pathname === item.path || 
+                    (item.path !== '/' && location.pathname.startsWith(item.path));
+                }
                 
                 return (
                   <motion.li 

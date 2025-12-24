@@ -21,7 +21,8 @@ import {
   DollarSign,
   Receipt,
   Clock,
-  XCircle
+  XCircle,
+  Edit
 } from 'lucide-react';
 import { invoiceService } from '../services/invoiceService';
 import { formatCurrency, formatDate } from '../utils/formatters';
@@ -222,10 +223,11 @@ export default function InvoiceViewPage() {
                 <th className="border-r border-black p-0.5 text-center" style={{ width: '8%' }}>Batch</th>
                 <th className="border-r border-black p-0.5 text-center" style={{ width: '5%' }}>Exp</th>
                 <th className="border-r border-black p-0.5 text-right" style={{ width: '8%' }}>MRP</th>
-                <th className="border-r border-black p-0.5 text-right" style={{ width: '8%' }}>Rate</th>
+                <th className="border-r border-black p-0.5 text-right" style={{ width: '7%' }}>Rate</th>
+                <th className="border-r border-black p-0.5 text-right" style={{ width: '7%' }}>Net</th>
                 <th className="border-r border-black p-0.5 text-center" style={{ width: '5%' }}>Disc%</th>
                 <th className="border-r border-black p-0.5 text-center" style={{ width: '4%' }}>GST%</th>
-                <th className="p-0.5 text-right" style={{ width: '10%' }}>Amount</th>
+                <th className="p-0.5 text-right" style={{ width: '9%' }}>Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -245,6 +247,7 @@ export default function InvoiceViewPage() {
                     <td className="border-r border-black p-0.5 text-center">{expDate}</td>
                     <td className="border-r border-black p-0.5 text-right">{item.product?.newMRP?.toFixed(2) || '-'}</td>
                     <td className="border-r border-black p-0.5 text-right">{item.ratePerUnit.toFixed(2)}</td>
+                    <td className="border-r border-black p-0.5 text-right">{(item.ratePerUnit * (1 + (item.product?.gstPercentage || 0) / 100)).toFixed(2)}</td>
                     <td className="border-r border-black p-0.5 text-center">{item.schemeDiscount || 0}%</td>
                     <td className="border-r border-black p-0.5 text-center">{item.product?.gstPercentage}%</td>
                     <td className="p-0.5 text-right font-semibold">{itemAmount.toFixed(2)}</td>
@@ -270,6 +273,12 @@ export default function InvoiceViewPage() {
                   <td className="py-0">Taxable:</td>
                   <td className="text-right font-semibold">₹{invoice.totals?.totalTaxable?.toFixed(2)}</td>
                 </tr>
+                {invoice.totals?.totalDiscount > 0 && (
+                  <tr>
+                    <td className="py-0">Discount:</td>
+                    <td className="text-right" style={{ color: '#dc2626' }}>-₹{invoice.totals?.totalDiscount?.toFixed(2)}</td>
+                  </tr>
+                )}
                 <tr>
                   <td className="py-0">CGST:</td>
                   <td className="text-right">₹{invoice.totals?.totalCGST?.toFixed(2)}</td>
@@ -331,6 +340,16 @@ export default function InvoiceViewPage() {
             Back
           </Link>
         </motion.div>
+
+        {/* Edit Button - only show for non-cancelled invoices */}
+        {invoice.status !== 'Cancelled' && (
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Link to={`/invoices/${id}/edit`} className="btn btn-secondary flex items-center gap-2">
+              <Edit className="w-5 h-5" />
+              Edit
+            </Link>
+          </motion.div>
+        )}
 
         <motion.button
           onClick={handlePrint}
