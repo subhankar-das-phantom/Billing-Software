@@ -91,19 +91,12 @@ const tableRowVariants = {
   }
 };
 
-const DRAFT_STORAGE_KEY = 'invoice_draft';
-const EDIT_DRAFT_STORAGE_KEY_PREFIX = 'invoice_edit_draft_';
-
-// Helper to get storage key based on mode
-const getDraftStorageKey = (invoiceId = null) => {
-  return invoiceId ? `${EDIT_DRAFT_STORAGE_KEY_PREFIX}${invoiceId}` : DRAFT_STORAGE_KEY;
-};
+const DRAFT_STORAGE_KEY = 'invoice_working_draft';
 
 // Helper to load draft from sessionStorage (tab-specific)
-const loadDraftFromStorage = (invoiceId = null) => {
+const loadDraftFromStorage = () => {
   try {
-    const key = getDraftStorageKey(invoiceId);
-    const saved = sessionStorage.getItem(key);
+    const saved = sessionStorage.getItem(DRAFT_STORAGE_KEY);
     if (saved) {
       return JSON.parse(saved);
     }
@@ -114,24 +107,25 @@ const loadDraftFromStorage = (invoiceId = null) => {
 };
 
 // Helper to save draft to sessionStorage (tab-specific)
-const saveDraftToStorage = (draft, invoiceId = null) => {
+const saveDraftToStorage = (draft) => {
   try {
-    const key = getDraftStorageKey(invoiceId);
-    sessionStorage.setItem(key, JSON.stringify(draft));
+    sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
   } catch (e) {
     console.error('Failed to save invoice draft:', e);
   }
 };
 
 // Helper to clear draft from sessionStorage (tab-specific)
-const clearDraftFromStorage = (invoiceId = null) => {
+const clearDraftFromStorage = () => {
   try {
-    const key = getDraftStorageKey(invoiceId);
-    sessionStorage.removeItem(key);
+    sessionStorage.removeItem(DRAFT_STORAGE_KEY);
   } catch (e) {
     console.error('Failed to clear invoice draft:', e);
   }
 };
+
+// Helper to get storage key (for debugging)
+const getDraftStorageKey = () => DRAFT_STORAGE_KEY;
 
 export default function InvoiceCreatePage() {
   const navigate = useNavigate();
@@ -166,6 +160,7 @@ export default function InvoiceCreatePage() {
     if (!draftLoaded) return; // Don't save until draft is loaded/initialized
     
     const draft = {
+      editInvoiceId: isEditMode ? editInvoiceId : null,  // Store edit mode info in draft
       selectedCustomer,
       customerSearch,
       invoiceItems,
@@ -176,7 +171,7 @@ export default function InvoiceCreatePage() {
     
     // Only save if there's meaningful data
     if (selectedCustomer || invoiceItems.length > 0 || notes) {
-      saveDraftToStorage(draft, isEditMode ? editInvoiceId : null);
+      saveDraftToStorage(draft);
     }
   }, [selectedCustomer, customerSearch, invoiceItems, paymentType, notes, draftLoaded, isEditMode, editInvoiceId]);
 
@@ -194,20 +189,27 @@ export default function InvoiceCreatePage() {
       setProducts(productsData.products || []);
       setCustomers(customersData.customers || []);
 
-      // If in edit mode, first check for saved draft, then load from database
-      if (isEditMode && editInvoiceId) {
-        // Check for saved edit draft first
-        const editDraft = loadDraftFromStorage(editInvoiceId);
+      // Load saved draft (works for both create and edit modes)
+      const savedDraft = loadDraftFromStorage();
+      console.log('Draft key:', getDraftStorageKey());
+      console.log('Loaded draft:', savedDraft);
+      
+      // Check if we have a valid draft with items
+      if (savedDraft && savedDraft.invoiceItems?.length > 0) {
+        // If we're in edit mode via URL, make sure the draft matches this invoice
+        // Or if we're in create mode, check if draft has an edit session
+        const draftIsForThisEdit = isEditMode && savedDraft.editInvoiceId === editInvoiceId;
+        const draftIsEdit = savedDraft.editInvoiceId != null;
         
-        if (editDraft && editDraft.invoiceItems?.length > 0) {
-          // Restore from saved edit draft
-          if (editDraft.selectedCustomer) {
-            setSelectedCustomer(editDraft.selectedCustomer);
-            setCustomerSearch(editDraft.customerSearch || editDraft.selectedCustomer.customerName);
+        if (isEditMode && draftIsForThisEdit) {
+          // Editing this specific invoice - restore the draft
+          console.log('Restoring edit draft for invoice:', editInvoiceId);
+          if (savedDraft.selectedCustomer) {
+            setSelectedCustomer(savedDraft.selectedCustomer);
+            setCustomerSearch(savedDraft.customerSearch || savedDraft.selectedCustomer.customerName);
           }
           
-          // Restore items - update stock info from current product data
-          const restoredItems = editDraft.invoiceItems.map(item => {
+          const restoredItems = savedDraft.invoiceItems.map(item => {
             const currentProduct = productsData.products?.find(p => p._id === item.product._id);
             return {
               ...item,
@@ -219,22 +221,58 @@ export default function InvoiceCreatePage() {
           });
           setInvoiceItems(restoredItems);
           
-          if (editDraft.paymentType) setPaymentType(editDraft.paymentType);
-          if (editDraft.notes !== undefined) setNotes(editDraft.notes);
+          if (savedDraft.paymentType) setPaymentType(savedDraft.paymentType);
+          if (savedDraft.notes !== undefined) setNotes(savedDraft.notes);
           
           success('Edit draft restored');
-        } else {
-          // No draft found, load from database
+        } else if (!isEditMode && draftIsEdit) {
+          // We're on create page but draft has edit session - redirect to edit page
+          console.log('Redirecting to edit page:', savedDraft.editInvoiceId);
+          navigate(`/invoices/${savedDraft.editInvoiceId}/edit`);
+          return;
+        } else if (!isEditMode && !draftIsEdit) {
+          // Regular create draft on create page - restore it
+          console.log('Restoring create draft');
+          if (savedDraft.selectedCustomer) {
+            const customer = customersData.customers?.find(c => c._id === savedDraft.selectedCustomer._id);
+            if (customer) {
+              setSelectedCustomer(customer);
+              setCustomerSearch(savedDraft.customerSearch || customer.customerName);
+            }
+          }
+          
+          if (savedDraft.invoiceItems && savedDraft.invoiceItems.length > 0) {
+            const validItems = savedDraft.invoiceItems.filter(item => {
+              const product = productsData.products?.find(p => p._id === item.product._id);
+              return product && product.currentStockQty > 0;
+            }).map(item => {
+              const product = productsData.products?.find(p => p._id === item.product._id);
+              return {
+                ...item,
+                product: {
+                  ...item.product,
+                  currentStock: product?.currentStockQty || 0
+                }
+              };
+            });
+            setInvoiceItems(validItems);
+          }
+          
+          if (savedDraft.paymentType) setPaymentType(savedDraft.paymentType);
+          if (savedDraft.notes) setNotes(savedDraft.notes);
+          
+          success('Draft restored');
+        } else if (isEditMode && !draftIsForThisEdit) {
+          // Edit mode but draft is for different invoice or is a create draft - load from database
+          console.log('Loading invoice from database:', editInvoiceId);
           try {
             const invoiceData = await invoiceService.getInvoice(editInvoiceId, false);
             const invoice = invoiceData.invoice;
             setOriginalInvoice(invoice);
             
-            // Set customer
             setSelectedCustomer(invoice.customer);
             setCustomerSearch(invoice.customer.customerName);
             
-            // Set items - reconstruct with current stock info
             const loadedItems = invoice.items.map(item => {
               const currentProduct = productsData.products?.find(p => p._id === item.product._id);
               const baseRate = item.ratePerUnit;
@@ -261,7 +299,6 @@ export default function InvoiceCreatePage() {
             });
             setInvoiceItems(loadedItems);
             
-            // Set other fields
             setPaymentType(invoice.paymentType || 'Credit');
             setNotes(invoice.notes || '');
             
@@ -271,52 +308,59 @@ export default function InvoiceCreatePage() {
             return;
           }
         }
+      } else if (isEditMode) {
+        // Edit mode with no draft at all - load from database
+        console.log('No draft found, loading invoice from database:', editInvoiceId);
+        try {
+          const invoiceData = await invoiceService.getInvoice(editInvoiceId, false);
+          const invoice = invoiceData.invoice;
+          setOriginalInvoice(invoice);
+          
+          setSelectedCustomer(invoice.customer);
+          setCustomerSearch(invoice.customer.customerName);
+          
+          const loadedItems = invoice.items.map(item => {
+            const currentProduct = productsData.products?.find(p => p._id === item.product._id);
+            const baseRate = item.ratePerUnit;
+            const amounts = calculateItemAmounts(
+              item.quantitySold,
+              baseRate,
+              item.product.gstPercentage,
+              item.schemeDiscount || 0
+            );
+            
+            return {
+              product: {
+                ...item.product,
+                rate: item.product.newMRP,
+                currentStock: (currentProduct?.currentStockQty || 0) + item.quantitySold + (item.freeQuantity || 0)
+              },
+              quantitySold: item.quantitySold,
+              freeQuantity: item.freeQuantity || 0,
+              baseRate: baseRate,
+              netRate: round(baseRate * (1 + item.product.gstPercentage / 100), 2),
+              schemeDiscount: item.schemeDiscount || 0,
+              ...amounts
+            };
+          });
+          setInvoiceItems(loadedItems);
+          
+          setPaymentType(invoice.paymentType || 'Credit');
+          setNotes(invoice.notes || '');
+          
+        } catch (err) {
+          error('Failed to load invoice for editing');
+          navigate('/invoices');
+          return;
+        }
       } else {
-        // Check for customer from URL params (takes priority)
+        // Create mode with no draft - check for customer from URL params
         const customerId = searchParams.get('customer');
         if (customerId) {
           const customer = customersData.customers?.find(c => c._id === customerId);
           if (customer) {
             setSelectedCustomer(customer);
             setCustomerSearch(customer.customerName);
-          }
-        } else {
-          // Restore draft from localStorage if no URL param
-          const draft = loadDraftFromStorage();
-          if (draft) {
-            // Restore customer if still exists in the customers list
-            if (draft.selectedCustomer) {
-              const customer = customersData.customers?.find(c => c._id === draft.selectedCustomer._id);
-              if (customer) {
-                setSelectedCustomer(customer);
-                setCustomerSearch(draft.customerSearch || customer.customerName);
-              }
-            }
-            
-            // Restore invoice items - validate products still exist and have stock
-            if (draft.invoiceItems && draft.invoiceItems.length > 0) {
-              const validItems = draft.invoiceItems.filter(item => {
-                const product = productsData.products?.find(p => p._id === item.product._id);
-                return product && product.currentStockQty > 0;
-              }).map(item => {
-                // Update stock info from current product data
-                const product = productsData.products?.find(p => p._id === item.product._id);
-                return {
-                  ...item,
-                  product: {
-                    ...item.product,
-                    currentStock: product?.currentStockQty || 0
-                  }
-                };
-              });
-              setInvoiceItems(validItems);
-            }
-            
-            // Restore other fields
-            if (draft.paymentType) setPaymentType(draft.paymentType);
-            if (draft.notes) setNotes(draft.notes);
-            
-            success('Draft restored');
           }
         }
       }
@@ -537,12 +581,12 @@ export default function InvoiceCreatePage() {
       let result;
       if (isEditMode && editInvoiceId) {
         result = await invoiceService.updateInvoice(editInvoiceId, invoiceData);
-        // Clear the edit draft after successful update
-        clearDraftFromStorage(editInvoiceId);
+        // Clear the draft after successful update
+        clearDraftFromStorage();
         success('Invoice updated successfully!');
       } else {
         result = await invoiceService.createInvoice(invoiceData);
-        // Clear the create draft after successful creation
+        // Clear the draft after successful creation
         clearDraftFromStorage();
         success('Invoice created successfully!');
       }
@@ -562,7 +606,7 @@ export default function InvoiceCreatePage() {
     setInvoiceItems([]);
     setPaymentType('Credit');
     setNotes('');
-    clearDraftFromStorage(isEditMode ? editInvoiceId : null);
+    clearDraftFromStorage();
     success('Draft cleared');
   };
 
