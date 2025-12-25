@@ -131,8 +131,8 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('admin');
         setAdmin(null);
       } finally {
-        // Add slight delay for smoother transition
-        setTimeout(() => setLoading(false), 800);
+        // Minimal delay for smooth transition (reduced from 800ms)
+        setTimeout(() => setLoading(false), 200);
       }
     };
 
