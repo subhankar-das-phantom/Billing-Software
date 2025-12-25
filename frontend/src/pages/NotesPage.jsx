@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus,
@@ -171,24 +171,27 @@ export default function NotesPage() {
     return debouncedValue;
   }
 
-  const containerVariants = {
+  // Adaptive variants based on device type
+  const containerVariants = useMemo(() => ({
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.05
+        staggerChildren: motionConfig.shouldStagger ? 0.04 : 0
       }
     }
-  };
+  }), [motionConfig.shouldStagger]);
 
-  const cardVariants = {
-    hidden: { opacity: 0, scale: 0.9 },
+  const cardVariants = useMemo(() => ({
+    hidden: { opacity: 0, scale: 0.95 },
     visible: { 
       opacity: 1, 
       scale: 1,
-      transition: { type: 'spring', stiffness: 300, damping: 24 }
+      transition: motionConfig.isMobile
+        ? { type: 'tween', duration: 0.2, ease: 'easeOut' }
+        : { type: 'spring', stiffness: 300, damping: 24 }
     }
-  };
+  }), [motionConfig.isMobile]);
 
   if (loading && !search) {
     return <PageLoader />;
@@ -253,7 +256,6 @@ export default function NotesPage() {
             {notes.map((note) => (
               <motion.div
                 key={note._id}
-                layout
                 variants={cardVariants}
                 className="group relative flex flex-col glass-card h-48 sm:h-64 overflow-hidden border-t-4 transition-all hover:shadow-xl hover:-translate-y-1"
                 style={{ borderTopColor: note.color }}
@@ -332,8 +334,8 @@ export default function NotesPage() {
               className={`p-2 rounded-lg transition-colors ${
                 page === 1 ? 'text-slate-600 cursor-not-allowed' : 'text-slate-400 hover:text-white hover:bg-slate-800'
               }`}
-              whileHover={page !== 1 ? { scale: 1.1 } : {}}
-              whileTap={page !== 1 ? { scale: 0.9 } : {}}
+              whileHover={motionConfig.shouldHover && page !== 1 ? { scale: 1.1 } : undefined}
+              whileTap={motionConfig.shouldHover && page !== 1 ? { scale: 0.9 } : undefined}
             >
               <ChevronLeft className="w-6 h-6" />
             </motion.button>
@@ -350,8 +352,8 @@ export default function NotesPage() {
               className={`p-2 rounded-lg transition-colors ${
                 page === totalPages ? 'text-slate-600 cursor-not-allowed' : 'text-slate-400 hover:text-white hover:bg-slate-800'
               }`}
-              whileHover={page !== totalPages ? { scale: 1.1 } : {}}
-              whileTap={page !== totalPages ? { scale: 0.9 } : {}}
+              whileHover={motionConfig.shouldHover && page !== totalPages ? { scale: 1.1 } : undefined}
+              whileTap={motionConfig.shouldHover && page !== totalPages ? { scale: 0.9 } : undefined}
             >
               <ChevronRight className="w-6 h-6" />
             </motion.button>
