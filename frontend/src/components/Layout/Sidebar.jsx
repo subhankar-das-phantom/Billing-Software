@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { invoiceService } from '../../services/invoiceService';
+import { useMotionConfig } from '../../hooks';
 
 const getMenuItems = (invoiceCount) => [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard, badge: null },
@@ -36,57 +37,52 @@ const quickActions = [
   { path: '/help', label: 'Help Center', icon: HelpCircle },
 ];
 
-const sidebarVariants = {
+// Adaptive sidebar variants - simplified for mobile
+const createSidebarVariants = (isMobile) => ({
   open: { 
     x: 0, 
     opacity: 1,
-    transition: {
-      type: 'spring',
-      stiffness: 300,
-      damping: 30
-    }
+    transition: isMobile 
+      ? { type: 'tween', duration: 0.25, ease: 'easeOut' }
+      : { type: 'spring', stiffness: 300, damping: 30 }
   },
   closed: { 
     x: '-100%', 
     opacity: 0,
-    transition: {
-      type: 'spring',
-      stiffness: 300,
-      damping: 30
-    }
+    transition: isMobile
+      ? { type: 'tween', duration: 0.2, ease: 'easeIn' }
+      : { type: 'spring', stiffness: 300, damping: 30 }
   },
-};
+});
 
-const menuContainerVariants = {
+const createMenuContainerVariants = (isMobile, shouldStagger) => ({
   open: {
     transition: {
-      staggerChildren: 0.07,
-      delayChildren: 0.2
+      staggerChildren: shouldStagger ? 0.05 : 0,
+      delayChildren: isMobile ? 0 : 0.1
     }
   },
   closed: {
     transition: {
-      staggerChildren: 0.05,
+      staggerChildren: 0,
       staggerDirection: -1
     }
   }
-};
+});
 
-const menuItemVariants = {
+const createMenuItemVariants = (isMobile) => ({
   open: {
     x: 0,
     opacity: 1,
-    transition: {
-      type: 'spring',
-      stiffness: 300,
-      damping: 24
-    }
+    transition: isMobile
+      ? { type: 'tween', duration: 0.2, ease: 'easeOut' }
+      : { type: 'spring', stiffness: 300, damping: 24 }
   },
   closed: {
-    x: -20,
+    x: -10,
     opacity: 0
   }
-};
+});
 
 function useMediaQuery(query) {
   const [matches, setMatches] = useState(false);
@@ -111,6 +107,23 @@ export default function Sidebar({ isOpen, onClose }) {
   const shouldShow = isOpen || isDesktop;
   const [hoveredItem, setHoveredItem] = useState(null);
   const [invoiceCount, setInvoiceCount] = useState(0);
+  
+  // Adaptive motion configuration
+  const motionConfig = useMotionConfig();
+  
+  // Memoize variants based on device type
+  const sidebarVariants = useMemo(
+    () => createSidebarVariants(motionConfig.isMobile), 
+    [motionConfig.isMobile]
+  );
+  const menuContainerVariants = useMemo(
+    () => createMenuContainerVariants(motionConfig.isMobile, motionConfig.shouldStagger), 
+    [motionConfig.isMobile, motionConfig.shouldStagger]
+  );
+  const menuItemVariants = useMemo(
+    () => createMenuItemVariants(motionConfig.isMobile), 
+    [motionConfig.isMobile]
+  );
 
   // Fetch invoice count on component mount
   useEffect(() => {
@@ -278,18 +291,8 @@ export default function Sidebar({ isOpen, onClose }) {
                       <div className={`relative flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
                         isActive ? 'text-blue-400' : 'text-slate-400 hover:text-white'
                       }`}>
-                        <motion.div
-                          animate={{
-                            scale: isActive ? [1, 1.2, 1] : 1,
-                            rotate: hoveredItem === item.path ? [0, -10, 10, 0] : 0
-                          }}
-                          transition={{
-                            scale: { duration: 0.5, repeat: isActive ? Infinity : 0, repeatDelay: 3 },
-                            rotate: { duration: 0.3 }
-                          }}
-                        >
-                          <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-                        </motion.div>
+                        {/* Icon - simplified on mobile, no infinite animations */}
+                        <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} />
                         
                         <span className="font-medium flex-1">{item.label}</span>
                         
@@ -344,19 +347,15 @@ export default function Sidebar({ isOpen, onClose }) {
                   <motion.li 
                     key={item.path}
                     variants={menuItemVariants}
-                    whileHover={{ x: 4 }}
+                    whileHover={motionConfig.shouldHover ? { x: 4 } : undefined}
                   >
                     <Link
                       to={item.path}
                       onClick={onClose}
                       className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/50 transition-colors group"
                     >
-                      <motion.div
-                        whileHover={{ rotate: 360 }}
-                        transition={{ duration: 0.5 }}
-                      >
-                        <item.icon size={18} />
-                      </motion.div>
+                      {/* Icon - no rotation animation on mobile */}
+                      <item.icon size={18} />
                       <span className="text-sm font-medium">{item.label}</span>
                     </Link>
                   </motion.li>
