@@ -204,10 +204,8 @@ export const AuthProvider = ({ children }) => {
         authTransition
       }}
     >
-      {/* Loading screen with exit animation */}
-      <AnimatePresence mode="wait">
-        {loading && <AuthLoadingScreen key="loading" />}
-      </AnimatePresence>
+      {/* Loading screen - render directly without exit animation to prevent issues */}
+      {loading && <AuthLoadingScreen />}
 
       {/* Toast notifications container */}
       <div className="fixed top-4 right-4 z-50 pointer-events-none">
@@ -292,19 +290,8 @@ export const AuthProvider = ({ children }) => {
         )}
       </AnimatePresence>
 
-      {/* Main content with fade-in animation */}
-      <AnimatePresence mode="wait">
-        {!loading && (
-          <motion.div
-            key="content"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-          >
-            {children}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Main content - render immediately without animation to prevent blank screen */}
+      {!loading && children}
     </AuthContext.Provider>
   );
 };
