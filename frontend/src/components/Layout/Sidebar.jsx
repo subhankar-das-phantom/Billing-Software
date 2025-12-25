@@ -37,20 +37,20 @@ const quickActions = [
   { path: '/help', label: 'Help Center', icon: HelpCircle },
 ];
 
-// Adaptive sidebar variants - simplified for mobile
+// Adaptive sidebar variants - near-instant on mobile
 const createSidebarVariants = (isMobile) => ({
   open: { 
     x: 0, 
     opacity: 1,
     transition: isMobile 
-      ? { type: 'tween', duration: 0.25, ease: 'easeOut' }
+      ? { type: 'tween', duration: 0.15, ease: 'easeOut' }  // Fast!
       : { type: 'spring', stiffness: 300, damping: 30 }
   },
   closed: { 
     x: '-100%', 
     opacity: 0,
     transition: isMobile
-      ? { type: 'tween', duration: 0.2, ease: 'easeIn' }
+      ? { type: 'tween', duration: 0.1, ease: 'easeIn' }  // Instant close
       : { type: 'spring', stiffness: 300, damping: 30 }
   },
 });
@@ -59,7 +59,7 @@ const createMenuContainerVariants = (isMobile, shouldStagger) => ({
   open: {
     transition: {
       staggerChildren: shouldStagger ? 0.05 : 0,
-      delayChildren: isMobile ? 0 : 0.1
+      delayChildren: 0  // No delay on mobile or desktop
     }
   },
   closed: {
@@ -75,7 +75,7 @@ const createMenuItemVariants = (isMobile) => ({
     x: 0,
     opacity: 1,
     transition: isMobile
-      ? { type: 'tween', duration: 0.2, ease: 'easeOut' }
+      ? { type: 'tween', duration: 0.1, ease: 'easeOut' }  // Instant
       : { type: 'spring', stiffness: 300, damping: 24 }
   },
   closed: {

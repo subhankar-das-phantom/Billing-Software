@@ -34,25 +34,25 @@ import EnhancedButton from '../components/Common/EnhancedButton';
 import { useToast } from '../context/ToastContext';
 import { useMotionConfig } from '../hooks';
 
-// Helper to create adaptive variants
+// Helper to create adaptive variants - faster on mobile
 const createPageVariants = (isMobile, shouldStagger) => ({
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: shouldStagger ? 0.1 : 0,
-      delayChildren: isMobile ? 0 : 0.1
+      staggerChildren: shouldStagger ? 0.08 : 0,
+      delayChildren: 0  // No delay
     }
   }
 });
 
 const createCardVariants = (isMobile) => ({
-  hidden: { opacity: 0, y: isMobile ? 15 : 20 },
+  hidden: { opacity: 0, y: isMobile ? 10 : 20 },
   visible: {
     opacity: 1,
     y: 0,
     transition: isMobile 
-      ? { type: 'tween', duration: 0.25, ease: 'easeOut' }
+      ? { type: 'tween', duration: 0.15, ease: 'easeOut' }  // Faster
       : { type: 'spring', stiffness: 300, damping: 24 }
   }
 });

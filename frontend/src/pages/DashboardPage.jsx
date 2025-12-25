@@ -102,15 +102,15 @@ const itemVariantsDesktop = {
   }
 };
 
-// Mobile item variants (simpler, faster)
+// Mobile item variants (instant, no delays)
 const itemVariantsMobile = {
-  hidden: { opacity: 0, y: 15 },
+  hidden: { opacity: 0, y: 10 },
   show: { 
     opacity: 1, 
     y: 0,
     transition: {
       type: 'tween',
-      duration: 0.25,
+      duration: 0.15,  // Faster!
       ease: 'easeOut'
     }
   }
