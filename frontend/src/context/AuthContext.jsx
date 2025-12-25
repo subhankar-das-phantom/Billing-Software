@@ -148,11 +148,13 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('admin', JSON.stringify(data.admin));
         setAdmin(data.admin);
         
-        // Show success toast with animation delay
-        setTimeout(() => {
+        // Clear overlay immediately, show toast after navigation settles
+        setAuthTransition(null);
+        
+        // Show toast slightly delayed so navigation happens first
+        requestAnimationFrame(() => {
           showToast(`Welcome back, ${data.admin.firmName || 'Admin'}!`, 'success');
-          setAuthTransition(null);
-        }, 500);
+        });
       } else {
         setAuthTransition(null);
         showToast(data.message || 'Login failed', 'error');
