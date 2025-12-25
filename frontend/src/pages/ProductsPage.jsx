@@ -195,24 +195,20 @@ const EmptyProductsState = ({ search, onAddClick }) => (
   </motion.div>
 );
 
-// ✅ FIX #2: Separate component for table
+// ✅ FIX #2: Separate component for table - simplified for mobile
 const ProductsTable = ({ filteredProducts, onEdit, onDelete, isExpired, isExpiringSoon, formatDate, formatCurrency }) => (
   <motion.div
     key="products-table"
-    initial={{ opacity: 0, scale: 0.95 }}
-    animate={{ opacity: 1, scale: 1 }}
-    exit={{ opacity: 0, scale: 0.95 }}
-    transition={{ duration: 0.3 }}
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    transition={{ duration: 0.15 }}
     className="glass-card overflow-hidden"
   >
     <div className="table-container">
       <table className="table">
         <thead>
-          <motion.tr
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
+          <tr>
             <th>Product Name</th>
             <th>HSN</th>
             <th>Batch</th>
@@ -221,7 +217,7 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, isExpired, isExpiri
             <th>GST</th>
             <th>Stock</th>
             <th>Actions</th>
-          </motion.tr>
+          </tr>
         </thead>
         <tbody>
           <AnimatePresence mode="popLayout">
@@ -234,27 +230,17 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, isExpired, isExpiri
               return (
                 <motion.tr
                   key={product._id}
-                  custom={index}
-                  variants={tableRowVariants}
-                  initial="hidden"
-                  animate="visible"
-                  exit={{ opacity: 0, x: -20 }}
-                  layout
-                  whileHover={{
-                    backgroundColor: 'rgba(51, 65, 85, 0.5)',
-                    x: 4
-                  }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="hover:bg-slate-700/50 transition-colors"
                 >
                   <td>
                     <div className="flex items-center gap-3">
-                      <motion.div
-                        className="p-2 bg-blue-500/20 rounded-lg"
-                        whileHover={{ rotate: 360, scale: 1.1 }}
-                        transition={{ duration: 0.5 }}
-                      >
+                      <div className="p-2 bg-blue-500/20 rounded-lg">
                         <Package className="w-4 h-4 text-blue-400" />
-                      </motion.div>
+                      </div>
                       <div>
                         <p className="font-medium text-white">{product.productName}</p>
                         <p className="text-xs text-slate-400 flex items-center gap-1.5">
