@@ -506,7 +506,7 @@ export default function ProductsPage() {
       animate="visible"
       className="space-y-6"
     >
-      {/* Stats Cards */}
+      {/* Stats Cards - simplified for mobile performance */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { 
@@ -537,32 +537,20 @@ export default function ProductsPage() {
             color: 'text-orange-400',
             bg: 'bg-orange-500/20'
           }
-        ].map((stat, index) => (
+        ].map((stat) => (
           <motion.div
             key={stat.label}
             variants={cardVariants}
-            whileHover={{ y: -4, scale: 1.02 }}
-            className="glass-card p-6 cursor-pointer group"
+            className="glass-card p-6 cursor-pointer group hover:shadow-lg transition-shadow"
           >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-400 mb-1">{stat.label}</p>
-                <motion.p
-                  className="text-3xl font-bold text-white"
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.2 + index * 0.1, type: 'spring', stiffness: 200 }}
-                >
-                  {stat.value}
-                </motion.p>
+                <p className="text-3xl font-bold text-white">{stat.value}</p>
               </div>
-              <motion.div
-                className={`p-3 rounded-xl ${stat.bg}`}
-                whileHover={{ rotate: 360, scale: 1.1 }}
-                transition={{ duration: 0.6 }}
-              >
+              <div className={`p-3 rounded-xl ${stat.bg}`}>
                 <stat.icon className={`w-6 h-6 ${stat.color}`} />
-              </motion.div>
+              </div>
             </div>
           </motion.div>
         ))}
