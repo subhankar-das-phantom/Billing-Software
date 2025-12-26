@@ -223,26 +223,18 @@ export const AuthProvider = ({ children }) => {
         </AnimatePresence>
       </div>
 
-      {/* Login transition overlay */}
+      {/* Login transition overlay - simplified for mobile */}
       <AnimatePresence>
         {authTransition === 'login' && (
           <motion.div
-            className="fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-40 flex items-center justify-center"
+            className="fixed inset-0 bg-slate-950/70 z-40 flex items-center justify-center"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
           >
-            <motion.div
-              className="bg-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-700"
-              initial={{ scale: 0.8, opacity: 0, y: 50 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.8, opacity: 0, y: -50 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-            >
-              <motion.div
-                className="flex flex-col items-center gap-4"
-              >
-                {/* CSS spinner instead of infinite framer-motion */}
+            <div className="bg-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-700">
+              <div className="flex flex-col items-center gap-4">
                 <div className="w-12 h-12 rounded-full border-3 border-blue-500 border-t-transparent animate-spin"></div>
                 <div className="text-center">
                   <h3 className="text-xl font-semibold text-white mb-2">
@@ -252,29 +244,21 @@ export const AuthProvider = ({ children }) => {
                     Please wait a moment
                   </p>
                 </div>
-              </motion.div>
-            </motion.div>
+              </div>
+            </div>
           </motion.div>
         )}
 
         {authTransition === 'logout' && (
           <motion.div
-            className="fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-40 flex items-center justify-center"
+            className="fixed inset-0 bg-slate-950/70 z-40 flex items-center justify-center"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
           >
-            <motion.div
-              className="bg-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-700"
-              initial={{ scale: 0.8, opacity: 0, y: 50 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.8, opacity: 0, y: -50 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-            >
-              <motion.div
-                className="flex flex-col items-center gap-4"
-              >
-                {/* CSS spinner instead of infinite framer-motion */}
+            <div className="bg-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-700">
+              <div className="flex flex-col items-center gap-4">
                 <div className="w-12 h-12 rounded-full border-3 border-red-500 border-t-transparent animate-spin"></div>
                 <div className="text-center">
                   <h3 className="text-xl font-semibold text-white mb-2">
@@ -284,8 +268,8 @@ export const AuthProvider = ({ children }) => {
                     Come back soon!
                   </p>
                 </div>
-              </motion.div>
-            </motion.div>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
