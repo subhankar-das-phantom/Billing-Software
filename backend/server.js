@@ -64,6 +64,8 @@ app.use('/api/customers', generalLimiter, require('./routes/customers'));
 app.use('/api/invoices', generalLimiter, require('./routes/invoices'));
 app.use('/api/dashboard', generalLimiter, require('./routes/dashboard'));
 app.use('/api/notes', generalLimiter, require('./routes/notes'));
+app.use('/api/payments', generalLimiter, require('./routes/payments'));
+app.use('/api/reports', generalLimiter, require('./routes/reports'));
 
 // Health check
 app.get('/api/health', (req, res) => {
