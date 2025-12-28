@@ -140,6 +140,19 @@ const invoiceSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  // Payment tracking fields
+  paidAmount: {
+    type: Number,
+    default: 0
+  },
+  paymentStatus: {
+    type: String,
+    enum: ['Unpaid', 'Partial', 'Paid'],
+    default: 'Unpaid'
+  },
+  dueDate: {
+    type: Date
+  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Admin'
