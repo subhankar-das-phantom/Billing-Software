@@ -15,7 +15,8 @@ import {
   BarChart3,
   Sparkles,
   User,
-  StickyNote
+  StickyNote,
+  Wallet
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { invoiceService } from '../../services/invoiceService';
@@ -27,6 +28,7 @@ const getMenuItems = (invoiceCount) => [
   { path: '/customers', label: 'Customers', icon: Users, badge: null },
   { path: '/invoices/create', label: 'Create Invoice', icon: FilePlus, badge: 'New', badgeColor: 'bg-emerald-500' },
   { path: '/invoices', label: 'All Invoices', icon: FileText, badge: invoiceCount > 0 ? String(invoiceCount) : null, badgeColor: 'bg-blue-500' },
+  { path: '/credits', label: 'Credits', icon: Wallet, badge: null },
 ];
 
 const quickActions = [

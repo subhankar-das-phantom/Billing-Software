@@ -17,6 +17,7 @@ const InvoicesPage = lazy(() => import('./pages/InvoicesPage'));
 const InvoiceCreatePage = lazy(() => import('./pages/InvoiceCreatePage'));
 const InvoiceViewPage = lazy(() => import('./pages/InvoiceViewPage'));
 const NotesPage = lazy(() => import('./pages/NotesPage'));
+const CreditsPage = lazy(() => import('./pages/CreditsPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
@@ -109,6 +110,7 @@ function AppRoutes() {
           <Route path="/invoices/:id/edit" element={<InvoiceCreatePage />} />
           <Route path="/invoices/:id" element={<InvoiceViewPage />} />
           <Route path="/notes" element={<NotesPage />} />
+          <Route path="/credits" element={<CreditsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
         </Route>
         

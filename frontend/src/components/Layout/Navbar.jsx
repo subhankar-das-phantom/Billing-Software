@@ -11,7 +11,8 @@ import {
   User,
   ChevronDown,
   Sparkles,
-  StickyNote
+  StickyNote,
+  Wallet
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -20,6 +21,7 @@ const navItems = [
   { path: '/products', label: 'Products', icon: Package },
   { path: '/customers', label: 'Customers', icon: Users },
   { path: '/invoices', label: 'Invoices', icon: FileText },
+  { path: '/credits', label: 'Credits', icon: Wallet },
   { path: '/notes', label: 'Notes', icon: StickyNote },
   { path: '/invoices/create', label: 'Create Invoice', icon: FilePlus, highlight: true },
 ];
