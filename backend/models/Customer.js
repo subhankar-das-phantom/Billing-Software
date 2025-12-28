@@ -57,6 +57,11 @@ const customerSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  // Credit tracking
+  outstandingBalance: {
+    type: Number,
+    default: 0
   }
 }, {
   timestamps: true
