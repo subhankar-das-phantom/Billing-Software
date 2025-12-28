@@ -247,15 +247,22 @@ exports.createInvoice = async (req, res, next) => {
     }
 
     // Update customer stats
+    const customerUpdate = {
+      $inc: { 
+        totalPurchases: totals.netTotal,
+        invoiceCount: 1
+      },
+      lastInvoiceDate: new Date()
+    };
+
+    // If Credit invoice, add to outstanding balance
+    if (paymentType === 'Credit' || !paymentType) {
+      customerUpdate.$inc.outstandingBalance = totals.netTotal;
+    }
+
     await Customer.findByIdAndUpdate(
       customerId,
-      {
-        $inc: { 
-          totalPurchases: totals.netTotal,
-          invoiceCount: 1
-        },
-        lastInvoiceDate: new Date()
-      },
+      customerUpdate,
       { session }
     );
 
