@@ -1,5 +1,7 @@
 const Product = require('../models/Product');
 const { LOW_STOCK_THRESHOLD } = require('../config/constants');
+const { getAttribution } = require('../middleware/auth');
+const { trackActivity, ACTIVITY_TYPES } = require('../utils/activityTracker');
 
 // @desc    Get all products
 // @route   GET /api/products
@@ -96,15 +98,20 @@ exports.createProduct = async (req, res, next) => {
       openingStockQty,
       currentStockQty: openingStockQty || 0,
       unit,
+      createdBy: getAttribution(req),
       stockHistory: openingStockQty ? [{
         type: 'opening',
         changeQty: openingStockQty,
         previousQty: 0,
         newQty: openingStockQty,
         reference: 'Opening Stock',
-        timestamp: new Date()
+        timestamp: new Date(),
+        adjustedBy: getAttribution(req)
       }] : []
     });
+
+    // Track employee activity
+    trackActivity(req, ACTIVITY_TYPES.PRODUCT_ADDED);
 
     res.status(201).json({
       success: true,
@@ -154,10 +161,14 @@ exports.updateProduct = async (req, res, next) => {
         newMRP,
         rate,
         gstPercentage,
-        unit
+        unit,
+        lastUpdatedBy: getAttribution(req)
       },
       { new: true, runValidators: true }
     );
+
+    // Track employee activity
+    trackActivity(req, ACTIVITY_TYPES.PRODUCT_UPDATED);
 
     res.status(200).json({
       success: true,
@@ -215,10 +226,17 @@ exports.adjustStock = async (req, res, next) => {
       previousQty,
       newQty,
       reference: reason || 'Manual adjustment',
-      timestamp: new Date()
+      timestamp: new Date(),
+      adjustedBy: getAttribution(req)
     });
 
+    // Update lastUpdatedBy
+    product.lastUpdatedBy = getAttribution(req);
+
     await product.save();
+
+    // Track employee activity
+    trackActivity(req, ACTIVITY_TYPES.STOCK_ADJUSTED);
 
     res.status(200).json({
       success: true,
