@@ -58,6 +58,17 @@ const customerSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  // Attribution - who added this customer
+  createdBy: {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      refPath: 'createdBy.userModel'
+    },
+    userModel: {
+      type: String,
+      enum: ['Admin', 'Employee']
+    }
+  },
   // Credit tracking
   outstandingBalance: {
     type: Number,
