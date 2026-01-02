@@ -6,6 +6,8 @@ const Admin = require('../models/Admin');
 const { calculateItemAmounts, calculateInvoiceTotals } = require('../utils/invoiceCalculator');
 const { numberToWords } = require('../utils/numberToWords');
 const { generateInvoiceExcel, generateInvoiceCSV } = require('../utils/excelExport');
+const { getAttribution } = require('../middleware/auth');
+const { trackActivity, ACTIVITY_TYPES } = require('../utils/activityTracker');
 
 // @desc    Get all invoices
 // @route   GET /api/invoices
@@ -123,8 +125,23 @@ exports.createInvoice = async (req, res, next) => {
       });
     }
 
-    // Get admin for distributor info
-    const admin = await Admin.findById(req.admin.id).session(session);
+    // Get admin for distributor info (always use Admin model for firm settings)
+    // If user is employee, we need to fetch the admin for firm info
+    let adminInfo;
+    if (req.userRole === 'admin') {
+      adminInfo = await Admin.findById(req.user._id).session(session);
+    } else {
+      // For employees, get the first admin (firm owner)
+      adminInfo = await Admin.findOne().session(session);
+    }
+    
+    if (!adminInfo) {
+      await session.abortTransaction();
+      return res.status(500).json({
+        success: false,
+        message: 'Firm settings not found'
+      });
+    }
 
     // Generate invoice number
     const lastInvoice = await Invoice.findOne().sort({ createdAt: -1 }).session(session);
@@ -212,16 +229,16 @@ exports.createInvoice = async (req, res, next) => {
         dlNo: customer.dlNo
       },
       distributor: {
-        firmName: admin.firmName,
-        firmAddress: admin.firmAddress,
-        firmPhone: admin.firmPhone,
-        firmGSTIN: admin.firmGSTIN
+        firmName: adminInfo.firmName,
+        firmAddress: adminInfo.firmAddress,
+        firmPhone: adminInfo.firmPhone,
+        firmGSTIN: adminInfo.firmGSTIN
       },
       items: processedItems,
       totals,
       paymentType: paymentType || 'Credit',
       notes,
-      createdBy: req.admin.id
+      createdBy: getAttribution(req)
     }], { session });
 
     // Update stock for each product
@@ -267,6 +284,9 @@ exports.createInvoice = async (req, res, next) => {
     );
 
     await session.commitTransaction();
+
+    // Track employee activity
+    trackActivity(req, ACTIVITY_TYPES.INVOICE_CREATED, { amount: totals.netTotal });
 
     res.status(201).json({
       success: true,
