@@ -1,6 +1,8 @@
 const Payment = require('../models/Payment');
 const Invoice = require('../models/Invoice');
 const Customer = require('../models/Customer');
+const { getAttribution } = require('../middleware/auth');
+const { trackActivity, ACTIVITY_TYPES } = require('../utils/activityTracker');
 
 // @desc    Record a new payment
 // @route   POST /api/payments
@@ -58,7 +60,7 @@ exports.createPayment = async (req, res, next) => {
         invoiceDate: invoice.invoiceDate,
         netTotal: invoice.totals.netTotal
       },
-      createdBy: req.admin._id
+      createdBy: getAttribution(req)
     });
 
     // Update invoice paid amount and status
@@ -77,6 +79,9 @@ exports.createPayment = async (req, res, next) => {
     await Customer.findByIdAndUpdate(invoice.customer._id, {
       outstandingBalance: newBalance
     });
+
+    // Track employee activity
+    trackActivity(req, ACTIVITY_TYPES.PAYMENT_RECORDED, amount);
 
     res.status(201).json({
       success: true,
