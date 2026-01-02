@@ -1,5 +1,7 @@
 const Customer = require('../models/Customer');
 const Invoice = require('../models/Invoice');
+const { getAttribution } = require('../middleware/auth');
+const { trackActivity, ACTIVITY_TYPES } = require('../utils/activityTracker');
 
 // @desc    Get all customers
 // @route   GET /api/customers
@@ -130,8 +132,12 @@ exports.createCustomer = async (req, res, next) => {
       email,
       gstin,
       dlNo,
-      customerCode
+      customerCode,
+      createdBy: getAttribution(req)
     });
+
+    // Track employee activity
+    trackActivity(req, ACTIVITY_TYPES.CUSTOMER_ADDED);
 
     res.status(201).json({
       success: true,
