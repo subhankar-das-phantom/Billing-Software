@@ -26,6 +26,17 @@ const stockHistorySchema = new mongoose.Schema({
   timestamp: {
     type: Date,
     default: Date.now
+  },
+  // Who made this stock adjustment
+  adjustedBy: {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      refPath: 'stockHistory.adjustedBy.userModel'
+    },
+    userModel: {
+      type: String,
+      enum: ['Admin', 'Employee']
+    }
   }
 });
 
@@ -90,6 +101,27 @@ const productSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  // Attribution - who created/updated this product
+  createdBy: {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      refPath: 'createdBy.userModel'
+    },
+    userModel: {
+      type: String,
+      enum: ['Admin', 'Employee']
+    }
+  },
+  lastUpdatedBy: {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      refPath: 'lastUpdatedBy.userModel'
+    },
+    userModel: {
+      type: String,
+      enum: ['Admin', 'Employee']
+    }
   },
   stockHistory: [stockHistorySchema]
 }, {
