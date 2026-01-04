@@ -59,6 +59,8 @@ if (process.env.NODE_ENV === 'development') {
 
 // Mount routes with rate limiting
 app.use('/api/auth', authLimiter, require('./routes/auth'));
+app.use('/api/employees', generalLimiter, require('./routes/employees'));
+app.use('/api/analytics', generalLimiter, require('./routes/analytics'));
 app.use('/api/products', generalLimiter, require('./routes/products'));
 app.use('/api/customers', generalLimiter, require('./routes/customers'));
 app.use('/api/invoices', generalLimiter, require('./routes/invoices'));
