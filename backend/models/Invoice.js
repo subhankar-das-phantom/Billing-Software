@@ -154,8 +154,15 @@ const invoiceSchema = new mongoose.Schema({
     type: Date
   },
   createdBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Admin'
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      refPath: 'createdBy.userModel'
+    },
+    userModel: {
+      type: String,
+      enum: ['Admin', 'Employee'],
+      default: 'Admin'
+    }
   }
 }, {
   timestamps: true
