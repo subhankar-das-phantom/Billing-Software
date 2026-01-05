@@ -79,14 +79,14 @@ export default function ConfirmDialog({
             </motion.h3>
 
             {/* Message */}
-            <motion.p 
+            <motion.div 
               className="text-slate-300 text-center mb-6 leading-relaxed"
               initial={{ y: -10, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.2, duration: 0.3 }}
             >
               {message}
-            </motion.p>
+            </motion.div>
 
             {/* Action Buttons */}
             <motion.div 
