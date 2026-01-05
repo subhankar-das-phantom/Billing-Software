@@ -23,7 +23,6 @@ import {
 } from 'lucide-react';
 import { customerService } from '../services/customerService';
 import { getPaymentsByCustomer, getPaymentStatusColor } from '../services/creditService';
-import { manualEntryService } from '../services/manualEntryService';
 import { invoiceService } from '../services/invoiceService';
 import { formatCurrency, formatDate, formatPhone } from '../utils/formatters';
 import { PageLoader } from '../components/Common/Loader';
@@ -76,7 +75,7 @@ export default function CustomerDetailsPage() {
   const [activeTab, setActiveTab] = useState('invoices');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
-  const [manualEntries, setManualEntries] = useState([]);
+
 
   useEffect(() => {
     loadCustomer();
@@ -84,15 +83,13 @@ export default function CustomerDetailsPage() {
 
   const loadCustomer = async (bypassCache = false) => {
     try {
-      const [customerData, paymentsData, manualData] = await Promise.all([
+      const [customerData, paymentsData,] = await Promise.all([
         customerService.getCustomer(id, !bypassCache), // Pass false to bypass cache
         getPaymentsByCustomer(id).catch(() => ({ payments: [] })),
-        manualEntryService.getByCustomer(id).catch(() => ({ entries: [] }))
       ]);
       setCustomer(customerData.customer);
       setInvoices(customerData.invoices || []);
       setPayments(paymentsData.payments || []);
-      setManualEntries(manualData.entries || []);
     } catch (error) {
       console.error('Failed to load customer:', error);
     } finally {
@@ -221,7 +218,6 @@ export default function CustomerDetailsPage() {
   const tabs = [
     { id: 'invoices', label: 'Invoices', icon: FileText, count: invoices.length },
     { id: 'payments', label: 'Payments', icon: CreditCard, count: payments.length },
-    { id: 'manual', label: 'Manual Entries', icon: FileText, count: manualEntries.length }
   ];
 
   return (
@@ -759,80 +755,6 @@ export default function CustomerDetailsPage() {
               </motion.div>
             )}
 
-            {/* Manual Entries Tab */}
-            {activeTab === 'manual' && (
-              <motion.div
-                key="manual"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-              >
-                {manualEntries.length === 0 ? (
-                  <div className="text-center py-12">
-                    <motion.div
-                      className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-800 mb-4"
-                      initial={{ scale: 0, rotate: -180 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      transition={{ type: 'spring', stiffness: 200, delay: 0.2 }}
-                    >
-                      <FileText className="w-8 h-8 text-slate-400" />
-                    </motion.div>
-                    <p className="text-slate-400">No manual entries for this customer</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {manualEntries.map((entry, index) => {
-                      const typeStyles = {
-                        OPENING_BALANCE: { bg: 'bg-slate-500/20', text: 'text-slate-400', label: 'Opening Balance' },
-                        MANUAL_INVOICE: { bg: 'bg-amber-500/20', text: 'text-amber-400', label: 'Manual Invoice' },
-                        ADJUSTMENT: { bg: 'bg-purple-500/20', text: 'text-purple-400', label: 'Adjustment' }
-                      };
-                      const style = typeStyles[entry.entryType] || typeStyles.OPENING_BALANCE;
-                      
-                      return (
-                        <motion.div
-                          key={entry._id}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.05 }}
-                          className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50 hover:border-purple-500/30 transition-all"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                              <div className={`p-2.5 rounded-lg ${style.bg}`}>
-                                <FileText className={`w-5 h-5 ${style.text}`} />
-                              </div>
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <span className="font-medium text-white">
-                                    {style.label}
-                                  </span>
-                                  <span className="text-xs px-1.5 py-0.5 bg-purple-500/20 text-purple-400 rounded">
-                                    MANUAL
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-2 text-sm text-slate-400 mt-1">
-                                  <Calendar className="w-3 h-3" />
-                                  As of {formatDate(entry.asOfDate)}
-                                </div>
-                                {entry.referenceNote && (
-                                  <p className="text-xs text-slate-500 mt-1">{entry.referenceNote}</p>
-                                )}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className={`text-lg font-semibold ${entry.amount >= 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                                {entry.amount >= 0 ? '+' : ''}{formatCurrency(entry.amount)}
-                              </p>
-                            </div>
-                          </div>
-                        </motion.div>
-                      );
-                    })}
-                  </div>
-                )}
-              </motion.div>
-            )}
           </AnimatePresence>
         </div>
       </motion.div>
