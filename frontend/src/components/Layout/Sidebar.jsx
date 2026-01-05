@@ -10,13 +10,14 @@ import {
   LogOut,
   X,
   ChevronRight,
-  Settings,
-  HelpCircle,
+
   BarChart3,
   Sparkles,
   User,
   StickyNote,
-  Wallet
+  Wallet,
+  UsersRound,
+  Shield
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { invoiceService } from '../../services/invoiceService';
@@ -31,13 +32,26 @@ const getMenuItems = (invoiceCount) => [
   { path: '/credits', label: 'Credits', icon: Wallet, badge: null },
 ];
 
-const quickActions = [
-  { path: '/notes', label: 'Notes', icon: StickyNote },
-  { path: '/profile', label: 'Profile', icon: User },
-  { path: '/analytics', label: 'Analytics', icon: BarChart3 },
-  { path: '/settings', label: 'Settings', icon: Settings },
-  { path: '/help', label: 'Help Center', icon: HelpCircle },
-];
+// Quick actions - some are admin only
+const getQuickActions = (isAdmin) => {
+  const actions = [
+    { path: '/notes', label: 'Notes', icon: StickyNote },
+  ];
+  
+  // Admin-only menu items
+  if (isAdmin) {
+    actions.push(
+      { path: '/profile', label: 'Profile', icon: User },
+      { path: '/employees', label: 'Employees', icon: UsersRound, badge: 'Admin', badgeColor: 'bg-purple-500' },
+      { path: '/analytics', label: 'Analytics', icon: BarChart3 },
+      { path: '/manual-entries', label: 'Manual Entries', icon: Shield, badge: 'Admin', badgeColor: 'bg-purple-500' }
+    );
+  }
+  
+
+  
+  return actions;
+};
 
 // Adaptive sidebar variants - near-instant on mobile
 const createSidebarVariants = (isMobile) => ({
@@ -104,7 +118,7 @@ function useMediaQuery(query) {
 
 export default function Sidebar({ isOpen, onClose }) {
   const location = useLocation();
-  const { admin, logout } = useAuth();
+  const { admin, user, isAdmin, logout } = useAuth();
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const shouldShow = isOpen || isDesktop;
   const [hoveredItem, setHoveredItem] = useState(null);
@@ -141,6 +155,7 @@ export default function Sidebar({ isOpen, onClose }) {
   }, []);
 
   const menuItems = getMenuItems(invoiceCount);
+  const quickActions = getQuickActions(isAdmin);
 
   return (
     <>
@@ -358,7 +373,12 @@ export default function Sidebar({ isOpen, onClose }) {
                     >
                       {/* Icon - no rotation animation on mobile */}
                       <item.icon size={18} />
-                      <span className="text-sm font-medium">{item.label}</span>
+                      <span className="text-sm font-medium flex-1">{item.label}</span>
+                      {item.badge && (
+                        <span className={`${item.badgeColor || 'bg-blue-500'} text-white text-[10px] px-1.5 py-0.5 rounded font-semibold`}>
+                          {item.badge}
+                        </span>
+                      )}
                     </Link>
                   </motion.li>
                 ))}
@@ -382,14 +402,22 @@ export default function Sidebar({ isOpen, onClose }) {
             whileTap={{ scale: 0.98 }}
           >
             <motion.div 
-              className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 relative overflow-hidden"
+              className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg relative overflow-hidden ${
+                isAdmin 
+                  ? 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/20'
+                  : 'bg-gradient-to-br from-blue-500 to-purple-600 shadow-blue-500/20'
+              }`}
               whileHover={{ scale: 1.1 }}
             >
               <span className="text-white font-semibold relative z-10">
-                {admin?.firmName?.charAt(0) || 'A'}
+                {isAdmin ? (admin?.firmName?.charAt(0) || 'A') : (user?.name?.charAt(0) || 'E')}
               </span>
               <motion.div
-                className="absolute inset-0 bg-gradient-to-br from-teal-600 to-emerald-500"
+                className={`absolute inset-0 ${
+                  isAdmin 
+                    ? 'bg-gradient-to-br from-teal-600 to-emerald-500'
+                    : 'bg-gradient-to-br from-purple-600 to-blue-500'
+                }`}
                 initial={{ scale: 0, opacity: 0 }}
                 whileHover={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.3 }}
@@ -403,26 +431,24 @@ export default function Sidebar({ isOpen, onClose }) {
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: 0.35 }}
               >
-                {admin?.firmName || 'Admin'}
+                {isAdmin ? (admin?.firmName || 'Admin') : (user?.name || 'Employee')}
               </motion.p>
               <motion.p 
-                className="text-xs text-slate-400 truncate"
+                className="text-xs text-slate-400 flex flex-wrap items-center gap-1"
                 initial={{ x: -10, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: 0.4 }}
               >
-                {admin?.email || 'admin@bharat.com'}
+                <span className="truncate max-w-[140px]">
+                  {isAdmin ? (admin?.email || 'admin@bharat.com') : (user?.email || 'employee')}
+                </span>
+                {isAdmin && (
+                  <span className="text-[10px] px-1 py-0.5 bg-purple-500/20 text-purple-400 rounded flex-shrink-0">Admin</span>
+                )}
               </motion.p>
             </div>
 
-            <motion.div
-              className="opacity-0 group-hover:opacity-100 transition-opacity"
-              initial={{ rotate: 0 }}
-              whileHover={{ rotate: 360 }}
-              transition={{ duration: 0.5 }}
-            >
-              <Settings size={16} className="text-slate-400" />
-            </motion.div>
+
           </motion.div>
           
           <motion.button
