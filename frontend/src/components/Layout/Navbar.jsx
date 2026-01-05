@@ -12,7 +12,11 @@ import {
   ChevronDown,
   Sparkles,
   StickyNote,
-  Wallet
+  Wallet,
+  UsersRound,
+  BarChart3,
+  Shield,
+  Clock
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -26,11 +30,24 @@ const navItems = [
   { path: '/invoices/create', label: 'Create Invoice', icon: FilePlus, highlight: true },
 ];
 
+// Admin-only nav items
+const adminNavItems = [
+  { path: '/employees', label: 'Employees', icon: UsersRound, adminOnly: true },
+  { path: '/analytics', label: 'Analytics', icon: BarChart3, adminOnly: true },
+  { path: '/activity-log', label: 'Activity Log', icon: Clock, adminOnly: true },
+  { path: '/manual-entries', label: 'Manual Entries', icon: FileText, adminOnly: true },
+];
+
 export default function Navbar() {
   const location = useLocation();
-  const { admin, logout } = useAuth();
+  const { admin, user, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
+
+  // Combine nav items - add admin items if user is admin
+  // Updated: We now render admin items in a separate dropdown to save space
+  const mainNavItems = navItems;
 
   return (
     <motion.nav 
@@ -68,7 +85,7 @@ export default function Navbar() {
 
           {/* Navigation Links */}
           <div className="hidden md:flex items-center gap-2">
-            {navItems.map((item) => {
+            {mainNavItems.map((item) => {
               // Check if we're on an edit page
               const isEditPage = location.pathname.includes('/edit');
               
@@ -107,7 +124,7 @@ export default function Navbar() {
                   )}
                   
                   <motion.div
-                    className={`relative flex items-center gap-2 px-4 py-2.5 rounded-xl transition-colors ${
+                    className={`relative flex items-center gap-2 px-4 py-2.5 rounded-xl transition-colors group ${
                       isActive 
                         ? 'text-blue-400' 
                         : item.highlight
@@ -127,7 +144,12 @@ export default function Navbar() {
                     >
                       <item.icon size={18} strokeWidth={isActive ? 2.5 : 2} />
                     </motion.div>
-                    <span className="font-medium text-sm">{item.label}</span>
+                    <span className="font-medium text-sm hidden xl:block">{item.label}</span>
+                    
+                    {/* Tooltip for icon-only mode (< xl screens) */}
+                    <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 border border-slate-700 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none xl:hidden z-50">
+                      {item.label}
+                    </div>
                     
                     {item.highlight && (
                       <motion.div
@@ -138,10 +160,62 @@ export default function Navbar() {
                         <Sparkles className="w-3 h-3 text-yellow-400" />
                       </motion.div>
                     )}
+                    {item.adminOnly && (
+                      <span className="text-[10px] px-1.5 py-0.5 bg-purple-500/20 text-purple-400 rounded font-semibold hidden xl:inline-block">Admin</span>
+                    )}
                   </motion.div>
                 </Link>
               );
             })}
+
+            {/* Admin Dropdown - Groups admin items to save space */}
+            {isAdmin && (
+              <div className="relative">
+                <motion.button
+                  onClick={() => setAdminMenuOpen(!adminMenuOpen)}
+                  className={`relative flex items-center gap-2 px-4 py-2.5 rounded-xl transition-colors ${
+                    location.pathname.includes('/employees') || location.pathname.includes('/analytics')
+                      ? 'text-blue-400 bg-blue-500/10'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                  }`}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Shield size={18} />
+                  <span className="font-medium text-sm hidden xl:block">Admin</span>
+                  <ChevronDown size={14} className={`transition-transform duration-200 ${adminMenuOpen ? 'rotate-180' : ''}`} />
+                </motion.button>
+                
+                <AnimatePresence>
+                  {adminMenuOpen && (
+                    <>
+                      <div className="fixed inset-0 z-30" onClick={() => setAdminMenuOpen(false)} />
+                      <motion.div
+                        className="absolute right-0 top-full mt-2 w-48 glass-card border border-slate-700 rounded-xl shadow-xl overflow-hidden z-40 py-1"
+                        initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                      >
+                        {adminNavItems.map((item) => (
+                          <Link
+                            key={item.path}
+                            to={item.path}
+                            onClick={() => setAdminMenuOpen(false)}
+                            className={`flex items-center gap-3 px-4 py-3 hover:bg-slate-800/50 transition-colors ${
+                              location.pathname === item.path ? 'text-blue-400 bg-blue-500/5' : 'text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            <item.icon size={18} />
+                            <span className="text-sm font-medium">{item.label}</span>
+                          </Link>
+                        ))}
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
           </div>
 
           {/* User Menu */}
@@ -154,15 +228,15 @@ export default function Navbar() {
             >
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
                 <span className="text-white font-semibold text-sm">
-                  {admin?.firmName?.charAt(0) || 'A'}
+                  {isAdmin ? (admin?.firmName?.charAt(0) || 'A') : (user?.name?.charAt(0) || 'E')}
                 </span>
               </div>
               <div className="hidden xl:block text-left">
                 <p className="text-sm font-medium text-white truncate max-w-[150px]">
-                  {admin?.firmName || 'Admin'}
+                  {isAdmin ? (admin?.firmName || 'Admin') : (user?.name || 'Employee')}
                 </p>
                 <p className="text-xs text-slate-400 truncate max-w-[150px]">
-                  {admin?.email || 'admin@bharat.com'}
+                  {isAdmin ? (admin?.email || 'admin@bharat.com') : (user?.email || 'employee')}
                 </p>
               </div>
               <motion.div
@@ -195,26 +269,33 @@ export default function Navbar() {
                     transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                   >
                     <div className="p-4 border-b border-slate-700/50">
-                      <p className="text-sm font-medium text-white">
-                        {admin?.firmName || 'Admin'}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-white">
+                          {isAdmin ? (admin?.firmName || 'Admin') : (user?.name || 'Employee')}
+                        </p>
+                        {isAdmin && (
+                          <span className="text-[10px] px-1.5 py-0.5 bg-purple-500/20 text-purple-400 rounded">Admin</span>
+                        )}
+                      </div>
                       <p className="text-xs text-slate-400 mt-1">
-                        {admin?.email || 'admin@bharat.com'}
+                        {isAdmin ? (admin?.email || 'admin@bharat.com') : (user?.email || 'employee')}
                       </p>
                     </div>
                     
                     <div className="p-2">
-                      <motion.button
-                        onClick={() => {
-                          setUserMenuOpen(false);
-                          navigate('/profile');
-                        }}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 transition-colors text-left"
-                        whileHover={{ x: 4 }}
-                      >
-                        <User size={18} />
-                        <span className="text-sm font-medium">Profile</span>
-                      </motion.button>
+                      {isAdmin && (
+                        <motion.button
+                          onClick={() => {
+                            setUserMenuOpen(false);
+                            navigate('/profile');
+                          }}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 transition-colors text-left"
+                          whileHover={{ x: 4 }}
+                        >
+                          <User size={18} />
+                          <span className="text-sm font-medium">Profile</span>
+                        </motion.button>
+                      )}
                       
                       <motion.button
                         onClick={() => {
