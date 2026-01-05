@@ -1,6 +1,6 @@
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider, useAuth, AdminRoute } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 
 // Eager load - needed immediately
@@ -21,6 +21,12 @@ const CreditsPage = lazy(() => import('./pages/CreditsPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
+// Admin-only pages
+const EmployeesPage = lazy(() => import('./pages/EmployeesPage'));
+const EmployeeDetailPage = lazy(() => import('./pages/EmployeeDetailPage'));
+const EmployeeAnalyticsPage = lazy(() => import('./pages/EmployeeAnalyticsPage'));
+const ActivityLogPage = lazy(() => import('./pages/ActivityLogPage'));
+
 // Page loading spinner
 function PageLoader() {
   return (
@@ -35,7 +41,7 @@ function PageLoader() {
 
 // Protected Route Wrapper
 function ProtectedRoute({ children }) {
-  const { admin, loading } = useAuth();
+  const { user, loading } = useAuth();
   
   if (loading) {
     return (
@@ -45,7 +51,7 @@ function ProtectedRoute({ children }) {
     );
   }
   
-  if (!admin) {
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
   
@@ -54,7 +60,7 @@ function ProtectedRoute({ children }) {
 
 // Public Route Wrapper (redirect if logged in)
 function PublicRoute({ children }) {
-  const { admin, loading } = useAuth();
+  const { user, loading } = useAuth();
   
   if (loading) {
     return (
@@ -64,7 +70,7 @@ function PublicRoute({ children }) {
     );
   }
   
-  if (admin) {
+  if (user) {
     return <Navigate to="/" replace />;
   }
   
@@ -112,6 +118,40 @@ function AppRoutes() {
           <Route path="/notes" element={<NotesPage />} />
           <Route path="/credits" element={<CreditsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          
+          {/* Admin-only routes */}
+          <Route 
+            path="/employees" 
+            element={
+              <AdminRoute>
+                <EmployeesPage />
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="/employees/:id" 
+            element={
+              <AdminRoute>
+                <EmployeeDetailPage />
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="/analytics" 
+            element={
+              <AdminRoute>
+                <EmployeeAnalyticsPage />
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="/activity-log" 
+            element={
+              <AdminRoute>
+                <ActivityLogPage />
+              </AdminRoute>
+            } 
+          />
         </Route>
         
         {/* 404 */}
