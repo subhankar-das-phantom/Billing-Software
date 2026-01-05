@@ -43,10 +43,37 @@ export const authService = {
       if (response.data?.admin) {
         localStorage.setItem('admin', JSON.stringify(response.data.admin));
         localStorage.setItem('lastLoginTime', Date.now().toString());
+        localStorage.setItem('userRole', 'admin');
       }
       
       return response.data;
     } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
+   * Login employee with email and password
+   * @param {string} email - Email
+   * @param {string} password - User password
+   * @returns {Promise<{success: boolean, role: string, employee: object}>}
+   */
+  employeeLogin: async (email, password) => {
+    try {
+      const response = await api.post('/auth/employee/login', { email, password });
+      
+      // Store employee info in localStorage
+      if (response.data?.employee) {
+        localStorage.setItem('user', JSON.stringify(response.data.employee));
+        localStorage.setItem('lastLoginTime', Date.now().toString());
+        localStorage.setItem('userRole', 'employee');
+      }
+      
+      return response.data;
+    } catch (error) {
+      localStorage.removeItem('user');
+      localStorage.removeItem('lastLoginTime');
+      localStorage.removeItem('userRole');
       throw error;
     }
   },
@@ -135,6 +162,21 @@ export const authService = {
       sessionStorage.removeItem('redirectAfterLogin');
       
       throw error;
+    }
+  },
+
+  /**
+   * Send heartbeat to keep session alive and update lastActivityAt
+   * @returns {Promise<{success: boolean}>}
+   */
+  heartbeat: async () => {
+    try {
+      const response = await api.post('/auth/heartbeat');
+      return response.data;
+    } catch (error) {
+      // Silently fail - heartbeat errors shouldn't interrupt user
+      console.warn('Heartbeat failed:', error.message);
+      return { success: false };
     }
   },
 

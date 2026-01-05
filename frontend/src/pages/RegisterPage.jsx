@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
   UserPlus, 
   Mail, 
@@ -21,7 +21,21 @@ import { authService } from '../services/authService';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
-const pageVariants = {
+// Detect if we should reduce motion for performance
+const getReducedMotionPreference = () => {
+  if (typeof window === 'undefined') return false;
+  const isMobile = window.matchMedia('(max-width: 768px)').matches;
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  return isMobile || prefersReducedMotion;
+};
+
+// Simplified variants for mobile - just fade in, no complex physics
+const getMobilePageVariants = () => ({
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { duration: 0.3 } }
+});
+
+const getDesktopPageVariants = () => ({
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -31,9 +45,14 @@ const pageVariants = {
       delayChildren: 0.2
     }
   }
-};
+});
 
-const itemVariants = {
+const getMobileItemVariants = () => ({
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { duration: 0.2 } }
+});
+
+const getDesktopItemVariants = () => ({
   hidden: { opacity: 0, y: 20 },
   visible: {
     opacity: 1,
@@ -44,27 +63,7 @@ const itemVariants = {
       damping: 24
     }
   }
-};
-
-const floatingAnimation = {
-  y: [0, -20, 0],
-  opacity: [0.5, 0.8, 0.5],
-  scale: [1, 1.1, 1],
-  transition: {
-    duration: 5,
-    repeat: Infinity,
-    ease: 'easeInOut'
-  }
-};
-
-const shimmerAnimation = {
-  x: ['-100%', '100%'],
-  transition: {
-    duration: 2,
-    repeat: Infinity,
-    ease: 'linear'
-  }
-};
+});
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -82,6 +81,11 @@ export default function RegisterPage() {
   const [focusedField, setFocusedField] = useState(null);
   const navigate = useNavigate();
   const { error: showError, success: showSuccess } = useToast();
+
+  // Memoize motion preference to avoid recalculating on every render
+  const shouldReduceMotion = useMemo(() => getReducedMotionPreference(), []);
+  const pageVariants = useMemo(() => shouldReduceMotion ? getMobilePageVariants() : getDesktopPageVariants(), [shouldReduceMotion]);
+  const itemVariants = useMemo(() => shouldReduceMotion ? getMobileItemVariants() : getDesktopItemVariants(), [shouldReduceMotion]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -144,24 +148,13 @@ export default function RegisterPage() {
           <Icon size={16} className="text-slate-400" />
           {label}
         </label>
-        <motion.div
-          className="relative"
-          animate={focusedField === name ? { scale: 1.02 } : { scale: 1 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-        >
+        <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <motion.div
-              animate={focusedField === name ? { 
-                scale: 1.2,
-                color: 'rgb(59, 130, 246)'
-              } : {
-                scale: 1,
-                color: 'rgb(148, 163, 184)'
-              }}
-              transition={{ duration: 0.2 }}
-            >
-              <Icon size={18} />
-            </motion.div>
+            <Icon 
+              size={18} 
+              className={focusedField === name ? 'text-blue-500' : 'text-slate-400'} 
+              style={{ transition: 'color 0.2s' }} 
+            />
           </div>
           <input
             id={name}
@@ -176,95 +169,69 @@ export default function RegisterPage() {
             disabled={loading}
           />
           {showToggle ? (
-            <motion.button
+            <button
               type="button"
               onClick={togglePassword}
               className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-blue-400 transition-colors"
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
             >
-              <AnimatePresence mode="wait">
-                {showPasswordState ? (
-                  <motion.div
-                    key="eye-off"
-                    initial={{ opacity: 0, rotate: -90 }}
-                    animate={{ opacity: 1, rotate: 0 }}
-                    exit={{ opacity: 0, rotate: 90 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <EyeOff size={18} />
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="eye"
-                    initial={{ opacity: 0, rotate: -90 }}
-                    animate={{ opacity: 1, rotate: 0 }}
-                    exit={{ opacity: 0, rotate: 90 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <Eye size={18} />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.button>
+              {showPasswordState ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
           ) : (
-            <AnimatePresence>
-              {formData[name] && (
-                <motion.div
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  initial={{ opacity: 0, scale: 0 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0 }}
-                >
-                  <CheckCircle size={18} className="text-emerald-400" />
-                </motion.div>
-              )}
-            </AnimatePresence>
+            formData[name] && (
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                <CheckCircle size={18} className="text-emerald-400" />
+              </div>
+            )
           )}
-        </motion.div>
+        </div>
       </motion.div>
     );
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-      {/* Animated Background Gradients */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          animate={floatingAnimation}
-          className="absolute -top-40 -right-40 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl"
-        />
-        <motion.div
-          animate={{
-            y: [0, 20, 0],
-            opacity: [0.5, 0.8, 0.5],
-            scale: [1, 1.2, 1],
-            transition: {
-              duration: 7,
-              repeat: Infinity,
-              ease: 'easeInOut',
-              delay: 1
-            }
-          }}
-          className="absolute -bottom-40 -left-40 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl"
-        />
-        <motion.div
-          animate={{
-            y: [0, -15, 0],
-            opacity: [0.3, 0.6, 0.3],
-            scale: [1, 1.15, 1],
-            transition: {
-              duration: 6,
-              repeat: Infinity,
-              ease: 'easeInOut',
-              delay: 2
-            }
-          }}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"
-        />
-      </div>
+      {/* Animated Background Gradients - Only on desktop */}
+      {!shouldReduceMotion && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <motion.div
+            animate={{
+              y: [0, -20, 0],
+              opacity: [0.5, 0.8, 0.5],
+              scale: [1, 1.1, 1],
+              transition: { duration: 5, repeat: Infinity, ease: 'easeInOut' }
+            }}
+            className="absolute -top-40 -right-40 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl"
+          />
+          <motion.div
+            animate={{
+              y: [0, 20, 0],
+              opacity: [0.5, 0.8, 0.5],
+              scale: [1, 1.2, 1],
+              transition: { duration: 7, repeat: Infinity, ease: 'easeInOut', delay: 1 }
+            }}
+            className="absolute -bottom-40 -left-40 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl"
+          />
+          <motion.div
+            animate={{
+              y: [0, -15, 0],
+              opacity: [0.3, 0.6, 0.3],
+              scale: [1, 1.15, 1],
+              transition: { duration: 6, repeat: Infinity, ease: 'easeInOut', delay: 2 }
+            }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"
+          />
+        </div>
+      )}
 
-      {/* Animated Grid Background */}
+      {/* Static gradient background for mobile */}
+      {shouldReduceMotion && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl" />
+          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl" />
+        </div>
+      )}
+
+      {/* Animated Grid Background - CSS only, no JS animation */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:50px_50px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]" />
 
       {/* Register Card */}
@@ -276,53 +243,51 @@ export default function RegisterPage() {
       >
         <motion.div
           className="glass-card p-8 md:p-10 shadow-2xl border border-white/10 backdrop-blur-xl bg-slate-900/80 relative overflow-hidden"
-          whileHover={{ boxShadow: '0 25px 50px -12px rgba(16, 185, 129, 0.3)' }}
+          whileHover={shouldReduceMotion ? undefined : { boxShadow: '0 25px 50px -12px rgba(16, 185, 129, 0.3)' }}
           transition={{ duration: 0.3 }}
         >
-          {/* Card Shimmer Effect */}
-          <motion.div
-            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent"
-            animate={shimmerAnimation}
-          />
+          {/* Card Shimmer Effect - Only on desktop */}
+          {!shouldReduceMotion && (
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent"
+              animate={{ x: ['-100%', '100%'], transition: { duration: 2, repeat: Infinity, ease: 'linear' } }}
+            />
+          )}
 
           {/* Logo Section */}
           <motion.div variants={itemVariants} className="text-center mb-6">
             <motion.div
               className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 mb-4 shadow-lg shadow-emerald-500/50 relative overflow-hidden"
-              whileHover={{ 
+              whileHover={shouldReduceMotion ? undefined : { 
                 scale: 1.1, 
                 rotate: 360,
                 boxShadow: '0 20px 40px -15px rgba(16, 185, 129, 0.6)'
               }}
               transition={{ type: 'spring', stiffness: 200, damping: 15 }}
             >
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-br from-teal-600 to-emerald-500"
-                animate={{
-                  scale: [1, 1.2, 1],
-                  opacity: [0, 0.5, 0]
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: 'easeInOut'
-                }}
-              />
+              {/* Pulsing gradient - Only on desktop */}
+              {!shouldReduceMotion && (
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-br from-teal-600 to-emerald-500"
+                  animate={{ scale: [1, 1.2, 1], opacity: [0, 0.5, 0] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                />
+              )}
               <UserPlus className="w-10 h-10 text-white relative z-10" />
-              <motion.div
-                className="absolute -top-1 -right-1"
-                animate={{
-                  scale: [1, 1.2, 1],
-                  opacity: [1, 0.5, 1]
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: 'easeInOut'
-                }}
-              >
-                <Sparkles className="w-4 h-4 text-yellow-300" />
-              </motion.div>
+              {!shouldReduceMotion && (
+                <motion.div
+                  className="absolute -top-1 -right-1"
+                  animate={{ scale: [1, 1.2, 1], opacity: [1, 0.5, 1] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  <Sparkles className="w-4 h-4 text-yellow-300" />
+                </motion.div>
+              )}
+              {shouldReduceMotion && (
+                <div className="absolute -top-1 -right-1">
+                  <Sparkles className="w-4 h-4 text-yellow-300" />
+                </div>
+              )}
             </motion.div>
 
             <motion.div variants={itemVariants}>
@@ -405,46 +370,24 @@ export default function RegisterPage() {
             {/* Submit Button */}
             <motion.button
               variants={itemVariants}
-              whileHover={{ scale: loading ? 1 : 1.02, y: loading ? 0 : -2 }}
-              whileTap={{ scale: loading ? 1 : 0.98 }}
+              whileHover={shouldReduceMotion ? undefined : { scale: 1.02, y: -2 }}
+              whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}
               type="submit"
               disabled={loading}
               className="btn w-full py-3.5 font-semibold shadow-lg shadow-emerald-500/30 relative overflow-hidden group bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-lg mt-6"
             >
-              {/* Button Shimmer Effect */}
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-                animate={{
-                  x: loading ? ['-100%', '100%'] : '-100%'
-                }}
-                transition={{
-                  duration: 1.5,
-                  repeat: loading ? Infinity : 0,
-                  ease: 'linear'
-                }}
-              />
-
               <span className="relative z-10 flex items-center justify-center gap-2">
                 {loading ? (
                   <>
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                    >
-                      <Loader2 className="w-5 h-5" />
-                    </motion.div>
+                    {/* Use CSS animation instead of Framer Motion for spinner */}
+                    <Loader2 className="w-5 h-5 animate-spin" />
                     <span>Creating account...</span>
                   </>
                 ) : (
                   <>
                     <UserPlus className="w-5 h-5" />
                     <span>Create Account</span>
-                    <motion.div
-                      animate={{ x: [0, 4, 0] }}
-                      transition={{ duration: 1.5, repeat: Infinity }}
-                    >
-                      <ArrowRight className="w-5 h-5" />
-                    </motion.div>
+                    <ArrowRight className="w-5 h-5" />
                   </>
                 )}
               </span>
@@ -477,8 +420,8 @@ export default function RegisterPage() {
           </motion.div>
         </motion.div>
 
-        {/* Floating Particles */}
-        {[...Array(5)].map((_, i) => (
+        {/* Floating Particles - Only on desktop */}
+        {!shouldReduceMotion && [...Array(5)].map((_, i) => (
           <motion.div
             key={i}
             className="absolute w-1 h-1 bg-emerald-400/30 rounded-full"

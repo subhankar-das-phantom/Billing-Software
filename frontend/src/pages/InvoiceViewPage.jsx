@@ -80,6 +80,27 @@ export default function InvoiceViewPage() {
     loadInvoice();
   }, [id]);
 
+  // Update document title for PDF download filename
+  useEffect(() => {
+    if (invoice) {
+      const customerName = invoice.customer?.customerName?.replace(/[^a-zA-Z0-9\s]/g, '') || 'Customer';
+      const invoiceDate = new Date(invoice.invoiceDate).toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: '2-digit', 
+        year: 'numeric'
+      }).replace(/\//g, '-');
+      const invoiceNum = invoice.invoiceNumber || '';
+      
+      // Set title for PDF filename: "Invoice_CustomerName_Date"
+      document.title = `Invoice_${customerName}_${invoiceDate}`;
+      
+      // Restore original title when leaving the page
+      return () => {
+        document.title = 'Bharat Enterprise - Billing System';
+      };
+    }
+  }, [invoice]);
+
   const loadInvoice = async () => {
     try {
       const data = await invoiceService.getInvoice(id);
