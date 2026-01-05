@@ -7,7 +7,8 @@ import {
   X,
   Shield,
   LogIn,
-  LogOut as LogOutIcon
+  LogOut as LogOutIcon,
+  UserCircle
 } from 'lucide-react';
 import { authService } from '../services/authService';
 
@@ -102,7 +103,10 @@ const AuthLoadingScreen = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [admin, setAdmin] = useState(null);
+  // Support for both admin and employee users
+  const [user, setUser] = useState(null); // Current user (admin or employee)
+  const [userRole, setUserRole] = useState(null); // 'admin' or 'employee'
+  const [admin, setAdmin] = useState(null); // For backward compatibility
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
   const [authTransition, setAuthTransition] = useState(null); // 'login' | 'logout'
@@ -124,12 +128,27 @@ export const AuthProvider = ({ children }) => {
       try {
         const data = await authService.getMe();
         if (data.success) {
-          setAdmin(data.admin);
-          localStorage.setItem('admin', JSON.stringify(data.admin));
+          const role = data.role || 'admin';
+          setUserRole(role);
+          
+          if (role === 'admin') {
+            setAdmin(data.admin);
+            setUser(data.admin);
+            localStorage.setItem('admin', JSON.stringify(data.admin));
+            localStorage.setItem('userRole', 'admin');
+          } else {
+            setUser(data.user);
+            localStorage.setItem('user', JSON.stringify(data.user));
+            localStorage.setItem('userRole', 'employee');
+          }
         }
       } catch (error) {
         localStorage.removeItem('admin');
+        localStorage.removeItem('user');
+        localStorage.removeItem('userRole');
         setAdmin(null);
+        setUser(null);
+        setUserRole(null);
       } finally {
         // Minimal delay for smooth transition (reduced from 800ms)
         setTimeout(() => setLoading(false), 200);
@@ -139,22 +158,57 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
+  // Heartbeat to keep session alive (every 2 minutes)
+  // When all tabs are closed or internet disconnects, heartbeats stop
+  // and the session becomes "offline" after 5 minutes
+  useEffect(() => {
+    // Only send heartbeats when user is logged in
+    if (!user && !admin) return;
+
+    // Send initial heartbeat
+    authService.heartbeat();
+
+    // Set up interval - every 2 minutes
+    const heartbeatInterval = setInterval(() => {
+      authService.heartbeat();
+    }, 2 * 60 * 1000); // 2 minutes
+
+    // Cleanup on unmount or logout
+    return () => clearInterval(heartbeatInterval);
+  }, [user, admin]);
+
+  // Unified login - auto-detects Admin or Employee
   const login = async (email, password) => {
     try {
       setAuthTransition('login');
       const data = await authService.login(email, password);
       
       if (data.success) {
-        localStorage.setItem('admin', JSON.stringify(data.admin));
-        setAdmin(data.admin);
-        
-        // Clear overlay immediately, show toast after navigation settles
-        setAuthTransition(null);
-        
-        // Show toast slightly delayed so navigation happens first
-        requestAnimationFrame(() => {
-          showToast(`Welcome back, ${data.admin.firmName || 'Admin'}!`, 'success');
-        });
+        if (data.role === 'admin') {
+          // Admin login
+          localStorage.setItem('admin', JSON.stringify(data.admin));
+          localStorage.setItem('userRole', 'admin');
+          setAdmin(data.admin);
+          setUser(data.admin);
+          setUserRole('admin');
+          
+          setAuthTransition(null);
+          requestAnimationFrame(() => {
+            showToast(`Welcome back, ${data.admin.firmName || 'Admin'}!`, 'success');
+          });
+        } else if (data.role === 'employee') {
+          // Employee login
+          localStorage.setItem('user', JSON.stringify(data.employee));
+          localStorage.setItem('userRole', 'employee');
+          setUser(data.employee);
+          setUserRole('employee');
+          setAdmin(null);
+          
+          setAuthTransition(null);
+          requestAnimationFrame(() => {
+            showToast(`Welcome back, ${data.employee.name || 'Employee'}!`, 'success');
+          });
+        }
       } else {
         setAuthTransition(null);
         showToast(data.message || 'Login failed', 'error');
@@ -174,7 +228,11 @@ export const AuthProvider = ({ children }) => {
       await authService.logout();
       
       localStorage.removeItem('admin');
+      localStorage.removeItem('user');
+      localStorage.removeItem('userRole');
       setAdmin(null);
+      setUser(null);
+      setUserRole(null);
       
       setTimeout(() => {
         showToast('Successfully logged out', 'info');
@@ -189,13 +247,25 @@ export const AuthProvider = ({ children }) => {
   const updateAdmin = (adminData) => {
     localStorage.setItem('admin', JSON.stringify(adminData));
     setAdmin(adminData);
+    setUser(adminData);
     showToast('Profile updated successfully', 'success');
   };
+
+  // Check if current user is admin
+  const isAdmin = () => userRole === 'admin';
 
   return (
     <AuthContext.Provider 
       value={{ 
+        // Current user (either admin or employee)
+        user,
+        userRole,
+        isAdmin: isAdmin(),
+        
+        // For backward compatibility
         admin, 
+        
+        // Auth actions
         login, 
         logout, 
         updateAdmin, 
@@ -290,13 +360,13 @@ export const useAuth = () => {
 
 // Bonus: Protected route wrapper with animation
 export const ProtectedRoute = ({ children }) => {
-  const { admin, loading } = useAuth();
+  const { user, loading } = useAuth();
 
   if (loading) {
     return null; // Loading screen is shown by AuthProvider
   }
 
-  if (!admin) {
+  if (!user) {
     return (
       <motion.div
         className="fixed inset-0 bg-slate-950 flex items-center justify-center"
@@ -346,4 +416,53 @@ export const ProtectedRoute = ({ children }) => {
       {children}
     </motion.div>
   );
+};
+
+// Admin-only route wrapper
+export const AdminRoute = ({ children }) => {
+  const { user, userRole, loading } = useAuth();
+
+  if (loading) {
+    return null;
+  }
+
+  if (!user || userRole !== 'admin') {
+    return (
+      <motion.div
+        className="fixed inset-0 bg-slate-950 flex items-center justify-center"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+      >
+        <motion.div
+          className="text-center"
+          initial={{ scale: 0.8, y: 20 }}
+          animate={{ scale: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 300 }}
+        >
+          <motion.div
+            className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-orange-500/20 flex items-center justify-center"
+          >
+            <Shield className="w-8 h-8 text-orange-500" />
+          </motion.div>
+          <h2 className="text-2xl font-bold text-white mb-2">
+            Admin Access Required
+          </h2>
+          <p className="text-slate-400 mb-6">
+            This page is only accessible to administrators
+          </p>
+          <motion.button
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => window.location.href = '/#/'}
+          >
+            Go to Dashboard
+          </motion.button>
+        </motion.div>
+      </motion.div>
+    );
+  }
+
+  return children;
 };
