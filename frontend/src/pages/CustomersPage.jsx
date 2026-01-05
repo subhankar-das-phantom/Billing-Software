@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -40,6 +40,7 @@ const initialCustomerState = {
 export default function CustomersPage() {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searching, setSearching] = useState(false);
   const [search, setSearch] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -48,28 +49,67 @@ export default function CustomersPage() {
   const [saving, setSaving] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, customer: null });
   const { success, error } = useToast();
+  const searchTimeoutRef = useRef(null);
   
   // Adaptive motion configuration
   const motionConfig = useMotionConfig();
 
-  useEffect(() => {
-    loadCustomers();
-  }, []);
-
-  const loadCustomers = async () => {
+  // Load customers with current search term
+  const loadCustomers = useCallback(async (searchTerm = '') => {
     try {
-      const data = await customerService.getCustomers({ search });
+      setSearching(true);
+      const data = await customerService.getCustomers({ search: searchTerm });
       setCustomers(data.customers || []);
     } catch (err) {
       error('Failed to load customers');
     } finally {
       setLoading(false);
+      setSearching(false);
     }
-  };
+  }, [error]);
+
+  // Initial load
+  useEffect(() => {
+    loadCustomers();
+  }, []);
+
+  // Debounced search - triggers backend search on input change
+  useEffect(() => {
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Debounce search by 300ms to avoid too many API calls
+    searchTimeoutRef.current = setTimeout(() => {
+      loadCustomers(search);
+    }, 300);
+
+    // Cleanup on unmount
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [search]);
 
   const handleSearch = (e) => {
     e.preventDefault();
-    loadCustomers();
+    // Immediate search on form submit
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    loadCustomers(search);
+  };
+
+  // Clear search and reload
+  const handleClearSearch = () => {
+    setSearch('');
+    // Immediately reload with empty search
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    loadCustomers('');
   };
 
   const openCreateModal = () => {
@@ -198,17 +238,15 @@ export default function CustomersPage() {
         <motion.form
           onSubmit={handleSearch}
           className="flex gap-2 flex-1 max-w-md relative"
-          animate={searchFocused ? { scale: 1.02 } : { scale: 1 }}
+          animate={!motionConfig.isMobile && searchFocused ? { scale: 1.02 } : { scale: 1 }}
           transition={{ type: 'spring', stiffness: 400 }}
         >
           <motion.div className="relative flex-1">
-            <motion.div
+            <div
               className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
-              animate={searchFocused ? { x: 4, scale: 1.1 } : { x: 0, scale: 1 }}
-              transition={{ type: 'spring', stiffness: 400 }}
             >
               <Search className="w-5 h-5 text-slate-400" />
-            </motion.div>
+            </div>
             <input
               type="text"
               value={search}
@@ -222,7 +260,7 @@ export default function CustomersPage() {
               {search && (
                 <motion.button
                   type="button"
-                  onClick={() => setSearch('')}
+                  onClick={handleClearSearch}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -241,8 +279,9 @@ export default function CustomersPage() {
             className="btn btn-secondary"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            disabled={searching}
           >
-            <Search className="w-5 h-5" />
+            {searching ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
           </motion.button>
         </motion.form>
 
@@ -285,7 +324,7 @@ export default function CustomersPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              No customers found. Add your first customer!
+              {search ? 'No customers found for your search.' : 'No customers found. Add your first customer!'}
             </motion.p>
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -302,17 +341,25 @@ export default function CustomersPage() {
           </motion.div>
         ) : (
           <motion.div
-            key="grid"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
+            key={`grid-${search}-${customers.length}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
           >
-            {customers.map((customer) => (
+            {customers.map((customer, index) => (
               <motion.div
                 key={customer._id}
-                variants={cardVariants}
-                layout
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ 
+                  opacity: 1, 
+                  y: 0,
+                  transition: { 
+                    delay: motionConfig.shouldStagger ? index * 0.05 : 0,
+                    duration: 0.3 
+                  }
+                }}
                 whileHover={motionConfig.shouldHover ? { y: -6 } : undefined}
                 className="glass-card p-6 hover:border-blue-500/50 transition-colors cursor-pointer group"
               >
