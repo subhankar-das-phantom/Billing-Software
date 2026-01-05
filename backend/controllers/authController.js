@@ -97,6 +97,7 @@ exports.register = async (req, res, next) => {
       success: true,
       message: 'Account created successfully',
       role: 'admin',
+      token,
       admin: {
         id: admin._id,
         email: admin.email,
@@ -155,6 +156,7 @@ exports.login = async (req, res, next) => {
       return res.status(200).json({
         success: true,
         role: 'admin',
+        token,
         admin: {
           id: admin._id,
           email: admin.email,
@@ -203,6 +205,7 @@ exports.login = async (req, res, next) => {
       return res.status(200).json({
         success: true,
         role: 'employee',
+        token,
         employee: employee.getPublicProfile()
       });
     }
@@ -277,6 +280,7 @@ exports.employeeLogin = async (req, res, next) => {
     res.status(200).json({
       success: true,
       role: 'employee',
+      token,
       employee: employee.getPublicProfile()
     });
   } catch (error) {

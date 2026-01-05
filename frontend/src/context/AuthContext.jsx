@@ -143,6 +143,7 @@ export const AuthProvider = ({ children }) => {
           }
         }
       } catch (error) {
+        localStorage.removeItem('token');
         localStorage.removeItem('admin');
         localStorage.removeItem('user');
         localStorage.removeItem('userRole');
@@ -227,6 +228,7 @@ export const AuthProvider = ({ children }) => {
       setAuthTransition('logout');
       await authService.logout();
       
+      localStorage.removeItem('token');
       localStorage.removeItem('admin');
       localStorage.removeItem('user');
       localStorage.removeItem('userRole');

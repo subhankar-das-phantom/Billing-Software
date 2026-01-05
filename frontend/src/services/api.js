@@ -62,6 +62,12 @@ api.interceptors.request.use(
       startTime: Date.now() 
     };
 
+    // Add JWT token from localStorage to Authorization header
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
     // Add cancel token (optional - uncomment if needed)
     // config.cancelToken = getCancelToken(config);
 
@@ -76,7 +82,8 @@ api.interceptors.request.use(
         {
           id: config.metadata.requestId,
           data: config.data,
-          params: config.params
+          params: config.params,
+          hasToken: !!token
         }
       );
     }
@@ -168,7 +175,11 @@ api.interceptors.response.use(
       const isLoginRequest = config?.url?.includes('/auth/login');
       
       if (!isAuthCheck && !isLoginPage && !isLoginRequest) {
+        // Clear all auth data
+        localStorage.removeItem('token');
         localStorage.removeItem('admin');
+        localStorage.removeItem('user');
+        localStorage.removeItem('userRole');
         
         // Store intended destination for redirect after login
         const currentHash = window.location.hash.slice(1) || '/'; // Remove '#' prefix

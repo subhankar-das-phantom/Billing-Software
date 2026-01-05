@@ -225,7 +225,7 @@ exports.adjustStock = async (req, res, next) => {
       changeQty: adjustment,
       previousQty,
       newQty,
-      reference: reason || 'Manual adjustment',
+      reference: reason || 'Stock adjustment',
       timestamp: new Date(),
       adjustedBy: getAttribution(req)
     });

@@ -15,7 +15,10 @@ export const authService = {
     try {
       const response = await api.post('/auth/login', { email, password });
       
-      // Store user info in localStorage (not sensitive data)
+      // Store JWT token and user info in localStorage
+      if (response.data?.token) {
+        localStorage.setItem('token', response.data.token);
+      }
       if (response.data?.admin) {
         localStorage.setItem('admin', JSON.stringify(response.data.admin));
         localStorage.setItem('lastLoginTime', Date.now().toString());
@@ -39,7 +42,10 @@ export const authService = {
     try {
       const response = await api.post('/auth/register', userData);
       
-      // Store user info in localStorage
+      // Store JWT token and user info in localStorage
+      if (response.data?.token) {
+        localStorage.setItem('token', response.data.token);
+      }
       if (response.data?.admin) {
         localStorage.setItem('admin', JSON.stringify(response.data.admin));
         localStorage.setItem('lastLoginTime', Date.now().toString());
@@ -62,7 +68,10 @@ export const authService = {
     try {
       const response = await api.post('/auth/employee/login', { email, password });
       
-      // Store employee info in localStorage
+      // Store JWT token and employee info in localStorage
+      if (response.data?.token) {
+        localStorage.setItem('token', response.data.token);
+      }
       if (response.data?.employee) {
         localStorage.setItem('user', JSON.stringify(response.data.employee));
         localStorage.setItem('lastLoginTime', Date.now().toString());
@@ -150,14 +159,20 @@ export const authService = {
       const response = await api.post('/auth/logout');
       
       // Clear all auth-related data from localStorage
+      localStorage.removeItem('token');
       localStorage.removeItem('admin');
+      localStorage.removeItem('user');
+      localStorage.removeItem('userRole');
       localStorage.removeItem('lastLoginTime');
       sessionStorage.removeItem('redirectAfterLogin');
       
       return response.data;
     } catch (error) {
       // Even if backend call fails, clear local data
+      localStorage.removeItem('token');
       localStorage.removeItem('admin');
+      localStorage.removeItem('user');
+      localStorage.removeItem('userRole');
       localStorage.removeItem('lastLoginTime');
       sessionStorage.removeItem('redirectAfterLogin');
       
@@ -284,7 +299,10 @@ export const authService = {
    * Clear all authentication data
    */
   clearAuthData: () => {
+    localStorage.removeItem('token');
     localStorage.removeItem('admin');
+    localStorage.removeItem('user');
+    localStorage.removeItem('userRole');
     localStorage.removeItem('lastLoginTime');
     sessionStorage.removeItem('redirectAfterLogin');
   },
