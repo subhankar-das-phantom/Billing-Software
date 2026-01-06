@@ -26,6 +26,7 @@ const EmployeesPage = lazy(() => import('./pages/EmployeesPage'));
 const EmployeeDetailPage = lazy(() => import('./pages/EmployeeDetailPage'));
 const EmployeeAnalyticsPage = lazy(() => import('./pages/EmployeeAnalyticsPage'));
 const ActivityLogPage = lazy(() => import('./pages/ActivityLogPage'));
+const ManualEntriesPage = lazy(() => import('./pages/ManualEntriesPage'));
 
 // Page loading spinner
 function PageLoader() {
@@ -149,6 +150,14 @@ function AppRoutes() {
             element={
               <AdminRoute>
                 <ActivityLogPage />
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="/manual-entries" 
+            element={
+              <AdminRoute>
+                <ManualEntriesPage />
               </AdminRoute>
             } 
           />
