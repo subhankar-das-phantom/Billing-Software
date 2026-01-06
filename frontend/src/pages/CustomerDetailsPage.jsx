@@ -19,14 +19,19 @@ import {
   Wallet,
   CreditCard,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  Shield,
+  BookOpen
 } from 'lucide-react';
 import { customerService } from '../services/customerService';
 import { getPaymentsByCustomer, getPaymentStatusColor } from '../services/creditService';
 import { invoiceService } from '../services/invoiceService';
+import { manualEntryService } from '../services/manualEntryService';
 import { formatCurrency, formatDate, formatPhone } from '../utils/formatters';
 import { PageLoader } from '../components/Common/Loader';
 import RecordPaymentModal from '../components/Common/RecordPaymentModal';
+import ManualEntryModal from '../components/ManualEntry/ManualEntryModal';
+import { useAuth } from '../context/AuthContext';
 
 // Animated counter component
 const AnimatedCounter = ({ value, prefix = '', suffix = '' }) => {
@@ -68,12 +73,15 @@ const AnimatedCounter = ({ value, prefix = '', suffix = '' }) => {
 
 export default function CustomerDetailsPage() {
   const { id } = useParams();
+  const { isAdmin } = useAuth();
   const [customer, setCustomer] = useState(null);
   const [invoices, setInvoices] = useState([]);
   const [payments, setPayments] = useState([]);
+  const [manualEntries, setManualEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('invoices');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showManualEntryModal, setShowManualEntryModal] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
 
 
@@ -83,13 +91,16 @@ export default function CustomerDetailsPage() {
 
   const loadCustomer = async (bypassCache = false) => {
     try {
-      const [customerData, paymentsData,] = await Promise.all([
-        customerService.getCustomer(id, !bypassCache), // Pass false to bypass cache
+      // When bypassCache=true, pass useCache=false to get fresh data
+      const [customerData, paymentsData, entriesData] = await Promise.all([
+        customerService.getCustomer(id, !bypassCache),
         getPaymentsByCustomer(id).catch(() => ({ payments: [] })),
+        manualEntryService.getManualEntriesByCustomer(id).catch(() => ({ manualEntries: [] }))
       ]);
       setCustomer(customerData.customer);
       setInvoices(customerData.invoices || []);
       setPayments(paymentsData.payments || []);
+      setManualEntries(entriesData.manualEntries || []);
     } catch (error) {
       console.error('Failed to load customer:', error);
     } finally {
@@ -116,13 +127,23 @@ export default function CustomerDetailsPage() {
     const remaining = (inv.totals?.netTotal || 0) - (inv.paidAmount || 0);
     return remaining > 0;
   });
-
-  // Calculate outstanding balance from actual invoices (more reliable than customer.outstandingBalance)
-  const calculatedOutstanding = invoices.reduce((sum, inv) => {
+  // Calculate outstanding balance from invoices + manual entries
+  const invoiceOutstanding = invoices.reduce((sum, inv) => {
     if (inv.status === 'Cancelled') return sum;
     const remaining = (inv.totals?.netTotal || 0) - (inv.paidAmount || 0);
     return sum + (remaining > 0 ? remaining : 0);
   }, 0);
+  
+  // Add opening balance entries (Credit type only increases outstanding)
+  const manualEntryOutstanding = manualEntries.reduce((sum, entry) => {
+    if (entry.entryType === 'opening_balance' && entry.paymentType === 'Credit') {
+      const remaining = entry.amount - (entry.paidAmount || 0);
+      return sum + remaining;
+    }
+    return sum;
+  }, 0);
+  
+  const calculatedOutstanding = invoiceOutstanding + manualEntryOutstanding;
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -217,8 +238,20 @@ export default function CustomerDetailsPage() {
 
   const tabs = [
     { id: 'invoices', label: 'Invoices', icon: FileText, count: invoices.length },
-    { id: 'payments', label: 'Payments', icon: CreditCard, count: payments.length },
+    { id: 'payments', label: 'Payments', icon: CreditCard, count: payments.length + manualEntries.filter(e => e.entryType === 'payment_adjustment').length },
+    { id: 'ledger', label: 'Ledger', icon: BookOpen, count: manualEntries.length },
   ];
+
+  // Get entry type display info
+  const getEntryTypeInfo = (entryType) => {
+    const types = {
+      'opening_balance': { label: 'Opening Balance', icon: '📊' },
+      'manual_bill': { label: 'Manual Bill', icon: '💰' },
+      'payment_adjustment': { label: 'Payment', icon: '💳' },
+      'credit_adjustment': { label: 'Credit Adjustment', icon: '✏️' }
+    };
+    return types[entryType] || { label: entryType, icon: '📋' };
+  };
 
   return (
     <motion.div
@@ -488,7 +521,18 @@ export default function CustomerDetailsPage() {
           </div>
 
           {/* Actions */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            {isAdmin && (
+              <motion.button
+                onClick={() => setShowManualEntryModal(true)}
+                className="btn btn-secondary flex items-center gap-2"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Shield className="w-4 h-4" />
+                Manual Entry
+              </motion.button>
+            )}
             {(calculatedOutstanding > 0 || unpaidInvoices.length > 0) && (
               <motion.button
                 onClick={() => handleRecordPayment()}
@@ -672,7 +716,147 @@ export default function CustomerDetailsPage() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
               >
-                {payments.length === 0 ? (
+                {/* Consolidate Payments */}
+                {(() => {
+                  const manualPayments = manualEntries
+                    .filter(e => e.entryType === 'payment_adjustment')
+                    .map(e => ({
+                      _id: e._id,
+                      amount: e.amount,
+                      date: e.entryDate,
+                      method: e.paymentMethod || 'Manual',
+                      reference: `Manual Payment`, // Or use description
+                      invoiceNumber: e.description || 'Opening Balance Payment',
+                      isManual: true,
+                      type: 'Manual Entry'
+                    }));
+
+                  const invoicePayments = payments.map(p => ({
+                    _id: p._id,
+                    amount: p.amount,
+                    date: p.paymentDate,
+                    method: p.paymentMethod,
+                    reference: p.referenceNumber,
+                    invoiceNumber: p.invoice?.invoiceNumber || 'Unknown Invoice',
+                    isManual: false,
+                    type: 'Invoice Payment'
+                  }));
+
+                  const allPayments = [...invoicePayments, ...manualPayments]
+                    .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                  if (allPayments.length === 0) {
+                    return (
+                      <div className="text-center py-12">
+                        <motion.div
+                          className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-800 mb-4"
+                          initial={{ scale: 0, rotate: -180 }}
+                          animate={{ scale: 1, rotate: 0 }}
+                          transition={{ type: 'spring', stiffness: 200, delay: 0.2 }}
+                        >
+                          <CreditCard className="w-8 h-8 text-slate-400" />
+                        </motion.div>
+                        <motion.p
+                          className="text-slate-400"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.3 }}
+                        >
+                          No payments recorded yet
+                        </motion.p>
+                        {(unpaidInvoices.length > 0 || manualEntries.some(e => e.entryType === 'opening_balance' && (e.amount - (e.paidAmount || 0)) > 0)) && (
+                          <motion.button
+                            onClick={() => handleRecordPayment()}
+                            className="btn btn-primary mt-4 inline-flex items-center gap-2"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.4 }}
+                          >
+                            <CreditCard className="w-4 h-4" />
+                            Record First Payment
+                          </motion.button>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-slate-700 text-left">
+                            <th className="pb-4 pl-4 font-medium text-slate-400">Reference / Invoice</th>
+                            <th className="pb-4 font-medium text-slate-400">Date</th>
+                            <th className="pb-4 font-medium text-slate-400">Method</th>
+                            <th className="pb-4 font-medium text-slate-400">Amount</th>
+                            <th className="pb-4 font-medium text-slate-400">Type</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-700">
+                          {allPayments.map((payment, index) => (
+                            <tr
+                              key={payment._id}
+                              className="hover:bg-slate-700/50 transition-colors"
+                            >
+                              <td className="py-4 pl-4 font-medium text-white">
+                                <div className="flex items-center gap-2">
+                                  <FileText className="w-4 h-4 text-blue-400" />
+                                  {payment.isManual ? (
+                                    <span className="text-slate-300">{payment.reference}</span>
+                                  ) : (
+                                    <Link to={`/invoices/${payment.invoice?._id}`} className="hover:underline hover:text-blue-400 transition-colors">
+                                      {payment.invoiceNumber}
+                                    </Link>
+                                  )}
+                                  {payment.reference && !payment.isManual && (
+                                    <span className="text-xs text-slate-500 ml-1">({payment.reference})</span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="py-4 text-slate-300">
+                                <div className="flex items-center gap-2">
+                                  <Calendar className="w-4 h-4 text-slate-500" />
+                                  {formatDate(payment.date)}
+                                </div>
+                              </td>
+                              <td className="py-4">
+                                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-slate-600 bg-slate-700/50 text-slate-300">
+                                  <CreditCard className="w-3 h-3" />
+                                  {payment.method}
+                                </span>
+                              </td>
+                              <td className="py-4 text-emerald-400 font-medium">
+                                {formatCurrency(payment.amount)}
+                              </td>
+                              <td className="py-4">
+                                <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border ${
+                                  payment.isManual 
+                                    ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' 
+                                    : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                                }`}>
+                                  {payment.isManual ? <BookOpen className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
+                                  {payment.type}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
+              </motion.div>
+            )}
+
+            {/* Ledger Tab - Manual Entries */}
+            {activeTab === 'ledger' && (
+              <motion.div
+                key="ledger"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+              >
+                {manualEntries.length === 0 ? (
                   <div className="text-center py-12">
                     <motion.div
                       className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-800 mb-4"
@@ -680,7 +864,7 @@ export default function CustomerDetailsPage() {
                       animate={{ scale: 1, rotate: 0 }}
                       transition={{ type: 'spring', stiffness: 200, delay: 0.2 }}
                     >
-                      <CreditCard className="w-8 h-8 text-slate-400" />
+                      <BookOpen className="w-8 h-8 text-slate-400" />
                     </motion.div>
                     <motion.p
                       className="text-slate-400"
@@ -688,68 +872,82 @@ export default function CustomerDetailsPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.3 }}
                     >
-                      No payments recorded yet
+                      No manual entries for this customer
                     </motion.p>
-                    {unpaidInvoices.length > 0 && (
+                    {isAdmin && (
                       <motion.button
-                        onClick={() => handleRecordPayment()}
+                        onClick={() => setShowManualEntryModal(true)}
                         className="btn btn-primary mt-4 inline-flex items-center gap-2"
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.4 }}
                       >
-                        <CreditCard className="w-4 h-4" />
-                        Record First Payment
+                        <Shield className="w-4 h-4" />
+                        Create Manual Entry
                       </motion.button>
                     )}
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {payments.map((payment, index) => (
-                      <motion.div
-                        key={payment._id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50 hover:border-emerald-500/30 transition-all"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className="p-2.5 bg-emerald-500/20 rounded-lg">
-                              <CreditCard className="w-5 h-5 text-emerald-400" />
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium text-white">
-                                  {payment.invoiceSnapshot?.invoiceNumber || 'Invoice'}
-                                </span>
-                                <span className="text-xs px-2 py-0.5 bg-slate-700 rounded text-slate-400">
-                                  {payment.paymentMethod}
-                                </span>
+                    {manualEntries.map((entry, index) => {
+                      const typeInfo = getEntryTypeInfo(entry.entryType);
+                      const isDebit = ['opening_balance', 'manual_bill'].includes(entry.entryType);
+                      const remaining = entry.entryType === 'opening_balance' && entry.paymentType === 'Credit'
+                        ? entry.amount - (entry.paidAmount || 0)
+                        : null;
+                      
+                      return (
+                        <motion.div
+                          key={entry._id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50 hover:border-purple-500/30 transition-all"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                              <div className="p-2.5 bg-purple-500/20 rounded-lg">
+                                <Shield className="w-5 h-5 text-purple-400" />
                               </div>
-                              <div className="flex items-center gap-2 text-sm text-slate-400 mt-1">
-                                <Calendar className="w-3 h-3" />
-                                {formatDate(payment.paymentDate)}
-                                {payment.referenceNumber && (
-                                  <>
-                                    <span>•</span>
-                                    <span>Ref: {payment.referenceNumber}</span>
-                                  </>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-lg mr-1">{typeInfo.icon}</span>
+                                  <span className="font-medium text-white">{typeInfo.label}</span>
+                                  <span className={`text-xs px-2 py-0.5 rounded ${
+                                    entry.paymentType === 'Credit' 
+                                      ? 'bg-amber-500/20 text-amber-400' 
+                                      : 'bg-emerald-500/20 text-emerald-400'
+                                  }`}>
+                                    {entry.paymentType}
+                                  </span>
+                                  <span className="text-xs px-2 py-0.5 bg-purple-500/20 text-purple-400 rounded">
+                                    Manual Entry
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm text-slate-400 mt-1">
+                                  <Calendar className="w-3 h-3" />
+                                  {formatDate(entry.entryDate)}
+                                </div>
+                                <p className="text-sm text-slate-300 mt-1">{entry.description}</p>
+                                {entry.notes && (
+                                  <p className="text-xs text-slate-500 mt-1">{entry.notes}</p>
                                 )}
                               </div>
-                              {payment.notes && (
-                                <p className="text-xs text-slate-500 mt-1">{payment.notes}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className={`text-lg font-semibold ${isDebit ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                {isDebit ? '+' : '-'}{formatCurrency(entry.amount)}
+                              </p>
+                              {remaining !== null && remaining > 0 && (
+                                <p className="text-xs text-slate-400">
+                                  Remaining: {formatCurrency(remaining)}
+                                </p>
                               )}
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-lg font-semibold text-emerald-400">
-                              +{formatCurrency(payment.amount)}
-                            </p>
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
+                        </motion.div>
+                      );
+                    })}
                   </div>
                 )}
               </motion.div>
@@ -769,7 +967,19 @@ export default function CustomerDetailsPage() {
         onSuccess={handlePaymentSuccess}
         customer={customer}
         invoices={unpaidInvoices}
+        manualEntries={manualEntries}
         preSelectedInvoice={selectedInvoice}
+      />
+
+      {/* Manual Entry Modal */}
+      <ManualEntryModal
+        isOpen={showManualEntryModal}
+        onClose={() => setShowManualEntryModal(false)}
+        onSuccess={() => {
+          setShowManualEntryModal(false);
+          loadCustomer(true);
+        }}
+        preSelectedCustomer={customer}
       />
     </motion.div>
   );
