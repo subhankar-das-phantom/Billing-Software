@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
@@ -8,10 +8,12 @@ import {
   Wallet,
   CheckCircle,
   AlertCircle,
-  Loader2
+  Loader2,
+  Shield
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { recordPayment, PAYMENT_METHODS } from '../../services/creditService';
+import { manualEntryService } from '../../services/manualEntryService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 
 export default function RecordPaymentModal({
@@ -20,20 +22,38 @@ export default function RecordPaymentModal({
   onSuccess,
   customer,
   invoices = [], // Unpaid/partial invoices for this customer
+  manualEntries = [], // Unpaid opening balance entries
   preSelectedInvoice = null
 }) {
   const [formData, setFormData] = useState({
-    invoiceId: '',
+    selectionId: '', // Can be invoiceId or entryId
+    selectionType: 'invoice', // 'invoice' or 'entry'
     amount: '',
     paymentDate: new Date().toISOString().split('T')[0],
     paymentMethod: 'Cash',
     referenceNumber: '',
     notes: ''
   });
-  const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+
+  // Filter manual entries to only show unpaid opening balances
+  const unpaidEntries = manualEntries.filter(entry => 
+    entry.entryType === 'opening_balance' && 
+    entry.paymentType === 'Credit' &&
+    (entry.amount - (entry.paidAmount || 0)) > 0
+  );
+
+  // Derive selected item directly from selectionId to avoid state sync issues
+  const selectedItem = useMemo(() => {
+    if (!formData.selectionId) return null;
+    if (formData.selectionType === 'invoice') {
+      return invoices.find(inv => inv._id === formData.selectionId) || null;
+    } else {
+      return unpaidEntries.find(e => e._id === formData.selectionId) || null;
+    }
+  }, [formData.selectionId, formData.selectionType, invoices, unpaidEntries]);
 
   // Reset form when modal opens
   useEffect(() => {
@@ -44,38 +64,35 @@ export default function RecordPaymentModal({
         : null;
       
       setFormData({
-        invoiceId: validPreSelected?._id || '',
+        selectionId: validPreSelected?._id || '',
+        selectionType: 'invoice',
         amount: '',
         paymentDate: new Date().toISOString().split('T')[0],
         paymentMethod: 'Cash',
         referenceNumber: '',
         notes: ''
       });
-      setSelectedInvoice(validPreSelected || null);
       setError('');
       setSuccess(false);
     }
   }, [isOpen]);
 
-  // Update selected invoice when invoice selection changes or invoices data refreshes
-  useEffect(() => {
-    if (formData.invoiceId && invoices.length > 0) {
-      const invoice = invoices.find(inv => inv._id === formData.invoiceId);
-      if (invoice) {
-        setSelectedInvoice(invoice);
-      } else {
-        // Invoice no longer in list (probably fully paid now), clear selection
-        setFormData(prev => ({ ...prev, invoiceId: '' }));
-        setSelectedInvoice(null);
-      }
+  const handleSelectionChange = (value) => {
+    if (value.startsWith('entry_')) {
+      const entryId = value.replace('entry_', '');
+      setFormData(prev => ({ ...prev, selectionId: entryId, selectionType: 'entry', amount: '' }));
     } else {
-      setSelectedInvoice(null);
+      setFormData(prev => ({ ...prev, selectionId: value, selectionType: 'invoice', amount: '' }));
     }
-  }, [formData.invoiceId, invoices]);
+  };
 
   const getRemainingAmount = () => {
-    if (!selectedInvoice) return 0;
-    return selectedInvoice.totals.netTotal - (selectedInvoice.paidAmount || 0);
+    if (!selectedItem) return 0;
+    if (formData.selectionType === 'invoice') {
+      return selectedItem.totals.netTotal - (selectedItem.paidAmount || 0);
+    } else {
+      return selectedItem.amount - (selectedItem.paidAmount || 0);
+    }
   };
 
   const handlePayFull = () => {
@@ -90,8 +107,8 @@ export default function RecordPaymentModal({
     setError('');
 
     // Validation
-    if (!formData.invoiceId) {
-      setError('Please select an invoice');
+    if (!formData.selectionId) {
+      setError('Please select an invoice or opening balance');
       return;
     }
 
@@ -110,14 +127,26 @@ export default function RecordPaymentModal({
     setLoading(true);
 
     try {
-      const result = await recordPayment({
-        invoiceId: formData.invoiceId,
-        amount,
-        paymentDate: formData.paymentDate,
-        paymentMethod: formData.paymentMethod,
-        referenceNumber: formData.referenceNumber,
-        notes: formData.notes
-      });
+      if (formData.selectionType === 'invoice') {
+        // Pay against invoice
+        await recordPayment({
+          invoiceId: formData.selectionId,
+          amount,
+          paymentDate: formData.paymentDate,
+          paymentMethod: formData.paymentMethod,
+          referenceNumber: formData.referenceNumber,
+          notes: formData.notes
+        });
+      } else {
+        // Pay against manual entry (opening balance)
+        await manualEntryService.recordPaymentAgainstEntry(formData.selectionId, {
+          amount,
+          paymentDate: formData.paymentDate,
+          paymentMethod: formData.paymentMethod,
+          referenceNumber: formData.referenceNumber,
+          notes: formData.notes
+        });
+      }
 
       setSuccess(true);
       
@@ -224,29 +253,49 @@ export default function RecordPaymentModal({
                     </motion.div>
                   )}
 
-                  {/* Invoice Selection */}
+                  {/* Selection (Invoice or Opening Balance) */}
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-2">
                       <FileText className="w-4 h-4 inline mr-2" />
-                      Select Invoice
+                      Select Invoice or Opening Balance
                     </label>
                     <div className="relative">
                       <select
-                        value={formData.invoiceId}
-                        onChange={(e) => setFormData(prev => ({ ...prev, invoiceId: e.target.value }))}
+                        value={formData.selectionType === 'entry' ? `entry_${formData.selectionId}` : formData.selectionId}
+                        onChange={(e) => handleSelectionChange(e.target.value)}
                         className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 appearance-none cursor-pointer hover:border-slate-500 transition-colors pr-10"
                         style={{ backgroundImage: 'none' }}
                         required
                       >
-                        <option value="" className="bg-slate-800 text-slate-400">Choose an invoice...</option>
-                        {invoices.map((inv) => {
-                          const remaining = inv.totals.netTotal - (inv.paidAmount || 0);
-                          return (
-                            <option key={inv._id} value={inv._id} className="bg-slate-800 text-white py-2">
-                              {inv.invoiceNumber} - {formatDate(inv.invoiceDate)} - Due: {formatCurrency(remaining)}
-                            </option>
-                          );
-                        })}
+                        <option value="" className="bg-slate-800 text-slate-400">Choose...</option>
+                        
+                        {/* Invoices Section */}
+                        {invoices.length > 0 && (
+                          <optgroup label="📄 Invoices" className="bg-slate-800">
+                            {invoices.map((inv) => {
+                              const remaining = inv.totals.netTotal - (inv.paidAmount || 0);
+                              return (
+                                <option key={inv._id} value={inv._id} className="bg-slate-800 text-white py-2">
+                                  {inv.invoiceNumber} - {formatDate(inv.invoiceDate)} - Due: {formatCurrency(remaining)}
+                                </option>
+                              );
+                            })}
+                          </optgroup>
+                        )}
+                        
+                        {/* Opening Balances Section */}
+                        {unpaidEntries.length > 0 && (
+                          <optgroup label="📊 Opening Balances" className="bg-slate-800">
+                            {unpaidEntries.map((entry) => {
+                              const remaining = entry.amount - (entry.paidAmount || 0);
+                              return (
+                                <option key={entry._id} value={`entry_${entry._id}`} className="bg-slate-800 text-white py-2">
+                                  Opening Balance - {formatDate(entry.entryDate)} - Due: {formatCurrency(remaining)}
+                                </option>
+                              );
+                            })}
+                          </optgroup>
+                        )}
                       </select>
                       <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                         <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -256,8 +305,8 @@ export default function RecordPaymentModal({
                     </div>
                   </div>
 
-                  {/* Selected Invoice Info */}
-                  {selectedInvoice && (
+                  {/* Selected Item Info */}
+                  {selectedItem && (
                     <motion.div
                       className="p-4 bg-slate-700/30 rounded-lg border border-slate-600/50"
                       initial={{ opacity: 0, height: 0 }}
@@ -265,15 +314,19 @@ export default function RecordPaymentModal({
                     >
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
-                          <span className="text-slate-400">Invoice Total:</span>
+                          <span className="text-slate-400">
+                            {formData.selectionType === 'invoice' ? 'Invoice Total:' : 'Opening Balance:'}
+                          </span>
                           <span className="ml-2 text-white font-medium">
-                            {formatCurrency(selectedInvoice.totals.netTotal)}
+                            {formatCurrency(formData.selectionType === 'invoice' 
+                              ? selectedItem.totals.netTotal 
+                              : selectedItem.amount)}
                           </span>
                         </div>
                         <div>
                           <span className="text-slate-400">Already Paid:</span>
                           <span className="ml-2 text-emerald-400 font-medium">
-                            {formatCurrency(selectedInvoice.paidAmount || 0)}
+                            {formatCurrency(selectedItem.paidAmount || 0)}
                           </span>
                         </div>
                         <div>
@@ -317,7 +370,7 @@ export default function RecordPaymentModal({
                           required
                         />
                       </div>
-                      {selectedInvoice && (
+                      {selectedItem && (
                         <motion.button
                           type="button"
                           onClick={handlePayFull}
