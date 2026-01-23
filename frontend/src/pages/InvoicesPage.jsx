@@ -27,7 +27,8 @@ import { formatCurrency, formatDate } from '../utils/formatters';
 import { PageLoader } from '../components/Common/Loader';
 import ExportModal from '../components/Common/ExportModal';
 import { useToast } from '../context/ToastContext';
-import { useMotionConfig } from '../hooks';
+import { useMotionConfig, useSWR, invalidateCachePattern } from '../hooks';
+import RefreshIndicator from '../components/Common/RefreshIndicator';
 
 // Factory functions for adaptive variants
 const createPageVariants = (isMobile, shouldStagger) => ({
@@ -68,17 +69,9 @@ const createTableRowVariants = (isMobile, shouldStagger) => ({
 });
 
 export default function InvoicesPage() {
-  const [invoices, setInvoices] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [stats, setStats] = useState({
-    total: 0,
-    today: 0,
-    thisMonth: 0
-  });
   const [showExportModal, setShowExportModal] = useState(false);
   const { success, error } = useToast();
   
@@ -88,34 +81,31 @@ export default function InvoicesPage() {
   const cardVariants = useMemo(() => createCardVariants(motionConfig.isMobile), [motionConfig.isMobile]);
   const tableRowVariants = useMemo(() => createTableRowVariants(motionConfig.isMobile, motionConfig.shouldStagger), [motionConfig.isMobile, motionConfig.shouldStagger]);
 
-  useEffect(() => {
-    loadInvoices();
-  }, [page]);
+  // SWR: Instant cached data + background revalidation
+  const { data, isLoading, isValidating, mutate } = useSWR(
+    `invoices-page-${page}`,
+    () => invoiceService.getInvoices({ page, limit: 20 }),
+    { ttl: 5 * 60 * 1000 } // 5 minute cache
+  );
 
-  const loadInvoices = async () => {
-    try {
-      const data = await invoiceService.getInvoices({ page, limit: 20 });
-      setInvoices(data.invoices || []);
-      setTotalPages(data.pages || 1);
-      
-      // Calculate stats
-      const today = new Date().toDateString();
-      const thisMonth = new Date().getMonth();
-      setStats({
-        total: data.invoices?.length || 0,
-        today: data.invoices?.filter(inv => 
-          new Date(inv.invoiceDate).toDateString() === today
-        ).length || 0,
-        thisMonth: data.invoices?.filter(inv => 
-          new Date(inv.invoiceDate).getMonth() === thisMonth
-        ).length || 0
-      });
-    } catch (error) {
-      console.error('Failed to load invoices:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Extract data from SWR response
+  const invoices = data?.invoices || [];
+  const totalPages = data?.pages || 1;
+
+  // Calculate stats from current data
+  const stats = useMemo(() => {
+    const today = new Date().toDateString();
+    const thisMonth = new Date().getMonth();
+    return {
+      total: invoices.length,
+      today: invoices.filter(inv => 
+        new Date(inv.invoiceDate).toDateString() === today
+      ).length,
+      thisMonth: invoices.filter(inv => 
+        new Date(inv.invoiceDate).getMonth() === thisMonth
+      ).length
+    };
+  }, [invoices]);
 
   const filteredInvoices = invoices.filter(invoice => {
     const matchesSearch = 
@@ -200,7 +190,8 @@ export default function InvoicesPage() {
     Credit: { icon: CreditCard, class: 'badge-info', color: 'text-blue-400' }
   };
 
-  if (loading) {
+  // Only show full page loader on first load with no cached data
+  if (isLoading && invoices.length === 0) {
     return <PageLoader />;
   }
 
@@ -281,8 +272,11 @@ export default function InvoicesPage() {
               <FileText className="w-5 h-5 text-blue-400" />
             </motion.div>
             <div>
-              <h2 className="text-xl font-semibold text-white mb-2">All Invoices</h2>
-              <p className="text-sm text-slate-400">
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-semibold text-white">All Invoices</h2>
+                <RefreshIndicator isRefreshing={isValidating} size="sm" />
+              </div>
+              <p className="text-sm text-slate-400 mt-1">
                 Showing {filteredInvoices.length} of {invoices.length} invoices
               </p>
             </div>

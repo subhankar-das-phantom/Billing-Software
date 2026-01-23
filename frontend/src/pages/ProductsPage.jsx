@@ -32,7 +32,8 @@ import Modal from '../components/Common/Modal';
 import ConfirmDialog from '../components/Common/ConfirmDialog';
 import EnhancedButton from '../components/Common/EnhancedButton';
 import { useToast } from '../context/ToastContext';
-import { useMotionConfig } from '../hooks';
+import { useMotionConfig, useSWR, invalidateCachePattern } from '../hooks';
+import RefreshIndicator from '../components/Common/RefreshIndicator';
 
 // Helper to create adaptive variants - faster on mobile
 const createPageVariants = (isMobile, shouldStagger) => ({
@@ -351,8 +352,6 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, isExpired, isExpiri
 );
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -364,24 +363,20 @@ export default function ProductsPage() {
   const [filterStock, setFilterStock] = useState('all');
   const { success, error } = useToast();
 
-  useEffect(() => {
-    loadProducts();
-  }, []);
+  // SWR: Instant cached data + background revalidation
+  const { data, isLoading, isValidating, mutate } = useSWR(
+    `products-${search}`,
+    () => productService.getProducts({ search }),
+    { ttl: 5 * 60 * 1000 } // 5 minute cache
+  );
 
-  const loadProducts = async () => {
-    try {
-      const data = await productService.getProducts({ search });
-      setProducts(data.products || []);
-    } catch (err) {
-      error('Failed to load products');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Extract products from SWR response
+  const products = data?.products || [];
+  const loading = isLoading && products.length === 0;
 
   const handleSearch = (e) => {
     e.preventDefault();
-    loadProducts();
+    mutate(); // Trigger revalidation
   };
 
   const openCreateModal = () => {
@@ -458,7 +453,9 @@ export default function ProductsPage() {
       }
       
       setModalOpen(false);
-      loadProducts();
+      // Invalidate products cache and revalidate
+      invalidateCachePattern('products');
+      mutate();
     } catch (err) {
       console.error('Save error:', err);
       error(err.response?.data?.message || 'Failed to save product');
@@ -472,7 +469,9 @@ export default function ProductsPage() {
       await productService.deleteProduct(deleteDialog.product._id);
       success('Product deleted successfully');
       setDeleteDialog({ open: false, product: null });
-      loadProducts();
+      // Invalidate products cache and revalidate
+      invalidateCachePattern('products');
+      mutate();
     } catch (err) {
       error(err.response?.data?.message || 'Failed to delete product');
     }

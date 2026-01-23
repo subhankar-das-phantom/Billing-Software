@@ -25,7 +25,8 @@ import Modal from '../components/Common/Modal';
 import ConfirmDialog from '../components/Common/ConfirmDialog';
 import EnhancedButton from '../components/Common/EnhancedButton';
 import { useToast } from '../context/ToastContext';
-import { useMotionConfig } from '../hooks';
+import { useMotionConfig, useSWR, invalidateCachePattern } from '../hooks';
+import RefreshIndicator from '../components/Common/RefreshIndicator';
 
 const initialCustomerState = {
   customerName: '',
@@ -38,9 +39,6 @@ const initialCustomerState = {
 };
 
 export default function CustomersPage() {
-  const [customers, setCustomers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searching, setSearching] = useState(false);
   const [search, setSearch] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -54,35 +52,27 @@ export default function CustomersPage() {
   // Adaptive motion configuration
   const motionConfig = useMotionConfig();
 
-  // Load customers with current search term
-  const loadCustomers = useCallback(async (searchTerm = '') => {
-    try {
-      setSearching(true);
-      const data = await customerService.getCustomers({ search: searchTerm });
-      setCustomers(data.customers || []);
-    } catch (err) {
-      error('Failed to load customers');
-    } finally {
-      setLoading(false);
-      setSearching(false);
-    }
-  }, [error]);
+  // SWR: Instant cached data + background revalidation
+  const { data, isLoading, isValidating, mutate } = useSWR(
+    `customers-${search}`,
+    () => customerService.getCustomers({ search }),
+    { ttl: 5 * 60 * 1000 } // 5 minute cache
+  );
 
-  // Initial load
-  useEffect(() => {
-    loadCustomers();
-  }, []);
+  // Extract customers from SWR response
+  const customers = data?.customers || [];
+  const loading = isLoading && customers.length === 0;
 
-  // Debounced search - triggers backend search on input change
+  // Debounced search - triggers revalidation on input change
   useEffect(() => {
     // Clear previous timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
 
-    // Debounce search by 300ms to avoid too many API calls
+    // Debounce search by 300ms
     searchTimeoutRef.current = setTimeout(() => {
-      loadCustomers(search);
+      mutate(); // Trigger revalidation
     }, 300);
 
     // Cleanup on unmount
@@ -91,7 +81,7 @@ export default function CustomersPage() {
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [search]);
+  }, [search, mutate]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -99,17 +89,12 @@ export default function CustomersPage() {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
-    loadCustomers(search);
+    mutate(); // Trigger revalidation
   };
 
   // Clear search and reload
   const handleClearSearch = () => {
     setSearch('');
-    // Immediately reload with empty search
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-    loadCustomers('');
   };
 
   const openCreateModal = () => {
@@ -156,7 +141,9 @@ export default function CustomersPage() {
       }
       
       setModalOpen(false);
-      loadCustomers();
+      // Invalidate customers cache and revalidate
+      invalidateCachePattern('customers');
+      mutate();
     } catch (err) {
       error(err.response?.data?.message || 'Failed to save customer');
     } finally {
@@ -169,7 +156,9 @@ export default function CustomersPage() {
       await customerService.deleteCustomer(deleteDialog.customer._id);
       success('Customer deleted successfully');
       setDeleteDialog({ open: false, customer: null });
-      loadCustomers();
+      // Invalidate customers cache and revalidate
+      invalidateCachePattern('customers');
+      mutate();
     } catch (err) {
       error(err.response?.data?.message || 'Failed to delete customer');
     }
@@ -279,9 +268,9 @@ export default function CustomersPage() {
             className="btn btn-secondary"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            disabled={searching}
+            disabled={isValidating}
           >
-            {searching ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
+            {isValidating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
           </motion.button>
         </motion.form>
 
@@ -341,28 +330,29 @@ export default function CustomersPage() {
           </motion.div>
         ) : (
           <motion.div
-            key={`grid-${search}-${customers.length}`}
-            initial={{ opacity: 0 }}
+            key="customers-grid"
+            initial={false}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
           >
-            {customers.map((customer, index) => (
-              <motion.div
-                key={customer._id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ 
-                  opacity: 1, 
-                  y: 0,
-                  transition: { 
-                    delay: motionConfig.shouldStagger ? index * 0.05 : 0,
-                    duration: 0.3 
-                  }
-                }}
-                whileHover={motionConfig.shouldHover ? { y: -6 } : undefined}
-                className="glass-card p-6 hover:border-blue-500/50 transition-colors cursor-pointer group"
-              >
+            <AnimatePresence mode="popLayout">
+              {customers.map((customer, index) => (
+                <motion.div
+                  key={customer._id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ 
+                    opacity: 1, 
+                    scale: 1,
+                    transition: { 
+                      delay: motionConfig.shouldStagger ? Math.min(index * 0.03, 0.15) : 0,
+                      duration: 0.2 
+                    }
+                  }}
+                  exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.15 } }}
+                  whileHover={motionConfig.shouldHover ? { y: -6 } : undefined}
+                  className="glass-card p-6 hover:border-blue-500/50 transition-colors cursor-pointer group"
+                >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3 flex-1">
                     {/* Avatar */}
@@ -509,6 +499,7 @@ export default function CustomersPage() {
                 </motion.div>
               </motion.div>
             ))}
+            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>

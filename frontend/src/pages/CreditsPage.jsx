@@ -22,6 +22,8 @@ import {
 } from '../services/creditService';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { PageLoader } from '../components/Common/Loader';
+import { useSWR } from '../hooks';
+import RefreshIndicator from '../components/Common/RefreshIndicator';
 
 // Animated counter component
 const AnimatedCounter = ({ value, prefix = '', suffix = '', decimals = 0 }) => {
@@ -49,42 +51,42 @@ const AnimatedCounter = ({ value, prefix = '', suffix = '', decimals = 0 }) => {
 };
 
 export default function CreditsPage() {
-  const [stats, setStats] = useState(null);
-  const [outstanding, setOutstanding] = useState({ customers: [], summary: {} });
-  const [ageing, setAgeing] = useState({ buckets: {}, summary: {} });
-  const [recentPayments, setRecentPayments] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('outstanding');
-  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  // SWR: Instant cached data + background revalidation
+  const { data: statsData, isLoading: statsLoading, isValidating: statsValidating } = useSWR(
+    'credits-stats',
+    () => getCreditStats(),
+    { ttl: 2 * 60 * 1000 } // 2 minute cache
+  );
 
-  const loadData = async () => {
-    try {
-      const [statsData, outstandingData, ageingData, paymentsData] = await Promise.all([
-        getCreditStats(),
-        getOutstandingReport(),
-        getAgeingReport(),
-        getRecentPayments(15)
-      ]);
-      setStats(statsData.stats);
-      setOutstanding(outstandingData);
-      setAgeing(ageingData);
-      setRecentPayments(paymentsData.payments || []);
-    } catch (error) {
-      console.error('Failed to load credit data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: outstandingData, isLoading: outstandingLoading, isValidating: outstandingValidating } = useSWR(
+    'credits-outstanding',
+    () => getOutstandingReport(),
+    { ttl: 2 * 60 * 1000 }
+  );
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
-  };
+  const { data: ageingData, isLoading: ageingLoading, isValidating: ageingValidating } = useSWR(
+    'credits-ageing',
+    () => getAgeingReport(),
+    { ttl: 2 * 60 * 1000 }
+  );
+
+  const { data: paymentsData, isLoading: paymentsLoading, isValidating: paymentsValidating } = useSWR(
+    'credits-recent-payments',
+    () => getRecentPayments(15),
+    { ttl: 2 * 60 * 1000 }
+  );
+
+  // Extract data from SWR responses
+  const stats = statsData?.stats || null;
+  const outstanding = outstandingData || { customers: [], summary: {} };
+  const ageing = ageingData || { buckets: {}, summary: {} };
+  const recentPayments = paymentsData?.payments || [];
+  
+  // Loading states
+  const loading = (statsLoading || outstandingLoading || ageingLoading || paymentsLoading) && !stats;
+  const isValidating = statsValidating || outstandingValidating || ageingValidating || paymentsValidating;
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -193,16 +195,9 @@ export default function CreditsPage() {
           </div>
         </div>
 
-        <motion.button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="btn btn-secondary flex items-center gap-2"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-          Refresh
-        </motion.button>
+        <div className="flex items-center gap-2">
+          <RefreshIndicator isRefreshing={isValidating} size="sm" showText />
+        </div>
       </motion.div>
 
       {/* Stat Cards */}

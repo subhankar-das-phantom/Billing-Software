@@ -27,6 +27,7 @@ import { formatCurrency } from '../utils/formatters';
 import { calculateItemAmounts, calculateInvoiceTotals, GST_RATES, removeGST, round } from '../utils/calculations';
 import { PageLoader } from '../components/Common/Loader';
 import { useToast } from '../context/ToastContext';
+import { invalidateCachePattern } from '../hooks';
 
 const pageVariants = {
   hidden: { opacity: 0 },
@@ -583,11 +584,19 @@ export default function InvoiceCreatePage() {
         result = await invoiceService.updateInvoice(editInvoiceId, invoiceData);
         // Clear the draft after successful update
         clearDraftFromStorage();
+        // Invalidate cache so all tabs get updated data
+        invalidateCachePattern('invoices');
+        invalidateCachePattern('dashboard');
+        invalidateCachePattern('products'); // Stock changed
         success('Invoice updated successfully!');
       } else {
         result = await invoiceService.createInvoice(invoiceData);
         // Clear the draft after successful creation
         clearDraftFromStorage();
+        // Invalidate cache so all tabs get updated data
+        invalidateCachePattern('invoices');
+        invalidateCachePattern('dashboard');
+        invalidateCachePattern('products'); // Stock changed
         success('Invoice created successfully!');
       }
       

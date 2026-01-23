@@ -28,6 +28,7 @@ import { invoiceService } from '../services/invoiceService';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { PageLoader } from '../components/Common/Loader';
 import { useToast } from '../context/ToastContext';
+import { invalidateCachePattern } from '../hooks';
 
 const pageVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -121,6 +122,8 @@ export default function InvoiceViewPage() {
     try {
       await invoiceService.updateStatus(id, 'Printed');
       setInvoice(prev => ({ ...prev, status: 'Printed' }));
+      // Invalidate cache for all tabs
+      invalidateCachePattern('invoices');
       success('Invoice marked as printed');
     } catch (err) {
       error('Failed to update status');
@@ -142,6 +145,10 @@ export default function InvoiceViewPage() {
     try {
       await invoiceService.updateStatus(id, 'Cancelled');
       setInvoice(prev => ({ ...prev, status: 'Cancelled' }));
+      // Invalidate cache for all tabs - stock restored on cancel
+      invalidateCachePattern('invoices');
+      invalidateCachePattern('dashboard');
+      invalidateCachePattern('products');
       success('Invoice cancelled successfully');
     } catch (err) {
       error('Failed to cancel invoice');

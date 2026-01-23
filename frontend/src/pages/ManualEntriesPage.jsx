@@ -19,6 +19,7 @@ import { formatCurrency, formatDate } from '../utils/formatters';
 import { PageLoader } from '../components/Common/Loader';
 import ManualEntryModal from '../components/ManualEntry/ManualEntryModal';
 import { useToast } from '../context/ToastContext';
+import { invalidateCachePattern } from '../hooks';
 
 export default function ManualEntriesPage() {
   const [entries, setEntries] = useState([]);
@@ -69,6 +70,9 @@ export default function ManualEntriesPage() {
       await manualEntryService.deleteManualEntry(entry._id);
       addToast('Entry deleted successfully', 'success');
       setDeleteConfirm(null);
+      // Invalidate cache for all tabs
+      invalidateCachePattern('customers');
+      invalidateCachePattern('dashboard');
       loadEntries();
     } catch (error) {
       addToast(error.response?.data?.message || 'Failed to delete entry', 'error');
@@ -351,6 +355,9 @@ export default function ManualEntriesPage() {
         onClose={() => setShowCreateModal(false)}
         onSuccess={() => {
           setShowCreateModal(false);
+          // Invalidate cache for all tabs
+          invalidateCachePattern('customers');
+          invalidateCachePattern('dashboard');
           loadEntries();
         }}
       />

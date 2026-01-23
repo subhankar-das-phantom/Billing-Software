@@ -23,7 +23,8 @@ import { dashboardService } from '../services/dashboardService';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { PageLoader } from '../components/Common/Loader';
 import MotionCard from '../components/Common/MotionCard';
-import { useMotionConfig } from '../hooks';
+import { useMotionConfig, useSWR } from '../hooks';
+import RefreshIndicator from '../components/Common/RefreshIndicator';
 
 // Animated Counter Component with adaptive duration
 const AnimatedCounter = ({ value, duration, decimals = 0, prefix = '', suffix = '', isMobile = false }) => {
@@ -117,10 +118,6 @@ const itemVariantsMobile = {
 };
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState(null);
-  const [recentInvoices, setRecentInvoices] = useState([]);
-  const [lowStock, setLowStock] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [invoicePeriod, setInvoicePeriod] = useState('all');
   const [filteredInvoiceCount, setFilteredInvoiceCount] = useState(0);
   
@@ -129,9 +126,25 @@ export default function DashboardPage() {
   const containerVariants = motionConfig.isMobile ? containerVariantsMobile : containerVariantsDesktop;
   const itemVariants = motionConfig.isMobile ? itemVariantsMobile : itemVariantsDesktop;
 
-  useEffect(() => {
-    loadDashboard();
-  }, []);
+  // SWR: Instant cached data + background revalidation
+  const { data: statsData, isLoading: statsLoading, isValidating: statsValidating } = useSWR(
+    'dashboard-stats',
+    () => dashboardService.getStats(),
+    { ttl: 2 * 60 * 1000 } // 2 minute cache (dashboard data is more dynamic)
+  );
+
+  const { data: lowStockData, isLoading: lowStockLoading, isValidating: lowStockValidating } = useSWR(
+    'dashboard-low-stock',
+    () => dashboardService.getLowStock(),
+    { ttl: 5 * 60 * 1000 } // 5 minute cache
+  );
+
+  // Extract data from SWR responses
+  const stats = statsData?.stats || null;
+  const recentInvoices = statsData?.recentInvoices || [];
+  const lowStock = lowStockData?.products || [];
+  const isValidating = statsValidating || lowStockValidating;
+  const loading = (statsLoading || lowStockLoading) && !stats;
 
   // Update filtered invoice count when period changes
   useEffect(() => {
@@ -173,27 +186,13 @@ export default function DashboardPage() {
     }
   };
 
-  const loadDashboard = async () => {
-    try {
-      const [statsData, lowStockData] = await Promise.all([
-        dashboardService.getStats(),
-        dashboardService.getLowStock()
-      ]);
-      
-      setStats(statsData.stats);
-      setRecentInvoices(statsData.recentInvoices || []);
-      setLowStock(lowStockData.products || []);
-      setFilteredInvoiceCount(statsData.stats?.totalInvoices || 0);
-    } catch (error) {
-      console.error('Failed to load dashboard:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Only show full page loader on first load with no cached data
   if (loading) {
     return <PageLoader />;
   }
+
+  // Show subtle validating indicator
+  const showRefreshIndicator = isValidating;
 
   const statCards = [
     { 
@@ -277,8 +276,14 @@ export default function DashboardPage() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.4 }}
           >
-            <Activity className="w-5 h-5 text-emerald-400" />
-            <span className="text-slate-300 text-sm font-medium">System Active</span>
+            {showRefreshIndicator ? (
+              <RefreshIndicator isRefreshing={true} size="sm" showText />
+            ) : (
+              <>
+                <Activity className="w-5 h-5 text-emerald-400" />
+                <span className="text-slate-300 text-sm font-medium">System Active</span>
+              </>
+            )}
           </motion.div>
         </div>
       </motion.div>

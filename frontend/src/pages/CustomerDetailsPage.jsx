@@ -32,6 +32,7 @@ import { PageLoader } from '../components/Common/Loader';
 import RecordPaymentModal from '../components/Common/RecordPaymentModal';
 import ManualEntryModal from '../components/ManualEntry/ManualEntryModal';
 import { useAuth } from '../context/AuthContext';
+import { invalidateCachePattern } from '../hooks';
 
 // Animated counter component
 const AnimatedCounter = ({ value, prefix = '', suffix = '' }) => {
@@ -109,6 +110,11 @@ export default function CustomerDetailsPage() {
   };
 
   const handlePaymentSuccess = async () => {
+    // Invalidate cache for all tabs so payment shows everywhere
+    invalidateCachePattern('customers');
+    invalidateCachePattern('invoices');
+    invalidateCachePattern('dashboard');
+    invalidateCachePattern('credits'); // Credit reports need refresh
     // Bypass cache to get fresh data after payment
     await loadCustomer(true);
   };

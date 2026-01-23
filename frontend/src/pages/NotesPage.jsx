@@ -21,7 +21,8 @@ import Modal from '../components/Common/Modal';
 import ConfirmDialog from '../components/Common/ConfirmDialog';
 import EnhancedButton from '../components/Common/EnhancedButton';
 import { useToast } from '../context/ToastContext';
-import { useMotionConfig } from '../hooks';
+import { useMotionConfig, useSWR, invalidateCachePattern } from '../hooks';
+import RefreshIndicator from '../components/Common/RefreshIndicator';
 
 const COLORS = [
   { id: 'blue', value: '#3B82F6', label: 'Blue' },
@@ -40,10 +41,7 @@ const initialNoteState = {
 };
 
 export default function NotesPage() {
-  const [notes, setNotes] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingNote, setEditingNote] = useState(null);
@@ -55,33 +53,22 @@ export default function NotesPage() {
   const motionConfig = useMotionConfig();
   const searchDebounce = useDebounce(search, 300);
 
+  // SWR: Instant cached data + background revalidation
+  const { data, isLoading, isValidating, mutate } = useSWR(
+    `notes-page-${page}-${searchDebounce}`,
+    () => noteService.getNotes({ search: searchDebounce, page, limit: 12 }),
+    { ttl: 5 * 60 * 1000 } // 5 minute cache
+  );
+
+  // Extract data from SWR response
+  const notes = data?.notes || [];
+  const totalPages = data?.pages || 1;
+  const loading = isLoading && notes.length === 0;
+
+  // Reset to page 1 when search changes
   useEffect(() => {
     setPage(1);
-    loadNotes(1);
   }, [searchDebounce]);
-
-  useEffect(() => {
-    loadNotes(page);
-  }, [page]);
-
-  const loadNotes = async (currentPage = 1) => {
-    try {
-      // Don't set loading on search to avoid flickering
-      if (!search && currentPage === 1) setLoading(true);
-      const data = await noteService.getNotes({ 
-        search: searchDebounce, 
-        page: currentPage, 
-        limit: 12 
-      });
-      setNotes(data.notes || []);
-      setTotalPages(data.pages || 1);
-    } catch (err) {
-      error('Failed to load notes');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const openCreateModal = () => {
     setEditingNote(null);
@@ -117,7 +104,9 @@ export default function NotesPage() {
         success('Note created successfully');
       }
       setModalOpen(false);
-      loadNotes(page);
+      // Invalidate cache for all tabs
+      invalidateCachePattern('notes');
+      mutate();
     } catch (err) {
       error(err.response?.data?.message || 'Failed to save note');
     } finally {
@@ -130,7 +119,9 @@ export default function NotesPage() {
       await noteService.deleteNote(deleteDialog.note._id);
       success('Note deleted successfully');
       setDeleteDialog({ open: false, note: null });
-      loadNotes(page);
+      // Invalidate cache for all tabs
+      invalidateCachePattern('notes');
+      mutate();
     } catch (err) {
       error(err.response?.data?.message || 'Failed to delete note');
     }
@@ -139,7 +130,7 @@ export default function NotesPage() {
   const togglePin = async (e, note) => {
     e.stopPropagation();
     try {
-      // Optimistic update
+      // Optimistic update in current data
       const updatedNotes = notes.map(n => 
         n._id === note._id ? { ...n, isPinned: !n.isPinned } : n
       ).sort((a, b) => {
@@ -149,12 +140,15 @@ export default function NotesPage() {
         return new Date(b.updatedAt) - new Date(a.updatedAt);
       });
       
-      setNotes(updatedNotes);
+      // Optimistically update local data
+      mutate({ ...data, notes: updatedNotes }, false);
       
       await noteService.togglePin(note._id);
+      // Invalidate cache for all tabs
+      invalidateCachePattern('notes');
     } catch (err) {
-      // Revert on error
-      loadNotes(page);
+      // Revert on error by revalidating
+      mutate();
       error('Failed to update pin status');
     }
   };
@@ -216,13 +210,16 @@ export default function NotesPage() {
           />
         </div>
         
-        <EnhancedButton
-          onClick={openCreateModal}
-          icon={Plus}
-          className="w-full md:w-auto"
-        >
-          Add Note
-        </EnhancedButton>
+        <div className="flex items-center gap-3">
+          <RefreshIndicator isRefreshing={isValidating} size="sm" />
+          <EnhancedButton
+            onClick={openCreateModal}
+            icon={Plus}
+            className="w-full md:w-auto"
+          >
+            Add Note
+          </EnhancedButton>
+        </div>
       </div>
 
       {/* Notes Grid */}
@@ -248,19 +245,30 @@ export default function NotesPage() {
           </motion.div>
         ) : (
           <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
+            key="notes-grid"
+            initial={false}
+            animate={{ opacity: 1 }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
           >
-            {notes.map((note) => (
-              <motion.div
-                key={note._id}
-                variants={cardVariants}
-                className="group relative flex flex-col glass-card h-48 sm:h-64 overflow-hidden border-t-4 transition-all hover:shadow-xl hover:-translate-y-1"
-                style={{ borderTopColor: note.color }}
-                onClick={() => openEditModal(note)}
-              >
+            <AnimatePresence mode="popLayout">
+              {notes.map((note, index) => (
+                <motion.div
+                  key={note._id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ 
+                    opacity: 1, 
+                    scale: 1,
+                    transition: { 
+                      delay: motionConfig.shouldStagger ? Math.min(index * 0.03, 0.12) : 0,
+                      duration: 0.2 
+                    }
+                  }}
+                  exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.15 } }}
+                  className="group relative flex flex-col glass-card h-48 sm:h-64 overflow-hidden border-t-4 transition-all hover:shadow-xl hover:-translate-y-1"
+                  style={{ borderTopColor: note.color }}
+                  onClick={() => openEditModal(note)}
+                >
                 {/* Note Header */}
                 <div className="p-4 sm:p-5 pb-0 flex justify-between items-start gap-2">
                   <h3 className="font-semibold text-lg text-white line-clamp-2 leading-tight">
@@ -315,6 +323,7 @@ export default function NotesPage() {
                 </div>
               </motion.div>
             ))}
+            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>
