@@ -516,28 +516,84 @@ exports.updateInvoice = async (req, res, next) => {
 // @route   PUT /api/invoices/:id/status
 // @access  Private
 exports.updateInvoiceStatus = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { status } = req.body;
 
-    const invoice = await Invoice.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true }
-    );
+    const invoice = await Invoice.findById(req.params.id).session(session);
 
     if (!invoice) {
+      await session.abortTransaction();
       return res.status(404).json({
         success: false,
         message: 'Invoice not found'
       });
     }
 
+    // If cancelling, restore stock and reverse customer stats
+    if (status === 'Cancelled' && invoice.status !== 'Cancelled') {
+      // Restore stock for each item
+      for (const item of invoice.items) {
+        const totalQty = item.quantitySold + (item.freeQuantity || 0);
+
+        await Product.findByIdAndUpdate(
+          item.product._id,
+          {
+            $inc: { currentStockQty: totalQty },
+            $push: {
+              stockHistory: {
+                type: 'invoice_cancelled',
+                invoiceId: invoice._id,
+                changeQty: totalQty,
+                reference: `${invoice.invoiceNumber} - Cancelled`,
+                timestamp: new Date()
+              }
+            }
+          },
+          { session }
+        );
+      }
+
+      // Reverse customer stats
+      const customerUpdate = {
+        $inc: {
+          totalPurchases: -invoice.totals.netTotal,
+          invoiceCount: -1
+        }
+      };
+
+      // If it was a Credit invoice, reverse outstanding balance
+      if (invoice.paymentType === 'Credit') {
+        const unpaidAmount = (invoice.totals.netTotal || 0) - (invoice.paidAmount || 0);
+        if (unpaidAmount > 0) {
+          customerUpdate.$inc.outstandingBalance = -unpaidAmount;
+        }
+      }
+
+      await Customer.findByIdAndUpdate(
+        invoice.customer._id,
+        customerUpdate,
+        { session }
+      );
+    }
+
+    // Update the status
+    invoice.status = status;
+    await invoice.save({ session });
+
+    await session.commitTransaction();
+
     res.status(200).json({
       success: true,
       invoice
     });
   } catch (error) {
+    await session.abortTransaction();
     next(error);
+  } finally {
+    session.endSession();
   }
 };
 

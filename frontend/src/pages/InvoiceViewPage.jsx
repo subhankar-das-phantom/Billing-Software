@@ -25,6 +25,8 @@ import {
   Edit
 } from 'lucide-react';
 import { invoiceService } from '../services/invoiceService';
+import { customerService } from '../services/customerService';
+import { manualEntryService } from '../services/manualEntryService';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { PageLoader } from '../components/Common/Loader';
 import { useToast } from '../context/ToastContext';
@@ -74,6 +76,7 @@ export default function InvoiceViewPage() {
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [customerOutstanding, setCustomerOutstanding] = useState(0);
   const printRef = useRef();
   const { success, error } = useToast();
 
@@ -106,6 +109,39 @@ export default function InvoiceViewPage() {
     try {
       const data = await invoiceService.getInvoice(id);
       setInvoice(data.invoice);
+      
+      // Fetch customer outstanding using same logic as CustomerDetailsPage
+      if (data.invoice?.customer?._id) {
+        try {
+          const [customerData, entriesData] = await Promise.all([
+            customerService.getCustomer(data.invoice.customer._id),
+            manualEntryService.getManualEntriesByCustomer(data.invoice.customer._id).catch(() => ({ manualEntries: [] }))
+          ]);
+          
+          const customerInvoices = customerData.invoices || [];
+          const manualEntries = entriesData.manualEntries || [];
+          
+          // Invoice outstanding: sum of (netTotal - paidAmount) for non-cancelled invoices
+          const invoiceOutstanding = customerInvoices.reduce((sum, inv) => {
+            if (inv.status === 'Cancelled') return sum;
+            const remaining = (inv.totals?.netTotal || 0) - (inv.paidAmount || 0);
+            return sum + (remaining > 0 ? remaining : 0);
+          }, 0);
+          
+          // Manual entry outstanding: opening_balance Credit entries
+          const manualEntryOutstanding = manualEntries.reduce((sum, entry) => {
+            if (entry.entryType === 'opening_balance' && entry.paymentType === 'Credit') {
+              const remaining = entry.amount - (entry.paidAmount || 0);
+              return sum + remaining;
+            }
+            return sum;
+          }, 0);
+          
+          setCustomerOutstanding(invoiceOutstanding + manualEntryOutstanding);
+        } catch (e) {
+          setCustomerOutstanding(0);
+        }
+      }
     } catch (err) {
       error('Failed to load invoice');
     } finally {
@@ -244,18 +280,18 @@ export default function InvoiceViewPage() {
           <table className="w-full border-collapse text-[7px]" style={{ border: '0.5px solid black' }}>
             <thead>
               <tr style={{ borderBottom: '0.5px solid black' }}>
-                <th className="border-r border-black p-0.5 text-center" style={{ width: '4%' }}>Qty</th>
-                <th className="border-r border-black p-0.5 text-center" style={{ width: '3%' }}>Fr</th>
-                <th className="border-r border-black p-0.5 text-left" style={{ width: '20%' }}>Product Name</th>
-                <th className="border-r border-black p-0.5 text-center" style={{ width: '7%' }}>HSN</th>
-                <th className="border-r border-black p-0.5 text-center" style={{ width: '8%' }}>Batch</th>
-                <th className="border-r border-black p-0.5 text-center" style={{ width: '5%' }}>Exp</th>
-                <th className="border-r border-black p-0.5 text-right" style={{ width: '8%' }}>MRP</th>
-                <th className="border-r border-black p-0.5 text-right" style={{ width: '7%' }}>Rate</th>
-                <th className="border-r border-black p-0.5 text-right" style={{ width: '7%' }}>Net</th>
-                <th className="border-r border-black p-0.5 text-center" style={{ width: '5%' }}>Disc%</th>
-                <th className="border-r border-black p-0.5 text-center" style={{ width: '4%' }}>GST%</th>
-                <th className="p-0.5 text-right" style={{ width: '9%' }}>Amount</th>
+                <th className="border-r border-black p-0.5 text-center font-bold" style={{ width: '4%' }}>Qty</th>
+                <th className="border-r border-black p-0.5 text-center font-bold" style={{ width: '3%' }}>Fr</th>
+                <th className="border-r border-black p-0.5 text-left font-bold" style={{ width: '20%' }}>Product Name</th>
+                <th className="border-r border-black p-0.5 text-center font-bold" style={{ width: '7%' }}>HSN</th>
+                <th className="border-r border-black p-0.5 text-center font-bold" style={{ width: '8%' }}>Batch</th>
+                <th className="border-r border-black p-0.5 text-center font-bold" style={{ width: '5%' }}>Exp</th>
+                <th className="border-r border-black p-0.5 text-right font-bold" style={{ width: '8%' }}>MRP</th>
+                <th className="border-r border-black p-0.5 text-right font-bold" style={{ width: '7%' }}>Rate</th>
+                <th className="border-r border-black p-0.5 text-right font-bold" style={{ width: '7%' }}>Net</th>
+                <th className="border-r border-black p-0.5 text-center font-bold" style={{ width: '5%' }}>Disc%</th>
+                <th className="border-r border-black p-0.5 text-center font-bold" style={{ width: '4%' }}>GST%</th>
+                <th className="p-0.5 text-right font-bold" style={{ width: '9%' }}>Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -267,18 +303,18 @@ export default function InvoiceViewPage() {
                 
                 return (
                   <tr key={index} style={{ borderBottom: index < invoice.items.length - 1 ? '0.5px solid #ddd' : 'none' }}>
-                    <td className="border-r border-black p-0.5 text-center">{item.quantitySold}</td>
-                    <td className="border-r border-black p-0.5 text-center">{item.freeQuantity || 0}</td>
-                    <td className="border-r border-black p-0.5">{item.product?.productName}</td>
-                    <td className="border-r border-black p-0.5 text-center">{item.product?.hsnCode}</td>
-                    <td className="border-r border-black p-0.5 text-center">{item.product?.batchNo}</td>
-                    <td className="border-r border-black p-0.5 text-center">{expDate}</td>
-                    <td className="border-r border-black p-0.5 text-right">{item.product?.newMRP?.toFixed(2) || '-'}</td>
-                    <td className="border-r border-black p-0.5 text-right">{item.ratePerUnit.toFixed(2)}</td>
-                    <td className="border-r border-black p-0.5 text-right">{(item.ratePerUnit * (1 + (item.product?.gstPercentage || 0) / 100)).toFixed(2)}</td>
-                    <td className="border-r border-black p-0.5 text-center">{item.schemeDiscount || 0}%</td>
-                    <td className="border-r border-black p-0.5 text-center">{item.product?.gstPercentage}%</td>
-                    <td className="p-0.5 text-right font-semibold">{itemAmount.toFixed(2)}</td>
+                    <td className="border-r border-black p-0.5 text-center font-bold">{item.quantitySold}</td>
+                    <td className="border-r border-black p-0.5 text-center font-bold">{item.freeQuantity || 0}</td>
+                    <td className="border-r border-black p-0.5 font-bold">{item.product?.productName}</td>
+                    <td className="border-r border-black p-0.5 text-center font-bold">{item.product?.hsnCode}</td>
+                    <td className="border-r border-black p-0.5 text-center font-bold">{item.product?.batchNo}</td>
+                    <td className="border-r border-black p-0.5 text-center font-bold">{expDate}</td>
+                    <td className="border-r border-black p-0.5 text-right font-bold">{item.product?.newMRP?.toFixed(2) || '-'}</td>
+                    <td className="border-r border-black p-0.5 text-right font-bold">{item.ratePerUnit.toFixed(2)}</td>
+                    <td className="border-r border-black p-0.5 text-right font-bold">{(item.ratePerUnit * (1 + (item.product?.gstPercentage || 0) / 100)).toFixed(2)}</td>
+                    <td className="border-r border-black p-0.5 text-center font-bold">{item.schemeDiscount || 0}%</td>
+                    <td className="border-r border-black p-0.5 text-center font-bold">{item.product?.gstPercentage}%</td>
+                    <td className="p-0.5 text-right font-bold">{itemAmount.toFixed(2)}</td>
                   </tr>
                 );
               })}
@@ -291,8 +327,11 @@ export default function InvoiceViewPage() {
       <div className="mt-auto">
         <div className="grid grid-cols-2 gap-2 mb-1">
           <div className="text-[9px]">
-            <p className="font-bold mb-0.5">Amount in Words:</p>
+            <p className="font-bold">Current Dues: ₹{Math.round(customerOutstanding)}</p>
+            <div className="border-t border-black mt-1 pt-0.5">
+              <p className="font-bold mb-0.5">Amount in Words:</p>
             <p className="uppercase">{invoice.totals?.amountInWords || 'Rupees Zero Only'}</p>
+            </div>
           </div>
           <div className="text-[9px]">
             <table className="w-full">

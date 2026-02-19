@@ -216,7 +216,8 @@ export default function InvoiceCreatePage() {
               ...item,
               product: {
                 ...item.product,
-                currentStock: currentProduct?.currentStockQty || item.product.currentStock || 0
+                // Add back the quantities already allocated in this invoice, just like the DB-load path
+                currentStock: (currentProduct?.currentStockQty || item.product.currentStock || 0) + (item.quantitySold || 0) + (item.freeQuantity || 0)
               }
             };
           });
@@ -467,14 +468,15 @@ export default function InvoiceCreatePage() {
         // But keep the user-entered totalAmount
         updated[index] = { ...item, ...amounts, totalAmount: newValue };
       } else if (field === 'netRate') {
-        // Store the user-entered netRate directly (allow empty string while typing)
-        item.netRate = value === '' ? '' : newValue;
+        // Store raw string value to preserve decimal point while typing (e.g. "15." before user types "50")
+        item.netRate = value;
         
-        // Only recalculate if we have a valid number
-        if (value !== '' && newValue > 0) {
+        // Only recalculate if we have a valid, complete number (not ending with '.' or empty)
+        const parsed = parseFloat(value);
+        if (value !== '' && !String(value).endsWith('.') && !isNaN(parsed) && parsed > 0) {
           // Net Rate = baseRate * (1 + gst/100), so baseRate = netRate / (1 + gst/100)
           const gstMultiplier = (100 + item.product.gstPercentage) / 100;
-          item.baseRate = round(newValue / gstMultiplier, 2);
+          item.baseRate = round(parsed / gstMultiplier, 2);
           
           // Recalculate all amounts based on new baseRate
           const amounts = calculateItemAmounts(
@@ -483,9 +485,9 @@ export default function InvoiceCreatePage() {
             item.product.gstPercentage,
             item.schemeDiscount
           );
-          updated[index] = { ...item, ...amounts, netRate: newValue };
+          updated[index] = { ...item, ...amounts, netRate: value };
         } else {
-          updated[index] = { ...item, netRate: value === '' ? '' : newValue };
+          updated[index] = { ...item, netRate: value };
         }
       } else if (field === 'baseAmount') {
         // baseAmount = baseRate * qty, so baseRate = baseAmount / qty
