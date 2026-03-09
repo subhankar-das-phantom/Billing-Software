@@ -28,6 +28,11 @@ const EmployeeAnalyticsPage = lazy(() => import('./pages/EmployeeAnalyticsPage')
 const ActivityLogPage = lazy(() => import('./pages/ActivityLogPage'));
 const ManualEntriesPage = lazy(() => import('./pages/ManualEntriesPage'));
 
+// Batch & Credit Note pages
+const ProductDetailsPage = lazy(() => import('./pages/ProductDetailsPage'));
+const CreditNoteCreatePage = lazy(() => import('./pages/CreditNoteCreatePage'));
+const CreditNoteViewPage = lazy(() => import('./pages/CreditNoteViewPage'));
+
 // Page loading spinner
 function PageLoader() {
   return (
@@ -110,12 +115,15 @@ function AppRoutes() {
         >
           <Route path="/" element={<DashboardPage />} />
           <Route path="/products" element={<ProductsPage />} />
+          <Route path="/products/:id" element={<ProductDetailsPage />} />
           <Route path="/customers" element={<CustomersPage />} />
           <Route path="/customers/:id" element={<CustomerDetailsPage />} />
           <Route path="/invoices" element={<InvoicesPage />} />
           <Route path="/invoices/create" element={<InvoiceCreatePage />} />
           <Route path="/invoices/:id/edit" element={<InvoiceCreatePage />} />
+          <Route path="/invoices/:id/return" element={<CreditNoteCreatePage />} />
           <Route path="/invoices/:id" element={<InvoiceViewPage />} />
+          <Route path="/credit-notes/:id" element={<CreditNoteViewPage />} />
           <Route path="/notes" element={<NotesPage />} />
           <Route path="/credits" element={<CreditsPage />} />
           <Route path="/profile" element={<ProfilePage />} />

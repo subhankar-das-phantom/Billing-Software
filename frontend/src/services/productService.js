@@ -254,9 +254,9 @@ export const productService = {
    * @param {object} batchData - Batch data
    * @returns {Promise<{success: boolean, product: object}>}
    */
-  addBatch: async (id, batchData) => {
+  addBatch: async (productId, batchData) => {
     try {
-      const response = await api.post(`/products/${id}/batches`, batchData);
+      const response = await api.post('/batches', { productId, ...batchData });
       
       // Clear cache after batch addition
       clearCache();
@@ -269,12 +269,56 @@ export const productService = {
 
   /**
    * Get product batches
-   * @param {string} id - Product ID
-   * @returns {Promise<{batches: array}>}
+   * @param {string} productId - Product ID
+   * @returns {Promise<{batches: array, totalStock: number}>}
    */
-  getBatches: async (id) => {
+  getBatches: async (productId) => {
     try {
-      const response = await api.get(`/products/${id}/batches`);
+      const response = await api.get(`/batches/product/${productId}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
+   * Update an existing batch
+   * @param {string} batchId - Batch ID
+   * @param {object} data - Updated batch data
+   */
+  updateBatch: async (batchId, data) => {
+    try {
+      const response = await api.put(`/batches/${batchId}`, data);
+      clearCache();
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
+   * Adjust batch stock
+   * @param {string} batchId - Batch ID
+   * @param {object} data - { quantity, type: 'in'|'out', reason }
+   */
+  adjustBatchStock: async (batchId, data) => {
+    try {
+      const response = await api.put(`/batches/${batchId}/stock`, data);
+      clearCache();
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
+   * Delete a batch (must have 0 stock)
+   * @param {string} batchId - Batch ID
+   */
+  deleteBatch: async (batchId) => {
+    try {
+      const response = await api.delete(`/batches/${batchId}`);
+      clearCache();
       return response.data;
     } catch (error) {
       throw error;

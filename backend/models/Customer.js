@@ -73,6 +73,11 @@ const customerSchema = new mongoose.Schema({
   outstandingBalance: {
     type: Number,
     default: 0
+  },
+  // Credit balance from credit notes (returns)
+  creditBalance: {
+    type: Number,
+    default: 0
   }
 }, {
   timestamps: true

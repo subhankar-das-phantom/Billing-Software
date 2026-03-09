@@ -1,7 +1,9 @@
 const Product = require('../models/Product');
+const Batch = require('../models/Batch');
 const { LOW_STOCK_THRESHOLD } = require('../config/constants');
 const { getAttribution } = require('../middleware/auth');
 const { trackActivity, ACTIVITY_TYPES } = require('../utils/activityTracker');
+const { getStockSummary } = require('../utils/fifoService');
 
 // @desc    Get all products
 // @route   GET /api/products
@@ -30,13 +32,30 @@ exports.getProducts = async (req, res, next) => {
 
     const total = await Product.countDocuments(query);
 
+    // Enrich products with batch stock data
+    const productIds = products.map(p => p._id);
+    const stockMap = await getStockSummary(productIds);
+
+    const enrichedProducts = products.map(p => {
+      const pObj = p.toObject();
+      const batchData = stockMap[p._id.toString()];
+      if (batchData) {
+        pObj.totalBatchStock = batchData.totalStock;
+        pObj.batchCount = batchData.batchCount;
+      } else {
+        pObj.totalBatchStock = 0;
+        pObj.batchCount = 0;
+      }
+      return pObj;
+    });
+
     res.status(200).json({
       success: true,
-      count: products.length,
+      count: enrichedProducts.length,
       total,
       page,
       pages: Math.ceil(total / limit),
-      products
+      products: enrichedProducts
     });
   } catch (error) {
     next(error);
@@ -57,9 +76,20 @@ exports.getProduct = async (req, res, next) => {
       });
     }
 
+    // Get batch data for this product
+    const batches = await Batch.find({ productId: product._id, isActive: true })
+      .sort({ expiryDate: 1, createdAt: 1 });
+
+    const totalBatchStock = batches.reduce((sum, b) => sum + b.stock, 0);
+
+    const productObj = product.toObject();
+    productObj.batches = batches;
+    productObj.totalBatchStock = totalBatchStock;
+    productObj.batchCount = batches.length;
+
     res.status(200).json({
       success: true,
-      product
+      product: productObj
     });
   } catch (error) {
     next(error);
@@ -109,6 +139,20 @@ exports.createProduct = async (req, res, next) => {
         adjustedBy: getAttribution(req)
       }] : []
     });
+
+    // Also create a Batch record if batchNo is provided
+    if (batchNo) {
+      await Batch.create({
+        productId: product._id,
+        batchNo,
+        expiryDate,
+        purchaseRate: rate || 0,
+        mrp: newMRP,
+        gstPercent: gstPercentage || 12,
+        stock: openingStockQty || 0,
+        createdBy: getAttribution(req)
+      });
+    }
 
     // Track employee activity
     trackActivity(req, ACTIVITY_TYPES.PRODUCT_ADDED);
@@ -280,15 +324,36 @@ exports.getLowStock = async (req, res, next) => {
   try {
     const threshold = parseInt(req.query.threshold) || LOW_STOCK_THRESHOLD;
 
-    const products = await Product.find({
-      isActive: true,
-      currentStockQty: { $lte: threshold }
-    }).sort({ currentStockQty: 1 });
+    // Get all active products
+    const products = await Product.find({ isActive: true });
+    
+    // Get batch stock for all products
+    const productIds = products.map(p => p._id);
+    const stockMap = await getStockSummary(productIds);
+
+    // Filter for low stock (using batch stock if available, otherwise legacy stock)
+    const lowStockProducts = products
+      .map(p => {
+        const pObj = p.toObject();
+        const batchData = stockMap[p._id.toString()];
+        if (batchData && batchData.batchCount > 0) {
+          pObj.totalBatchStock = batchData.totalStock;
+          pObj.batchCount = batchData.batchCount;
+          pObj.effectiveStock = batchData.totalStock;
+        } else {
+          pObj.totalBatchStock = 0;
+          pObj.batchCount = 0;
+          pObj.effectiveStock = pObj.currentStockQty;
+        }
+        return pObj;
+      })
+      .filter(p => p.effectiveStock <= threshold)
+      .sort((a, b) => a.effectiveStock - b.effectiveStock);
 
     res.status(200).json({
       success: true,
-      count: products.length,
-      products
+      count: lowStockProducts.length,
+      products: lowStockProducts
     });
   } catch (error) {
     next(error);

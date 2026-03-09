@@ -69,6 +69,8 @@ app.use('/api/notes', generalLimiter, require('./routes/notes'));
 app.use('/api/payments', generalLimiter, require('./routes/payments'));
 app.use('/api/reports', generalLimiter, require('./routes/reports'));
 app.use('/api/manual-entries', generalLimiter, require('./routes/manualEntries'));
+app.use('/api/batches', generalLimiter, require('./routes/batches'));
+app.use('/api/credit-notes', generalLimiter, require('./routes/creditNotes'));
 
 // Health check
 app.get('/api/health', (req, res) => {

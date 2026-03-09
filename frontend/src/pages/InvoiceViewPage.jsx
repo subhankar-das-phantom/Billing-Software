@@ -22,11 +22,13 @@ import {
   Receipt,
   Clock,
   XCircle,
-  Edit
+  Edit,
+  RotateCcw
 } from 'lucide-react';
 import { invoiceService } from '../services/invoiceService';
 import { customerService } from '../services/customerService';
 import { manualEntryService } from '../services/manualEntryService';
+import { creditNoteService } from '../services/creditNoteService';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { PageLoader } from '../components/Common/Loader';
 import { useToast } from '../context/ToastContext';
@@ -74,6 +76,7 @@ const tableRowVariants = {
 export default function InvoiceViewPage() {
   const { id } = useParams();
   const [invoice, setInvoice] = useState(null);
+  const [creditNotes, setCreditNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [customerOutstanding, setCustomerOutstanding] = useState(0);
@@ -107,8 +110,12 @@ export default function InvoiceViewPage() {
 
   const loadInvoice = async () => {
     try {
-      const data = await invoiceService.getInvoice(id);
+      const [data, cnData] = await Promise.all([
+        invoiceService.getInvoice(id),
+        creditNoteService.getCreditNotesByInvoice(id).catch(() => ({ creditNotes: [] }))
+      ]);
       setInvoice(data.invoice);
+      setCreditNotes(cnData.creditNotes || []);
       
       // Fetch customer outstanding using same logic as CustomerDetailsPage
       if (data.invoice?.customer?._id) {
@@ -418,6 +425,16 @@ export default function InvoiceViewPage() {
           </motion.div>
         )}
 
+        {/* Create Return / Credit Note - only for non-cancelled invoices */}
+        {invoice.status !== 'Cancelled' && (
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Link to={`/invoices/${id}/return`} className="btn btn-secondary flex items-center gap-2 text-amber-400 border-amber-500/30 hover:bg-amber-500/10">
+              <RotateCcw className="w-5 h-5" />
+              Create Return
+            </Link>
+          </motion.div>
+        )}
+
         <motion.button
           onClick={handlePrint}
           className="btn btn-primary flex items-center gap-2"
@@ -503,6 +520,62 @@ export default function InvoiceViewPage() {
           {invoice.status}
         </motion.div>
       </motion.div>
+
+      {/* Credit Notes Section */}
+      {creditNotes.length > 0 && (
+        <motion.div variants={cardVariants} className="glass-card overflow-hidden">
+          <div className="p-5 border-b border-slate-700/50 flex items-center gap-3">
+            <div className="p-2 bg-amber-500/20 rounded-lg">
+              <RotateCcw className="w-5 h-5 text-amber-400" />
+            </div>
+            <div>
+              <h2 className="text-white font-semibold">Credit Notes / Returns</h2>
+              <p className="text-xs text-slate-400">{creditNotes.length} return(s) associated with this invoice</p>
+            </div>
+          </div>
+          <div className="divide-y divide-slate-700/50">
+            {creditNotes.map((cn, idx) => (
+              <Link
+                key={cn._id}
+                to={`/credit-notes/${cn._id}`}
+                className="block p-4 hover:bg-slate-700/30 transition-colors group"
+              >
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  className="flex flex-col sm:flex-row justify-between gap-3"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="p-1.5 bg-amber-500/10 rounded-lg mt-0.5">
+                      <Receipt className="w-4 h-4 text-amber-400" />
+                    </div>
+                    <div>
+                      <p className="text-amber-400 font-semibold group-hover:text-amber-300 transition-colors">
+                        {cn.creditNoteNumber}
+                      </p>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        {formatDate(cn.createdAt)}
+                        {cn.reason && <span> · {cn.reason}</span>}
+                      </p>
+                      <p className="text-sm text-slate-300 mt-1">
+                        {cn.items.map(item => `${item.productName} ×${item.quantityReturned}`).join(', ')}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 sm:text-right">
+                    <div className="px-3 py-1.5 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+                      <p className="text-xs text-slate-400">Credit Amount</p>
+                      <p className="text-lg font-bold text-emerald-400">{formatCurrency(cn.totals?.netTotal)}</p>
+                    </div>
+                    <ArrowLeft className="w-4 h-4 text-slate-500 rotate-180 group-hover:text-white transition-colors hidden sm:block" />
+                  </div>
+                </motion.div>
+              </Link>
+            ))}
+          </div>
+        </motion.div>
+      )}
 
       {/* Invoice Print Area - Two Copies on A4 */}
       <div className="flex justify-center">

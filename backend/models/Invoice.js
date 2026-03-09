@@ -7,6 +7,7 @@ const invoiceItemSchema = new mongoose.Schema({
     productName: String,
     hsnCode: String,
     pack: String,
+    batchId: mongoose.Schema.Types.ObjectId,
     batchNo: String,
     expiryDate: Date,
     newMRP: Number,

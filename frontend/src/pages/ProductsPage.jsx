@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Package,
@@ -22,7 +23,8 @@ import {
   Hash,
   Layers,
   Percent,
-  Ruler
+  Ruler,
+  Eye
 } from 'lucide-react';
 import { productService } from '../services/productService';
 import { formatCurrency, formatDate, isExpired, isExpiringSoon, formatDateForInput } from '../utils/formatters';
@@ -238,18 +240,18 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, isExpired, isExpiri
                   className="hover:bg-slate-700/50 transition-colors"
                 >
                   <td>
-                    <div className="flex items-center gap-3">
+                    <Link to={`/products/${product._id}`} className="flex items-center gap-3 group">
                       <div className="p-2 bg-blue-500/20 rounded-lg">
                         <Package className="w-4 h-4 text-blue-400" />
                       </div>
                       <div>
-                        <p className="font-medium text-white">{product.productName}</p>
+                        <p className="font-medium text-white group-hover:text-blue-400 transition-colors">{product.productName}</p>
                         <p className="text-xs text-slate-400 flex items-center gap-1.5">
                           <Building2 className="w-3 h-3" />
                           {product.manufacturer}
                         </p>
                       </div>
-                    </div>
+                    </Link>
                   </td>
                   <td className="text-slate-300 font-mono text-sm">
                     <div className="flex items-center gap-2">
@@ -413,15 +415,17 @@ export default function ProductsPage() {
     e.preventDefault();
     console.log('Submitting form:', formData);
     
-    if (!formData.productName || !formData.hsnCode || !formData.batchNo || !formData.newMRP) {
-      console.log('Validation failed:', {
-        name: !formData.productName,
-        hsn: !formData.hsnCode,
-        batch: !formData.batchNo,
-        mrp: !formData.newMRP
-      });
-      error('Please fill all required fields');
-      return;
+    // In edit mode, only require catalog fields (batch managed on details page)
+    if (editingProduct) {
+      if (!formData.productName || !formData.hsnCode) {
+        error('Please fill all required fields');
+        return;
+      }
+    } else {
+      if (!formData.productName || !formData.hsnCode || !formData.batchNo || !formData.newMRP) {
+        error('Please fill all required fields');
+        return;
+      }
     }
 
     setSaving(true);
@@ -436,15 +440,15 @@ export default function ProductsPage() {
       };
 
       if (editingProduct) {
-        await productService.updateProduct(editingProduct._id, payload);
-        
-        if (stockAdjustment.qty && parseInt(stockAdjustment.qty) > 0) {
-          await productService.updateStock(editingProduct._id, {
-            quantity: parseInt(stockAdjustment.qty),
-            type: stockAdjustment.reason === 'add' ? 'in' : 'out',
-            reason: stockAdjustment.reason
-          });
-        }
+        // In edit mode, only send catalog fields
+        const editPayload = {
+          productName: formData.productName,
+          hsnCode: formData.hsnCode,
+          manufacturer: formData.manufacturer,
+          gstPercentage: parseInt(formData.gstPercentage),
+          unit: formData.unit
+        };
+        await productService.updateProduct(editingProduct._id, editPayload);
         
         success('Product updated successfully');
       } else {
@@ -688,10 +692,35 @@ export default function ProductsPage() {
             initial="hidden"
             animate="visible"
           >
+            {/* Catalog fields - always visible */}
             {[
               { name: 'productName', label: 'Product Name *', type: 'text', icon: Package, placeholder: 'Enter product name', required: true },
               { name: 'hsnCode', label: 'HSN Code *', type: 'text', icon: Barcode, placeholder: 'e.g., 3004', required: true },
-              { name: 'manufacturer', label: 'Manufacturer', type: 'text', icon: Building2, placeholder: 'Manufacturer name' },
+              { name: 'manufacturer', label: 'Manufacturer', type: 'text', icon: Building2, placeholder: 'Manufacturer name' }
+            ].map((field, index) => (
+              <motion.div
+                key={field.name}
+                custom={index}
+                variants={formItemVariants}
+              >
+                <label className="label flex items-center gap-2">
+                  <field.icon className="w-4 h-4 text-slate-400" />
+                  {field.label}
+                </label>
+                <input
+                  type={field.type}
+                  name={field.name}
+                  value={formData[field.name]}
+                  onChange={handleInputChange}
+                  className="input"
+                  placeholder={field.placeholder}
+                  required={field.required}
+                />
+              </motion.div>
+            ))}
+
+            {/* Batch & pricing fields - create mode only */}
+            {!editingProduct && [
               { name: 'batchNo', label: 'Batch No *', type: 'text', icon: Hash, placeholder: 'Batch number', required: true },
               { name: 'expiryDate', label: 'Expiry Date', type: 'date', icon: Calendar },
               { name: 'oldMRP', label: 'Old MRP', type: 'number', icon: DollarSign, placeholder: '0.00', step: '0.01', min: '0' },
@@ -700,7 +729,7 @@ export default function ProductsPage() {
             ].map((field, index) => (
               <motion.div
                 key={field.name}
-                custom={index}
+                custom={index + 3}
                 variants={formItemVariants}
               >
                 <label className="label flex items-center gap-2">
@@ -774,7 +803,7 @@ export default function ProductsPage() {
             )}
           </motion.div>
 
-          {/* Stock Adjustment Section */}
+          {/* Batch Management Link - only in edit mode */}
           {editingProduct && (
             <motion.div 
               className="pt-6 mt-4 border-t border-slate-700"
@@ -782,40 +811,26 @@ export default function ProductsPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.7 }}
             >
-              <div className="flex items-center gap-2 mb-4">
-                <Layers className="w-5 h-5 text-emerald-400" />
-                <h3 className="text-white font-semibold">Stock Adjustment</h3>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="label">Adjustment Type</label>
-                  <select
-                    value={stockAdjustment.reason}
-                    onChange={(e) => setStockAdjustment(prev => ({ ...prev, reason: e.target.value }))}
-                    className="select"
+              <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-white font-medium flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-emerald-400" />
+                      Batch & Stock Management
+                    </p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Manage batches, adjust stock, and view inventory on the Product Details page
+                    </p>
+                  </div>
+                  <Link
+                    to={`/products/${editingProduct._id}`}
+                    onClick={() => setModalOpen(false)}
+                    className="btn btn-secondary flex items-center gap-2 text-sm"
                   >
-                    <option value="add">Add Stock</option>
-                    <option value="remove">Remove Stock</option>
-                    <option value="damage">Damage/Expiry</option>
-                    <option value="return">Return</option>
-                  </select>
+                    <Eye className="w-4 h-4" />
+                    View Details
+                  </Link>
                 </div>
-                <div>
-                  <label className="label">Quantity</label>
-                  <input
-                    type="number"
-                    value={stockAdjustment.qty}
-                    onChange={(e) => setStockAdjustment(prev => ({ ...prev, qty: e.target.value }))}
-                    className="input"
-                    placeholder="Enter quantity"
-                    min="0"
-                  />
-                </div>
-              </div>
-              <div className="mt-3 p-3 bg-slate-800/50 rounded-lg border border-slate-700">
-                <p className="text-xs text-slate-400">
-                  Current Stock: <span className="text-emerald-400 font-medium">{editingProduct.currentStockQty} {editingProduct.unit}</span>
-                </p>
               </div>
             </motion.div>
           )}

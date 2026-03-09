@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Invoice = require('../models/Invoice');
 const Product = require('../models/Product');
+const Batch = require('../models/Batch');
 const Customer = require('../models/Customer');
 const Admin = require('../models/Admin');
 const { calculateItemAmounts, calculateInvoiceTotals } = require('../utils/invoiceCalculator');
@@ -8,6 +9,7 @@ const { numberToWords } = require('../utils/numberToWords');
 const { generateInvoiceExcel, generateInvoiceCSV } = require('../utils/excelExport');
 const { getAttribution } = require('../middleware/auth');
 const { trackActivity, ACTIVITY_TYPES } = require('../utils/activityTracker');
+const { consumeStock, restoreStock } = require('../utils/fifoService');
 
 // @desc    Get all invoices
 // @route   GET /api/invoices
@@ -155,7 +157,7 @@ exports.createInvoice = async (req, res, next) => {
 
     // Process items and validate stock
     const processedItems = [];
-    const stockUpdates = [];
+    const legacyStockUpdates = []; // For pre-migration products without batches
 
     for (const item of items) {
       const product = await Product.findById(item.productId).session(session);
@@ -169,19 +171,50 @@ exports.createInvoice = async (req, res, next) => {
       }
 
       const totalQty = item.quantitySold + (item.freeQuantity || 0);
-      
-      if (product.currentStockQty < totalQty) {
-        await session.abortTransaction();
-        return res.status(400).json({
-          success: false,
-          message: `Insufficient stock for ${product.productName}. Available: ${product.currentStockQty}, Required: ${totalQty}`
+
+      // Check if product has batches (new system) or uses legacy stock
+      const batchCount = await Batch.countDocuments({ productId: product._id, isActive: true }).session(session);
+      const useBatches = batchCount > 0;
+
+      let batchInfo = null; // Will hold FIFO batch info if using batches
+
+      if (useBatches) {
+        // NEW PATH: FIFO batch consumption
+        try {
+          const consumptionRecords = await consumeStock(product._id, totalQty, session);
+          // Use the first consumed batch for the invoice item snapshot
+          // (for multi-batch consumption, we take the primary batch)
+          batchInfo = consumptionRecords[0];
+        } catch (err) {
+          await session.abortTransaction();
+          return res.status(400).json({
+            success: false,
+            message: `${err.message} for ${product.productName}`
+          });
+        }
+      } else {
+        // LEGACY PATH: Use product-level currentStockQty
+        if (product.currentStockQty < totalQty) {
+          await session.abortTransaction();
+          return res.status(400).json({
+            success: false,
+            message: `Insufficient stock for ${product.productName}. Available: ${product.currentStockQty}, Required: ${totalQty}`
+          });
+        }
+
+        legacyStockUpdates.push({
+          productId: product._id,
+          previousQty: product.currentStockQty,
+          changeQty: -totalQty,
+          newQty: product.currentStockQty - totalQty
         });
       }
 
       // Calculate amounts
+      const rateToUse = item.ratePerUnit || (batchInfo ? batchInfo.purchaseRate : product.rate) || product.newMRP;
       const amounts = calculateItemAmounts(
         item.quantitySold,
-        item.ratePerUnit || product.newMRP,
+        rateToUse,
         product.gstPercentage,
         item.schemeDiscount || 0
       );
@@ -192,23 +225,17 @@ exports.createInvoice = async (req, res, next) => {
           productName: product.productName,
           hsnCode: product.hsnCode,
           pack: product.pack,
-          batchNo: product.batchNo,
-          expiryDate: product.expiryDate,
-          newMRP: product.newMRP,
+          batchId: batchInfo ? batchInfo.batchId : undefined,
+          batchNo: batchInfo ? batchInfo.batchNo : product.batchNo,
+          expiryDate: batchInfo ? batchInfo.expiryDate : product.expiryDate,
+          newMRP: batchInfo ? batchInfo.mrp : product.newMRP,
           gstPercentage: product.gstPercentage
         },
         quantitySold: item.quantitySold,
         freeQuantity: item.freeQuantity || 0,
-        ratePerUnit: item.ratePerUnit || product.newMRP,
+        ratePerUnit: rateToUse,
         schemeDiscount: item.schemeDiscount || 0,
         ...amounts
-      });
-
-      stockUpdates.push({
-        productId: product._id,
-        previousQty: product.currentStockQty,
-        changeQty: -totalQty,
-        newQty: product.currentStockQty - totalQty
       });
     }
 
@@ -241,8 +268,8 @@ exports.createInvoice = async (req, res, next) => {
       createdBy: getAttribution(req)
     }], { session });
 
-    // Update stock for each product
-    for (const update of stockUpdates) {
+    // Update legacy stock (for products without batches)
+    for (const update of legacyStockUpdates) {
       await Product.findByIdAndUpdate(
         update.productId,
         {
@@ -334,22 +361,32 @@ exports.updateInvoice = async (req, res, next) => {
     for (const oldItem of existingInvoice.items) {
       const totalQty = oldItem.quantitySold + (oldItem.freeQuantity || 0);
       
-      await Product.findByIdAndUpdate(
-        oldItem.product._id,
-        {
-          $inc: { currentStockQty: totalQty }, // Add back the stock
-          $push: {
-            stockHistory: {
-              type: 'invoice_edit_reversal',
-              invoiceId: existingInvoice._id,
-              changeQty: totalQty,
-              reference: `${existingInvoice.invoiceNumber} - Edit Reversal`,
-              timestamp: new Date()
+      if (oldItem.product.batchId) {
+        // NEW PATH: Restore to batch
+        await Batch.findByIdAndUpdate(
+          oldItem.product.batchId,
+          { $inc: { stock: totalQty } },
+          { session }
+        );
+      } else {
+        // LEGACY PATH: Restore to product
+        await Product.findByIdAndUpdate(
+          oldItem.product._id,
+          {
+            $inc: { currentStockQty: totalQty },
+            $push: {
+              stockHistory: {
+                type: 'invoice_edit_reversal',
+                invoiceId: existingInvoice._id,
+                changeQty: totalQty,
+                reference: `${existingInvoice.invoiceNumber} - Edit Reversal`,
+                timestamp: new Date()
+              }
             }
-          }
-        },
-        { session }
-      );
+          },
+          { session }
+        );
+      }
     }
 
     // Reverse customer stats for old invoice
@@ -387,7 +424,7 @@ exports.updateInvoice = async (req, res, next) => {
     }
 
     const processedItems = [];
-    const stockUpdates = [];
+    const legacyStockUpdates = [];
 
     for (const item of items) {
       const product = await Product.findById(item.productId).session(session);
@@ -401,20 +438,46 @@ exports.updateInvoice = async (req, res, next) => {
       }
 
       const totalQty = item.quantitySold + (item.freeQuantity || 0);
-      
-      // Check if there's enough stock (stock was already restored from reversal)
-      if (product.currentStockQty < totalQty) {
-        await session.abortTransaction();
-        return res.status(400).json({
-          success: false,
-          message: `Insufficient stock for ${product.productName}. Available: ${product.currentStockQty}, Required: ${totalQty}`
+
+      // Check if product has batches (new system) or uses legacy stock
+      const batchCount = await Batch.countDocuments({ productId: product._id, isActive: true }).session(session);
+      const useBatches = batchCount > 0;
+
+      let batchInfo = null;
+
+      if (useBatches) {
+        try {
+          const consumptionRecords = await consumeStock(product._id, totalQty, session);
+          batchInfo = consumptionRecords[0];
+        } catch (err) {
+          await session.abortTransaction();
+          return res.status(400).json({
+            success: false,
+            message: `${err.message} for ${product.productName}`
+          });
+        }
+      } else {
+        if (product.currentStockQty < totalQty) {
+          await session.abortTransaction();
+          return res.status(400).json({
+            success: false,
+            message: `Insufficient stock for ${product.productName}. Available: ${product.currentStockQty}, Required: ${totalQty}`
+          });
+        }
+
+        legacyStockUpdates.push({
+          productId: product._id,
+          previousQty: product.currentStockQty,
+          changeQty: -totalQty,
+          newQty: product.currentStockQty - totalQty
         });
       }
 
       // Calculate amounts
+      const rateToUse = item.ratePerUnit || (batchInfo ? batchInfo.purchaseRate : product.rate) || product.newMRP;
       const amounts = calculateItemAmounts(
         item.quantitySold,
-        item.ratePerUnit || product.newMRP,
+        rateToUse,
         product.gstPercentage,
         item.schemeDiscount || 0
       );
@@ -425,23 +488,17 @@ exports.updateInvoice = async (req, res, next) => {
           productName: product.productName,
           hsnCode: product.hsnCode,
           pack: product.pack,
-          batchNo: product.batchNo,
-          expiryDate: product.expiryDate,
-          newMRP: product.newMRP,
+          batchId: batchInfo ? batchInfo.batchId : undefined,
+          batchNo: batchInfo ? batchInfo.batchNo : product.batchNo,
+          expiryDate: batchInfo ? batchInfo.expiryDate : product.expiryDate,
+          newMRP: batchInfo ? batchInfo.mrp : product.newMRP,
           gstPercentage: product.gstPercentage
         },
         quantitySold: item.quantitySold,
         freeQuantity: item.freeQuantity || 0,
-        ratePerUnit: item.ratePerUnit || product.newMRP,
+        ratePerUnit: rateToUse,
         schemeDiscount: item.schemeDiscount || 0,
         ...amounts
-      });
-
-      stockUpdates.push({
-        productId: product._id,
-        previousQty: product.currentStockQty,
-        changeQty: -totalQty,
-        newQty: product.currentStockQty - totalQty
       });
     }
 
@@ -449,8 +506,8 @@ exports.updateInvoice = async (req, res, next) => {
     const totals = calculateInvoiceTotals(processedItems);
     totals.amountInWords = numberToWords(totals.netTotal);
 
-    // Step 3: Update stock for new items
-    for (const update of stockUpdates) {
+    // Step 3: Update legacy stock for products without batches
+    for (const update of legacyStockUpdates) {
       await Product.findByIdAndUpdate(
         update.productId,
         {
@@ -538,22 +595,32 @@ exports.updateInvoiceStatus = async (req, res, next) => {
       for (const item of invoice.items) {
         const totalQty = item.quantitySold + (item.freeQuantity || 0);
 
-        await Product.findByIdAndUpdate(
-          item.product._id,
-          {
-            $inc: { currentStockQty: totalQty },
-            $push: {
-              stockHistory: {
-                type: 'invoice_cancelled',
-                invoiceId: invoice._id,
-                changeQty: totalQty,
-                reference: `${invoice.invoiceNumber} - Cancelled`,
-                timestamp: new Date()
+        if (item.product.batchId) {
+          // NEW PATH: Restore to batch
+          await Batch.findByIdAndUpdate(
+            item.product.batchId,
+            { $inc: { stock: totalQty } },
+            { session }
+          );
+        } else {
+          // LEGACY PATH: Restore to product
+          await Product.findByIdAndUpdate(
+            item.product._id,
+            {
+              $inc: { currentStockQty: totalQty },
+              $push: {
+                stockHistory: {
+                  type: 'invoice_cancelled',
+                  invoiceId: invoice._id,
+                  changeQty: totalQty,
+                  reference: `${invoice.invoiceNumber} - Cancelled`,
+                  timestamp: new Date()
+                }
               }
-            }
-          },
-          { session }
-        );
+            },
+            { session }
+          );
+        }
       }
 
       // Reverse customer stats
