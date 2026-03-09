@@ -24,6 +24,6 @@ router.route('/:id')
   .delete(mongoIdParam, deleteBatch);
 
 // Stock adjustment
-router.put('/:id/stock', mongoIdParam, adjustBatchStock);
+router.put('/:id/adjust-stock', mongoIdParam, adjustBatchStock);
 
 module.exports = router;

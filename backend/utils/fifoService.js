@@ -56,12 +56,20 @@ const consumeStock = async (productId, quantity, session) => {
       expiryDate: batch.expiryDate,
       mrp: batch.mrp,
       gstPercent: batch.gstPercent,
-      purchaseRate: batch.purchaseRate,
+      rate: batch.rate,
       quantity: take
     });
 
     remaining -= take;
   }
+
+  // Deduct from parent product
+  const Product = require('../models/Product');
+  await Product.findByIdAndUpdate(
+    productId,
+    { $inc: { currentStockQty: -quantity } },
+    { session }
+  );
 
   return consumptionRecords;
 };
@@ -76,11 +84,20 @@ const restoreStock = async (consumptionRecords, session) => {
   for (const record of consumptionRecords) {
     if (!record.batchId || !record.quantity) continue;
     
-    await Batch.findByIdAndUpdate(
+    const updatedBatch = await Batch.findByIdAndUpdate(
       record.batchId,
       { $inc: { stock: record.quantity } },
-      { session }
+      { session, new: true }
     );
+    
+    if (updatedBatch) {
+      const Product = require('../models/Product');
+      await Product.findByIdAndUpdate(
+        updatedBatch.productId,
+        { $inc: { currentStockQty: record.quantity } },
+        { session }
+      );
+    }
   }
 };
 
@@ -92,11 +109,20 @@ const restoreStock = async (consumptionRecords, session) => {
  * @param {Object} session - MongoDB session for transaction
  */
 const restoreStockToBatch = async (batchId, quantity, session) => {
-  await Batch.findByIdAndUpdate(
+  const updatedBatch = await Batch.findByIdAndUpdate(
     batchId,
     { $inc: { stock: quantity } },
-    { session }
+    { session, new: true }
   );
+  
+  if (updatedBatch) {
+    const Product = require('../models/Product');
+    await Product.findByIdAndUpdate(
+      updatedBatch.productId,
+      { $inc: { currentStockQty: quantity } },
+      { session }
+    );
+  }
 };
 
 /**

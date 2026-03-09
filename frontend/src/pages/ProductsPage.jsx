@@ -422,7 +422,7 @@ export default function ProductsPage() {
         return;
       }
     } else {
-      if (!formData.productName || !formData.hsnCode || !formData.batchNo || !formData.newMRP) {
+      if (!formData.productName || !formData.hsnCode || !formData.newMRP) {
         error('Please fill all required fields');
         return;
       }
@@ -462,7 +462,13 @@ export default function ProductsPage() {
       mutate();
     } catch (err) {
       console.error('Save error:', err);
-      error(err.response?.data?.message || 'Failed to save product');
+      const resData = err.response?.data;
+      if (resData?.errors && resData.errors.length > 0) {
+        const errorMessages = resData.errors.map(e => e.message).join(', ');
+        error(`Validation failed: ${errorMessages}`);
+      } else {
+        error(resData?.message || 'Failed to save product');
+      }
     } finally {
       setSaving(false);
     }
@@ -721,7 +727,7 @@ export default function ProductsPage() {
 
             {/* Batch & pricing fields - create mode only */}
             {!editingProduct && [
-              { name: 'batchNo', label: 'Batch No *', type: 'text', icon: Hash, placeholder: 'Batch number', required: true },
+              { name: 'batchNo', label: 'Batch No', type: 'text', icon: Hash, placeholder: 'Batch number' },
               { name: 'expiryDate', label: 'Expiry Date', type: 'date', icon: Calendar },
               { name: 'oldMRP', label: 'Old MRP', type: 'number', icon: DollarSign, placeholder: '0.00', step: '0.01', min: '0' },
               { name: 'newMRP', label: 'Current MRP *', type: 'number', icon: DollarSign, placeholder: '0.00', step: '0.01', min: '0', required: true },

@@ -176,15 +176,64 @@ exports.createInvoice = async (req, res, next) => {
       const batchCount = await Batch.countDocuments({ productId: product._id, isActive: true }).session(session);
       const useBatches = batchCount > 0;
 
-      let batchInfo = null; // Will hold FIFO batch info if using batches
-
       if (useBatches) {
-        // NEW PATH: FIFO batch consumption
+        // NEW PATH: FIFO or MANUAL batch consumption
         try {
-          const consumptionRecords = await consumeStock(product._id, totalQty, session);
-          // Use the first consumed batch for the invoice item snapshot
-          // (for multi-batch consumption, we take the primary batch)
-          batchInfo = consumptionRecords[0];
+          const mode = req.body.allocationMode || 'AUTO';
+          const fifoService = require('../services/fifoService');
+          const stockService = require('../services/stockService');
+          
+          const allocations = await fifoService.calculateAllocations(product._id, totalQty, mode, item.manualAllocations);
+          
+          // Deduct stock for all allocations
+          await stockService.processAllocations(allocations, session);
+
+          // Split the original item across the assigned batches
+          let remainingQtySold = item.quantitySold;
+          let remainingFreeQty = item.freeQuantity || 0;
+
+          for (const alloc of allocations) {
+            let allocTotal = alloc.allocatedQty;
+            let currentSold = 0;
+            let currentFree = 0;
+
+            if (remainingQtySold >= allocTotal) {
+              currentSold = allocTotal;
+              remainingQtySold -= allocTotal;
+            } else {
+              currentSold = remainingQtySold;
+              currentFree = allocTotal - remainingQtySold;
+              remainingQtySold = 0;
+              remainingFreeQty -= currentFree;
+            }
+
+            const rateToUse = item.ratePerUnit || alloc.rate || product.rate || product.newMRP;
+            const amounts = calculateItemAmounts(
+              currentSold,
+              rateToUse,
+              product.gstPercentage,
+              item.schemeDiscount || 0
+            );
+
+            processedItems.push({
+              product: {
+                _id: product._id,
+                productName: product.productName,
+                hsnCode: product.hsnCode,
+                pack: product.pack,
+                batchId: alloc.batchId,
+                batchNo: alloc.batchNo || null,
+                expiryDate: alloc.expiryDate,
+                newMRP: alloc.mrp || product.newMRP,
+                gstPercentage: product.gstPercentage
+              },
+              quantitySold: currentSold,
+              freeQuantity: currentFree,
+              ratePerUnit: rateToUse,
+              schemeDiscount: item.schemeDiscount || 0,
+              ...amounts
+            });
+          }
         } catch (err) {
           await session.abortTransaction();
           return res.status(400).json({
@@ -208,35 +257,35 @@ exports.createInvoice = async (req, res, next) => {
           changeQty: -totalQty,
           newQty: product.currentStockQty - totalQty
         });
+
+        // Calculate amounts and add standard item
+        const rateToUse = item.ratePerUnit || product.rate || product.newMRP;
+        const amounts = calculateItemAmounts(
+          item.quantitySold,
+          rateToUse,
+          product.gstPercentage,
+          item.schemeDiscount || 0
+        );
+
+        processedItems.push({
+          product: {
+            _id: product._id,
+            productName: product.productName,
+            hsnCode: product.hsnCode,
+            pack: product.pack,
+            batchId: undefined,
+            batchNo: product.batchNo,
+            expiryDate: product.expiryDate,
+            newMRP: product.newMRP,
+            gstPercentage: product.gstPercentage
+          },
+          quantitySold: item.quantitySold,
+          freeQuantity: item.freeQuantity || 0,
+          ratePerUnit: rateToUse,
+          schemeDiscount: item.schemeDiscount || 0,
+          ...amounts
+        });
       }
-
-      // Calculate amounts
-      const rateToUse = item.ratePerUnit || (batchInfo ? batchInfo.purchaseRate : product.rate) || product.newMRP;
-      const amounts = calculateItemAmounts(
-        item.quantitySold,
-        rateToUse,
-        product.gstPercentage,
-        item.schemeDiscount || 0
-      );
-
-      processedItems.push({
-        product: {
-          _id: product._id,
-          productName: product.productName,
-          hsnCode: product.hsnCode,
-          pack: product.pack,
-          batchId: batchInfo ? batchInfo.batchId : undefined,
-          batchNo: batchInfo ? batchInfo.batchNo : product.batchNo,
-          expiryDate: batchInfo ? batchInfo.expiryDate : product.expiryDate,
-          newMRP: batchInfo ? batchInfo.mrp : product.newMRP,
-          gstPercentage: product.gstPercentage
-        },
-        quantitySold: item.quantitySold,
-        freeQuantity: item.freeQuantity || 0,
-        ratePerUnit: rateToUse,
-        schemeDiscount: item.schemeDiscount || 0,
-        ...amounts
-      });
     }
 
     // Calculate totals
@@ -362,12 +411,9 @@ exports.updateInvoice = async (req, res, next) => {
       const totalQty = oldItem.quantitySold + (oldItem.freeQuantity || 0);
       
       if (oldItem.product.batchId) {
-        // NEW PATH: Restore to batch
-        await Batch.findByIdAndUpdate(
-          oldItem.product.batchId,
-          { $inc: { stock: totalQty } },
-          { session }
-        );
+        // NEW PATH: Restore to batch via service
+        const stockService = require('../services/stockService');
+        await stockService.restoreStock(oldItem.product.batchId, totalQty, session);
       } else {
         // LEGACY PATH: Restore to product
         await Product.findByIdAndUpdate(
@@ -443,12 +489,60 @@ exports.updateInvoice = async (req, res, next) => {
       const batchCount = await Batch.countDocuments({ productId: product._id, isActive: true }).session(session);
       const useBatches = batchCount > 0;
 
-      let batchInfo = null;
-
       if (useBatches) {
         try {
-          const consumptionRecords = await consumeStock(product._id, totalQty, session);
-          batchInfo = consumptionRecords[0];
+          const mode = req.body.allocationMode || 'AUTO';
+          const fifoService = require('../services/fifoService');
+          const stockService = require('../services/stockService');
+          
+          const allocations = await fifoService.calculateAllocations(product._id, totalQty, mode, item.manualAllocations);
+          await stockService.processAllocations(allocations, session);
+
+          let remainingQtySold = item.quantitySold;
+          let remainingFreeQty = item.freeQuantity || 0;
+
+          for (const alloc of allocations) {
+            let allocTotal = alloc.allocatedQty;
+            let currentSold = 0;
+            let currentFree = 0;
+
+            if (remainingQtySold >= allocTotal) {
+              currentSold = allocTotal;
+              remainingQtySold -= allocTotal;
+            } else {
+              currentSold = remainingQtySold;
+              currentFree = allocTotal - remainingQtySold;
+              remainingQtySold = 0;
+              remainingFreeQty -= currentFree;
+            }
+
+            const rateToUse = item.ratePerUnit || alloc.rate || product.rate || product.newMRP;
+            const amounts = calculateItemAmounts(
+              currentSold,
+              rateToUse,
+              product.gstPercentage,
+              item.schemeDiscount || 0
+            );
+
+            processedItems.push({
+              product: {
+                _id: product._id,
+                productName: product.productName,
+                hsnCode: product.hsnCode,
+                pack: product.pack,
+                batchId: alloc.batchId,
+                batchNo: alloc.batchNo || null,
+                expiryDate: alloc.expiryDate,
+                newMRP: alloc.mrp || product.newMRP,
+                gstPercentage: product.gstPercentage
+              },
+              quantitySold: currentSold,
+              freeQuantity: currentFree,
+              ratePerUnit: rateToUse,
+              schemeDiscount: item.schemeDiscount || 0,
+              ...amounts
+            });
+          }
         } catch (err) {
           await session.abortTransaction();
           return res.status(400).json({
@@ -471,35 +565,34 @@ exports.updateInvoice = async (req, res, next) => {
           changeQty: -totalQty,
           newQty: product.currentStockQty - totalQty
         });
+
+        const rateToUse = item.ratePerUnit || product.rate || product.newMRP;
+        const amounts = calculateItemAmounts(
+          item.quantitySold,
+          rateToUse,
+          product.gstPercentage,
+          item.schemeDiscount || 0
+        );
+
+        processedItems.push({
+          product: {
+            _id: product._id,
+            productName: product.productName,
+            hsnCode: product.hsnCode,
+            pack: product.pack,
+            batchId: undefined,
+            batchNo: product.batchNo,
+            expiryDate: product.expiryDate,
+            newMRP: product.newMRP,
+            gstPercentage: product.gstPercentage
+          },
+          quantitySold: item.quantitySold,
+          freeQuantity: item.freeQuantity || 0,
+          ratePerUnit: rateToUse,
+          schemeDiscount: item.schemeDiscount || 0,
+          ...amounts
+        });
       }
-
-      // Calculate amounts
-      const rateToUse = item.ratePerUnit || (batchInfo ? batchInfo.purchaseRate : product.rate) || product.newMRP;
-      const amounts = calculateItemAmounts(
-        item.quantitySold,
-        rateToUse,
-        product.gstPercentage,
-        item.schemeDiscount || 0
-      );
-
-      processedItems.push({
-        product: {
-          _id: product._id,
-          productName: product.productName,
-          hsnCode: product.hsnCode,
-          pack: product.pack,
-          batchId: batchInfo ? batchInfo.batchId : undefined,
-          batchNo: batchInfo ? batchInfo.batchNo : product.batchNo,
-          expiryDate: batchInfo ? batchInfo.expiryDate : product.expiryDate,
-          newMRP: batchInfo ? batchInfo.mrp : product.newMRP,
-          gstPercentage: product.gstPercentage
-        },
-        quantitySold: item.quantitySold,
-        freeQuantity: item.freeQuantity || 0,
-        ratePerUnit: rateToUse,
-        schemeDiscount: item.schemeDiscount || 0,
-        ...amounts
-      });
     }
 
     // Calculate new totals
@@ -596,12 +689,9 @@ exports.updateInvoiceStatus = async (req, res, next) => {
         const totalQty = item.quantitySold + (item.freeQuantity || 0);
 
         if (item.product.batchId) {
-          // NEW PATH: Restore to batch
-          await Batch.findByIdAndUpdate(
-            item.product.batchId,
-            { $inc: { stock: totalQty } },
-            { session }
-          );
+          // NEW PATH: Restore to batch via service
+          const stockService = require('../services/stockService');
+          await stockService.restoreStock(item.product.batchId, totalQty, session);
         } else {
           // LEGACY PATH: Restore to product
           await Product.findByIdAndUpdate(

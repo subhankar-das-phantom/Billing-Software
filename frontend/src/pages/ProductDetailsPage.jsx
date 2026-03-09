@@ -42,7 +42,7 @@ const cardVariants = {
 const initialBatchState = {
   batchNo: '',
   expiryDate: '',
-  purchaseRate: '',
+  rate: '',
   mrp: '',
   gstPercent: 12,
   stock: ''
@@ -95,7 +95,12 @@ export default function ProductDetailsPage() {
 
   const openAddBatch = () => {
     setEditingBatch(null);
-    setBatchForm({ ...initialBatchState, gstPercent: product?.gstPercentage || 12 });
+    setBatchForm({ 
+      ...initialBatchState, 
+      rate: product?.rate || '',
+      mrp: product?.newMRP || '',
+      gstPercent: product?.gstPercentage || 12 
+    });
     setBatchModalOpen(true);
   };
 
@@ -104,7 +109,7 @@ export default function ProductDetailsPage() {
     setBatchForm({
       batchNo: batch.batchNo || '',
       expiryDate: formatDateForInput(batch.expiryDate),
-      purchaseRate: batch.purchaseRate || '',
+      rate: batch.rate || '',
       mrp: batch.mrp || '',
       gstPercent: batch.gstPercent || 12,
       stock: batch.stock || 0
@@ -114,17 +119,17 @@ export default function ProductDetailsPage() {
 
   const handleBatchSubmit = async (e) => {
     e.preventDefault();
-    if (!batchForm.batchNo || !batchForm.mrp) {
-      error('Batch number and MRP are required');
+    if (!batchForm.mrp) {
+      error('MRP is required');
       return;
     }
 
     setSaving(true);
     try {
       const payload = {
-        batchNo: batchForm.batchNo,
-        expiryDate: batchForm.expiryDate || undefined,
-        purchaseRate: parseFloat(batchForm.purchaseRate) || 0,
+        batchNo: batchForm.batchNo || null,
+        expiryDate: batchForm.expiryDate || null,
+        rate: parseFloat(batchForm.rate) || 0,
         mrp: parseFloat(batchForm.mrp),
         gstPercent: parseInt(batchForm.gstPercent)
       };
@@ -158,7 +163,7 @@ export default function ProductDetailsPage() {
     try {
       await productService.adjustBatchStock(stockAdjustModal.batch._id, {
         quantity: parseInt(stockAdjust.qty),
-        type: stockAdjust.type,
+        adjustmentType: stockAdjust.type.toUpperCase(),
         reason: stockAdjust.reason
       });
       success('Stock adjusted successfully');
@@ -284,7 +289,7 @@ export default function ProductDetailsPage() {
                 <tr>
                   <th>Batch No</th>
                   <th>Expiry</th>
-                  <th>Purchase Rate</th>
+                  <th>Rate</th>
                   <th>MRP</th>
                   <th>GST</th>
                   <th>Stock</th>
@@ -307,21 +312,38 @@ export default function ProductDetailsPage() {
                     >
                       <td>
                         <span className="font-mono text-white flex items-center gap-2">
-                          <Hash className="w-3.5 h-3.5 text-slate-500" />
-                          {batch.batchNo}
+                          {batch.batchNo ? (
+                            <>
+                              <Hash className="w-3.5 h-3.5 text-slate-500" />
+                              {batch.batchNo}
+                            </>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                              <AlertTriangle className="w-3 h-3" />
+                              TEMP-{index + 1}
+                            </span>
+                          )}
                         </span>
                       </td>
                       <td>
                         <span className={`badge inline-flex items-center gap-1.5 ${
+                          !batch.expiryDate ? 'badge-warning' :
                           expired ? 'badge-danger' :
                           expiringSoon ? 'badge-warning' :
                           'badge-success'
                         }`}>
-                          <Calendar className="w-3 h-3" />
-                          {batch.expiryDate ? formatDate(batch.expiryDate) : 'N/A'}
+                          {!batch.expiryDate ? (
+                            <>
+                              <AlertTriangle className="w-3 h-3" /> ----
+                            </>
+                          ) : (
+                            <>
+                              <Calendar className="w-3 h-3" /> {formatDate(batch.expiryDate)}
+                            </>
+                          )}
                         </span>
                       </td>
-                      <td className="text-slate-300">{formatCurrency(batch.purchaseRate)}</td>
+                      <td className="text-slate-300">{formatCurrency(batch.rate)}</td>
                       <td className="text-emerald-400 font-medium">{formatCurrency(batch.mrp)}</td>
                       <td>
                         <span className="inline-flex items-center px-2 py-1 bg-blue-500/20 rounded text-blue-400 text-sm font-medium">
@@ -392,7 +414,7 @@ export default function ProductDetailsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="label flex items-center gap-2">
-                <Hash className="w-4 h-4 text-slate-400" /> Batch No *
+                <Hash className="w-4 h-4 text-slate-400" /> Batch No (Optional)
               </label>
               <input
                 type="text"
@@ -400,7 +422,6 @@ export default function ProductDetailsPage() {
                 onChange={(e) => setBatchForm(prev => ({ ...prev, batchNo: e.target.value }))}
                 className="input"
                 placeholder="e.g., CA2434159"
-                required
               />
             </div>
             <div>
@@ -416,12 +437,12 @@ export default function ProductDetailsPage() {
             </div>
             <div>
               <label className="label flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-slate-400" /> Purchase Rate
+                <DollarSign className="w-4 h-4 text-slate-400" /> Rate
               </label>
               <input
                 type="number"
-                value={batchForm.purchaseRate}
-                onChange={(e) => setBatchForm(prev => ({ ...prev, purchaseRate: e.target.value }))}
+                value={batchForm.rate}
+                onChange={(e) => setBatchForm(prev => ({ ...prev, rate: e.target.value }))}
                 className="input"
                 placeholder="0.00"
                 step="0.01"

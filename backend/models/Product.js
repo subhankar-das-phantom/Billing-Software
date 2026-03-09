@@ -58,8 +58,8 @@ const productSchema = new mongoose.Schema({
   },
   batchNo: {
     type: String,
-    required: [true, 'Please add batch number'],
-    trim: true
+    trim: true,
+    default: null
   },
   expiryDate: {
     type: Date

@@ -51,10 +51,12 @@ exports.createCreditNote = async (req, res, next) => {
       // Find the matching invoice item
       const invoiceItem = invoice.items.find(ii => {
         const productMatch = ii.product._id.toString() === returnItem.productId;
-        // If batchId is specified, also match on batch
-        if (returnItem.batchId && ii.product.batchId) {
-          return productMatch && ii.product.batchId.toString() === returnItem.batchId;
+        // For new items: exact match on batchId if they have it
+        if (ii.product.batchId) {
+          const checkId = returnItem.invoiceBatchId || returnItem.batchId;
+          return productMatch && ii.product.batchId.toString() === checkId;
         }
+        // For legacy items without batchId, just match the product
         return productMatch;
       });
 
@@ -93,11 +95,24 @@ exports.createCreditNote = async (req, res, next) => {
         0 // No discount on returns
       );
 
+      let restoreToBatchId = invoiceItem.product.batchId;
+      
+      if (!restoreToBatchId) {
+        if (!returnItem.batchId) {
+          await session.abortTransaction();
+          return res.status(400).json({
+            success: false,
+            message: `Manual batch selection is required to return legacy items: ${invoiceItem.product.productName}. Please specify target batch.`
+          });
+        }
+        restoreToBatchId = returnItem.batchId;
+      }
+
       processedItems.push({
         productId: invoiceItem.product._id,
         productName: invoiceItem.product.productName,
-        batchId: invoiceItem.product.batchId || null,
-        batchNo: invoiceItem.product.batchNo || returnItem.batchNo || '',
+        batchId: restoreToBatchId,
+        batchNo: returnItem.batchNo || invoiceItem.product.batchNo || null,
         quantityReturned: returnItem.quantityReturned,
         rate,
         gstPercent,
@@ -108,22 +123,9 @@ exports.createCreditNote = async (req, res, next) => {
         totalAmount: amounts.totalAmount
       });
 
-      // 4. Restore stock to the batch
-      if (invoiceItem.product.batchId) {
-        await Batch.findByIdAndUpdate(
-          invoiceItem.product.batchId,
-          { $inc: { stock: returnItem.quantityReturned } },
-          { session }
-        );
-      } else {
-        // Legacy path: restore to product's currentStockQty for pre-migration invoices
-        const Product = require('../models/Product');
-        await Product.findByIdAndUpdate(
-          invoiceItem.product._id,
-          { $inc: { currentStockQty: returnItem.quantityReturned } },
-          { session }
-        );
-      }
+      // 4. Restore stock to the explicitly targeted batch
+      const stockService = require('../services/stockService');
+      await stockService.restoreStock(restoreToBatchId, returnItem.quantityReturned, session);
     }
 
     if (processedItems.length === 0) {
@@ -239,7 +241,7 @@ exports.getCreditNotesByInvoice = async (req, res, next) => {
     const returnSummary = {};
     for (const cn of creditNotes) {
       for (const item of cn.items) {
-        const key = item.productId.toString();
+        const key = item.productId.toString() + (item.batchId ? '_' + item.batchId.toString() : '');
         if (!returnSummary[key]) {
           returnSummary[key] = {
             productName: item.productName,

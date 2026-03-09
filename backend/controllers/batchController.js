@@ -43,7 +43,7 @@ exports.createBatch = async (req, res, next) => {
       productId,
       batchNo,
       expiryDate,
-      purchaseRate,
+      rate,
       mrp,
       gstPercent,
       stock
@@ -60,9 +60,9 @@ exports.createBatch = async (req, res, next) => {
 
     const batch = await Batch.create({
       productId,
-      batchNo,
-      expiryDate,
-      purchaseRate: purchaseRate || 0,
+      batchNo: batchNo || null,
+      expiryDate: expiryDate || null,
+      rate: rate || 0,
       mrp,
       gstPercent: gstPercent !== undefined ? gstPercent : product.gstPercentage,
       stock: stock || 0,
@@ -72,6 +72,7 @@ exports.createBatch = async (req, res, next) => {
     // Also update the Product's legacy fields for backward compatibility
     // This keeps existing code working while we transition
     await Product.findByIdAndUpdate(productId, {
+      $inc: { currentStockQty: stock || 0 },
       lastUpdatedBy: getAttribution(req)
     });
 
@@ -100,15 +101,15 @@ exports.updateBatch = async (req, res, next) => {
     const {
       batchNo,
       expiryDate,
-      purchaseRate,
+      rate,
       mrp,
       gstPercent
     } = req.body;
 
     const updateData = {};
-    if (batchNo !== undefined) updateData.batchNo = batchNo;
-    if (expiryDate !== undefined) updateData.expiryDate = expiryDate;
-    if (purchaseRate !== undefined) updateData.purchaseRate = purchaseRate;
+    if (batchNo !== undefined) updateData.batchNo = batchNo || null;
+    if (expiryDate !== undefined) updateData.expiryDate = expiryDate || null;
+    if (rate !== undefined) updateData.rate = rate;
     if (mrp !== undefined) updateData.mrp = mrp;
     if (gstPercent !== undefined) updateData.gstPercent = gstPercent;
 
@@ -128,11 +129,11 @@ exports.updateBatch = async (req, res, next) => {
 };
 
 // @desc    Adjust batch stock
-// @route   PUT /api/batches/:id/stock
+// @route   PUT /api/batches/:id/adjust-stock
 // @access  Private
 exports.adjustBatchStock = async (req, res, next) => {
   try {
-    const { quantity, type, reason } = req.body;
+    const { adjustmentType, quantity, reason } = req.body;
 
     if (!quantity || quantity <= 0) {
       return res.status(400).json({
@@ -141,38 +142,28 @@ exports.adjustBatchStock = async (req, res, next) => {
       });
     }
 
-    if (!type || !['in', 'out'].includes(type)) {
+    if (!adjustmentType || !['IN', 'OUT'].includes(adjustmentType)) {
       return res.status(400).json({
         success: false,
-        message: 'Valid type (in or out) is required'
+        message: 'Valid adjustmentType (IN or OUT) is required'
       });
     }
 
-    const batch = await Batch.findById(req.params.id);
-    if (!batch) {
-      return res.status(404).json({
-        success: false,
-        message: 'Batch not found'
-      });
+    const stockService = require('../services/stockService');
+    
+    // We catch the specific errors from stockService and return 400 or 404
+    try {
+        const batch = await stockService.adjustStock(req.params.id, adjustmentType, quantity, reason);
+        res.status(200).json({
+          success: true,
+          batch
+        });
+    } catch (err) {
+        if (err.message.includes('not found')) {
+          return res.status(404).json({ success: false, message: err.message });
+        }
+        return res.status(400).json({ success: false, message: err.message });
     }
-
-    const adjustment = type === 'in' ? quantity : -quantity;
-    const newStock = batch.stock + adjustment;
-
-    if (newStock < 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Insufficient stock. Cannot remove more than available quantity.'
-      });
-    }
-
-    batch.stock = newStock;
-    await batch.save();
-
-    res.status(200).json({
-      success: true,
-      batch
-    });
   } catch (error) {
     next(error);
   }

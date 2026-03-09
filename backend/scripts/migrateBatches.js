@@ -40,18 +40,11 @@ async function migrate() {
           continue;
         }
 
-        // Only create a batch if the product has batch info
-        if (!product.batchNo) {
-          console.log(`  SKIP: ${product.productName} (no batch number)`);
-          skipped++;
-          continue;
-        }
-
         await Batch.create({
           productId: product._id,
-          batchNo: product.batchNo,
-          expiryDate: product.expiryDate,
-          purchaseRate: product.rate || 0,
+          batchNo: product.batchNo || null,
+          expiryDate: product.expiryDate || null,
+          rate: product.rate || 0,
           mrp: product.newMRP || 0,
           gstPercent: product.gstPercentage || 12,
           stock: product.currentStockQty || 0,

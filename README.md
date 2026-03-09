@@ -16,6 +16,9 @@ A production-ready MERN stack billing and inventory management system tailored f
 ### Advanced Features
 - ✅ **Batch Inventory (FIFO)** - True pharmaceutical-style batch management with automated stock consumption based on earliest expiry dates.
 - ✅ **GST-Compliant Sales Returns** - Issue Credit Notes for returns (Section 34 GST Act), preserving original invoice integrity and automatically restoring batch stock.
+- ✅ **Optional Batch & Expiry** - Fast-billing support allowing operators to create invoices even when batch details are missing.
+- ✅ **Manual Batch Overrides** - Choose exactly which batch of stock to consume during billing when FIFO isn't desired.
+- ✅ **Real-Time Stock Sync** - Automated constant synchronization between parent product balances and individual batch records.
 - ✅ **Invoice Export** - Export invoices to Excel (.xlsx) and CSV formats with date range filtering
 - ✅ **Admin-Controlled Employee Accounts** - No self-signup; admins create and manage employee access
 - ✅ **Employee Activity Tracking** - All actions (invoices, payments, inventory updates) are attributed to the logged-in user

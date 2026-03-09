@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { invoiceService } from '../services/invoiceService';
 import { creditNoteService } from '../services/creditNoteService';
+import { productService } from '../services/productService';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { PageLoader } from '../components/Common/Loader';
 import { useToast } from '../context/ToastContext';
@@ -70,15 +71,32 @@ export default function CreditNoteCreatePage() {
       setExistingReturns(returnSummary);
 
       // Initialize return items from invoice
-      const items = invoiceData.invoice.items.map(item => {
+      const items = await Promise.all(invoiceData.invoice.items.map(async item => {
         const productKey = item.product._id?.toString() || item.product._id;
-        const alreadyReturned = returnSummary[productKey]?.totalReturned || 0;
+        const itemKey = productKey + (item.batchId ? '_' + item.batchId.toString() : '');
+        const alreadyReturned = returnSummary[itemKey]?.totalReturned || 0;
         const maxReturnable = item.quantitySold - alreadyReturned;
+
+        let batches = [];
+        let requireBatchSelection = false;
+
+        if (!item.batchId && productKey) {
+            try {
+                const batchData = await productService.getBatches(productKey);
+                if (batchData.batches && batchData.batches.length > 0) {
+                    batches = batchData.batches;
+                    requireBatchSelection = true;
+                }
+            } catch(e) { }
+        }
 
         return {
           productId: item.product._id,
           productName: item.product.productName,
-          batchId: item.product.batchId || null,
+          batchId: item.batchId || null,
+          invoiceBatchId: '',
+          requireBatchSelection,
+          batches,
           batchNo: item.product.batchNo || '',
           quantitySold: item.quantitySold,
           alreadyReturned,
@@ -87,7 +105,7 @@ export default function CreditNoteCreatePage() {
           rate: item.ratePerUnit,
           gstPercent: item.product.gstPercentage
         };
-      });
+      }));
 
       setReturnItems(items);
     } catch (err) {
@@ -143,6 +161,13 @@ export default function CreditNoteCreatePage() {
       return;
     }
 
+    for (const i of returnItems) {
+      if (i.quantityReturned > 0 && i.requireBatchSelection && !i.invoiceBatchId) {
+          error(`Please select a target batch for legacy item: ${i.productName}`);
+          return;
+      }
+    }
+
     setSubmitting(true);
     try {
       const items = returnItems
@@ -150,6 +175,7 @@ export default function CreditNoteCreatePage() {
         .map(i => ({
           productId: i.productId,
           batchId: i.batchId,
+          invoiceBatchId: i.requireBatchSelection ? i.invoiceBatchId : undefined,
           batchNo: i.batchNo,
           quantityReturned: i.quantityReturned
         }));
@@ -263,11 +289,33 @@ export default function CreditNoteCreatePage() {
                     transition={{ delay: index * 0.03 }}
                     className={`hover:bg-slate-700/50 transition-colors ${item.maxReturnable === 0 ? 'opacity-50' : ''}`}
                   >
-                    <td className="font-medium text-white">{item.productName}</td>
+                    <td className="font-medium text-white">
+                        {item.productName}
+                        {item.requireBatchSelection && (
+                          <div className="mt-2">
+                            <select 
+                                className="select text-xs py-1.5 px-2 bg-slate-800"
+                                value={item.invoiceBatchId}
+                                onChange={(e) => {
+                                    const updated = [...returnItems];
+                                    updated[index].invoiceBatchId = e.target.value;
+                                    setReturnItems(updated);
+                                }}
+                            >
+                                <option value="">-- Select Target Batch --</option>
+                                {item.batches.map(b => (
+                                    <option key={b._id} value={b._id}>
+                                      {b.batchNo || 'No Batch'} (Exp: {b.expiryDate ? formatDate(b.expiryDate) : '----'})
+                                    </option>
+                                ))}
+                            </select>
+                          </div>
+                        )}
+                    </td>
                     <td>
                       <span className="font-mono text-sm text-slate-400 flex items-center gap-1">
                         <Hash className="w-3 h-3" />
-                        {item.batchNo || '—'}
+                        {item.batchId ? (item.batchNo || '—') : 'Legacy Item'}
                       </span>
                     </td>
                     <td className="text-slate-300">{item.quantitySold}</td>

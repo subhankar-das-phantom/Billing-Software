@@ -303,7 +303,7 @@ export const productService = {
    */
   adjustBatchStock: async (batchId, data) => {
     try {
-      const response = await api.put(`/batches/${batchId}/stock`, data);
+      const response = await api.put(`/batches/${batchId}/adjust-stock`, data);
       clearCache();
       return response.data;
     } catch (error) {
@@ -733,12 +733,6 @@ export const productUtils = {
         errors.push('HSN code is required');
       } else if (!productUtils.isValidHSN(data.hsnCode)) {
         errors.push('Invalid HSN code format');
-      }
-    }
-
-    if (isNew || data.batchNo !== undefined) {
-      if (!data.batchNo) {
-        errors.push('Batch number is required');
       }
     }
 

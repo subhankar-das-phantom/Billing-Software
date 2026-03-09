@@ -103,12 +103,12 @@ const createProductValidator = [
     .isLength({ max: 20 })
     .withMessage('HSN code must be less than 20 characters'),
   body('batchNo')
-    .optional()
+    .optional({ checkFalsy: true })
     .trim()
     .isLength({ max: 50 })
     .withMessage('Batch number must be less than 50 characters'),
   body('expiryDate')
-    .optional()
+    .optional({ checkFalsy: true })
     .isISO8601()
     .withMessage('Invalid expiry date format'),
   body('oldMRP')

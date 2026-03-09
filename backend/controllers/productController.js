@@ -119,8 +119,8 @@ exports.createProduct = async (req, res, next) => {
       productName,
       hsnCode,
       manufacturer,
-      batchNo,
-      expiryDate,
+      batchNo: batchNo || null,
+      expiryDate: expiryDate || null,
       oldMRP,
       newMRP,
       rate,
@@ -140,13 +140,13 @@ exports.createProduct = async (req, res, next) => {
       }] : []
     });
 
-    // Also create a Batch record if batchNo is provided
-    if (batchNo) {
+    // Also create a Batch record if openingStock is provided, even without batchNo
+    if (openingStockQty || batchNo) {
       await Batch.create({
         productId: product._id,
-        batchNo,
-        expiryDate,
-        purchaseRate: rate || 0,
+        batchNo: batchNo || null,
+        expiryDate: expiryDate || null,
+        rate: rate || 0,
         mrp: newMRP,
         gstPercent: gstPercentage || 12,
         stock: openingStockQty || 0,
@@ -199,8 +199,8 @@ exports.updateProduct = async (req, res, next) => {
         productName,
         hsnCode,
         manufacturer,
-        batchNo,
-        expiryDate,
+        batchNo: batchNo || null,
+        expiryDate: expiryDate || null,
         oldMRP,
         newMRP,
         rate,

@@ -9,13 +9,13 @@ const batchSchema = new mongoose.Schema({
   },
   batchNo: {
     type: String,
-    required: [true, 'Batch number is required'],
-    trim: true
+    trim: true,
+    default: null
   },
   expiryDate: {
     type: Date
   },
-  purchaseRate: {
+  rate: {
     type: Number,
     default: 0,
     min: 0
