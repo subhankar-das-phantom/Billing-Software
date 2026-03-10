@@ -243,7 +243,7 @@ export default function InvoiceViewPage() {
       style={{ 
         width: '100%',
         minHeight: '130mm',
-        fontSize: '10px',
+        fontSize: '12px',
         color: '#000000',
         padding: '4mm',
         boxSizing: 'border-box'
@@ -254,10 +254,10 @@ export default function InvoiceViewPage() {
         {/* Header */}
         <div className="grid grid-cols-2 gap-2 border-b border-black pb-1 mb-1">
           <div className="text-left">
-            <h1 className="font-bold mb-0.5" style={{ fontSize: '14px' }}>{invoice.distributor?.firmName || 'BHARAT ENTERPRISES'}</h1>
-            <p className="text-[9px] leading-tight">{invoice.distributor?.firmAddress || 'Address Line 1, City, State - PIN'}</p>
+            <h1 className="font-bold mb-0.5" style={{ fontSize: '18px' }}>{invoice.distributor?.firmName || 'BHARAT ENTERPRISES'}</h1>
+            <p className="text-[11px] leading-tight">{invoice.distributor?.firmAddress || 'Address Line 1, City, State - PIN'}</p>
           </div>
-          <div className="text-right text-[9px] leading-tight">
+          <div className="text-right text-[11px] leading-tight">
             <p>Phone: {invoice.distributor?.firmPhone || 'XXXXXXXXXX'}</p>
             <p>DL No: DL-XXXXX-XXXXX</p>
             <p>GSTIN: {invoice.distributor?.firmGSTIN || 'XXXXXXXXXXXX'}</p>
@@ -265,7 +265,7 @@ export default function InvoiceViewPage() {
         </div>
 
         {/* Buyer & Invoice Details */}
-        <div className="grid grid-cols-3 gap-2 mb-1 text-[9px]">
+        <div className="grid grid-cols-3 gap-2 mb-1 text-[11px]">
           <div>
             <p className="font-bold mb-0.5">M/s {invoice.customer?.customerName}</p>
             <p className="leading-tight">{invoice.customer?.address || 'Address not provided'}</p>
@@ -284,7 +284,7 @@ export default function InvoiceViewPage() {
 
         {/* Products Table */}
         <div className="mb-1">
-          <table className="w-full border-collapse text-[7px]" style={{ border: '0.5px solid black' }}>
+          <table className="w-full border-collapse text-[9px]" style={{ border: '0.5px solid black' }}>
             <thead>
               <tr style={{ borderBottom: '0.5px solid black' }}>
                 <th className="border-r border-black p-0.5 text-center font-bold" style={{ width: '4%' }}>Qty</th>
@@ -333,14 +333,14 @@ export default function InvoiceViewPage() {
       {/* Summary and Footer */}
       <div className="mt-auto">
         <div className="grid grid-cols-2 gap-2 mb-1">
-          <div className="text-[9px]">
+          <div className="text-[11px]">
             <p className="font-bold">Current Dues: ₹{Math.round(customerOutstanding)}</p>
             <div className="border-t border-black mt-1 pt-0.5">
               <p className="font-bold mb-0.5">Amount in Words:</p>
             <p className="uppercase">{invoice.totals?.amountInWords || 'Rupees Zero Only'}</p>
             </div>
           </div>
-          <div className="text-[9px]">
+          <div className="text-[11px]">
             <table className="w-full">
               <tbody>
                 <tr>
@@ -374,14 +374,14 @@ export default function InvoiceViewPage() {
                 </tr>
                 <tr className="border-t border-black">
                   <td className="py-0.5 font-bold">NET:</td>
-                  <td className="text-right font-bold text-[11px]">₹{Math.round(invoice.totals?.netTotal || 0)}</td>
+                  <td className="text-right font-bold text-[13px]">₹{Math.round(invoice.totals?.netTotal || 0)}</td>
                 </tr>
               </tbody>
             </table>
           </div>
         </div>
 
-        <div className="border-t border-black pt-1 text-[9px]">
+        <div className="border-t border-black pt-1 text-[11px]">
           <div className="flex justify-between items-end">
             <div>
               <p>E & O E</p>
@@ -523,7 +523,7 @@ export default function InvoiceViewPage() {
 
       {/* Credit Notes Section */}
       {creditNotes.length > 0 && (
-        <motion.div variants={cardVariants} className="glass-card overflow-hidden">
+        <motion.div variants={cardVariants} className="glass-card overflow-hidden no-print">
           <div className="p-5 border-b border-slate-700/50 flex items-center gap-3">
             <div className="p-2 bg-amber-500/20 rounded-lg">
               <RotateCcw className="w-5 h-5 text-amber-400" />
@@ -585,7 +585,7 @@ export default function InvoiceViewPage() {
           className="invoice-print bg-white border-2 border-slate-300 shadow-lg"
           style={{ 
             width: '190mm',
-            fontSize: '8px',
+            fontSize: '10px',
             color: '#000000',
             margin: '0 auto',
             padding: '2mm'
@@ -596,7 +596,7 @@ export default function InvoiceViewPage() {
           
           {/* Cut Line */}
           <div className="flex items-center my-2" style={{ borderTop: '1px dashed #000' }}>
-            <span className="text-[7px] text-gray-600 mx-auto bg-white px-2" style={{ marginTop: '-8px' }}>
+            <span className="text-[9px] text-gray-600 mx-auto bg-white px-2" style={{ marginTop: '-10px' }}>
               ✂ Cut Here
             </span>
           </div>
