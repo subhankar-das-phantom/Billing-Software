@@ -25,6 +25,8 @@ A production-ready MERN stack billing and inventory management system tailored f
 - ✅ **Credit Aging Dashboard** - View outstanding amounts categorized by aging buckets (30/60/90+ days)
 - ✅ **Monthly Sales Analytics** - Revenue trends, top customers, and product performance insights
 - ✅ **Snapshot-Based Invoices** - Invoice data is captured at creation time for audit-safe historical integrity
+- ✅ **SWR Caching** - Blazing fast page loads with Stale-While-Revalidate caching and background syncing across tabs.
+- ✅ **Continuous Integration** - Automated GitHub Actions pipeline for backend verification and frontend building/linting.
 - 🔜 **PDF Export** - PDF invoice generation (planned)
 
 ## Tech Stack
