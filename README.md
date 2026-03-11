@@ -1,5 +1,7 @@
 # Bharat Enterprise - Billing System MVP
 
+[![CI](https://github.com/subhankar-das-phantom/Billing-Software/actions/workflows/ci.yml/badge.svg)](https://github.com/subhankar-das-phantom/Billing-Software/actions/workflows/ci.yml)
+
 A production-ready MERN stack billing and inventory management system tailored for pharmaceutical distributors. Features GST-compliant invoicing, true FIFO batch tracking, sales returns via Credit Notes, and role-based access control to streamline warehouse operations and accounting.
 
 ## Features
