@@ -19,7 +19,8 @@ import { productService } from '../services/productService';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { PageLoader } from '../components/Common/Loader';
 import { useToast } from '../context/ToastContext';
-import { invalidateCachePattern } from '../hooks';
+import { useSWR, invalidateCachePattern } from '../hooks';
+import RefreshIndicator from '../components/Common/RefreshIndicator';
 
 const cardVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -35,87 +36,84 @@ export default function CreditNoteCreatePage() {
   const navigate = useNavigate();
   const { success, error } = useToast();
 
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [invoice, setInvoice] = useState(null);
-  const [existingReturns, setExistingReturns] = useState({});
-  const [returnItems, setReturnItems] = useState([]);
-  const [reason, setReason] = useState('');
+  const isInitialized = useRef(false);
+
+  // 1. Fetch Invoice
+  const { data: invoiceData, loading: invLoading, isValidating: isInvValidating, error: invError } = useSWR(
+    invoiceId ? `invoice-${invoiceId}` : null,
+    () => invoiceService.getInvoice(invoiceId, false)
+  );
+
+  // 2. Fetch Credit Notes for Invoice
+  const { data: creditNotesData, loading: cnLoading, isValidating: isCnValidating } = useSWR(
+    invoiceId ? `credit-notes-invoice-${invoiceId}` : null,
+    () => creditNoteService.getCreditNotesByInvoice(invoiceId).catch(() => ({ returnSummary: {} }))
+  );
+
+  const loading = invLoading || cnLoading || (invoiceData?.invoice && !isInitialized.current);
+  const isValidating = isInvValidating || isCnValidating;
 
   useEffect(() => {
-    loadData();
-  }, [invoiceId]);
-
-  const loadData = async () => {
-    try {
-      const invoiceData = await invoiceService.getInvoice(invoiceId, false);
-      
-      if (!invoiceData?.invoice) {
-        error('Invoice not found');
-        navigate('/invoices');
-        return;
-      }
-
-      setInvoice(invoiceData.invoice);
-
-      // Try to get existing credit notes (may be empty for first return)
-      let returnSummary = {};
-      try {
-        const creditNoteData = await creditNoteService.getCreditNotesByInvoice(invoiceId);
-        returnSummary = creditNoteData.returnSummary || {};
-      } catch (cnErr) {
-        // No existing credit notes — that's fine, continue
-        console.log('No existing credit notes:', cnErr.message);
-      }
-
-      setExistingReturns(returnSummary);
-
-      // Initialize return items from invoice
-      const items = await Promise.all(invoiceData.invoice.items.map(async item => {
-        const productKey = item.product._id?.toString() || item.product._id;
-        const itemKey = productKey + (item.batchId ? '_' + item.batchId.toString() : '');
-        const alreadyReturned = returnSummary[itemKey]?.totalReturned || 0;
-        const maxReturnable = item.quantitySold - alreadyReturned;
-
-        let batches = [];
-        let requireBatchSelection = false;
-
-        if (!item.batchId && productKey) {
-            try {
-                const batchData = await productService.getBatches(productKey);
-                if (batchData.batches && batchData.batches.length > 0) {
-                    batches = batchData.batches;
-                    requireBatchSelection = true;
-                }
-            } catch(e) { }
-        }
-
-        return {
-          productId: item.product._id,
-          productName: item.product.productName,
-          batchId: item.batchId || null,
-          invoiceBatchId: '',
-          requireBatchSelection,
-          batches,
-          batchNo: item.product.batchNo || '',
-          quantitySold: item.quantitySold,
-          alreadyReturned,
-          maxReturnable,
-          quantityReturned: 0,
-          rate: item.ratePerUnit,
-          gstPercent: item.product.gstPercentage
-        };
-      }));
-
-      setReturnItems(items);
-    } catch (err) {
-      console.error('Failed to load credit note data:', err);
+    if (invError) {
       error('Failed to load invoice data');
       navigate('/invoices');
-    } finally {
-      setLoading(false);
+      return;
     }
-  };
+
+    if (invoiceData?.invoice && creditNotesData && !isInitialized.current) {
+      isInitialized.current = true;
+      setInvoice(invoiceData.invoice);
+      const returnSummary = creditNotesData.returnSummary || {};
+      setExistingReturns(returnSummary);
+
+      const initializeItems = async () => {
+        try {
+          const items = await Promise.all(invoiceData.invoice.items.map(async item => {
+            const productKey = item.product._id?.toString() || item.product._id;
+            const itemKey = productKey + (item.batchId ? '_' + item.batchId.toString() : '');
+            const alreadyReturned = returnSummary[itemKey]?.totalReturned || 0;
+            const maxReturnable = item.quantitySold - alreadyReturned;
+
+            let batches = [];
+            let requireBatchSelection = false;
+
+            if (!item.batchId && productKey) {
+                try {
+                    const batchData = await productService.getBatches(productKey);
+                    if (batchData.batches && batchData.batches.length > 0) {
+                        batches = batchData.batches;
+                        requireBatchSelection = true;
+                    }
+                } catch(e) { }
+            }
+
+            return {
+              productId: item.product._id,
+              productName: item.product.productName,
+              batchId: item.batchId || null,
+              invoiceBatchId: '',
+              requireBatchSelection,
+              batches,
+              batchNo: item.product.batchNo || '',
+              quantitySold: item.quantitySold,
+              alreadyReturned,
+              maxReturnable,
+              quantityReturned: 0,
+              rate: item.ratePerUnit,
+              gstPercent: item.product.gstPercentage
+            };
+          }));
+
+          setReturnItems(items);
+        } catch (err) {
+          console.error('Failed to initialize return items:', err);
+          error('Failed to initialize return items');
+        }
+      };
+
+      initializeItems();
+    }
+  }, [invoiceData, creditNotesData, invError, navigate, error]);
 
   const updateReturnQty = (index, qty) => {
     const parsed = parseInt(qty) || 0;
@@ -187,6 +185,8 @@ export default function CreditNoteCreatePage() {
       });
 
       success('Credit note created successfully!');
+      invalidateCachePattern(`invoice-${invoiceId}`);
+      invalidateCachePattern(`credit-notes-invoice-${invoiceId}`);
       invalidateCachePattern('invoices');
       invalidateCachePattern('products');
       invalidateCachePattern('credit-notes');
@@ -215,11 +215,13 @@ export default function CreditNoteCreatePage() {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="space-y-6"
-    >
+    <>
+      <RefreshIndicator isRefreshing={isValidating} />
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="space-y-6"
+      >
       {/* Back + header */}
       <motion.div variants={cardVariants} initial="hidden" animate="visible">
         <Link to={`/invoices/${invoiceId}`} className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-4">
@@ -408,5 +410,6 @@ export default function CreditNoteCreatePage() {
         </div>
       </motion.div>
     </motion.div>
+    </>
   );
 }

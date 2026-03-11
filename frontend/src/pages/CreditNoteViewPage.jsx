@@ -16,6 +16,8 @@ import { creditNoteService } from '../services/creditNoteService';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { PageLoader } from '../components/Common/Loader';
 import { useToast } from '../context/ToastContext';
+import { useSWR } from '../hooks';
+import RefreshIndicator from '../components/Common/RefreshIndicator';
 
 const pageVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -37,14 +39,15 @@ const cardVariants = {
 
 export default function CreditNoteViewPage() {
   const { id } = useParams();
-  const [creditNote, setCreditNote] = useState(null);
-  const [loading, setLoading] = useState(true);
   const printRef = useRef();
   const { error } = useToast();
 
-  useEffect(() => {
-    loadCreditNote();
-  }, [id]);
+  const { data: creditNoteData, loading, isValidating } = useSWR(
+    id ? `credit-note-${id}` : null,
+    () => creditNoteService.getCreditNote(id)
+  );
+
+  const creditNote = creditNoteData?.creditNote || creditNoteData;
 
   useEffect(() => {
     if (creditNote) {
@@ -53,17 +56,6 @@ export default function CreditNoteViewPage() {
       return () => { document.title = 'Bharat Enterprise - Billing System'; };
     }
   }, [creditNote]);
-
-  const loadCreditNote = async () => {
-    try {
-      const data = await creditNoteService.getCreditNote(id);
-      setCreditNote(data.creditNote || data);
-    } catch (err) {
-      error('Failed to load credit note');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handlePrint = () => window.print();
 
@@ -224,12 +216,14 @@ export default function CreditNoteViewPage() {
   );
 
   return (
-    <motion.div
-      variants={pageVariants}
-      initial="hidden"
-      animate="visible"
-      className="space-y-6"
-    >
+    <>
+      <RefreshIndicator isRefreshing={isValidating} />
+      <motion.div
+        variants={pageVariants}
+        initial="hidden"
+        animate="visible"
+        className="space-y-6"
+      >
       {/* Actions Bar */}
       <motion.div variants={cardVariants} className="flex flex-wrap gap-3 no-print">
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -420,5 +414,6 @@ export default function CreditNoteViewPage() {
         </motion.div>
       </div>
     </motion.div>
+    </>
   );
 }

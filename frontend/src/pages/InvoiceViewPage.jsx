@@ -32,7 +32,8 @@ import { creditNoteService } from '../services/creditNoteService';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { PageLoader } from '../components/Common/Loader';
 import { useToast } from '../context/ToastContext';
-import { invalidateCachePattern } from '../hooks';
+import { useSWR, invalidateCachePattern } from '../hooks';
+import RefreshIndicator from '../components/Common/RefreshIndicator';
 
 const pageVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -75,17 +76,64 @@ const tableRowVariants = {
 
 export default function InvoiceViewPage() {
   const { id } = useParams();
-  const [invoice, setInvoice] = useState(null);
-  const [creditNotes, setCreditNotes] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
-  const [customerOutstanding, setCustomerOutstanding] = useState(0);
   const printRef = useRef();
   const { success, error } = useToast();
+  
+  // 1. Fetch Invoice
+  const { data: invoiceData, loading: invoiceLoading, mutate: mutateInvoice, isValidating: isInvoiceValidating } = useSWR(
+    id ? `invoice-${id}` : null,
+    () => invoiceService.getInvoice(id)
+  );
 
-  useEffect(() => {
-    loadInvoice();
-  }, [id]);
+  // 2. Fetch Credit Notes for Invoice
+  const { data: creditNotesData, loading: cnLoading, mutate: mutateCN, isValidating: isCNValidating } = useSWR(
+    id ? `credit-notes-invoice-${id}` : null,
+    () => creditNoteService.getCreditNotesByInvoice(id).catch(() => ({ creditNotes: [] }))
+  );
+
+  const invoice = invoiceData?.invoice;
+  const creditNotes = creditNotesData?.creditNotes || [];
+  
+  // 3. Customer Outstanding Logic (using SWR)
+  const customerId = invoice?.customer?._id;
+  
+  const fetchCustomerBalance = async () => {
+    if (!customerId) return 0;
+    try {
+      const [customerData, entriesData] = await Promise.all([
+        customerService.getCustomer(customerId),
+        manualEntryService.getManualEntriesByCustomer(customerId).catch(() => ({ manualEntries: [] }))
+      ]);
+      
+      const customerInvoices = customerData?.invoices || [];
+      const manualEntries = entriesData?.manualEntries || [];
+      
+      const invoiceOutstanding = customerInvoices.reduce((sum, inv) => {
+        if (inv.status === 'Cancelled') return sum;
+        const remaining = (inv.totals?.netTotal || 0) - (inv.paidAmount || 0);
+        return sum + (remaining > 0 ? remaining : 0);
+      }, 0);
+      
+      const manualEntryOutstanding = manualEntries.reduce((sum, entry) => {
+        if (entry.entryType === 'opening_balance' && entry.paymentType === 'Credit') {
+          const remaining = entry.amount - (entry.paidAmount || 0);
+          return sum + remaining;
+        }
+        return sum;
+      }, 0);
+      
+      return invoiceOutstanding + manualEntryOutstanding;
+    } catch (e) {
+      console.warn('Failed calculating outstanding', e);
+      return 0;
+    }
+  };
+
+  const { data: customerOutstanding = 0 } = useSWR(
+    customerId ? `customer-outstanding-${customerId}` : null,
+    fetchCustomerBalance
+  );
 
   // Update document title for PDF download filename
   useEffect(() => {
@@ -108,53 +156,9 @@ export default function InvoiceViewPage() {
     }
   }, [invoice]);
 
-  const loadInvoice = async () => {
-    try {
-      const [data, cnData] = await Promise.all([
-        invoiceService.getInvoice(id),
-        creditNoteService.getCreditNotesByInvoice(id).catch(() => ({ creditNotes: [] }))
-      ]);
-      setInvoice(data.invoice);
-      setCreditNotes(cnData.creditNotes || []);
-      
-      // Fetch customer outstanding using same logic as CustomerDetailsPage
-      if (data.invoice?.customer?._id) {
-        try {
-          const [customerData, entriesData] = await Promise.all([
-            customerService.getCustomer(data.invoice.customer._id),
-            manualEntryService.getManualEntriesByCustomer(data.invoice.customer._id).catch(() => ({ manualEntries: [] }))
-          ]);
-          
-          const customerInvoices = customerData.invoices || [];
-          const manualEntries = entriesData.manualEntries || [];
-          
-          // Invoice outstanding: sum of (netTotal - paidAmount) for non-cancelled invoices
-          const invoiceOutstanding = customerInvoices.reduce((sum, inv) => {
-            if (inv.status === 'Cancelled') return sum;
-            const remaining = (inv.totals?.netTotal || 0) - (inv.paidAmount || 0);
-            return sum + (remaining > 0 ? remaining : 0);
-          }, 0);
-          
-          // Manual entry outstanding: opening_balance Credit entries
-          const manualEntryOutstanding = manualEntries.reduce((sum, entry) => {
-            if (entry.entryType === 'opening_balance' && entry.paymentType === 'Credit') {
-              const remaining = entry.amount - (entry.paidAmount || 0);
-              return sum + remaining;
-            }
-            return sum;
-          }, 0);
-          
-          setCustomerOutstanding(invoiceOutstanding + manualEntryOutstanding);
-        } catch (e) {
-          setCustomerOutstanding(0);
-        }
-      }
-    } catch (err) {
-      error('Failed to load invoice');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const loading = invoiceLoading || cnLoading;
+  const isValidating = isInvoiceValidating || isCNValidating;
+
 
   const handlePrint = () => {
     window.print();
@@ -163,9 +167,12 @@ export default function InvoiceViewPage() {
   const handleMarkPrinted = async () => {
     setUpdating(true);
     try {
+      // Optimistically update status
+      mutateInvoice({ invoice: { ...invoice, status: 'Printed' } }, false);
       await invoiceService.updateStatus(id, 'Printed');
-      setInvoice(prev => ({ ...prev, status: 'Printed' }));
+      
       // Invalidate cache for all tabs
+      invalidateCachePattern(`invoice-${id}`);
       invalidateCachePattern('invoices');
       success('Invoice marked as printed');
     } catch (err) {
@@ -186,9 +193,12 @@ export default function InvoiceViewPage() {
     
     setUpdating(true);
     try {
+      // Optimistically update
+      mutateInvoice({ invoice: { ...invoice, status: 'Cancelled' } }, false);
       await invoiceService.updateStatus(id, 'Cancelled');
-      setInvoice(prev => ({ ...prev, status: 'Cancelled' }));
+      
       // Invalidate cache for all tabs - stock restored on cancel
+      invalidateCachePattern(`invoice-${id}`);
       invalidateCachePattern('invoices');
       invalidateCachePattern('dashboard');
       invalidateCachePattern('products');
@@ -397,12 +407,14 @@ export default function InvoiceViewPage() {
   );
 
   return (
-    <motion.div
-      variants={pageVariants}
-      initial="hidden"
-      animate="visible"
-      className="space-y-6"
-    >
+    <>
+      <RefreshIndicator isRefreshing={isValidating} />
+      <motion.div
+        variants={pageVariants}
+        initial="hidden"
+        animate="visible"
+        className="space-y-6"
+      >
       {/* Actions Bar */}
       <motion.div
         variants={cardVariants}
@@ -606,6 +618,7 @@ export default function InvoiceViewPage() {
         </motion.div>
       </div>
     </motion.div>
+    </>
   );
 }
 
