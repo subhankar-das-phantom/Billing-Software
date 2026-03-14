@@ -8,7 +8,7 @@ A production-ready MERN stack billing and inventory management system tailored f
 
 ### Core Functionality
 - ✅ **Secure Authentication** - JWT-based login with role-based access control
-- ✅ **Product Management** - Create, edit, delete products with real-time stock tracking (MRP, Rate, optional Batch No & Expiry)
+- ✅ **Product Management** - Create, edit, delete products with real-time stock tracking (MRP, Rate, optional Batch No & Expiry for record keeping)
 - ✅ **Customer Management** - Customer profiles with credit limits, search, and transaction history
 - ✅ **Invoice Creation** - Multi-item invoices with real-time GST calculations (CGST/SGST)
 - ✅ **Invoice History** - View, print, and export past invoices
@@ -16,7 +16,8 @@ A production-ready MERN stack billing and inventory management system tailored f
 - ✅ **Dashboard** - Quick statistics, low stock alerts, and business overview
 
 ### Advanced Features
-- ✅ **Simplified Stock Tracking** - Single-source-of-truth inventory using `Product.currentStockQty`. Optional Batch No and Expiry Date fields for record-keeping.
+- ✅ **Simplified Stock Tracking** - Inventory is managed at the product level using `Product.currentStockQty`. 
+Optional Batch No and Expiry fields are stored only for informational purposes and do not affect stock calculations.
 - ✅ **GST-Compliant Sales Returns** - Issue Credit Notes for returns (Section 34 GST Act), preserving original invoice integrity and automatically restoring stock.
 - ✅ **Customisable Invoice Columns** - Toggle which columns appear on printed invoices (Qty, Free, Product Name, HSN, Batch, Expiry, MRP, Rate, Net, Disc%, GST%, Amount). Preferences persist via localStorage.
 - ✅ **Invoice Export** - Export invoices to Excel (.xlsx) and CSV formats with date range filtering
@@ -39,6 +40,15 @@ A production-ready MERN stack billing and inventory management system tailored f
 | Styling | Tailwind CSS |
 | Auth | JWT + Bcrypt |
 | HTTP | Axios |
+
+## Architecture Overview
+
+The application follows a typical MERN stack layered architecture:
+
+- **Frontend**: React + Vite SPA using SWR caching and Axios for API communication.
+- **Backend**: Express.js REST API with controllers handling business logic.
+- **Database**: MongoDB with Mongoose schemas for Products, Customers, Invoices, Payments, and Credit Notes.
+- **Inventory Model**: Stock is tracked at the product level using `Product.currentStockQty`. Invoice creation deducts stock and credit notes restore stock.
 
 ## Quick Start
 
@@ -320,4 +330,5 @@ This system prioritizes **reliability over feature bloat**:
 
 ## License
 
-Proprietary - Bharat Enterprise
+This project is licensed under the terms specified in the [LICENSE](LICENSE) file.  
+Copyright (c) 2026 Bharat Enterprise. All rights reserved.
