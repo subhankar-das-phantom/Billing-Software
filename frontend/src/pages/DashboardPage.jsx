@@ -640,7 +640,6 @@ export default function DashboardPage() {
                         </motion.div>
                         <div>
                           <p className="font-medium text-white mb-1">{product.productName}</p>
-                          <p className="text-sm text-slate-400 leading-relaxed">Batch: {product.batchNo}</p>
                         </div>
                       </div>
                       <div className="text-right">

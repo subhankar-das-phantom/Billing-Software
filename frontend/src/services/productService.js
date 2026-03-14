@@ -249,83 +249,6 @@ export const productService = {
   },
 
   /**
-   * Add new batch to product
-   * @param {string} id - Product ID
-   * @param {object} batchData - Batch data
-   * @returns {Promise<{success: boolean, product: object}>}
-   */
-  addBatch: async (productId, batchData) => {
-    try {
-      const response = await api.post('/batches', { productId, ...batchData });
-      
-      // Clear cache after batch addition
-      clearCache();
-      
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  /**
-   * Get product batches
-   * @param {string} productId - Product ID
-   * @returns {Promise<{batches: array, totalStock: number}>}
-   */
-  getBatches: async (productId) => {
-    try {
-      const response = await api.get(`/batches/product/${productId}`);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  /**
-   * Update an existing batch
-   * @param {string} batchId - Batch ID
-   * @param {object} data - Updated batch data
-   */
-  updateBatch: async (batchId, data) => {
-    try {
-      const response = await api.put(`/batches/${batchId}`, data);
-      clearCache();
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  /**
-   * Adjust batch stock
-   * @param {string} batchId - Batch ID
-   * @param {object} data - { quantity, type: 'in'|'out', reason }
-   */
-  adjustBatchStock: async (batchId, data) => {
-    try {
-      const response = await api.put(`/batches/${batchId}/adjust-stock`, data);
-      clearCache();
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  /**
-   * Delete a batch (must have 0 stock)
-   * @param {string} batchId - Batch ID
-   */
-  deleteBatch: async (batchId) => {
-    try {
-      const response = await api.delete(`/batches/${batchId}`);
-      clearCache();
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  /**
    * Update product pricing
    * @param {string} id - Product ID
    * @param {object} pricingData - Pricing data (oldMRP, newMRP, effectiveDate)
@@ -750,16 +673,6 @@ export const productUtils = {
       }
     }
 
-    if (data.expiryDate) {
-      const expiryDate = new Date(data.expiryDate);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      if (expiryDate < today) {
-        errors.push('Expiry date cannot be in the past');
-      }
-    }
-
     if (data.openingStockQty !== undefined) {
       if (data.openingStockQty < 0) {
         errors.push('Opening stock quantity cannot be negative');
@@ -797,14 +710,6 @@ export const productUtils = {
       sanitized.pack = data.pack.trim();
     }
 
-    if (data.batchNo) {
-      sanitized.batchNo = data.batchNo.trim().toUpperCase();
-    }
-
-    if (data.expiryDate) {
-      sanitized.expiryDate = data.expiryDate;
-    }
-
     if (data.oldMRP !== undefined) {
       sanitized.oldMRP = parseFloat(data.oldMRP) || 0;
     }
@@ -837,53 +742,6 @@ export const productUtils = {
     // HSN can be 4, 6, or 8 digits
     const cleanHSN = hsn.replace(/[^0-9]/g, '');
     return /^[0-9]{4}([0-9]{2})?([0-9]{2})?$/.test(cleanHSN);
-  },
-
-  /**
-   * Check if product is expired
-   * @param {Date|string} expiryDate - Expiry date
-   * @returns {boolean}
-   */
-  isExpired: (expiryDate) => {
-    if (!expiryDate) return false;
-    
-    const expiry = new Date(expiryDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    return expiry < today;
-  },
-
-  /**
-   * Check if product is expiring soon
-   * @param {Date|string} expiryDate - Expiry date
-   * @param {number} days - Days threshold (default: 30)
-   * @returns {boolean}
-   */
-  isExpiringSoon: (expiryDate, days = 30) => {
-    if (!expiryDate || productUtils.isExpired(expiryDate)) return false;
-    
-    const expiry = new Date(expiryDate);
-    const threshold = new Date();
-    threshold.setDate(threshold.getDate() + days);
-    
-    return expiry <= threshold;
-  },
-
-  /**
-   * Calculate days until expiry
-   * @param {Date|string} expiryDate - Expiry date
-   * @returns {number} - Days until expiry (negative if expired)
-   */
-  daysUntilExpiry: (expiryDate) => {
-    if (!expiryDate) return null;
-    
-    const expiry = new Date(expiryDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const diffTime = expiry - today;
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   },
 
   /**
@@ -1004,10 +862,6 @@ export const productUtils = {
       parts.push(product.hsnCode.substring(0, 4));
     }
     
-    if (product.batchNo) {
-      parts.push(product.batchNo.substring(0, 4).toUpperCase());
-    }
-    
     return parts.join('-');
   },
 
@@ -1062,7 +916,7 @@ export const productUtils = {
 
     const headers = [
       'productName', 'hsnCode', 'manufacturer', 'pack', 
-      'batchNo', 'expiryDate', 'oldMRP', 'newMRP', 
+      'oldMRP', 'newMRP', 
       'gstPercentage', 'currentStockQty', 'unit'
     ];
     const csvHeaders = headers.join(',');
@@ -1125,15 +979,6 @@ export const productUtils = {
           const status = productUtils.getStockStatus(product.currentStockQty);
           key = status.label;
           break;
-        case 'expiryStatus':
-          if (productUtils.isExpired(product.expiryDate)) {
-            key = 'Expired';
-          } else if (productUtils.isExpiringSoon(product.expiryDate)) {
-            key = 'Expiring Soon';
-          } else {
-            key = 'Valid';
-          }
-          break;
         default:
           key = 'Other';
       }
@@ -1157,12 +1002,6 @@ export const productUtils = {
       let aVal = a[field];
       let bVal = b[field];
 
-      // Handle dates
-      if (field === 'expiryDate') {
-        aVal = new Date(aVal);
-        bVal = new Date(bVal);
-      }
-
       if (aVal === bVal) return 0;
       const comparison = aVal > bVal ? 1 : -1;
       return order === 'asc' ? comparison : -comparison;
@@ -1183,8 +1022,7 @@ export const productUtils = {
         const searchable = [
           product.productName,
           product.hsnCode,
-          product.manufacturer,
-          product.batchNo
+          product.manufacturer
         ].filter(Boolean).join(' ').toLowerCase();
         
         if (!searchable.includes(search)) return false;
@@ -1194,13 +1032,6 @@ export const productUtils = {
       if (filters.stockStatus) {
         const status = productUtils.getStockStatus(product.currentStockQty);
         if (status.status !== filters.stockStatus) return false;
-      }
-
-      // Expiry status filter
-      if (filters.expiryStatus === 'expired') {
-        if (!productUtils.isExpired(product.expiryDate)) return false;
-      } else if (filters.expiryStatus === 'expiring') {
-        if (!productUtils.isExpiringSoon(product.expiryDate)) return false;
       }
 
       // GST filter
@@ -1300,35 +1131,6 @@ export const productAnalytics = {
 
     return distribution;
   },
-
-  /**
-   * Get expiry distribution
-   * @param {array} products - Array of products
-   * @returns {object} - Expiry distribution
-   */
-  getExpiryDistribution: (products) => {
-    const distribution = {
-      expired: 0,
-      expiringSoon: 0,
-      valid: 0,
-      noExpiry: 0
-    };
-
-    products.forEach(product => {
-      if (!product.expiryDate) {
-        distribution.noExpiry++;
-      } else if (productUtils.isExpired(product.expiryDate)) {
-        distribution.expired++;
-      } else if (productUtils.isExpiringSoon(product.expiryDate)) {
-        distribution.expiringSoon++;
-      } else {
-        distribution.valid++;
-      }
-    });
-
-    return distribution;
-  },
-
   /**
    * Get GST distribution
    * @param {array} products - Array of products

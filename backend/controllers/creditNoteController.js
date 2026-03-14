@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const CreditNote = require('../models/CreditNote');
 const Invoice = require('../models/Invoice');
-const Batch = require('../models/Batch');
+const Product = require('../models/Product');
 const Customer = require('../models/Customer');
 const { calculateItemAmounts, round } = require('../utils/invoiceCalculator');
 const { getAttribution } = require('../middleware/auth');
@@ -39,7 +39,7 @@ exports.createCreditNote = async (req, res, next) => {
     const alreadyReturned = {};
     for (const cn of existingCreditNotes) {
       for (const item of cn.items) {
-        const key = item.productId.toString() + (item.batchId ? '_' + item.batchId.toString() : '');
+        const key = item.productId.toString();
         alreadyReturned[key] = (alreadyReturned[key] || 0) + item.quantityReturned;
       }
     }
@@ -49,16 +49,9 @@ exports.createCreditNote = async (req, res, next) => {
     
     for (const returnItem of items) {
       // Find the matching invoice item
-      const invoiceItem = invoice.items.find(ii => {
-        const productMatch = ii.product._id.toString() === returnItem.productId;
-        // For new items: exact match on batchId if they have it
-        if (ii.product.batchId) {
-          const checkId = returnItem.invoiceBatchId || returnItem.batchId;
-          return productMatch && ii.product.batchId.toString() === checkId;
-        }
-        // For legacy items without batchId, just match the product
-        return productMatch;
-      });
+      const invoiceItem = invoice.items.find(ii => 
+        ii.product._id.toString() === returnItem.productId
+      );
 
       if (!invoiceItem) {
         await session.abortTransaction();
@@ -69,7 +62,7 @@ exports.createCreditNote = async (req, res, next) => {
       }
 
       // Check return quantity against sold quantity minus already returned
-      const key = returnItem.productId + (returnItem.batchId ? '_' + returnItem.batchId : '');
+      const key = returnItem.productId;
       const previouslyReturned = alreadyReturned[key] || 0;
       const maxReturnable = invoiceItem.quantitySold - previouslyReturned;
 
@@ -95,24 +88,9 @@ exports.createCreditNote = async (req, res, next) => {
         0 // No discount on returns
       );
 
-      let restoreToBatchId = invoiceItem.product.batchId;
-      
-      if (!restoreToBatchId) {
-        if (!returnItem.batchId) {
-          await session.abortTransaction();
-          return res.status(400).json({
-            success: false,
-            message: `Manual batch selection is required to return legacy items: ${invoiceItem.product.productName}. Please specify target batch.`
-          });
-        }
-        restoreToBatchId = returnItem.batchId;
-      }
-
       processedItems.push({
         productId: invoiceItem.product._id,
         productName: invoiceItem.product.productName,
-        batchId: restoreToBatchId,
-        batchNo: returnItem.batchNo || invoiceItem.product.batchNo || null,
         quantityReturned: returnItem.quantityReturned,
         rate,
         gstPercent,
@@ -123,9 +101,22 @@ exports.createCreditNote = async (req, res, next) => {
         totalAmount: amounts.totalAmount
       });
 
-      // 4. Restore stock to the explicitly targeted batch
-      const stockService = require('../services/stockService');
-      await stockService.restoreStock(restoreToBatchId, returnItem.quantityReturned, session);
+      // 4. Restore stock to product's currentStockQty
+      await Product.findByIdAndUpdate(
+        invoiceItem.product._id,
+        {
+          $inc: { currentStockQty: returnItem.quantityReturned },
+          $push: {
+            stockHistory: {
+              type: 'sales_return',
+              changeQty: returnItem.quantityReturned,
+              reference: 'Sales Return: CN-NEW',
+              timestamp: new Date()
+            }
+          }
+        },
+        { session }
+      );
     }
 
     if (processedItems.length === 0) {
@@ -159,6 +150,15 @@ exports.createCreditNote = async (req, res, next) => {
       creditNoteNumber = `CN-${new Date().getFullYear()}-${String(lastNum + 1).padStart(4, '0')}`;
     } else {
       creditNoteNumber = `CN-${new Date().getFullYear()}-0001`;
+    }
+
+    // Update reference in stock history now that we have the number
+    for (const item of processedItems) {
+        await Product.updateOne(
+            { _id: item.productId, 'stockHistory.reference': 'Sales Return: CN-NEW' },
+            { $set: { 'stockHistory.$.reference': `Sales Return: ${creditNoteNumber}` } },
+            { session }
+        );
     }
 
     // 7. Create credit note
@@ -241,7 +241,7 @@ exports.getCreditNotesByInvoice = async (req, res, next) => {
     const returnSummary = {};
     for (const cn of creditNotes) {
       for (const item of cn.items) {
-        const key = item.productId.toString() + (item.batchId ? '_' + item.batchId.toString() : '');
+        const key = item.productId.toString();
         if (!returnSummary[key]) {
           returnSummary[key] = {
             productName: item.productName,

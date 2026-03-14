@@ -339,36 +339,7 @@ export const getMonthName = (date) => {
 };
 
 // ============================================
-// DATE VALIDATION & CHECKS
 // ============================================
-
-/**
- * Check if date is expired
- * @param {Date|string} date - Date to check
- * @returns {boolean} - Is expired
- */
-export const isExpired = (date) => {
-  if (!date) return false;
-  const d = new Date(date);
-  if (isNaN(d.getTime())) return false;
-  return d < new Date();
-};
-
-/**
- * Check if date is expiring soon
- * @param {Date|string} date - Date to check
- * @param {number} days - Days threshold (default: 30)
- * @returns {boolean} - Is expiring soon
- */
-export const isExpiringSoon = (date, days = 30) => {
-  if (!date) return false;
-  const expiryDate = new Date(date);
-  if (isNaN(expiryDate.getTime())) return false;
-  
-  const warningDate = new Date();
-  warningDate.setDate(warningDate.getDate() + days);
-  return expiryDate <= warningDate && expiryDate > new Date();
-};
 
 /**
  * Check if date is today
@@ -831,8 +802,6 @@ export default {
   getMonthName,
   
   // Date Validation
-  isExpired,
-  isExpiringSoon,
   isToday,
   isYesterday,
   isThisWeek,

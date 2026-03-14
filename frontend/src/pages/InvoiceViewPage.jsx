@@ -23,7 +23,9 @@ import {
   Clock,
   XCircle,
   Edit,
-  RotateCcw
+  RotateCcw,
+  Settings,
+  Check
 } from 'lucide-react';
 import { invoiceService } from '../services/invoiceService';
 import { customerService } from '../services/customerService';
@@ -77,8 +79,44 @@ const tableRowVariants = {
 export default function InvoiceViewPage() {
   const { id } = useParams();
   const [updating, setUpdating] = useState(false);
+  const [showColumnSettings, setShowColumnSettings] = useState(false);
   const printRef = useRef();
   const { success, error } = useToast();
+
+  // Column definitions
+  const ALL_COLUMNS = [
+    { key: 'qty', label: 'Qty', width: '4%', align: 'center', render: (item) => item.quantitySold },
+    { key: 'free', label: 'Fr', width: '3%', align: 'center', render: (item) => item.freeQuantity || 0 },
+    { key: 'productName', label: 'Product Name', width: '33%', align: 'left', render: (item) => item.product?.productName },
+    { key: 'hsn', label: 'HSN', width: '7%', align: 'center', render: (item) => item.product?.hsnCode },
+    { key: 'batchNo', label: 'Batch', width: '7%', align: 'center', render: (item) => item.product?.batchNo || '-' },
+    { key: 'expiry', label: 'Expiry', width: '7%', align: 'center', render: (item) => item.product?.expiryDate ? new Date(item.product.expiryDate).toLocaleDateString('en-IN', { month: '2-digit', year: '2-digit' }) : '-' },
+    { key: 'mrp', label: 'MRP', width: '8%', align: 'right', render: (item) => item.product?.newMRP?.toFixed(2) || '-' },
+    { key: 'rate', label: 'Rate', width: '7%', align: 'right', render: (item) => item.ratePerUnit.toFixed(2) },
+    { key: 'net', label: 'Net', width: '7%', align: 'right', render: (item) => (item.ratePerUnit * (1 + (item.product?.gstPercentage || 0) / 100)).toFixed(2) },
+    { key: 'disc', label: 'Disc%', width: '5%', align: 'center', render: (item) => `${item.schemeDiscount || 0}%` },
+    { key: 'gst', label: 'GST%', width: '4%', align: 'center', render: (item) => `${item.product?.gstPercentage}%` },
+    { key: 'amount', label: 'Amount', width: '9%', align: 'right', render: (item) => (item.quantitySold * item.ratePerUnit).toFixed(2) },
+  ];
+
+  const DEFAULT_VISIBLE = ['qty', 'free', 'productName', 'hsn', 'mrp', 'rate', 'net', 'disc', 'gst', 'amount'];
+
+  const [visibleColumns, setVisibleColumns] = useState(() => {
+    try {
+      const saved = localStorage.getItem('invoiceColumns');
+      return saved ? JSON.parse(saved) : DEFAULT_VISIBLE;
+    } catch { return DEFAULT_VISIBLE; }
+  });
+
+  const toggleColumn = (key) => {
+    setVisibleColumns(prev => {
+      const next = prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key];
+      localStorage.setItem('invoiceColumns', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const activeColumns = ALL_COLUMNS.filter(c => visibleColumns.includes(c.key));
   
   // 1. Fetch Invoice
   const { data: invoiceData, loading: invoiceLoading, mutate: mutateInvoice, isValidating: isInvoiceValidating } = useSWR(
@@ -297,44 +335,23 @@ export default function InvoiceViewPage() {
           <table className="w-full border-collapse text-[9px]" style={{ border: '0.5px solid black' }}>
             <thead>
               <tr style={{ borderBottom: '0.5px solid black' }}>
-                <th className="border-r border-black p-0.5 text-center font-bold" style={{ width: '4%' }}>Qty</th>
-                <th className="border-r border-black p-0.5 text-center font-bold" style={{ width: '3%' }}>Fr</th>
-                <th className="border-r border-black p-0.5 text-left font-bold" style={{ width: '20%' }}>Product Name</th>
-                <th className="border-r border-black p-0.5 text-center font-bold" style={{ width: '7%' }}>HSN</th>
-                <th className="border-r border-black p-0.5 text-center font-bold" style={{ width: '8%' }}>Batch</th>
-                <th className="border-r border-black p-0.5 text-center font-bold" style={{ width: '5%' }}>Exp</th>
-                <th className="border-r border-black p-0.5 text-right font-bold" style={{ width: '8%' }}>MRP</th>
-                <th className="border-r border-black p-0.5 text-right font-bold" style={{ width: '7%' }}>Rate</th>
-                <th className="border-r border-black p-0.5 text-right font-bold" style={{ width: '7%' }}>Net</th>
-                <th className="border-r border-black p-0.5 text-center font-bold" style={{ width: '5%' }}>Disc%</th>
-                <th className="border-r border-black p-0.5 text-center font-bold" style={{ width: '4%' }}>GST%</th>
-                <th className="p-0.5 text-right font-bold" style={{ width: '9%' }}>Amount</th>
+                {activeColumns.map((col, i) => (
+                  <th key={col.key} className={`${i < activeColumns.length - 1 ? 'border-r border-black' : ''} p-0.5 font-bold text-${col.align}`} style={{ width: col.width }}>
+                    {col.label}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {invoice.items?.map((item, index) => {
-                const expDate = item.product?.expiryDate 
-                  ? new Date(item.product.expiryDate).toLocaleDateString('en-GB', { month: '2-digit', year: '2-digit' })
-                  : 'N/A';
-                const itemAmount = item.quantitySold * item.ratePerUnit;
-                
-                return (
-                  <tr key={index} style={{ borderBottom: index < invoice.items.length - 1 ? '0.5px solid #ddd' : 'none' }}>
-                    <td className="border-r border-black p-0.5 text-center font-bold">{item.quantitySold}</td>
-                    <td className="border-r border-black p-0.5 text-center font-bold">{item.freeQuantity || 0}</td>
-                    <td className="border-r border-black p-0.5 font-bold">{item.product?.productName}</td>
-                    <td className="border-r border-black p-0.5 text-center font-bold">{item.product?.hsnCode}</td>
-                    <td className="border-r border-black p-0.5 text-center font-bold">{item.product?.batchNo}</td>
-                    <td className="border-r border-black p-0.5 text-center font-bold">{expDate}</td>
-                    <td className="border-r border-black p-0.5 text-right font-bold">{item.product?.newMRP?.toFixed(2) || '-'}</td>
-                    <td className="border-r border-black p-0.5 text-right font-bold">{item.ratePerUnit.toFixed(2)}</td>
-                    <td className="border-r border-black p-0.5 text-right font-bold">{(item.ratePerUnit * (1 + (item.product?.gstPercentage || 0) / 100)).toFixed(2)}</td>
-                    <td className="border-r border-black p-0.5 text-center font-bold">{item.schemeDiscount || 0}%</td>
-                    <td className="border-r border-black p-0.5 text-center font-bold">{item.product?.gstPercentage}%</td>
-                    <td className="p-0.5 text-right font-bold">{itemAmount.toFixed(2)}</td>
-                  </tr>
-                );
-              })}
+              {invoice.items?.map((item, index) => (
+                <tr key={index} style={{ borderBottom: index < invoice.items.length - 1 ? '0.5px solid #ddd' : 'none' }}>
+                  {activeColumns.map((col, i) => (
+                    <td key={col.key} className={`${i < activeColumns.length - 1 ? 'border-r border-black' : ''} p-0.5 font-bold text-${col.align}`}>
+                      {col.render(item)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -531,6 +548,52 @@ export default function InvoiceViewPage() {
           <StatusIcon className="w-4 h-4" />
           {invoice.status}
         </motion.div>
+      </motion.div>
+
+      {/* Column Settings Toggle */}
+      <motion.div variants={cardVariants} className="no-print">
+        <motion.button
+          onClick={() => setShowColumnSettings(!showColumnSettings)}
+          className="btn btn-secondary flex items-center gap-2"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <Settings className="w-5 h-5" />
+          Customise Columns
+        </motion.button>
+        <AnimatePresence>
+          {showColumnSettings && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="glass-card mt-3 p-4 overflow-hidden"
+            >
+              <p className="text-sm text-slate-400 mb-3">Select which columns appear on the printed invoice:</p>
+              <div className="flex flex-wrap gap-2">
+                {ALL_COLUMNS.map(col => {
+                  const isActive = visibleColumns.includes(col.key);
+                  return (
+                    <motion.button
+                      key={col.key}
+                      onClick={() => toggleColumn(col.key)}
+                      className={`px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 border transition-colors ${
+                        isActive
+                          ? 'bg-blue-500/20 text-blue-400 border-blue-500/40'
+                          : 'bg-slate-800 text-slate-500 border-slate-700 hover:text-slate-300'
+                      }`}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      {isActive && <Check className="w-3.5 h-3.5" />}
+                      {col.label}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
 
       {/* Credit Notes Section */}

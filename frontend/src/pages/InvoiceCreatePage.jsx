@@ -154,9 +154,6 @@ export default function InvoiceCreatePage() {
   const [invoiceItems, setInvoiceItems] = useState([]);
   const [paymentType, setPaymentType] = useState('Credit');
   const [notes, setNotes] = useState('');
-  const [allocationMode, setAllocationMode] = useState('AUTO');
-
-  const [batchModal, setBatchModal] = useState({ open: false, itemIndex: null, batches: [], requiredQty: 0, allocations: {} });
   
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [originalInvoice, setOriginalInvoice] = useState(null);
@@ -171,7 +168,6 @@ export default function InvoiceCreatePage() {
       customerSearch,
       invoiceItems,
       paymentType,
-      allocationMode,
       notes,
       savedAt: new Date().toISOString()
     };
@@ -268,7 +264,6 @@ export default function InvoiceCreatePage() {
           
           
           if (savedDraft.paymentType) setPaymentType(savedDraft.paymentType);
-          if (savedDraft.allocationMode) setAllocationMode(savedDraft.allocationMode);
           if (savedDraft.notes) setNotes(savedDraft.notes);
           
           success('Draft restored');
@@ -417,9 +412,6 @@ export default function InvoiceCreatePage() {
         _id: product._id,
         productName: product.productName,
         hsnCode: product.hsnCode,
-        batchNo: product.batchNo,
-        batchCount: product.batchCount || 0,
-        expiryDate: product.expiryDate,
         newMRP: product.newMRP,
         rate: product.rate,
         gstPercentage: product.gstPercentage,
@@ -536,50 +528,7 @@ export default function InvoiceCreatePage() {
     setInvoiceItems(prev => prev.filter((_, i) => i !== index));
   };
 
-  const openBatchModal = async (index, item) => {
-    try {
-      const data = await productService.getBatches(item.product._id);
-      const requiredQty = item.quantitySold + (item.freeQuantity || 0);
-      
-      const initialAllocations = {};
-      if (item.manualAllocations) {
-        item.manualAllocations.forEach(a => {
-          initialAllocations[a.batchId] = a.quantity;
-        });
-      }
 
-      setBatchModal({
-        open: true,
-        itemIndex: index,
-        batches: data.batches || [],
-        requiredQty,
-        allocations: initialAllocations
-      });
-    } catch (err) {
-      error('Failed to load batches');
-    }
-  };
-
-  const saveBatchAllocations = () => {
-    const allocatedTotal = Object.values(batchModal.allocations).reduce((sum, q) => sum + (parseInt(q) || 0), 0);
-    if (allocatedTotal !== batchModal.requiredQty) {
-      error(`Total allocated quantity (${allocatedTotal}) must equal required quantity (${batchModal.requiredQty})`);
-      return;
-    }
-
-    const manualAllocations = Object.entries(batchModal.allocations)
-      .map(([batchId, quantity]) => ({ batchId, quantity: parseInt(quantity) }))
-      .filter(a => a.quantity > 0);
-
-    setInvoiceItems(prev => {
-      const updated = [...prev];
-      updated[batchModal.itemIndex].manualAllocations = manualAllocations;
-      return updated;
-    });
-
-    setBatchModal({ ...batchModal, open: false });
-    success('Batch allocations saved');
-  };
 
   // Use useMemo to ensure totals recalculate when invoiceItems changes
   const totals = useMemo(() => {
@@ -613,13 +562,6 @@ export default function InvoiceCreatePage() {
         error(`Insufficient stock for ${item.product.productName}`);
         return false;
       }
-      if (allocationMode === 'MANUAL' && item.product.batchCount > 0) {
-        const allocated = (item.manualAllocations || []).reduce((sum, a) => sum + a.quantity, 0);
-        if (allocated !== totalQty) {
-          error(`Please complete manual batch allocation for ${item.product.productName}`);
-          return false;
-        }
-      }
     }
     return true;
   };
@@ -636,11 +578,9 @@ export default function InvoiceCreatePage() {
           quantitySold: item.quantitySold,
           freeQuantity: item.freeQuantity,
           ratePerUnit: item.baseRate,
-          schemeDiscount: item.schemeDiscount,
-          manualAllocations: item.manualAllocations
+          schemeDiscount: item.schemeDiscount
         })),
         paymentType,
-        allocationMode,
         notes
       };
 
@@ -679,7 +619,6 @@ export default function InvoiceCreatePage() {
     setCustomerSearch('');
     setInvoiceItems([]);
     setPaymentType('Credit');
-    setAllocationMode('AUTO');
     setNotes('');
     clearDraftFromStorage();
     success('Draft cleared');
@@ -914,7 +853,7 @@ export default function InvoiceCreatePage() {
                           {product.productName}
                         </p>
                         <p className="text-sm text-slate-400 mt-1">
-                          Batch: {product.batchNo} • GST: {product.gstPercentage}%
+                          GST: {product.gstPercentage}%
                         </p>
                       </div>
                       <div className="text-right flex-shrink-0">
@@ -981,15 +920,6 @@ export default function InvoiceCreatePage() {
                               <p className="text-xs text-slate-400">
                                 Stock: {item.product.currentStock}
                               </p>
-                              {allocationMode === 'MANUAL' && item.product.batchCount > 0 && (
-                                <button 
-                                  onClick={() => openBatchModal(index, item)}
-                                  className="mt-1 text-xs text-blue-400 hover:text-blue-300 underline"
-                                >
-                                  {item.manualAllocations ? 'Edit Batch Allocation' : 'Select Batches'} 
-                                  {item.manualAllocations && ` (${item.manualAllocations.reduce((s, a) => s + a.quantity, 0)}/${item.quantitySold + (item.freeQuantity || 0)})`}
-                                </button>
-                              )}
                             </div>
                           </td>
                           <td>
@@ -1133,21 +1063,6 @@ export default function InvoiceCreatePage() {
                   <option value="Cash">Cash</option>
                 </select>
               </div>
-              
-              <div>
-                <label className="label flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-slate-400" />
-                  Allocation Mode
-                </label>
-                <select
-                  value={allocationMode}
-                  onChange={(e) => setAllocationMode(e.target.value)}
-                  className="select"
-                >
-                  <option value="AUTO">Auto (FIFO)</option>
-                  <option value="MANUAL">Manual Batch Selection</option>
-                </select>
-              </div>
 
               <div className="md:col-span-2">
                 <label className="label flex items-center gap-2">
@@ -1226,104 +1141,6 @@ export default function InvoiceCreatePage() {
           </div>
         </div>
       )}
-
-      {/* Batch Selection Modal */}
-      <Modal
-        isOpen={batchModal.open}
-        onClose={() => setBatchModal({ ...batchModal, open: false })}
-        title="Manual Batch Selection"
-        size="2xl"
-      >
-        <div className="space-y-6">
-          <div className="flex justify-between items-center bg-slate-800/50 p-4 rounded-lg border border-slate-700">
-            <div>
-              <p className="text-slate-400 text-sm">Required Quantity</p>
-              <p className="text-2xl font-bold text-white">{batchModal.requiredQty}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-slate-400 text-sm">Allocated Quantity</p>
-              <p className={`text-2xl font-bold ${
-                Object.values(batchModal.allocations).reduce((sum, q) => sum + (parseInt(q) || 0), 0) === batchModal.requiredQty
-                  ? 'text-emerald-400'
-                  : 'text-amber-400'
-              }`}>
-                {Object.values(batchModal.allocations).reduce((sum, q) => sum + (parseInt(q) || 0), 0)}
-              </p>
-            </div>
-          </div>
-
-          <div className="table-container max-h-[400px] overflow-y-auto">
-            <table className="table">
-              <thead className="sticky top-0 bg-slate-800 z-10">
-                <tr>
-                  <th>Batch No</th>
-                  <th>Expiry</th>
-                  <th>MRP</th>
-                  <th>Available</th>
-                  <th className="w-32">Allocate</th>
-                </tr>
-              </thead>
-              <tbody>
-                {batchModal.batches.filter(b => b.stock > 0).map(batch => (
-                  <tr key={batch._id}>
-                    <td className="font-mono text-white">
-                      {batch.batchNo || <span className="text-amber-500/70 text-sm">N/A</span>}
-                    </td>
-                    <td>
-                      {batch.expiryDate ? new Date(batch.expiryDate).toLocaleDateString() : '----'}
-                    </td>
-                    <td>{formatCurrency(batch.mrp)}</td>
-                    <td className="text-emerald-400 font-medium">{batch.stock}</td>
-                    <td>
-                      <input
-                        type="number"
-                        min="0"
-                        max={batch.stock}
-                        value={batchModal.allocations[batch._id] || ''}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setBatchModal(prev => ({
-                            ...prev,
-                            allocations: {
-                              ...prev.allocations,
-                              [batch._id]: val
-                            }
-                          }));
-                        }}
-                        className="input py-1.5 text-center"
-                        placeholder="0"
-                      />
-                    </td>
-                  </tr>
-                ))}
-                {batchModal.batches.filter(b => b.stock > 0).length === 0 && (
-                  <tr>
-                    <td colSpan="5" className="text-center py-8 text-slate-400">
-                      No matching batches with stock available.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-6 border-t border-slate-700">
-            <button
-              type="button"
-              onClick={() => setBatchModal({ ...batchModal, open: false })}
-              className="btn bg-slate-700 hover:bg-slate-600 text-white"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={saveBatchAllocations}
-              className="btn btn-primary"
-            >
-              Save Allocations
-            </button>
-          </div>
-        </div>
-      </Modal>
 
     </motion.div>
   );

@@ -10,14 +10,6 @@ const creditNoteItemSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  batchId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Batch'
-  },
-  batchNo: {
-    type: String,
-    default: null
-  },
   quantityReturned: {
     type: Number,
     required: true,

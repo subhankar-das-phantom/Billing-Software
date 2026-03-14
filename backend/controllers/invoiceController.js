@@ -1,7 +1,6 @@
 const mongoose = require('mongoose');
 const Invoice = require('../models/Invoice');
 const Product = require('../models/Product');
-const Batch = require('../models/Batch');
 const Customer = require('../models/Customer');
 const Admin = require('../models/Admin');
 const { calculateItemAmounts, calculateInvoiceTotals } = require('../utils/invoiceCalculator');
@@ -9,7 +8,6 @@ const { numberToWords } = require('../utils/numberToWords');
 const { generateInvoiceExcel, generateInvoiceCSV } = require('../utils/excelExport');
 const { getAttribution } = require('../middleware/auth');
 const { trackActivity, ACTIVITY_TYPES } = require('../utils/activityTracker');
-const { consumeStock, restoreStock } = require('../utils/fifoService');
 
 // @desc    Get all invoices
 // @route   GET /api/invoices
@@ -157,7 +155,7 @@ exports.createInvoice = async (req, res, next) => {
 
     // Process items and validate stock
     const processedItems = [];
-    const legacyStockUpdates = []; // For pre-migration products without batches
+    const stockUpdates = [];
 
     for (const item of items) {
       const product = await Product.findById(item.productId).session(session);
@@ -172,120 +170,46 @@ exports.createInvoice = async (req, res, next) => {
 
       const totalQty = item.quantitySold + (item.freeQuantity || 0);
 
-      // Check if product has batches (new system) or uses legacy stock
-      const batchCount = await Batch.countDocuments({ productId: product._id, isActive: true }).session(session);
-      const useBatches = batchCount > 0;
-
-      if (useBatches) {
-        // NEW PATH: FIFO or MANUAL batch consumption
-        try {
-          const mode = req.body.allocationMode || 'AUTO';
-          const fifoService = require('../services/fifoService');
-          const stockService = require('../services/stockService');
-          
-          const allocations = await fifoService.calculateAllocations(product._id, totalQty, mode, item.manualAllocations);
-          
-          // Deduct stock for all allocations
-          await stockService.processAllocations(allocations, session);
-
-          // Split the original item across the assigned batches
-          let remainingQtySold = item.quantitySold;
-          let remainingFreeQty = item.freeQuantity || 0;
-
-          for (const alloc of allocations) {
-            let allocTotal = alloc.allocatedQty;
-            let currentSold = 0;
-            let currentFree = 0;
-
-            if (remainingQtySold >= allocTotal) {
-              currentSold = allocTotal;
-              remainingQtySold -= allocTotal;
-            } else {
-              currentSold = remainingQtySold;
-              currentFree = allocTotal - remainingQtySold;
-              remainingQtySold = 0;
-              remainingFreeQty -= currentFree;
-            }
-
-            const rateToUse = item.ratePerUnit || alloc.rate || product.rate || product.newMRP;
-            const amounts = calculateItemAmounts(
-              currentSold,
-              rateToUse,
-              product.gstPercentage,
-              item.schemeDiscount || 0
-            );
-
-            processedItems.push({
-              product: {
-                _id: product._id,
-                productName: product.productName,
-                hsnCode: product.hsnCode,
-                pack: product.pack,
-                batchId: alloc.batchId,
-                batchNo: alloc.batchNo || null,
-                expiryDate: alloc.expiryDate,
-                newMRP: alloc.mrp || product.newMRP,
-                gstPercentage: product.gstPercentage
-              },
-              quantitySold: currentSold,
-              freeQuantity: currentFree,
-              ratePerUnit: rateToUse,
-              schemeDiscount: item.schemeDiscount || 0,
-              ...amounts
-            });
-          }
-        } catch (err) {
-          await session.abortTransaction();
-          return res.status(400).json({
-            success: false,
-            message: `${err.message} for ${product.productName}`
-          });
-        }
-      } else {
-        // LEGACY PATH: Use product-level currentStockQty
-        if (product.currentStockQty < totalQty) {
-          await session.abortTransaction();
-          return res.status(400).json({
-            success: false,
-            message: `Insufficient stock for ${product.productName}. Available: ${product.currentStockQty}, Required: ${totalQty}`
-          });
-        }
-
-        legacyStockUpdates.push({
-          productId: product._id,
-          previousQty: product.currentStockQty,
-          changeQty: -totalQty,
-          newQty: product.currentStockQty - totalQty
-        });
-
-        // Calculate amounts and add standard item
-        const rateToUse = item.ratePerUnit || product.rate || product.newMRP;
-        const amounts = calculateItemAmounts(
-          item.quantitySold,
-          rateToUse,
-          product.gstPercentage,
-          item.schemeDiscount || 0
-        );
-
-        processedItems.push({
-          product: {
-            _id: product._id,
-            productName: product.productName,
-            hsnCode: product.hsnCode,
-            pack: product.pack,
-            batchId: undefined,
-            batchNo: product.batchNo,
-            expiryDate: product.expiryDate,
-            newMRP: product.newMRP,
-            gstPercentage: product.gstPercentage
-          },
-          quantitySold: item.quantitySold,
-          freeQuantity: item.freeQuantity || 0,
-          ratePerUnit: rateToUse,
-          schemeDiscount: item.schemeDiscount || 0,
-          ...amounts
+      // Check stock
+      if (product.currentStockQty < totalQty) {
+        await session.abortTransaction();
+        return res.status(400).json({
+          success: false,
+          message: `Insufficient stock for ${product.productName}. Available: ${product.currentStockQty}, Required: ${totalQty}`
         });
       }
+
+      stockUpdates.push({
+        productId: product._id,
+        previousQty: product.currentStockQty,
+        changeQty: -totalQty,
+        newQty: product.currentStockQty - totalQty
+      });
+
+      // Calculate amounts and add standard item
+      const rateToUse = item.ratePerUnit || product.rate || product.newMRP;
+      const amounts = calculateItemAmounts(
+        item.quantitySold,
+        rateToUse,
+        product.gstPercentage,
+        item.schemeDiscount || 0
+      );
+
+      processedItems.push({
+        product: {
+          _id: product._id,
+          productName: product.productName,
+          hsnCode: product.hsnCode,
+          pack: product.pack,
+          newMRP: product.newMRP,
+          gstPercentage: product.gstPercentage
+        },
+        quantitySold: item.quantitySold,
+        freeQuantity: item.freeQuantity || 0,
+        ratePerUnit: rateToUse,
+        schemeDiscount: item.schemeDiscount || 0,
+        ...amounts
+      });
     }
 
     // Calculate totals
@@ -317,8 +241,8 @@ exports.createInvoice = async (req, res, next) => {
       createdBy: getAttribution(req)
     }], { session });
 
-    // Update legacy stock (for products without batches)
-    for (const update of legacyStockUpdates) {
+    // Update stock
+    for (const update of stockUpdates) {
       await Product.findByIdAndUpdate(
         update.productId,
         {
@@ -410,29 +334,22 @@ exports.updateInvoice = async (req, res, next) => {
     for (const oldItem of existingInvoice.items) {
       const totalQty = oldItem.quantitySold + (oldItem.freeQuantity || 0);
       
-      if (oldItem.product.batchId) {
-        // NEW PATH: Restore to batch via service
-        const stockService = require('../services/stockService');
-        await stockService.restoreStock(oldItem.product.batchId, totalQty, session);
-      } else {
-        // LEGACY PATH: Restore to product
-        await Product.findByIdAndUpdate(
-          oldItem.product._id,
-          {
-            $inc: { currentStockQty: totalQty },
-            $push: {
-              stockHistory: {
-                type: 'invoice_edit_reversal',
-                invoiceId: existingInvoice._id,
-                changeQty: totalQty,
-                reference: `${existingInvoice.invoiceNumber} - Edit Reversal`,
-                timestamp: new Date()
-              }
+      await Product.findByIdAndUpdate(
+        oldItem.product._id,
+        {
+          $inc: { currentStockQty: totalQty },
+          $push: {
+            stockHistory: {
+              type: 'invoice_edit_reversal',
+              invoiceId: existingInvoice._id,
+              changeQty: totalQty,
+              reference: `${existingInvoice.invoiceNumber} - Edit Reversal`,
+              timestamp: new Date()
             }
-          },
-          { session }
-        );
-      }
+          }
+        },
+        { session }
+      );
     }
 
     // Reverse customer stats for old invoice
@@ -470,7 +387,7 @@ exports.updateInvoice = async (req, res, next) => {
     }
 
     const processedItems = [];
-    const legacyStockUpdates = [];
+    const stockUpdates = [];
 
     for (const item of items) {
       const product = await Product.findById(item.productId).session(session);
@@ -485,122 +402,52 @@ exports.updateInvoice = async (req, res, next) => {
 
       const totalQty = item.quantitySold + (item.freeQuantity || 0);
 
-      // Check if product has batches (new system) or uses legacy stock
-      const batchCount = await Batch.countDocuments({ productId: product._id, isActive: true }).session(session);
-      const useBatches = batchCount > 0;
-
-      if (useBatches) {
-        try {
-          const mode = req.body.allocationMode || 'AUTO';
-          const fifoService = require('../services/fifoService');
-          const stockService = require('../services/stockService');
-          
-          const allocations = await fifoService.calculateAllocations(product._id, totalQty, mode, item.manualAllocations);
-          await stockService.processAllocations(allocations, session);
-
-          let remainingQtySold = item.quantitySold;
-          let remainingFreeQty = item.freeQuantity || 0;
-
-          for (const alloc of allocations) {
-            let allocTotal = alloc.allocatedQty;
-            let currentSold = 0;
-            let currentFree = 0;
-
-            if (remainingQtySold >= allocTotal) {
-              currentSold = allocTotal;
-              remainingQtySold -= allocTotal;
-            } else {
-              currentSold = remainingQtySold;
-              currentFree = allocTotal - remainingQtySold;
-              remainingQtySold = 0;
-              remainingFreeQty -= currentFree;
-            }
-
-            const rateToUse = item.ratePerUnit || alloc.rate || product.rate || product.newMRP;
-            const amounts = calculateItemAmounts(
-              currentSold,
-              rateToUse,
-              product.gstPercentage,
-              item.schemeDiscount || 0
-            );
-
-            processedItems.push({
-              product: {
-                _id: product._id,
-                productName: product.productName,
-                hsnCode: product.hsnCode,
-                pack: product.pack,
-                batchId: alloc.batchId,
-                batchNo: alloc.batchNo || null,
-                expiryDate: alloc.expiryDate,
-                newMRP: alloc.mrp || product.newMRP,
-                gstPercentage: product.gstPercentage
-              },
-              quantitySold: currentSold,
-              freeQuantity: currentFree,
-              ratePerUnit: rateToUse,
-              schemeDiscount: item.schemeDiscount || 0,
-              ...amounts
-            });
-          }
-        } catch (err) {
-          await session.abortTransaction();
-          return res.status(400).json({
-            success: false,
-            message: `${err.message} for ${product.productName}`
-          });
-        }
-      } else {
-        if (product.currentStockQty < totalQty) {
-          await session.abortTransaction();
-          return res.status(400).json({
-            success: false,
-            message: `Insufficient stock for ${product.productName}. Available: ${product.currentStockQty}, Required: ${totalQty}`
-          });
-        }
-
-        legacyStockUpdates.push({
-          productId: product._id,
-          previousQty: product.currentStockQty,
-          changeQty: -totalQty,
-          newQty: product.currentStockQty - totalQty
-        });
-
-        const rateToUse = item.ratePerUnit || product.rate || product.newMRP;
-        const amounts = calculateItemAmounts(
-          item.quantitySold,
-          rateToUse,
-          product.gstPercentage,
-          item.schemeDiscount || 0
-        );
-
-        processedItems.push({
-          product: {
-            _id: product._id,
-            productName: product.productName,
-            hsnCode: product.hsnCode,
-            pack: product.pack,
-            batchId: undefined,
-            batchNo: product.batchNo,
-            expiryDate: product.expiryDate,
-            newMRP: product.newMRP,
-            gstPercentage: product.gstPercentage
-          },
-          quantitySold: item.quantitySold,
-          freeQuantity: item.freeQuantity || 0,
-          ratePerUnit: rateToUse,
-          schemeDiscount: item.schemeDiscount || 0,
-          ...amounts
+      if (product.currentStockQty < totalQty) {
+        await session.abortTransaction();
+        return res.status(400).json({
+          success: false,
+          message: `Insufficient stock for ${product.productName}. Available: ${product.currentStockQty}, Required: ${totalQty}`
         });
       }
+
+      stockUpdates.push({
+        productId: product._id,
+        previousQty: product.currentStockQty,
+        changeQty: -totalQty,
+        newQty: product.currentStockQty - totalQty
+      });
+
+      const rateToUse = item.ratePerUnit || product.rate || product.newMRP;
+      const amounts = calculateItemAmounts(
+        item.quantitySold,
+        rateToUse,
+        product.gstPercentage,
+        item.schemeDiscount || 0
+      );
+
+      processedItems.push({
+        product: {
+          _id: product._id,
+          productName: product.productName,
+          hsnCode: product.hsnCode,
+          pack: product.pack,
+          newMRP: product.newMRP,
+          gstPercentage: product.gstPercentage
+        },
+        quantitySold: item.quantitySold,
+        freeQuantity: item.freeQuantity || 0,
+        ratePerUnit: rateToUse,
+        schemeDiscount: item.schemeDiscount || 0,
+        ...amounts
+      });
     }
 
     // Calculate new totals
     const totals = calculateInvoiceTotals(processedItems);
     totals.amountInWords = numberToWords(totals.netTotal);
 
-    // Step 3: Update legacy stock for products without batches
-    for (const update of legacyStockUpdates) {
+    // Step 3: Update stock
+    for (const update of stockUpdates) {
       await Product.findByIdAndUpdate(
         update.productId,
         {
@@ -688,29 +535,22 @@ exports.updateInvoiceStatus = async (req, res, next) => {
       for (const item of invoice.items) {
         const totalQty = item.quantitySold + (item.freeQuantity || 0);
 
-        if (item.product.batchId) {
-          // NEW PATH: Restore to batch via service
-          const stockService = require('../services/stockService');
-          await stockService.restoreStock(item.product.batchId, totalQty, session);
-        } else {
-          // LEGACY PATH: Restore to product
-          await Product.findByIdAndUpdate(
-            item.product._id,
-            {
-              $inc: { currentStockQty: totalQty },
-              $push: {
-                stockHistory: {
-                  type: 'invoice_cancelled',
-                  invoiceId: invoice._id,
-                  changeQty: totalQty,
-                  reference: `${invoice.invoiceNumber} - Cancelled`,
-                  timestamp: new Date()
-                }
+        await Product.findByIdAndUpdate(
+          item.product._id,
+          {
+            $inc: { currentStockQty: totalQty },
+            $push: {
+              stockHistory: {
+                type: 'invoice_cancelled',
+                invoiceId: invoice._id,
+                changeQty: totalQty,
+                reference: `${invoice.invoiceNumber} - Cancelled`,
+                timestamp: new Date()
               }
-            },
-            { session }
-          );
-        }
+            }
+          },
+          { session }
+        );
       }
 
       // Reverse customer stats

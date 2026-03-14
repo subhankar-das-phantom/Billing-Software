@@ -138,8 +138,7 @@ export default function CreditNoteViewPage() {
             <thead>
               <tr style={{ borderBottom: '0.5px solid black' }}>
                 <th className="border-r border-black p-0.5 text-center font-bold" style={{ width: '5%' }}>SN</th>
-                <th className="border-r border-black p-0.5 text-left font-bold" style={{ width: '25%' }}>Product Name</th>
-                <th className="border-r border-black p-0.5 text-center font-bold" style={{ width: '10%' }}>Batch</th>
+                <th className="border-r border-black p-0.5 text-left font-bold" style={{ width: '35%' }}>Product Name</th>
                 <th className="border-r border-black p-0.5 text-center font-bold" style={{ width: '8%' }}>Qty</th>
                 <th className="border-r border-black p-0.5 text-right font-bold" style={{ width: '10%' }}>Rate</th>
                 <th className="border-r border-black p-0.5 text-center font-bold" style={{ width: '6%' }}>GST%</th>
@@ -154,7 +153,6 @@ export default function CreditNoteViewPage() {
                 <tr key={index} style={{ borderBottom: index < creditNote.items.length - 1 ? '0.5px solid #ddd' : 'none' }}>
                   <td className="border-r border-black p-0.5 text-center">{index + 1}</td>
                   <td className="border-r border-black p-0.5 font-bold">{item.productName}</td>
-                  <td className="border-r border-black p-0.5 text-center">{item.batchNo || '—'}</td>
                   <td className="border-r border-black p-0.5 text-center font-bold">{item.quantityReturned}</td>
                   <td className="border-r border-black p-0.5 text-right">{item.rate?.toFixed(2)}</td>
                   <td className="border-r border-black p-0.5 text-center">{item.gstPercent}%</td>
@@ -350,7 +348,6 @@ export default function CreditNoteViewPage() {
             <thead>
               <tr>
                 <th>Product</th>
-                <th>Batch</th>
                 <th>Qty Returned</th>
                 <th>Rate</th>
                 <th>GST%</th>
@@ -369,12 +366,6 @@ export default function CreditNoteViewPage() {
                   className="hover:bg-slate-700/50"
                 >
                   <td className="font-medium text-white">{item.productName}</td>
-                  <td>
-                    <span className="font-mono text-sm text-slate-400 flex items-center gap-1">
-                      <Hash className="w-3 h-3" />
-                      {item.batchNo || '—'}
-                    </span>
-                  </td>
                   <td className="text-white font-semibold">{item.quantityReturned}</td>
                   <td className="text-slate-300">{formatCurrency(item.rate)}</td>
                   <td className="text-slate-300">{item.gstPercent}%</td>

@@ -138,7 +138,7 @@ exports.getLowStock = async (req, res, next) => {
     })
     .sort({ currentStockQty: 1 })
     .limit(10)
-    .select('productName currentStockQty unit batchNo expiryDate');
+    .select('productName currentStockQty unit');
 
     res.status(200).json({
       success: true,

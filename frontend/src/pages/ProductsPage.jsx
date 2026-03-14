@@ -27,7 +27,7 @@ import {
   Eye
 } from 'lucide-react';
 import { productService } from '../services/productService';
-import { formatCurrency, formatDate, isExpired, isExpiringSoon, formatDateForInput } from '../utils/formatters';
+import { formatCurrency, formatDate, formatDateForInput } from '../utils/formatters';
 import { GST_RATES } from '../utils/calculations';
 import { PageLoader } from '../components/Common/Loader';
 import Modal from '../components/Common/Modal';
@@ -199,7 +199,7 @@ const EmptyProductsState = ({ search, onAddClick }) => (
 );
 
 // ✅ FIX #2: Separate component for table - simplified for mobile
-const ProductsTable = ({ filteredProducts, onEdit, onDelete, isExpired, isExpiringSoon, formatDate, formatCurrency }) => (
+const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatDate, formatCurrency }) => (
   <motion.div
     key="products-table"
     initial={{ opacity: 0 }}
@@ -214,8 +214,6 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, isExpired, isExpiri
           <tr>
             <th>Product Name</th>
             <th>HSN</th>
-            <th>Batch</th>
-            <th>Expiry</th>
             <th>MRP</th>
             <th>GST</th>
             <th>Stock</th>
@@ -225,8 +223,6 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, isExpired, isExpiri
         <tbody>
           <AnimatePresence mode="popLayout">
             {filteredProducts.map((product, index) => {
-              const expired = isExpired(product.expiryDate);
-              const expiringSoon = isExpiringSoon(product.expiryDate);
               const lowStock = product.currentStockQty <= 30;
               const outOfStock = product.currentStockQty === 0;
 
@@ -258,25 +254,6 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, isExpired, isExpiri
                       <Barcode className="w-4 h-4 text-slate-500" />
                       {product.hsnCode}
                     </div>
-                  </td>
-                  <td className="text-slate-300 font-mono text-sm">
-                    <div className="flex items-center gap-2">
-                      <Hash className="w-4 h-4 text-slate-500" />
-                      {product.batchNo}
-                    </div>
-                  </td>
-                  <td>
-                    <motion.span
-                      className={`badge inline-flex items-center gap-1.5 ${
-                        expired ? 'badge-danger' :
-                        expiringSoon ? 'badge-warning' :
-                        'badge-success'
-                      }`}
-                      whileHover={{ scale: 1.05 }}
-                    >
-                      <Calendar className="w-3 h-3" />
-                      {formatDate(product.expiryDate)}
-                    </motion.span>
                   </td>
                   <td>
                     <div className="flex items-center gap-2">
@@ -414,8 +391,7 @@ export default function ProductsPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log('Submitting form:', formData);
-    
-    // In edit mode, only require catalog fields (batch managed on details page)
+        // In edit mode, only require catalog fields
     if (editingProduct) {
       if (!formData.productName || !formData.hsnCode) {
         error('Please fill all required fields');
@@ -446,7 +422,11 @@ export default function ProductsPage() {
           hsnCode: formData.hsnCode,
           manufacturer: formData.manufacturer,
           gstPercentage: parseInt(formData.gstPercentage),
-          unit: formData.unit
+          unit: formData.unit,
+          newMRP: parseFloat(formData.newMRP),
+          rate: parseFloat(formData.rate),
+          batchNo: formData.batchNo || '',
+          expiryDate: formData.expiryDate || null
         };
         await productService.updateProduct(editingProduct._id, editPayload);
         
@@ -498,7 +478,14 @@ export default function ProductsPage() {
     total: products.length,
     lowStock: products.filter(p => p.currentStockQty <= 30 && p.currentStockQty > 0).length,
     outOfStock: products.filter(p => p.currentStockQty === 0).length,
-    expiringSoon: products.filter(p => isExpiringSoon(p.expiryDate) && !isExpired(p.expiryDate)).length
+    expiringSoon: products.filter(p => {
+      if (!p.expiryDate) return false;
+      const expiry = new Date(p.expiryDate);
+      const now = new Date();
+      const threshold = new Date();
+      threshold.setDate(threshold.getDate() + 30);
+      return expiry > now && expiry <= threshold;
+    }).length
   };
 
   if (loading) {
@@ -677,8 +664,6 @@ export default function ProductsPage() {
             filteredProducts={filteredProducts}
             onEdit={openEditModal}
             onDelete={(product) => setDeleteDialog({ open: true, product })}
-            isExpired={isExpired}
-            isExpiringSoon={isExpiringSoon}
             formatDate={formatDate}
             formatCurrency={formatCurrency}
           />
@@ -702,7 +687,9 @@ export default function ProductsPage() {
             {[
               { name: 'productName', label: 'Product Name *', type: 'text', icon: Package, placeholder: 'Enter product name', required: true },
               { name: 'hsnCode', label: 'HSN Code *', type: 'text', icon: Barcode, placeholder: 'e.g., 3004', required: true },
-              { name: 'manufacturer', label: 'Manufacturer', type: 'text', icon: Building2, placeholder: 'Manufacturer name' }
+              { name: 'manufacturer', label: 'Manufacturer', type: 'text', icon: Building2, placeholder: 'Manufacturer name' },
+              { name: 'batchNo', label: 'Batch No', type: 'text', icon: Hash, placeholder: 'e.g., B-001 (optional)' },
+              { name: 'expiryDate', label: 'Expiry Date', type: 'date', icon: Calendar }
             ].map((field, index) => (
               <motion.div
                 key={field.name}
@@ -725,13 +712,11 @@ export default function ProductsPage() {
               </motion.div>
             ))}
 
-            {/* Batch & pricing fields - create mode only */}
-            {!editingProduct && [
-              { name: 'batchNo', label: 'Batch No', type: 'text', icon: Hash, placeholder: 'Batch number' },
-              { name: 'expiryDate', label: 'Expiry Date', type: 'date', icon: Calendar },
-              { name: 'oldMRP', label: 'Old MRP', type: 'number', icon: DollarSign, placeholder: '0.00', step: '0.01', min: '0' },
-              { name: 'newMRP', label: 'Current MRP *', type: 'number', icon: DollarSign, placeholder: '0.00', step: '0.01', min: '0', required: true },
-              { name: 'rate', label: 'Rate (Incl. GST) *', type: 'number', icon: DollarSign, placeholder: '0.00', step: '0.01', min: '0', required: true }
+            {/* Pricing fields */}
+            {[
+              { name: 'newMRP', label: 'MRP *', type: 'number', icon: DollarSign, placeholder: '0.00', step: '0.01', min: '0', required: true },
+              { name: 'rate', label: 'Rate (Incl. GST) *', type: 'number', icon: DollarSign, placeholder: '0.00', step: '0.01', min: '0', required: true },
+              ...(!editingProduct ? [{ name: 'oldMRP', label: 'Old MRP', type: 'number', icon: DollarSign, placeholder: '0.00', step: '0.01', min: '0' }] : [])
             ].map((field, index) => (
               <motion.div
                 key={field.name}
@@ -809,7 +794,7 @@ export default function ProductsPage() {
             )}
           </motion.div>
 
-          {/* Batch Management Link - only in edit mode */}
+          {/* Stock Management Link - only in edit mode */}
           {editingProduct && (
             <motion.div 
               className="pt-6 mt-4 border-t border-slate-700"
@@ -822,10 +807,10 @@ export default function ProductsPage() {
                   <div>
                     <p className="text-white font-medium flex items-center gap-2">
                       <Layers className="w-4 h-4 text-emerald-400" />
-                      Batch & Stock Management
+                      Stock Management
                     </p>
                     <p className="text-xs text-slate-400 mt-1">
-                      Manage batches, adjust stock, and view inventory on the Product Details page
+                      Adjust stock and view inventory on the Product Details page
                     </p>
                   </div>
                   <Link

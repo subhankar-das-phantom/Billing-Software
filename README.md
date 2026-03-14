@@ -2,13 +2,13 @@
 
 [![CI](https://github.com/subhankar-das-phantom/Billing-Software/actions/workflows/ci.yml/badge.svg)](https://github.com/subhankar-das-phantom/Billing-Software/actions/workflows/ci.yml)
 
-A production-ready MERN stack billing and inventory management system tailored for pharmaceutical distributors. Features GST-compliant invoicing, true FIFO batch tracking, sales returns via Credit Notes, and role-based access control to streamline warehouse operations and accounting.
+A production-ready MERN stack billing and inventory management system tailored for pharmaceutical distributors. Features GST-compliant invoicing, simplified stock tracking, customisable invoice layouts, sales returns via Credit Notes, and role-based access control to streamline warehouse operations and accounting.
 
 ## Features
 
 ### Core Functionality
 - ✅ **Secure Authentication** - JWT-based login with role-based access control
-- ✅ **Product Management** - Create, edit, delete products with real-time stock tracking
+- ✅ **Product Management** - Create, edit, delete products with real-time stock tracking (MRP, Rate, optional Batch No & Expiry)
 - ✅ **Customer Management** - Customer profiles with credit limits, search, and transaction history
 - ✅ **Invoice Creation** - Multi-item invoices with real-time GST calculations (CGST/SGST)
 - ✅ **Invoice History** - View, print, and export past invoices
@@ -16,11 +16,9 @@ A production-ready MERN stack billing and inventory management system tailored f
 - ✅ **Dashboard** - Quick statistics, low stock alerts, and business overview
 
 ### Advanced Features
-- ✅ **Batch Inventory (FIFO)** - True pharmaceutical-style batch management with automated stock consumption based on earliest expiry dates.
-- ✅ **GST-Compliant Sales Returns** - Issue Credit Notes for returns (Section 34 GST Act), preserving original invoice integrity and automatically restoring batch stock.
-- ✅ **Optional Batch & Expiry** - Fast-billing support allowing operators to create invoices even when batch details are missing.
-- ✅ **Manual Batch Overrides** - Choose exactly which batch of stock to consume during billing when FIFO isn't desired.
-- ✅ **Real-Time Stock Sync** - Automated constant synchronization between parent product balances and individual batch records.
+- ✅ **Simplified Stock Tracking** - Single-source-of-truth inventory using `Product.currentStockQty`. Optional Batch No and Expiry Date fields for record-keeping.
+- ✅ **GST-Compliant Sales Returns** - Issue Credit Notes for returns (Section 34 GST Act), preserving original invoice integrity and automatically restoring stock.
+- ✅ **Customisable Invoice Columns** - Toggle which columns appear on printed invoices (Qty, Free, Product Name, HSN, Batch, Expiry, MRP, Rate, Net, Disc%, GST%, Amount). Preferences persist via localStorage.
 - ✅ **Invoice Export** - Export invoices to Excel (.xlsx) and CSV formats with date range filtering
 - ✅ **Admin-Controlled Employee Accounts** - No self-signup; admins create and manage employee access
 - ✅ **Employee Activity Tracking** - All actions (invoices, payments, inventory updates) are attributed to the logged-in user
@@ -162,11 +160,6 @@ bharat-billing/
 - `PUT /api/products/:id` - Update product
 - `DELETE /api/products/:id` - Delete product
 
-### Batches
-- `GET /api/batches/product/:productId` - Get all batches for a specific product
-- `POST /api/batches` - Create a new batch
-- `PUT /api/batches/:id` - Update batch details or adjust stock
-- `DELETE /api/batches/:id` - Delete a batch
 
 ### Customers
 - `GET /api/customers` - List customers
@@ -186,7 +179,7 @@ bharat-billing/
 
 ### Invoices
 - `GET /api/invoices` - List invoices (with pagination & filters)
-- `POST /api/invoices` - Create invoice (with FIFO batch auto-consumption)
+- `POST /api/invoices` - Create invoice (stock auto-deducted from product)
 - `GET /api/invoices/:id` - Get invoice details
 - `PUT /api/invoices/:id` - Update invoice
 - `GET /api/invoices/customer/:id` - Get customer invoices
@@ -240,13 +233,13 @@ bharat-billing/
 2. Search and add products specifying quantity
 3. View real-time GST calculations
 4. Validate overall stock availability
-5. Save invoice → Stock automatically reduced across batches using FIFO logic (earliest expiry first)
+5. Save invoice → Stock automatically deducted from `Product.currentStockQty`
 
 ### Processing a Sales Return
 1. Open original invoice and click "Create Return"
 2. Select items to return and specify return quantities
 3. System validates against originally sold quantities
-4. Generate Credit Note → Stock automatically restored to correct specific batches
+4. Generate Credit Note → Stock automatically restored to `Product.currentStockQty`
 5. Customer credit balance is updated for future adjustments
 
 ### GST Calculation

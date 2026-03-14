@@ -56,14 +56,6 @@ const productSchema = new mongoose.Schema({
     trim: true,
     default: ''
   },
-  batchNo: {
-    type: String,
-    trim: true,
-    default: null
-  },
-  expiryDate: {
-    type: Date
-  },
   oldMRP: {
     type: Number,
     default: 0
