@@ -119,13 +119,13 @@ export default function InvoiceViewPage() {
   const activeColumns = ALL_COLUMNS.filter(c => visibleColumns.includes(c.key));
   
   // 1. Fetch Invoice
-  const { data: invoiceData, loading: invoiceLoading, mutate: mutateInvoice, isValidating: isInvoiceValidating } = useSWR(
+  const { data: invoiceData, isLoading: invoiceLoading, mutate: mutateInvoice, isValidating: isInvoiceValidating } = useSWR(
     id ? `invoice-${id}` : null,
     () => invoiceService.getInvoice(id)
   );
 
   // 2. Fetch Credit Notes for Invoice
-  const { data: creditNotesData, loading: cnLoading, mutate: mutateCN, isValidating: isCNValidating } = useSWR(
+  const { data: creditNotesData, isLoading: cnLoading, mutate: mutateCN, isValidating: isCNValidating } = useSWR(
     id ? `credit-notes-invoice-${id}` : null,
     () => creditNoteService.getCreditNotesByInvoice(id).catch(() => ({ creditNotes: [] }))
   );
@@ -684,4 +684,3 @@ export default function InvoiceViewPage() {
     </>
   );
 }
-
