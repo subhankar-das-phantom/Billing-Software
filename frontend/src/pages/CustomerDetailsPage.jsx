@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -25,14 +25,15 @@ import {
 } from 'lucide-react';
 import { customerService } from '../services/customerService';
 import { getPaymentsByCustomer, getPaymentStatusColor } from '../services/creditService';
-import { invoiceService } from '../services/invoiceService';
 import { manualEntryService } from '../services/manualEntryService';
 import { formatCurrency, formatDate, formatPhone } from '../utils/formatters';
 import { PageLoader } from '../components/Common/Loader';
 import RecordPaymentModal from '../components/Common/RecordPaymentModal';
 import ManualEntryModal from '../components/ManualEntry/ManualEntryModal';
 import { useAuth } from '../context/AuthContext';
-import { invalidateCachePattern } from '../hooks';
+import { invalidateCachePattern, useMotionConfig } from '../hooks';
+
+const LARGE_ROW_THRESHOLD = 20;
 
 // Animated counter component
 const AnimatedCounter = ({ value, prefix = '', suffix = '' }) => {
@@ -75,6 +76,7 @@ const AnimatedCounter = ({ value, prefix = '', suffix = '' }) => {
 export default function CustomerDetailsPage() {
   const { id } = useParams();
   const { isAdmin } = useAuth();
+  const motionConfig = useMotionConfig();
   const [customer, setCustomer] = useState(null);
   const [invoices, setInvoices] = useState([]);
   const [payments, setPayments] = useState([]);
@@ -124,40 +126,45 @@ export default function CustomerDetailsPage() {
     setShowPaymentModal(true);
   };
 
-  // Get unpaid/partial invoices for payment modal (only invoices with remaining balance)
-  const unpaidInvoices = invoices.filter(inv => {
+  const unpaidInvoices = useMemo(() => invoices.filter(inv => {
     if (inv.status === 'Cancelled') return false;
     if (inv.paymentStatus === 'Paid') return false;
-    
-    // Also check actual remaining amount in case paymentStatus is not updated
+
     const remaining = (inv.totals?.netTotal || 0) - (inv.paidAmount || 0);
     return remaining > 0;
-  });
-  // Calculate outstanding balance from invoices + manual entries
-  const invoiceOutstanding = invoices.reduce((sum, inv) => {
+  }), [invoices]);
+
+  const invoiceOutstanding = useMemo(() => invoices.reduce((sum, inv) => {
     if (inv.status === 'Cancelled') return sum;
     const remaining = (inv.totals?.netTotal || 0) - (inv.paidAmount || 0);
     return sum + (remaining > 0 ? remaining : 0);
-  }, 0);
-  
-  // Add opening balance entries (Credit type only increases outstanding)
-  const manualEntryOutstanding = manualEntries.reduce((sum, entry) => {
+  }, 0), [invoices]);
+
+  const manualEntryOutstanding = useMemo(() => manualEntries.reduce((sum, entry) => {
     if (entry.entryType === 'opening_balance' && entry.paymentType === 'Credit') {
       const remaining = entry.amount - (entry.paidAmount || 0);
       return sum + remaining;
     }
     return sum;
-  }, 0);
-  
+  }, 0), [manualEntries]);
+
   const calculatedOutstanding = invoiceOutstanding + manualEntryOutstanding;
+
+  const rowCount = activeTab === 'invoices'
+    ? invoices.length
+    : activeTab === 'payments'
+      ? payments.length + manualEntries.length
+      : manualEntries.length;
+  const denseRows = rowCount > LARGE_ROW_THRESHOLD;
+  const shouldAnimateRows = motionConfig.shouldAnimate && !denseRows;
 
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.2
+        staggerChildren: shouldAnimateRows ? 0.08 : 0,
+        delayChildren: shouldAnimateRows ? 0.12 : 0
       }
     }
   };
@@ -168,26 +175,67 @@ export default function CustomerDetailsPage() {
       opacity: 1,
       y: 0,
       transition: {
-        type: 'spring',
-        stiffness: 300,
-        damping: 24
+        type: motionConfig.isMobile || denseRows ? 'tween' : 'spring',
+        duration: motionConfig.isMobile || denseRows ? 0.18 : undefined,
+        stiffness: motionConfig.isMobile || denseRows ? undefined : 300,
+        damping: motionConfig.isMobile || denseRows ? undefined : 24
       }
     }
   };
 
   const tableRowVariants = {
-    hidden: { opacity: 0, x: -20 },
+    hidden: { opacity: 0, x: denseRows ? 0 : -20 },
     visible: (i) => ({
       opacity: 1,
       x: 0,
       transition: {
-        delay: i * 0.05,
-        type: 'spring',
-        stiffness: 300,
-        damping: 24
+        delay: shouldAnimateRows ? Math.min(i * 0.02, 0.12) : 0,
+        type: denseRows ? 'tween' : 'spring',
+        duration: denseRows ? 0.12 : undefined,
+        stiffness: denseRows ? undefined : 300,
+        damping: denseRows ? undefined : 24
       }
     })
   };
+
+  const paymentAdjustments = useMemo(
+    () => manualEntries.filter(e => e.entryType === 'payment_adjustment'),
+    [manualEntries]
+  );
+
+  const openingBalanceWithDue = useMemo(
+    () => manualEntries.some(e => e.entryType === 'opening_balance' && (e.amount - (e.paidAmount || 0)) > 0),
+    [manualEntries]
+  );
+
+  const allPayments = useMemo(() => {
+    const manualPayments = paymentAdjustments.map(e => ({
+      _id: e._id,
+      amount: e.amount,
+      date: e.entryDate,
+      method: e.paymentMethod || 'Manual',
+      reference: 'Manual Payment',
+      invoiceNumber: e.description || 'Opening Balance Payment',
+      invoiceId: null,
+      isManual: true,
+      type: 'Manual Entry'
+    }));
+
+    const invoicePayments = payments.map(p => ({
+      _id: p._id,
+      amount: p.amount,
+      date: p.paymentDate,
+      method: p.paymentMethod,
+      reference: p.referenceNumber,
+      invoiceNumber: p.invoice?.invoiceNumber || 'Unknown Invoice',
+      invoiceId: p.invoice?._id || null,
+      isManual: false,
+      type: 'Invoice Payment'
+    }));
+
+    return [...invoicePayments, ...manualPayments]
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [paymentAdjustments, payments]);
 
   if (loading) {
     return <PageLoader />;
@@ -244,7 +292,7 @@ export default function CustomerDetailsPage() {
 
   const tabs = [
     { id: 'invoices', label: 'Invoices', icon: FileText, count: invoices.length },
-    { id: 'payments', label: 'Payments', icon: CreditCard, count: payments.length + manualEntries.filter(e => e.entryType === 'payment_adjustment').length },
+    { id: 'payments', label: 'Payments', icon: CreditCard, count: payments.length + paymentAdjustments.length },
     { id: 'ledger', label: 'Ledger', icon: BookOpen, count: manualEntries.length },
   ];
 
@@ -636,11 +684,11 @@ export default function CustomerDetailsPage() {
                               variants={tableRowVariants}
                               initial="hidden"
                               animate="visible"
-                              whileHover={{ 
+                              whileHover={denseRows ? { backgroundColor: 'rgba(51, 65, 85, 0.5)' } : {
                                 backgroundColor: 'rgba(51, 65, 85, 0.5)',
                                 x: 4
                               }}
-                              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                              transition={denseRows ? { duration: 0.12 } : { type: 'spring', stiffness: 400, damping: 25 }}
                             >
                               <td className="font-medium text-white">
                                 <div className="flex items-center gap-2">
@@ -723,94 +771,62 @@ export default function CustomerDetailsPage() {
                 exit={{ opacity: 0, x: 20 }}
               >
                 {/* Consolidate Payments */}
-                {(() => {
-                  const manualPayments = manualEntries
-                    .filter(e => e.entryType === 'payment_adjustment')
-                    .map(e => ({
-                      _id: e._id,
-                      amount: e.amount,
-                      date: e.entryDate,
-                      method: e.paymentMethod || 'Manual',
-                      reference: `Manual Payment`, // Or use description
-                      invoiceNumber: e.description || 'Opening Balance Payment',
-                      isManual: true,
-                      type: 'Manual Entry'
-                    }));
-
-                  const invoicePayments = payments.map(p => ({
-                    _id: p._id,
-                    amount: p.amount,
-                    date: p.paymentDate,
-                    method: p.paymentMethod,
-                    reference: p.referenceNumber,
-                    invoiceNumber: p.invoice?.invoiceNumber || 'Unknown Invoice',
-                    isManual: false,
-                    type: 'Invoice Payment'
-                  }));
-
-                  const allPayments = [...invoicePayments, ...manualPayments]
-                    .sort((a, b) => new Date(b.date) - new Date(a.date));
-
-                  if (allPayments.length === 0) {
-                    return (
-                      <div className="text-center py-12">
-                        <motion.div
-                          className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-800 mb-4"
-                          initial={{ scale: 0, rotate: -180 }}
-                          animate={{ scale: 1, rotate: 0 }}
-                          transition={{ type: 'spring', stiffness: 200, delay: 0.2 }}
-                        >
-                          <CreditCard className="w-8 h-8 text-slate-400" />
-                        </motion.div>
-                        <motion.p
-                          className="text-slate-400"
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.3 }}
-                        >
-                          No payments recorded yet
-                        </motion.p>
-                        {(unpaidInvoices.length > 0 || manualEntries.some(e => e.entryType === 'opening_balance' && (e.amount - (e.paidAmount || 0)) > 0)) && (
-                          <motion.button
-                            onClick={() => handleRecordPayment()}
-                            className="btn btn-primary mt-4 inline-flex items-center gap-2"
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.4 }}
+                {allPayments.length === 0 ? (
+                  <div className="text-center py-12">
+                    <motion.div
+                      className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-800 mb-4"
+                      initial={{ scale: 0, rotate: -180 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{ type: 'spring', stiffness: 200, delay: 0.2 }}
+                    >
+                      <CreditCard className="w-8 h-8 text-slate-400" />
+                    </motion.div>
+                    <motion.p
+                      className="text-slate-400"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                    >
+                      No payments recorded yet
+                    </motion.p>
+                    {(unpaidInvoices.length > 0 || openingBalanceWithDue) && (
+                      <motion.button
+                        onClick={() => handleRecordPayment()}
+                        className="btn btn-primary mt-4 inline-flex items-center gap-2"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4 }}
+                      >
+                        <CreditCard className="w-4 h-4" />
+                        Record First Payment
+                      </motion.button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-slate-700 text-left">
+                          <th className="pb-4 pl-4 font-medium text-slate-400">Reference / Invoice</th>
+                          <th className="pb-4 font-medium text-slate-400">Date</th>
+                          <th className="pb-4 font-medium text-slate-400">Method</th>
+                          <th className="pb-4 font-medium text-slate-400">Amount</th>
+                          <th className="pb-4 font-medium text-slate-400">Type</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-700">
+                        {allPayments.map((payment) => (
+                          <tr
+                            key={payment._id}
+                            className="hover:bg-slate-700/50 transition-colors"
                           >
-                            <CreditCard className="w-4 h-4" />
-                            Record First Payment
-                          </motion.button>
-                        )}
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b border-slate-700 text-left">
-                            <th className="pb-4 pl-4 font-medium text-slate-400">Reference / Invoice</th>
-                            <th className="pb-4 font-medium text-slate-400">Date</th>
-                            <th className="pb-4 font-medium text-slate-400">Method</th>
-                            <th className="pb-4 font-medium text-slate-400">Amount</th>
-                            <th className="pb-4 font-medium text-slate-400">Type</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-700">
-                          {allPayments.map((payment, index) => (
-                            <tr
-                              key={payment._id}
-                              className="hover:bg-slate-700/50 transition-colors"
-                            >
                               <td className="py-4 pl-4 font-medium text-white">
                                 <div className="flex items-center gap-2">
                                   <FileText className="w-4 h-4 text-blue-400" />
                                   {payment.isManual ? (
                                     <span className="text-slate-300">{payment.reference}</span>
                                   ) : (
-                                    <Link to={`/invoices/${payment.invoice?._id}`} className="hover:underline hover:text-blue-400 transition-colors">
+                                    <Link to={`/invoices/${payment.invoiceId}`} className="hover:underline hover:text-blue-400 transition-colors">
                                       {payment.invoiceNumber}
                                     </Link>
                                   )}
@@ -845,12 +861,11 @@ export default function CustomerDetailsPage() {
                                 </span>
                               </td>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  );
-                })()}
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </motion.div>
             )}
 
@@ -907,7 +922,7 @@ export default function CustomerDetailsPage() {
                           key={entry._id}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.05 }}
+                          transition={{ delay: shouldAnimateRows ? Math.min(index * 0.02, 0.12) : 0, duration: denseRows ? 0.12 : undefined }}
                           className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50 hover:border-purple-500/30 transition-all"
                         >
                           <div className="flex items-center justify-between">
