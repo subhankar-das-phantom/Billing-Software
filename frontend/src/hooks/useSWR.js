@@ -233,7 +233,7 @@ export function useSWR(key, fetcher, options = {}) {
 
   // Fetch and update data
   const revalidate = useCallback(async () => {
-    if (!mountedRef.current) return;
+    if (!mountedRef.current || !key) return;
 
     setIsValidating(true);
     setError(null);
@@ -263,6 +263,7 @@ export function useSWR(key, fetcher, options = {}) {
 
   // Manual mutate function to update cache and trigger revalidation
   const mutate = useCallback((newData, shouldRevalidate = true) => {
+    if (!key) return;
     if (newData !== undefined) {
       setData(newData);
       setCachedData(key, newData, ttl);
@@ -276,7 +277,7 @@ export function useSWR(key, fetcher, options = {}) {
   useEffect(() => {
     mountedRef.current = true;
 
-    if (revalidateOnMount || !initialCache.data) {
+    if (key && (revalidateOnMount || !initialCache.data)) {
       revalidate();
     }
 
@@ -287,6 +288,8 @@ export function useSWR(key, fetcher, options = {}) {
 
   // Subscribe to cross-tab invalidations
   useEffect(() => {
+    if (!key) return undefined;
+
     // Register for invalidation notifications
     invalidationSubscribers.set(key, revalidate);
     
@@ -351,6 +354,7 @@ export function useSWR(key, fetcher, options = {}) {
     data,
     error,
     isLoading,      // True only on initial load (no cached data)
+    loading: isLoading, // Backward-compatible alias for existing callers
     isValidating,   // True when fetching in background
     isStale,        // True when showing stale cached data
     mutate,         // Function to manually update/revalidate
