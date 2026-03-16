@@ -39,13 +39,13 @@ export default function CreditNoteCreatePage() {
   const isInitialized = useRef(false);
 
   // 1. Fetch Invoice
-  const { data: invoiceData, loading: invLoading, isValidating: isInvValidating, error: invError } = useSWR(
+  const { data: invoiceData, isLoading: invLoading, isValidating: isInvValidating, error: invError } = useSWR(
     invoiceId ? `invoice-${invoiceId}` : null,
     () => invoiceService.getInvoice(invoiceId, false)
   );
 
   // 2. Fetch Credit Notes for Invoice
-  const { data: creditNotesData, loading: cnLoading, isValidating: isCnValidating } = useSWR(
+  const { data: creditNotesData, isLoading: cnLoading, isValidating: isCnValidating } = useSWR(
     invoiceId ? `credit-notes-invoice-${invoiceId}` : null,
     () => creditNoteService.getCreditNotesByInvoice(invoiceId).catch(() => ({ returnSummary: {} }))
   );
