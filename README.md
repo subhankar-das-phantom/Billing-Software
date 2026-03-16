@@ -8,7 +8,7 @@ A production-ready MERN stack billing and inventory management system tailored f
 
 ### Core Functionality
 - ✅ **Secure Authentication** - JWT-based login with role-based access control
-- ✅ **Product Management** - Create, edit, delete products with real-time stock tracking (MRP, Rate, optional Batch No & Expiry for record keeping)
+- ✅ **Product Management** - Create, edit, delete products with real-time stock tracking (MRP, Rate, optional Batch No & Expiry fields are stored only for informational display on invoices and product records. They do not affect stock calculations.)
 - ✅ **Customer Management** - Customer profiles with credit limits, search, and transaction history
 - ✅ **Invoice Creation** - Multi-item invoices with real-time GST calculations (CGST/SGST)
 - ✅ **Invoice History** - View, print, and export past invoices
@@ -27,7 +27,7 @@ Optional Batch No and Expiry fields are stored only for informational purposes a
 - ✅ **Monthly Sales Analytics** - Revenue trends, top customers, and product performance insights
 - ✅ **Snapshot-Based Invoices** - Invoice data is captured at creation time for audit-safe historical integrity
 - ✅ **SWR Caching** - Blazing fast page loads with Stale-While-Revalidate caching and background syncing across tabs.
-- ✅ **Continuous Integration** - Automated GitHub Actions pipeline for backend verification and frontend building/linting.
+- ✅ **Continuous Integration** - Automated GitHub Actions pipeline. The CI pipeline runs linting, dependency checks, backend startup verification, and frontend build validation on every push.
 - 🔜 **PDF Export** - PDF invoice generation (planned)
 
 ## Tech Stack
@@ -48,7 +48,7 @@ The application follows a typical MERN stack layered architecture:
 - **Frontend**: React + Vite SPA using SWR caching and Axios for API communication.
 - **Backend**: Express.js REST API with controllers handling business logic.
 - **Database**: MongoDB with Mongoose schemas for Products, Customers, Invoices, Payments, and Credit Notes.
-- **Inventory Model**: Stock is tracked at the product level using `Product.currentStockQty`. Invoice creation deducts stock and credit notes restore stock.
+- **Inventory Model**: Stock is tracked at the product level using `Product.currentStockQty`. Invoice creation deducts stock and credit notes restore stock. Editing or cancelling invoices automatically restores stock before applying changes, ensuring product inventory remains consistent.
 
 ## Quick Start
 
@@ -331,4 +331,4 @@ This system prioritizes **reliability over feature bloat**:
 ## License
 
 This project is licensed under the terms specified in the [LICENSE](LICENSE) file.  
-Copyright (c) 2026 Bharat Enterprise. All rights reserved.
+Copyright (c) 2026 Subhankar Das / Bharat Enterprise. All rights reserved.
