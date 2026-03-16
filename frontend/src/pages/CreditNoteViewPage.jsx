@@ -42,7 +42,7 @@ export default function CreditNoteViewPage() {
   const printRef = useRef();
   const { error } = useToast();
 
-  const { data: creditNoteData, loading, isValidating } = useSWR(
+  const { data: creditNoteData, isLoading: loading, isValidating } = useSWR(
     id ? `credit-note-${id}` : null,
     () => creditNoteService.getCreditNote(id)
   );
