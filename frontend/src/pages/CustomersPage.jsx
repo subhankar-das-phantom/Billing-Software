@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -19,14 +19,13 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { customerService } from '../services/customerService';
-import { formatCurrency, formatDate, formatPhone } from '../utils/formatters';
+import { formatCurrency, formatPhone } from '../utils/formatters';
 import { PageLoader } from '../components/Common/Loader';
 import Modal from '../components/Common/Modal';
 import ConfirmDialog from '../components/Common/ConfirmDialog';
 import EnhancedButton from '../components/Common/EnhancedButton';
 import { useToast } from '../context/ToastContext';
 import { useMotionConfig, useSWR, invalidateCachePattern } from '../hooks';
-import RefreshIndicator from '../components/Common/RefreshIndicator';
 
 const initialCustomerState = {
   customerName: '',
@@ -38,7 +37,130 @@ const initialCustomerState = {
   customerCode: ''
 };
 
+const LARGE_CUSTOMER_LIST_THRESHOLD = 24;
+
+const CustomerCard = memo(function CustomerCard({
+  customer,
+  index,
+  denseMode,
+  shouldHover,
+  shouldStagger,
+  openEditModal,
+  setDeleteDialog
+}) {
+  return (
+    <motion.div
+      layout={!denseMode}
+      initial={denseMode ? false : { opacity: 0, scale: 0.96 }}
+      animate={{
+        opacity: 1,
+        scale: 1,
+        transition: {
+          delay: shouldStagger && !denseMode ? Math.min(index * 0.02, 0.12) : 0,
+          duration: denseMode ? 0.12 : 0.2
+        }
+      }}
+      exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.12 } }}
+      whileHover={shouldHover ? { y: -4 } : undefined}
+      className="glass-card p-6 hover:border-blue-500/50 transition-colors cursor-pointer group"
+    >
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center relative overflow-hidden shadow-lg shadow-emerald-500/30 flex-shrink-0">
+            <span className="text-white font-bold text-lg">
+              {customer.customerName?.charAt(0)}
+            </span>
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-white truncate">
+              {customer.customerName}
+            </h3>
+            <p className="text-sm text-slate-400 flex items-center gap-1">
+              <Phone className="w-3 h-3" />
+              {formatPhone(customer.phone)}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              openEditModal(customer);
+            }}
+            className="p-2 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-blue-400 transition-colors"
+            title="Edit"
+          >
+            <Edit2 className="w-4 h-4" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setDeleteDialog({ open: true, customer });
+            }}
+            className="p-2 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-red-400 transition-colors"
+            title="Delete"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      <div className="space-y-2 text-sm mb-4">
+        {customer.address && (
+          <p className="text-slate-400 line-clamp-2 flex items-start gap-2">
+            <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-500" />
+            <span>{customer.address}</span>
+          </p>
+        )}
+        {customer.gstin && (
+          <p className="text-slate-400 flex items-center gap-2">
+            <FileText className="w-4 h-4 text-slate-500" />
+            <span className="text-slate-500">GST:</span>
+            <span>{customer.gstin}</span>
+          </p>
+        )}
+        {customer.email && (
+          <p className="text-slate-400 flex items-center gap-2 truncate">
+            <Mail className="w-4 h-4 text-slate-500 flex-shrink-0" />
+            <span className="truncate">{customer.email}</span>
+          </p>
+        )}
+      </div>
+
+      <div className="flex items-center justify-between pt-4 border-t border-slate-700">
+        <div className="flex items-center gap-2">
+          <div className="p-2 bg-emerald-500/20 rounded-lg">
+            <DollarSign className="w-4 h-4 text-emerald-400" />
+          </div>
+          <div>
+            <p className="text-xs text-slate-500">Total Purchases</p>
+            <p className="font-semibold text-emerald-400">
+              {formatCurrency(customer.totalPurchases)}
+            </p>
+          </div>
+        </div>
+
+        <div className="text-right">
+          <p className="text-xs text-slate-500 mb-1">
+            {customer.invoiceCount || 0} Invoices
+          </p>
+          <Link
+            to={`/customers/${customer._id}`}
+            className="text-sm text-blue-400 hover:text-blue-300 inline-flex items-center gap-1 font-medium"
+          >
+            View Details
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      </div>
+    </motion.div>
+  );
+});
+
 export default function CustomersPage() {
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -63,37 +185,36 @@ export default function CustomersPage() {
   const customers = data?.customers || [];
   const loading = isLoading && customers.length === 0;
 
-  // Debounced search - triggers revalidation on input change
+  // Debounced search key update
   useEffect(() => {
-    // Clear previous timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
 
-    // Debounce search by 300ms
     searchTimeoutRef.current = setTimeout(() => {
-      mutate(); // Trigger revalidation
+      setSearch(searchInput);
     }, 300);
 
-    // Cleanup on unmount
     return () => {
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [search, mutate]);
+  }, [searchInput]);
 
   const handleSearch = (e) => {
     e.preventDefault();
-    // Immediate search on form submit
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
-    mutate(); // Trigger revalidation
+    setSearch(searchInput);
   };
 
-  // Clear search and reload
   const handleClearSearch = () => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    setSearchInput('');
     setSearch('');
   };
 
@@ -164,33 +285,6 @@ export default function CustomersPage() {
     }
   };
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: motionConfig.shouldStagger ? 0.08 : 0,
-        delayChildren: motionConfig.isMobile ? 0 : 0.1
-      }
-    }
-  };
-
-  const cardVariants = {
-    hidden: { 
-      opacity: 0, 
-      y: motionConfig.isMobile ? 15 : 30,
-      scale: motionConfig.isMobile ? 1 : 0.95
-    },
-    visible: {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      transition: motionConfig.isMobile 
-        ? { type: 'tween', duration: 0.25, ease: 'easeOut' }
-        : { type: 'spring', stiffness: 300, damping: 24 }
-    }
-  };
-
   const formItemVariants = {
     hidden: { opacity: 0, x: -20 },
     visible: (i) => ({
@@ -204,6 +298,10 @@ export default function CustomersPage() {
       }
     })
   };
+
+  const denseMode = customers.length > LARGE_CUSTOMER_LIST_THRESHOLD;
+  const shouldStaggerCards = motionConfig.shouldStagger && !denseMode;
+  const shouldHoverCards = motionConfig.shouldHover && !denseMode;
 
   if (loading) {
     return <PageLoader />;
@@ -238,15 +336,15 @@ export default function CustomersPage() {
             </div>
             <input
               type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setSearchFocused(false)}
               placeholder="Search by name, phone, GSTIN..."
               className="input pl-10 w-full"
             />
             <AnimatePresence>
-              {search && (
+              {searchInput && (
                 <motion.button
                   type="button"
                   onClick={handleClearSearch}
@@ -335,169 +433,18 @@ export default function CustomersPage() {
             animate={{ opacity: 1 }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
           >
-            <AnimatePresence mode="popLayout">
+            <AnimatePresence mode={denseMode ? 'sync' : 'popLayout'}>
               {customers.map((customer, index) => (
-                <motion.div
+                <CustomerCard
                   key={customer._id}
-                  layout
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ 
-                    opacity: 1, 
-                    scale: 1,
-                    transition: { 
-                      delay: motionConfig.shouldStagger ? Math.min(index * 0.03, 0.15) : 0,
-                      duration: 0.2 
-                    }
-                  }}
-                  exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.15 } }}
-                  whileHover={motionConfig.shouldHover ? { y: -6 } : undefined}
-                  className="glass-card p-6 hover:border-blue-500/50 transition-colors cursor-pointer group"
-                >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3 flex-1">
-                    {/* Avatar */}
-                    <motion.div
-                      className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center relative overflow-hidden shadow-lg shadow-emerald-500/30"
-                      whileHover={motionConfig.shouldHover ? { scale: 1.1 } : undefined}
-                      transition={{ type: 'spring', stiffness: 400 }}
-                    >
-                      <span className="text-white font-bold text-lg relative z-10">
-                        {customer.customerName?.charAt(0)}
-                      </span>
-                      <motion.div
-                        className="absolute inset-0 bg-gradient-to-br from-teal-600 to-emerald-500"
-                        initial={{ scale: 0, opacity: 0 }}
-                        whileHover={{ scale: 1, opacity: 1 }}
-                        transition={{ duration: 0.3 }}
-                      />
-                    </motion.div>
-
-                    <div className="flex-1 min-w-0">
-                      <motion.h3
-                        className="font-semibold text-white truncate"
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                      >
-                        {customer.customerName}
-                      </motion.h3>
-                      <motion.p
-                        className="text-sm text-slate-400 flex items-center gap-1"
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.05 }}
-                      >
-                        <Phone className="w-3 h-3" />
-                        {formatPhone(customer.phone)}
-                      </motion.p>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <motion.button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openEditModal(customer);
-                      }}
-                      className="p-2 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-blue-400 transition-colors"
-                      whileHover={{ scale: 1.1, rotate: 5 }}
-                      whileTap={{ scale: 0.9 }}
-                      title="Edit"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </motion.button>
-                    <motion.button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteDialog({ open: true, customer });
-                      }}
-                      className="p-2 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-red-400 transition-colors"
-                      whileHover={{ scale: 1.1, rotate: -5 }}
-                      whileTap={{ scale: 0.9 }}
-                      title="Delete"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </motion.button>
-                  </div>
-                </div>
-
-                {/* Customer Details */}
-                <div className="space-y-2 text-sm mb-4">
-                  {customer.address && (
-                    <motion.p
-                      className="text-slate-400 line-clamp-2 flex items-start gap-2"
-                      whileHover={{ x: 4 }}
-                    >
-                      <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-500" />
-                      <span>{customer.address}</span>
-                    </motion.p>
-                  )}
-                  {customer.gstin && (
-                    <motion.p
-                      className="text-slate-400 flex items-center gap-2"
-                      whileHover={{ x: 4 }}
-                    >
-                      <FileText className="w-4 h-4 text-slate-500" />
-                      <span className="text-slate-500">GST:</span>
-                      <span>{customer.gstin}</span>
-                    </motion.p>
-                  )}
-                  {customer.email && (
-                    <motion.p
-                      className="text-slate-400 flex items-center gap-2 truncate"
-                      whileHover={{ x: 4 }}
-                    >
-                      <Mail className="w-4 h-4 text-slate-500 flex-shrink-0" />
-                      <span className="truncate">{customer.email}</span>
-                    </motion.p>
-                  )}
-                </div>
-
-                {/* Stats Footer */}
-                <motion.div
-                  className="flex items-center justify-between pt-4 border-t border-slate-700"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  <div className="flex items-center gap-2">
-                    <motion.div
-                      className="p-2 bg-emerald-500/20 rounded-lg"
-                      whileHover={{ rotate: 360, scale: 1.1 }}
-                      transition={{ duration: 0.5 }}
-                    >
-                      <DollarSign className="w-4 h-4 text-emerald-400" />
-                    </motion.div>
-                    <div>
-                      <p className="text-xs text-slate-500">Total Purchases</p>
-                      <p className="font-semibold text-emerald-400">
-                        {formatCurrency(customer.totalPurchases)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="text-right">
-                    <p className="text-xs text-slate-500 mb-1">
-                      {customer.invoiceCount || 0} Invoices
-                    </p>
-                    <motion.div whileHover={{ x: 4 }}>
-                      <Link
-                        to={`/customers/${customer._id}`}
-                        className="text-sm text-blue-400 hover:text-blue-300 inline-flex items-center gap-1 font-medium"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        View Details
-                        <motion.div
-                          animate={{ x: [0, 4, 0] }}
-                          transition={{ duration: 1.5, repeat: Infinity }}
-                        >
-                          <ArrowRight className="w-4 h-4" />
-                        </motion.div>
-                      </Link>
-                    </motion.div>
-                  </div>
-                </motion.div>
-              </motion.div>
+                  customer={customer}
+                  index={index}
+                  denseMode={denseMode}
+                  shouldHover={shouldHoverCards}
+                  shouldStagger={shouldStaggerCards}
+                  openEditModal={openEditModal}
+                  setDeleteDialog={setDeleteDialog}
+                />
             ))}
             </AnimatePresence>
           </motion.div>
