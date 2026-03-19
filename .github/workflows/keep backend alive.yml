@@ -1,0 +1,41 @@
+name: Keep Backend Awake
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Ping Backend Health Endpoint with Retry
+        run: |
+          echo "Starting backend health check..."
+
+          URL="${{ secrets.BACKEND_URL }}/api/health"
+
+          for i in {1..3}; do
+            echo "Attempt $i..."
+
+            RESPONSE=$(curl -s -o /dev/null -w "%{http_code} %{time_total}" --max-time 10 $URL)
+
+            STATUS=$(echo $RESPONSE | awk '{print $1}')
+            TIME=$(echo $RESPONSE | awk '{print $2}')
+
+            echo "Status Code: $STATUS"
+            echo "Response Time: ${TIME}s"
+
+            if [ "$STATUS" -eq 200 ]; then
+              echo "Backend is healthy ✅"
+              exit 0
+            fi
+
+            echo "Retrying in 5 seconds..."
+            sleep 5
+          done
+
+          echo "Health check failed after 3 attempts ❌"
+          exit 1
