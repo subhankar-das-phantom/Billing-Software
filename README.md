@@ -16,6 +16,7 @@ A production-ready MERN stack billing and inventory management system tailored f
 - ✅ **Dashboard** - Quick statistics, low stock alerts, and business overview
 
 ### Advanced Features
+- ✅ **Atomic Invoice Editing** - Pure delta-based stock adjustments during invoice edits. Race-condition proof using `$gte` guards, idempotent edits, and optimized N+1 batch queries, all executed within strict MongoDB transactions.
 - ✅ **Simplified Stock Tracking** - Inventory is managed at the product level using `Product.currentStockQty`. 
 Optional Batch No and Expiry fields are stored only for informational purposes and do not affect stock calculations.
 - ✅ **GST-Compliant Sales Returns** - Issue Credit Notes for returns (Section 34 GST Act), preserving original invoice integrity and automatically restoring stock.
@@ -48,7 +49,7 @@ The application follows a typical MERN stack layered architecture:
 - **Frontend**: React + Vite SPA using SWR caching and Axios for API communication.
 - **Backend**: Express.js REST API with controllers handling business logic.
 - **Database**: MongoDB with Mongoose schemas for Products, Customers, Invoices, Payments, and Credit Notes.
-- **Inventory Model**: Stock is tracked at the product level using `Product.currentStockQty`. Invoice creation deducts stock and credit notes restore stock. Editing or cancelling invoices automatically restores stock before applying changes, ensuring product inventory remains consistent.
+- **Inventory Model**: Stock is tracked at the product level using `Product.currentStockQty`. Invoice creation deducts stock and credit notes restore stock. Editing an invoice uses an atomic delta-based approach (deducting or restoring only the difference) protected by idempotency checks and MongoDB transactions, ensuring zero data corruption.
 
 ## Quick Start
 
@@ -244,6 +245,13 @@ bharat-billing/
 3. View real-time GST calculations
 4. Validate overall stock availability
 5. Save invoice → Stock automatically deducted from `Product.currentStockQty`
+
+### Editing an Invoice
+1. Open existing invoice and modify items (quantities, rates, or add/remove products)
+2. System batch-fetches products to eliminate N+1 query bottlenecks
+3. Smart duplicate validation groups identical items (same product, rate, discount)
+4. Computes exact stock delta (new quantity - old quantity) per product
+5. Conditionally updates stock using strict MongoDB transactions and `$gte` guards to prevent negative inventory
 
 ### Processing a Sales Return
 1. Open original invoice and click "Create Return"
