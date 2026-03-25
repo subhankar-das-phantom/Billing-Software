@@ -300,6 +300,26 @@ exports.createInvoice = async (req, res, next) => {
   }
 };
 
+// =============================================================================
+// UPDATE INVOICE — PURE DELTA-BASED STOCK ADJUSTMENT
+// =============================================================================
+//
+// STOCK RULE: Stock is modified in exactly ONE place — the delta loop (step 5).
+//             There is NO restore step. NO stockUpdates array. NO second deduction.
+//
+// FLOW:
+//   1. Fetch existing invoice
+//   2. Idempotency guard
+//   3. Build oldItemsMap (from existing invoice)
+//   4. Build newItemsMap (from request) + validate inputs
+//   5. Delta loop — THE ONLY STOCK CHANGE
+//   6. Process items (amounts only, zero stock logic)
+//   7. Calculate totals
+//   8. Resolve customer
+//   9. Update customer stats (delta-based)
+//   10. Update invoice document
+//   11. Commit
+//
 // @desc    Update invoice
 // @route   PUT /api/invoices/:id
 // @access  Private
@@ -308,90 +328,178 @@ exports.updateInvoice = async (req, res, next) => {
   session.startTransaction();
 
   try {
-    const { customerId, items, paymentType, notes } = req.body;
+    const { customerId, items, paymentType, notes, lastKnownUpdatedAt } = req.body;
 
-    // Find existing invoice
+    // ── STEP 1: Fetch existing invoice ─────────────────────────────────
     const existingInvoice = await Invoice.findById(req.params.id).session(session);
-    
+
     if (!existingInvoice) {
       await session.abortTransaction();
-      return res.status(404).json({
-        success: false,
-        message: 'Invoice not found'
-      });
+      return res.status(404).json({ success: false, message: 'Invoice not found' });
     }
 
-    // Don't allow editing cancelled invoices
     if (existingInvoice.status === 'Cancelled') {
       await session.abortTransaction();
-      return res.status(400).json({
+      return res.status(400).json({ success: false, message: 'Cannot edit a cancelled invoice' });
+    }
+
+    // ── STEP 2: Idempotency guard ──────────────────────────────────────
+    if (
+      lastKnownUpdatedAt &&
+      new Date(lastKnownUpdatedAt).getTime() !== new Date(existingInvoice.updatedAt).getTime()
+    ) {
+      await session.abortTransaction();
+      return res.status(409).json({
         success: false,
-        message: 'Cannot edit a cancelled invoice'
+        message: 'Invoice has been modified by another user. Please refresh and try again.'
       });
     }
 
-    // Step 1: Reverse stock for old items
-    for (const oldItem of existingInvoice.items) {
-      const totalQty = oldItem.quantitySold + (oldItem.freeQuantity || 0);
-      
-      await Product.findByIdAndUpdate(
-        oldItem.product._id,
-        {
-          $inc: { currentStockQty: totalQty },
-          $push: {
-            stockHistory: {
-              type: 'invoice_edit_reversal',
-              invoiceId: existingInvoice._id,
-              changeQty: totalQty,
-              reference: `${existingInvoice.invoiceNumber} - Edit Reversal`,
-              timestamp: new Date()
-            }
-          }
-        },
-        { session }
-      );
+    // ── STEP 3: Build oldItemsMap from existing invoice ────────────────
+    const oldItemsMap = {};
+    for (const item of existingInvoice.items) {
+      const pid = item.product._id.toString();
+      oldItemsMap[pid] = (oldItemsMap[pid] || 0) + item.quantitySold + (item.freeQuantity || 0);
     }
 
-    // Reverse customer stats for old invoice
-    await Customer.findByIdAndUpdate(
-      existingInvoice.customer._id,
-      {
-        $inc: { 
-          totalPurchases: -existingInvoice.totals.netTotal
-        }
-      },
-      { session }
-    );
+    // ── STEP 4: Build newItemsMap from request + validate inputs ───────
+    const newItemsMap = {};
+    for (const item of items) {
+      const sold = item.quantitySold;
+      const free = item.freeQuantity || 0;
 
-    // Step 2: Validate and process new items
-    let customer = existingInvoice.customer;
-    
-    // If customer changed, get new customer details
-    if (customerId && customerId !== existingInvoice.customer._id.toString()) {
-      const newCustomer = await Customer.findById(customerId).session(session);
-      if (!newCustomer) {
+      if (!Number.isFinite(sold) || sold < 1 || !Number.isInteger(sold)) {
+        await session.abortTransaction();
+        return res.status(400).json({
+          success: false,
+          message: `Invalid sold quantity (${sold}) for product ${item.productId}. Must be a positive integer.`
+        });
+      }
+      if (!Number.isFinite(free) || free < 0 || !Number.isInteger(free)) {
+        await session.abortTransaction();
+        return res.status(400).json({
+          success: false,
+          message: `Invalid free quantity (${free}) for product ${item.productId}. Must be a non-negative integer.`
+        });
+      }
+
+      const pid = item.productId.toString();
+      newItemsMap[pid] = (newItemsMap[pid] || 0) + sold + free;
+    }
+
+    // ── STEP 5: Delta-based stock adjustment ───────────────────────────
+    //
+    // THIS IS THE ONLY PLACE STOCK IS MODIFIED.
+    // Nothing above or below this block touches Product.currentStockQty.
+    //
+    const allProductIds = [
+      ...new Set([...Object.keys(oldItemsMap), ...Object.keys(newItemsMap)])
+    ].sort();
+
+    // Batch-fetch all involved products (eliminates N+1 queries)
+    const allProducts = await Product.find({ _id: { $in: allProductIds } }).session(session);
+    const productMap = {};
+    for (const p of allProducts) {
+      productMap[p._id.toString()] = p;
+    }
+
+    // Verify all products exist
+    for (const pid of allProductIds) {
+      if (!productMap[pid]) {
         await session.abortTransaction();
         return res.status(404).json({
           success: false,
-          message: 'Customer not found'
+          message: `Product ${pid} no longer exists. Cannot adjust stock.`
         });
       }
-      customer = {
-        _id: newCustomer._id,
-        customerName: newCustomer.customerName,
-        address: newCustomer.address,
-        phone: newCustomer.phone,
-        gstin: newCustomer.gstin,
-        dlNo: newCustomer.dlNo
-      };
+    }
+
+    for (const pid of allProductIds) {
+      const oldQty = oldItemsMap[pid] || 0;
+      const newQty = newItemsMap[pid] || 0;
+      const delta = newQty - oldQty;
+
+      if (delta === 0) continue;
+
+      if (delta > 0) {
+        // DEDUCT — safe conditional update prevents negative stock & race conditions
+        const updated = await Product.findOneAndUpdate(
+          { _id: pid, currentStockQty: { $gte: delta } },
+          {
+            $inc: { currentStockQty: -delta },
+            $push: {
+              stockHistory: {
+                type: 'invoice_edit',
+                invoiceId: existingInvoice._id,
+                changeQty: -delta,
+                reference: `${existingInvoice.invoiceNumber} - Edit (deducted ${delta})`,
+                timestamp: new Date()
+              }
+            }
+          },
+          { session, new: true }
+        );
+
+        if (!updated) {
+          await session.abortTransaction();
+          return res.status(400).json({
+            success: false,
+            message: `Insufficient stock for ${productMap[pid].productName}. Additional required: ${delta}`
+          });
+        }
+      } else {
+        // RESTORE — delta < 0, return stock to inventory
+        await Product.findByIdAndUpdate(
+          pid,
+          {
+            $inc: { currentStockQty: Math.abs(delta) },
+            $push: {
+              stockHistory: {
+                type: 'invoice_edit',
+                invoiceId: existingInvoice._id,
+                changeQty: Math.abs(delta),
+                reference: `${existingInvoice.invoiceNumber} - Edit (restored ${Math.abs(delta)})`,
+                timestamp: new Date()
+              }
+            }
+          },
+          { session }
+        );
+      }
+    }
+    // ── END OF STOCK CHANGES — nothing below touches Product.currentStockQty ──
+
+    // ── STEP 6: Process items for invoice (amounts only, NO stock logic)
+    //
+    // Smart duplicate merging:
+    //   Same product + same rate + same discount → merge into one line
+    //   Same product + different rate or discount → keep separate lines
+    //
+    const mergeKey = (item) => {
+      const rate = item.ratePerUnit || productMap[item.productId.toString()]?.rate || productMap[item.productId.toString()]?.newMRP;
+      return `${item.productId}_${rate}_${item.schemeDiscount || 0}`;
+    };
+
+    const mergedItemsMap = {};
+    for (const item of items) {
+      const key = mergeKey(item);
+      if (mergedItemsMap[key]) {
+        mergedItemsMap[key].quantitySold += item.quantitySold;
+        mergedItemsMap[key].freeQuantity += (item.freeQuantity || 0);
+      } else {
+        mergedItemsMap[key] = {
+          productId: item.productId,
+          quantitySold: item.quantitySold,
+          freeQuantity: item.freeQuantity || 0,
+          ratePerUnit: item.ratePerUnit,
+          schemeDiscount: item.schemeDiscount || 0
+        };
+      }
     }
 
     const processedItems = [];
-    const stockUpdates = [];
-
-    for (const item of items) {
-      const product = await Product.findById(item.productId).session(session);
-      
+    for (const item of Object.values(mergedItemsMap)) {
+      const product = productMap[item.productId.toString()];
       if (!product) {
         await session.abortTransaction();
         return res.status(404).json({
@@ -399,23 +507,6 @@ exports.updateInvoice = async (req, res, next) => {
           message: `Product not found: ${item.productId}`
         });
       }
-
-      const totalQty = item.quantitySold + (item.freeQuantity || 0);
-
-      if (product.currentStockQty < totalQty) {
-        await session.abortTransaction();
-        return res.status(400).json({
-          success: false,
-          message: `Insufficient stock for ${product.productName}. Available: ${product.currentStockQty}, Required: ${totalQty}`
-        });
-      }
-
-      stockUpdates.push({
-        productId: product._id,
-        previousQty: product.currentStockQty,
-        changeQty: -totalQty,
-        newQty: product.currentStockQty - totalQty
-      });
 
       const rateToUse = item.ratePerUnit || product.rate || product.newMRP;
       const amounts = calculateItemAmounts(
@@ -442,58 +533,80 @@ exports.updateInvoice = async (req, res, next) => {
       });
     }
 
-    // Calculate new totals
+    // ── STEP 7: Calculate totals ───────────────────────────────────────
     const totals = calculateInvoiceTotals(processedItems);
     totals.amountInWords = numberToWords(totals.netTotal);
 
-    // Step 3: Update stock
-    for (const update of stockUpdates) {
-      await Product.findByIdAndUpdate(
-        update.productId,
-        {
-          $inc: { currentStockQty: update.changeQty },
-          $push: {
-            stockHistory: {
-              type: 'invoice_edit',
-              invoiceId: existingInvoice._id,
-              changeQty: update.changeQty,
-              previousQty: update.previousQty,
-              newQty: update.newQty,
-              reference: existingInvoice.invoiceNumber,
-              timestamp: new Date()
-            }
-          }
-        },
+    // ── STEP 8: Resolve customer ───────────────────────────────────────
+    let customer = existingInvoice.customer;
+    if (customerId && customerId !== existingInvoice.customer._id.toString()) {
+      const newCustomer = await Customer.findById(customerId).session(session);
+      if (!newCustomer) {
+        await session.abortTransaction();
+        return res.status(404).json({ success: false, message: 'Customer not found' });
+      }
+      customer = {
+        _id: newCustomer._id,
+        customerName: newCustomer.customerName,
+        address: newCustomer.address,
+        phone: newCustomer.phone,
+        gstin: newCustomer.gstin,
+        dlNo: newCustomer.dlNo
+      };
+    }
+
+    // ── STEP 9: Update customer stats (delta-based) ────────────────────
+    const totalsDelta = totals.netTotal - existingInvoice.totals.netTotal;
+    if (totalsDelta !== 0) {
+      const updatedCust = await Customer.findByIdAndUpdate(
+        customer._id,
+        { $inc: { totalPurchases: totalsDelta }, lastInvoiceDate: new Date() },
+        { session, new: true }
+      );
+      // Clamp — never allow negative totalPurchases
+      if (updatedCust && updatedCust.totalPurchases < 0) {
+        await Customer.findByIdAndUpdate(
+          customer._id,
+          { $set: { totalPurchases: 0 } },
+          { session }
+        );
+      }
+    }
+
+    // Outstanding balance delta for Credit invoices
+    const oldPaymentType = existingInvoice.paymentType;
+    const newPaymentType = paymentType || existingInvoice.paymentType;
+    let outstandingDelta = 0;
+    if (oldPaymentType === 'Credit' && newPaymentType === 'Credit') {
+      outstandingDelta = totalsDelta;
+    } else if (oldPaymentType === 'Credit' && newPaymentType !== 'Credit') {
+      outstandingDelta = -existingInvoice.totals.netTotal;
+    } else if (oldPaymentType !== 'Credit' && newPaymentType === 'Credit') {
+      outstandingDelta = totals.netTotal;
+    }
+    if (outstandingDelta !== 0) {
+      await Customer.findByIdAndUpdate(
+        customer._id,
+        { $inc: { outstandingBalance: outstandingDelta } },
         { session }
       );
     }
 
-    // Step 4: Update customer stats with new totals
-    await Customer.findByIdAndUpdate(
-      customer._id,
-      {
-        $inc: { 
-          totalPurchases: totals.netTotal
-        },
-        lastInvoiceDate: new Date()
-      },
-      { session }
-    );
-
-    // Step 5: Update the invoice
+    // ── STEP 10: Update invoice document ───────────────────────────────
     const updatedInvoice = await Invoice.findByIdAndUpdate(
       req.params.id,
       {
         customer,
         items: processedItems,
         totals,
-        paymentType: paymentType || existingInvoice.paymentType,
+        paymentType: newPaymentType,
         notes: notes !== undefined ? notes : existingInvoice.notes,
         updatedAt: new Date()
       },
       { new: true, session }
     );
 
+    // ── STEP 11: Commit ────────────────────────────────────────────────
     await session.commitTransaction();
 
     res.status(200).json({
@@ -658,4 +771,3 @@ exports.exportInvoices = async (req, res, next) => {
     next(error);
   }
 };
-
