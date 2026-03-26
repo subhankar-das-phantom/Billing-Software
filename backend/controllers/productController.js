@@ -3,6 +3,9 @@ const { LOW_STOCK_THRESHOLD } = require('../config/constants');
 const { getAttribution } = require('../middleware/auth');
 const { trackActivity, ACTIVITY_TYPES } = require('../utils/activityTracker');
 
+// Escape special regex characters in user input to prevent MongoDB $regex errors
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 // @desc    Get all products
 // @route   GET /api/products
 // @access  Private
@@ -16,10 +19,11 @@ exports.getProducts = async (req, res, next) => {
 
     // Search
     if (req.query.search) {
+      const escaped = escapeRegex(req.query.search);
       query.$or = [
-        { productName: { $regex: req.query.search, $options: 'i' } },
-        { hsnCode: { $regex: req.query.search, $options: 'i' } },
-        { manufacturer: { $regex: req.query.search, $options: 'i' } }
+        { productName: { $regex: escaped, $options: 'i' } },
+        { hsnCode: { $regex: escaped, $options: 'i' } },
+        { manufacturer: { $regex: escaped, $options: 'i' } }
       ];
     }
 
