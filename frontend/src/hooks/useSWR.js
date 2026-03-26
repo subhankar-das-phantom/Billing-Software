@@ -3,29 +3,18 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 /**
  * Stale-While-Revalidate (SWR) Hook
  * 
- * Shows cached data instantly from localStorage, then fetches fresh data
- * in the background and updates only what changed.
- * 
- * Features:
- * - Instant cache retrieval (~1ms)
- * - Background revalidation
- * - Granular data comparison (only updates what changed)
- * - Cache invalidation API
- * - Configurable TTL
- * - Cross-tab synchronization (multiple tabs stay in sync)
+ * Shows cached data instantly, then fetches fresh data in the background.
+ * When the key changes, stale data is preserved until fresh data arrives
+ * (prevents UI flickering and PageLoader hijacking inputs).
  */
 
 const CACHE_PREFIX = 'swr_cache_';
 const BROADCAST_CHANNEL = 'swr_sync';
 const DEFAULT_TTL = 5 * 60 * 1000; // 5 minutes
 
-// Global cache for in-memory data (faster than localStorage)
 const memoryCache = new Map();
-
-// Subscribers for cross-tab invalidation
 const invalidationSubscribers = new Map();
 
-// BroadcastChannel for cross-tab communication (if supported)
 let broadcastChannel = null;
 try {
   if (typeof BroadcastChannel !== 'undefined') {
@@ -33,14 +22,12 @@ try {
     broadcastChannel.onmessage = (event) => {
       const { type, pattern, key } = event.data;
       if (type === 'invalidate') {
-        // Clear memory cache for this tab
         if (pattern) {
           for (const cacheKey of memoryCache.keys()) {
             if (cacheKey.includes(pattern)) {
               memoryCache.delete(cacheKey);
             }
           }
-          // Notify subscribers to revalidate
           for (const [subKey, callback] of invalidationSubscribers.entries()) {
             if (subKey.includes(pattern)) {
               callback();
@@ -56,11 +43,9 @@ try {
     };
   }
 } catch (e) {
-  // BroadcastChannel not supported, fall back to storage events
   console.log('SWR: BroadcastChannel not available, using storage events');
 }
 
-// Helper to safely parse JSON
 const safeJSONParse = (str) => {
   try {
     return JSON.parse(str);
@@ -69,63 +54,41 @@ const safeJSONParse = (str) => {
   }
 };
 
-// Get cached data from localStorage
 const getCachedData = (key) => {
-  // First check memory cache (fastest)
   if (memoryCache.has(key)) {
     const { data, timestamp, ttl } = memoryCache.get(key);
     if (Date.now() - timestamp < ttl) {
       return { data, isExpired: false };
     }
-    // Expired in memory, check if we should still show stale
     return { data, isExpired: true };
   }
-
-  // Fall back to localStorage
   try {
     const cached = localStorage.getItem(CACHE_PREFIX + key);
     if (!cached) return { data: null, isExpired: true };
-
     const { data, timestamp, ttl } = safeJSONParse(cached) || {};
     if (!data) return { data: null, isExpired: true };
-
     const isExpired = Date.now() - timestamp > ttl;
-    
-    // Store in memory for faster subsequent access
     memoryCache.set(key, { data, timestamp, ttl });
-    
     return { data, isExpired };
   } catch {
     return { data: null, isExpired: true };
   }
 };
 
-// Set cached data to localStorage
 const setCachedData = (key, data, ttl = DEFAULT_TTL) => {
-  const cacheEntry = {
-    data,
-    timestamp: Date.now(),
-    ttl
-  };
-
-  // Store in memory cache
+  const cacheEntry = { data, timestamp: Date.now(), ttl };
   memoryCache.set(key, cacheEntry);
-
-  // Store in localStorage (async to not block)
   try {
     localStorage.setItem(CACHE_PREFIX + key, JSON.stringify(cacheEntry));
   } catch (e) {
-    // localStorage might be full, clear old cache entries
     console.warn('SWR: localStorage write failed, clearing old entries');
     clearOldCache();
   }
 };
 
-// Clear old cache entries
 const clearOldCache = () => {
   const now = Date.now();
   const keysToRemove = [];
-
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (key?.startsWith(CACHE_PREFIX)) {
@@ -139,11 +102,9 @@ const clearOldCache = () => {
       }
     }
   }
-
   keysToRemove.forEach(key => localStorage.removeItem(key));
 };
 
-// Broadcast invalidation to other tabs
 const broadcastInvalidation = (type, keyOrPattern) => {
   if (broadcastChannel) {
     broadcastChannel.postMessage({
@@ -151,38 +112,23 @@ const broadcastInvalidation = (type, keyOrPattern) => {
       [type === 'pattern' ? 'pattern' : 'key']: keyOrPattern
     });
   }
-  
-  // Also trigger a storage event for tabs that don't support BroadcastChannel
-  // by writing a temporary invalidation signal
   try {
     const signalKey = `${CACHE_PREFIX}_invalidate_${Date.now()}`;
     localStorage.setItem(signalKey, JSON.stringify({ type, value: keyOrPattern }));
-    // Clean up immediately
     setTimeout(() => localStorage.removeItem(signalKey), 100);
   } catch {}
 };
 
-// Invalidate specific cache key
 export const invalidateCache = (key) => {
   memoryCache.delete(key);
-  try {
-    localStorage.removeItem(CACHE_PREFIX + key);
-  } catch {}
-  
-  // Broadcast to other tabs
+  try { localStorage.removeItem(CACHE_PREFIX + key); } catch {}
   broadcastInvalidation('key', key);
 };
 
-// Invalidate cache keys matching a pattern
 export const invalidateCachePattern = (pattern) => {
-  // Clear from memory cache
   for (const key of memoryCache.keys()) {
-    if (key.includes(pattern)) {
-      memoryCache.delete(key);
-    }
+    if (key.includes(pattern)) memoryCache.delete(key);
   }
-
-  // Clear from localStorage
   const keysToRemove = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
@@ -191,97 +137,54 @@ export const invalidateCachePattern = (pattern) => {
     }
   }
   keysToRemove.forEach(key => localStorage.removeItem(key));
-  
-  // Broadcast to other tabs
   broadcastInvalidation('pattern', pattern);
 };
 
 /**
  * Main SWR Hook
- * 
- * @param {string} key - Cache key
- * @param {Function} fetcher - Async function to fetch data
- * @param {Object} options - Configuration options
- * @param {number} options.ttl - Time-to-live in milliseconds (default: 5 minutes)
- * @param {boolean} options.revalidateOnMount - Always fetch fresh data on mount (default: true)
- * @param {boolean} options.revalidateOnFocus - Fetch fresh data when window regains focus (default: false)
- * @param {any} options.fallbackData - Data to use when cache is empty
- * 
- * @returns {Object} { data, error, isLoading, isValidating, isStale, mutate }
  */
 export function useSWR(key, fetcher, options = {}) {
   const {
     ttl = DEFAULT_TTL,
-    revalidateOnMount = true,
     revalidateOnFocus = false,
     fallbackData = null
   } = options;
 
-  // Get initial cached data synchronously
-  const initialCache = getCachedData(key);
-  
-  const [data, setData] = useState(initialCache.data || fallbackData);
+  const [data, setData] = useState(() => {
+    const cached = getCachedData(key);
+    return cached.data || fallbackData;
+  });
   const [error, setError] = useState(null);
-  const [isLoading, setIsLoading] = useState(!initialCache.data);
+  const [isLoading, setIsLoading] = useState(() => !getCachedData(key).data);
   const [isValidating, setIsValidating] = useState(false);
-  const [isStale, setIsStale] = useState(initialCache.isExpired);
+  const [isStale, setIsStale] = useState(() => getCachedData(key).isExpired);
 
-  // Track if component is mounted
   const mountedRef = useRef(true);
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
 
-  // Track key changes so we can reset data immediately during render
-  const prevKeyRef = useRef(key);
-  // Counter to discard results from stale (outdated) fetches
-  const fetchIdRef = useRef(0);
-
-  // When key changes, immediately reset data to the new key's cache (or fallback)
-  // This runs synchronously during render — no waiting for effects
-  if (prevKeyRef.current !== key) {
-    prevKeyRef.current = key;
-    const newCache = getCachedData(key);
-    setData(newCache.data || fallbackData);
-    setIsStale(newCache.isExpired);
-    setIsLoading(!newCache.data);
-    setError(null);
-  }
-
-  // Fetch and update data
+  // Standalone revalidate for manual triggers (mutate, subscribers)
   const revalidate = useCallback(async () => {
     if (!mountedRef.current || !key) return;
-
-    // Increment fetch counter — only the latest fetch ID will be applied
-    const currentFetchId = ++fetchIdRef.current;
-
     setIsValidating(true);
     setError(null);
-
     try {
       const freshData = await fetcherRef.current();
-      
-      // Discard if component unmounted OR a newer fetch has started
-      if (!mountedRef.current || currentFetchId !== fetchIdRef.current) return;
-
-      // Update cache
+      if (!mountedRef.current) return;
       setCachedData(key, freshData, ttl);
-      
-      // Update state
       setData(freshData);
       setIsStale(false);
     } catch (err) {
-      if (!mountedRef.current || currentFetchId !== fetchIdRef.current) return;
+      if (!mountedRef.current) return;
       setError(err);
-      console.error('SWR fetch error:', err);
     } finally {
-      if (mountedRef.current && currentFetchId === fetchIdRef.current) {
+      if (mountedRef.current) {
         setIsValidating(false);
         setIsLoading(false);
       }
     }
   }, [key, ttl]);
 
-  // Manual mutate function to update cache and trigger revalidation
   const mutate = useCallback((newData, shouldRevalidate = true) => {
     if (!key) return;
     if (newData !== undefined) {
@@ -293,36 +196,72 @@ export function useSWR(key, fetcher, options = {}) {
     }
   }, [key, ttl, revalidate]);
 
-  // Fetch on mount & when key changes
+  // ─── Primary effect: fetch on mount & key change ───
+  // Uses a LOCAL `aborted` flag scoped to each effect invocation.
+  // When the key changes:
+  //   1. If there's cached data for the new key → show it immediately
+  //   2. If not → KEEP old data visible (don't reset to null!)
+  //   3. Fetch fresh data in background
+  //   4. When fetch completes → replace data
+  // This prevents PageLoader from hijacking the UI during search.
   useEffect(() => {
     mountedRef.current = true;
-    revalidate();
+    let aborted = false;
+
+    // Swap to cached data for the new key if available
+    const cached = getCachedData(key);
+    if (cached.data) {
+      setData(cached.data);
+      setIsStale(cached.isExpired);
+      setIsLoading(false);
+    }
+    // If no cache: DON'T reset data — keep showing stale data from previous key.
+    // The isValidating flag tells the UI that fresh data is incoming.
+
+    // Fetch fresh data in background
+    const doFetch = async () => {
+      setIsValidating(true);
+      setError(null);
+      try {
+        const freshData = await fetcherRef.current();
+        if (aborted) return;
+        setCachedData(key, freshData, ttl);
+        setData(freshData);
+        setIsStale(false);
+      } catch (err) {
+        if (aborted) return;
+        setError(err);
+      } finally {
+        if (!aborted) {
+          setIsValidating(false);
+          setIsLoading(false);
+        }
+      }
+    };
+
+    doFetch();
 
     return () => {
+      aborted = true;
       mountedRef.current = false;
     };
-  }, [key, revalidate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, ttl]);
 
-  // Subscribe to cross-tab invalidations
+  // ─── Cross-tab invalidation subscriber ───
   useEffect(() => {
     if (!key) return undefined;
-
-    // Register for invalidation notifications
     invalidationSubscribers.set(key, revalidate);
-    
-    // Also listen to storage events for cross-tab sync (fallback)
+
     const handleStorageChange = (event) => {
       if (event.key?.startsWith(CACHE_PREFIX)) {
-        // Cache was updated in another tab
         if (event.key === CACHE_PREFIX + key) {
-          // Our cache was updated, refresh from localStorage
           const cached = getCachedData(key);
           if (cached.data) {
             setData(cached.data);
             setIsStale(cached.isExpired);
           }
         }
-        // Check for invalidation signals
         if (event.key.includes('_invalidate_')) {
           try {
             const signal = safeJSONParse(event.newValue);
@@ -341,26 +280,20 @@ export function useSWR(key, fetcher, options = {}) {
     };
 
     window.addEventListener('storage', handleStorageChange);
-    
     return () => {
       invalidationSubscribers.delete(key);
       window.removeEventListener('storage', handleStorageChange);
     };
   }, [key, revalidate]);
 
-  // Revalidate on window focus
+  // ─── Revalidate on window focus ───
   useEffect(() => {
     if (!revalidateOnFocus) return;
-
     const handleFocus = () => {
-      if (document.visibilityState === 'visible') {
-        revalidate();
-      }
+      if (document.visibilityState === 'visible') revalidate();
     };
-
     document.addEventListener('visibilitychange', handleFocus);
     window.addEventListener('focus', handleFocus);
-
     return () => {
       document.removeEventListener('visibilitychange', handleFocus);
       window.removeEventListener('focus', handleFocus);
@@ -370,12 +303,12 @@ export function useSWR(key, fetcher, options = {}) {
   return {
     data,
     error,
-    isLoading,      // True only on initial load (no cached data)
-    loading: isLoading, // Backward-compatible alias for existing callers
-    isValidating,   // True when fetching in background
-    isStale,        // True when showing stale cached data
-    mutate,         // Function to manually update/revalidate
-    revalidate      // Function to trigger background fetch
+    isLoading,
+    loading: isLoading,
+    isValidating,
+    isStale,
+    mutate,
+    revalidate
   };
 }
 

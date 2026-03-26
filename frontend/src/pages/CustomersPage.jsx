@@ -183,7 +183,9 @@ export default function CustomersPage() {
 
   // Extract customers from SWR response
   const customers = data?.customers || [];
-  const loading = isLoading && customers.length === 0;
+  // Only show full-page loader on the very first load — never during search
+  // (PageLoader replaces the entire UI including the search input, eating keystrokes)
+  const loading = isLoading && customers.length === 0 && !search && !searchInput;
 
   // Debounced search key update
   useEffect(() => {
@@ -433,7 +435,9 @@ export default function CustomersPage() {
             animate={{ opacity: 1 }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
           >
-            <AnimatePresence mode={denseMode ? 'sync' : 'popLayout'}>
+            {/* Framer Motion bug: dynamically changing `mode` causes children to get stuck in DOM */}
+            {/* Therefore, we always use popLayout (or just remove mode entirely) */}
+            <AnimatePresence mode="popLayout">
               {customers.map((customer, index) => (
                 <CustomerCard
                   key={customer._id}
