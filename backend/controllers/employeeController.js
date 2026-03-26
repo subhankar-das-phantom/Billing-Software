@@ -1,6 +1,9 @@
 const Employee = require('../models/Employee');
 const Session = require('../models/Session');
 
+// Escape special regex characters in user input to prevent MongoDB $regex errors
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 // @desc    Get all employees
 // @route   GET /api/employees
 // @access  Private (Admin only)
@@ -21,9 +24,10 @@ exports.getEmployees = async (req, res, next) => {
 
     // Search by name or email
     if (req.query.search) {
+      const escaped = escapeRegex(req.query.search);
       query.$or = [
-        { name: { $regex: req.query.search, $options: 'i' } },
-        { email: { $regex: req.query.search, $options: 'i' } }
+        { name: { $regex: escaped, $options: 'i' } },
+        { email: { $regex: escaped, $options: 'i' } }
       ];
     }
 
