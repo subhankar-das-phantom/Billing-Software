@@ -3,6 +3,9 @@ const Invoice = require('../models/Invoice');
 const { getAttribution } = require('../middleware/auth');
 const { trackActivity, ACTIVITY_TYPES } = require('../utils/activityTracker');
 
+// Escape special regex characters in user input to prevent MongoDB $regex errors
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 // @desc    Get all customers
 // @route   GET /api/customers
 // @access  Private
@@ -21,10 +24,11 @@ exports.getCustomers = async (req, res, next) => {
 
     // Search
     if (req.query.search) {
+      const escaped = escapeRegex(req.query.search);
       query.$or = [
-        { customerName: { $regex: req.query.search, $options: 'i' } },
-        { phone: { $regex: req.query.search, $options: 'i' } },
-        { gstin: { $regex: req.query.search, $options: 'i' } }
+        { customerName: { $regex: escaped, $options: 'i' } },
+        { phone: { $regex: escaped, $options: 'i' } },
+        { gstin: { $regex: escaped, $options: 'i' } }
       ];
     }
 
@@ -65,9 +69,9 @@ exports.searchCustomers = async (req, res, next) => {
     const customers = await Customer.find({
       isActive: true,
       $or: [
-        { customerName: { $regex: q, $options: 'i' } },
-        { phone: { $regex: q, $options: 'i' } },
-        { gstin: { $regex: q, $options: 'i' } }
+        { customerName: { $regex: escapeRegex(q), $options: 'i' } },
+        { phone: { $regex: escapeRegex(q), $options: 'i' } },
+        { gstin: { $regex: escapeRegex(q), $options: 'i' } }
       ]
     }).limit(10);
 
