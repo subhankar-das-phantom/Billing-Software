@@ -712,17 +712,21 @@ export default function CustomerDetailsPage() {
                                 {formatCurrency(invoice.totals?.netTotal)}
                               </td>
                               <td>
-                                <div className="flex flex-col">
-                                  <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border ${paymentStatusConfig[paymentStatus]?.class}`}>
-                                    <PaymentIcon className="w-3 h-3" />
-                                    {paymentStatus}
-                                  </span>
-                                  {paymentStatus === 'Partial' && (
-                                    <span className="text-xs text-slate-500 mt-1">
-                                      Due: {formatCurrency(remaining)}
+                                {invoice.status === 'Cancelled' ? (
+                                  <span className="text-slate-500">-</span>
+                                ) : (
+                                  <div className="flex flex-col">
+                                    <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 flex-shrink-0 w-max rounded-full border ${paymentStatusConfig[paymentStatus]?.class}`}>
+                                      <PaymentIcon className="w-3 h-3" />
+                                      {paymentStatus}
                                     </span>
-                                  )}
-                                </div>
+                                    {paymentStatus === 'Partial' && (
+                                      <span className="text-xs w-max text-slate-500 mt-1">
+                                        Due: {formatCurrency(remaining)}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
                               </td>
                               <td>
                                 <motion.span
