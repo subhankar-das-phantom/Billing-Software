@@ -1,5 +1,8 @@
 const Note = require('../models/Note');
 
+// Escape special regex characters in user input to prevent MongoDB $regex errors
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 // @desc    Get all notes
 // @route   GET /api/notes
 // @access  Private
@@ -13,9 +16,10 @@ exports.getNotes = async (req, res, next) => {
 
     // Search
     if (req.query.search) {
+      const escaped = escapeRegex(req.query.search);
       query.$or = [
-        { title: { $regex: req.query.search, $options: 'i' } },
-        { content: { $regex: req.query.search, $options: 'i' } }
+        { title: { $regex: escaped, $options: 'i' } },
+        { content: { $regex: escaped, $options: 'i' } }
       ];
     }
 
