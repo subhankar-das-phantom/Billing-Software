@@ -231,9 +231,28 @@ export function useSWR(key, fetcher, options = {}) {
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
 
+  // Track key changes so we can reset data immediately during render
+  const prevKeyRef = useRef(key);
+  // Counter to discard results from stale (outdated) fetches
+  const fetchIdRef = useRef(0);
+
+  // When key changes, immediately reset data to the new key's cache (or fallback)
+  // This runs synchronously during render — no waiting for effects
+  if (prevKeyRef.current !== key) {
+    prevKeyRef.current = key;
+    const newCache = getCachedData(key);
+    setData(newCache.data || fallbackData);
+    setIsStale(newCache.isExpired);
+    setIsLoading(!newCache.data);
+    setError(null);
+  }
+
   // Fetch and update data
   const revalidate = useCallback(async () => {
     if (!mountedRef.current || !key) return;
+
+    // Increment fetch counter — only the latest fetch ID will be applied
+    const currentFetchId = ++fetchIdRef.current;
 
     setIsValidating(true);
     setError(null);
@@ -241,7 +260,8 @@ export function useSWR(key, fetcher, options = {}) {
     try {
       const freshData = await fetcherRef.current();
       
-      if (!mountedRef.current) return;
+      // Discard if component unmounted OR a newer fetch has started
+      if (!mountedRef.current || currentFetchId !== fetchIdRef.current) return;
 
       // Update cache
       setCachedData(key, freshData, ttl);
@@ -250,11 +270,11 @@ export function useSWR(key, fetcher, options = {}) {
       setData(freshData);
       setIsStale(false);
     } catch (err) {
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || currentFetchId !== fetchIdRef.current) return;
       setError(err);
       console.error('SWR fetch error:', err);
     } finally {
-      if (mountedRef.current) {
+      if (mountedRef.current && currentFetchId === fetchIdRef.current) {
         setIsValidating(false);
         setIsLoading(false);
       }
@@ -273,18 +293,15 @@ export function useSWR(key, fetcher, options = {}) {
     }
   }, [key, ttl, revalidate]);
 
-  // Initial fetch on mount
+  // Fetch on mount & when key changes
   useEffect(() => {
     mountedRef.current = true;
-
-    if (key && (revalidateOnMount || !initialCache.data)) {
-      revalidate();
-    }
+    revalidate();
 
     return () => {
       mountedRef.current = false;
     };
-  }, [key]); // Re-fetch when key changes
+  }, [key, revalidate]);
 
   // Subscribe to cross-tab invalidations
   useEffect(() => {
@@ -363,4 +380,3 @@ export function useSWR(key, fetcher, options = {}) {
 }
 
 export default useSWR;
-
