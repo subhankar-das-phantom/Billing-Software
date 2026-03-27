@@ -2,37 +2,57 @@
 
 [![CI](https://github.com/subhankar-das-phantom/Billing-Software/actions/workflows/ci.yml/badge.svg)](https://github.com/subhankar-das-phantom/Billing-Software/actions/workflows/ci.yml)
 
-A production-ready MERN stack billing and inventory management system tailored for pharmaceutical distributors. Features GST-compliant invoicing, simplified stock tracking, customisable invoice layouts, sales returns via Credit Notes, and role-based access control to streamline warehouse operations and accounting.
+A Billing System optimized for both desktop workflows and mobile accessibility without compromising usability, zero-cost billing and inventory system built for small pharmaceutical distributors who cannot afford expensive software like Marg or Tally.
+
+Designed for real-world usage, the system focuses on speed, simplicity, and data integrity — featuring atomic invoice editing, snapshot-based billing, and GST-compliant workflows.
+
+## Why This Project?
+
+Most small distributors rely on expensive or overly complex billing software.
+
+This system is built as a free, fast, and mobile-friendly alternative that:
+- works on low-resource devices
+- simplifies billing workflows
+- avoids unnecessary complexity like batch/FIFO systems
+- ensures strong data integrity with minimal user effort
+
+## Live Demo
+
+Frontend: https://billing-software-sigma.vercel.app    
+
+Test Credentials:
+- Email: admin@bharat.com  
+- Password: admin123
 
 ## Features
 
-### Core Functionality
-- ✅ **Secure Authentication** - JWT-based login with role-based access control
-- ✅ **Product Management** - Create, edit, delete products with real-time stock tracking (MRP, Rate, optional Batch No & Expiry fields are stored only for informational display on invoices and product records. They do not affect stock calculations.)
-- ✅ **Customer Management** - Customer profiles with credit limits, search, and transaction history
-- ✅ **Invoice Creation** - Multi-item invoices with real-time GST calculations (CGST/SGST)
-- ✅ **Invoice History** - View, print, and export past invoices
-- ✅ **Payment Recording** - Track partial and full payments against invoices
-- ✅ **Dashboard** - Quick statistics, low stock alerts, and business overview
+### ⭐ Key Highlight
 
-### Advanced Features
-- ✅ **Atomic Invoice Editing** - Pure delta-based stock adjustments during invoice edits. Race-condition proof using `$gte` guards, idempotent edits, and optimized N+1 batch queries, all executed within strict MongoDB transactions.
-- ✅ **Simplified Stock Tracking** - Inventory is managed at the product level using `Product.currentStockQty`. 
-Optional Batch No and Expiry fields are stored only for informational purposes and do not affect stock calculations.
-- ✅ **GST-Compliant Sales Returns** - Issue Credit Notes for returns (Section 34 GST Act), preserving original invoice integrity and automatically restoring stock.
-- ✅ **Customisable Invoice Columns** - Toggle which columns appear on printed invoices (Qty, Free, Product Name, HSN, Batch, Expiry, MRP, Rate, Net, Disc%, GST%, Amount). Preferences persist via localStorage.
-- ✅ **Invoice Export** - Export invoices to Excel (.xlsx) and CSV formats with date range filtering
-- ✅ **Admin-Controlled Employee Accounts** - No self-signup; admins create and manage employee access
-- ✅ **Employee Activity Tracking** - All actions (invoices, payments, inventory updates) are attributed to the logged-in user
-- ✅ **Credit Aging Dashboard** - View outstanding amounts categorized by aging buckets (30/60/90+ days)
-- ✅ **Monthly Sales Analytics** - Revenue trends, top customers, and product performance insights
+- **Atomic Invoice Editing (Delta-Based)**  
+  Unlike traditional systems that reprocess full invoices, this system updates stock using a delta-based approach (`newQty - oldQty`).  
+  This ensures:
+  - No double deduction bugs  
+  - Safe concurrent edits  
+  - Accurate stock with minimal operations
+
+### Core Functionality
+- ✅ **Invoice & Payment Engine** - Multi-item GST calculations, full/partial payment tracking, and GST-compliant sales returns (Credit Notes)
+- ✅ **Product & Customer Management** - Real-time stock tracking with informational MRP/Batch tracking, and customer credit profiles
+- ✅ **Analytics & Reporting** - Monthly sales trends, top customers, credit aging dashboards (30/60/90+ days), and employee performance
+- ✅ **Secure Authentication** - JWT-based login with admin-controlled employee accounts (No self-signup)
+
+### Advanced Capabilities
+- ✅ **Simplified Stock Tracking** - Inventory is managed at the product level natively, skipping unnecessary batch/FIFO complexity
+- ✅ **SWR Caching & Infinite Scroll** - SWR-based data fetching and background revalidation with seamless Intersection Observer scrolling for large inventories
+- ✅ **Real-Time Global Statistics** - Dedicated aggregations calculate true database metrics instantly, independent of frontend pagination limits
 - ✅ **Snapshot-Based Invoices** - Invoice data is captured at creation time for audit-safe historical integrity
-- ✅ **SWR Caching** - SWR-based caching with background revalidation for fast and consistent data loading
-- ✅ **Infinite Scrolling** - Seamless performance for large inventories (50k+ products) using Intersection Observer and layout-stabilized React rendering.
-- ✅ **Real-Time Global Statistics** - Dedicated aggregations calculate true database metrics instantly, independent of frontend pagination limits.
 - ✅ **Cross-Device Optimization** - Optimized for both desktop workflows and mobile accessibility without compromising usability
-- ✅ **Continuous Integration** - Automated GitHub Actions pipeline. The CI pipeline runs linting, dependency checks, backend startup verification, and frontend build validation on every push.
-- 🔜 **PDF Export** - PDF invoice generation (planned)
+- ✅ **Customisable Invoice** - Toggle which columns appear on printed invoices with preferences persisting via localStorage
+- ✅ **Continuous Integration** - Automated GitHub Actions pipeline for continuous validation
+
+## 📘 Documentation
+
+- User Guide: [docs/USER_GUIDE.md](docs/USER_GUIDE.md)
 
 ## Tech Stack
 
@@ -65,17 +85,9 @@ The application follows a typical MERN stack layered architecture:
 
 ```bash
 cd backend
-
-# Copy .env.example to .env and fill in your values
 cp .env.example .env
-
-# Install dependencies
 npm install
-
-# Create admin user (uses .env config)
 npm run seed:admin
-
-# Start development server
 npm run dev
 ```
 
@@ -85,14 +97,8 @@ Backend runs at: `http://localhost:5000`
 
 ```bash
 cd frontend
-
-# Copy .env.example to .env and fill in your values
 cp .env.example .env
-
-# Install dependencies
 npm install
-
-# Start development server
 npm run dev
 ```
 
