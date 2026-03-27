@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -199,7 +199,7 @@ const EmptyProductsState = ({ search, onAddClick }) => (
 );
 
 // ✅ FIX #2: Separate component for table - simplified for mobile
-const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatDate, formatCurrency }) => (
+const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatDate, formatCurrency, observerTarget, hasMore, isLoadingMore }) => (
   <motion.div
     key="products-table"
     initial={{ opacity: 0 }}
@@ -221,7 +221,7 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatDate, formatC
           </tr>
         </thead>
         <tbody>
-          <AnimatePresence mode="popLayout">
+          <AnimatePresence>
             {filteredProducts.map((product, index) => {
               const lowStock = product.currentStockQty <= 30;
               const outOfStock = product.currentStockQty === 0;
@@ -229,6 +229,7 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatDate, formatC
               return (
                 <motion.tr
                   key={product._id}
+                  layout
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
@@ -257,7 +258,7 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatDate, formatC
                   </td>
                   <td>
                     <div className="flex items-center gap-2">
-                      {product.oldMRP && product.oldMRP !== product.newMRP && (
+                      {product.oldMRP > 0 && product.oldMRP !== product.newMRP && (
                         <motion.span
                           className="text-slate-500 line-through text-sm flex items-center gap-1"
                           initial={{ opacity: 0, x: -10 }}
@@ -326,6 +327,13 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatDate, formatC
           </AnimatePresence>
         </tbody>
       </table>
+      
+      {/* Infinite Scroll Loading Indicator */}
+      {(hasMore || isLoadingMore) && (
+        <div ref={observerTarget} className="flex justify-center items-center p-6 border-t border-slate-700/50">
+          <Loader2 className="w-6 h-6 text-blue-400 animate-spin" />
+        </div>
+      )}
     </div>
   </motion.div>
 );
@@ -342,20 +350,74 @@ export default function ProductsPage() {
   const [filterStock, setFilterStock] = useState('all');
   const { success, error } = useToast();
 
+  // Infinite Scroll State
+  const [page, setPage] = useState(1);
+  const [accumulatedProducts, setAccumulatedProducts] = useState([]);
+  const observer = useRef(null);
+
   // SWR: Instant cached data + background revalidation
   const { data, isLoading, isValidating, mutate } = useSWR(
-    `products-${search}`,
-    () => productService.getProducts({ search }),
+    `products-${search}-${page}`,
+    () => productService.getProducts({ search, page, limit: 50 }),
     { ttl: 5 * 60 * 1000 } // 5 minute cache
   );
 
-  // Extract products from SWR response
-  const products = data?.products || [];
-  const loading = isLoading && products.length === 0;
+  // SWR: Global Stats
+  const { data: statsData, mutate: mutateStats } = useSWR(
+    `products-stats-${search}`,
+    () => productService.getProductStats({ search }),
+    { ttl: 5 * 60 * 1000 } // 5 minute cache
+  );
+
+  const hasMore = data?.pages ? page < data.pages : false;
+
+  // Accumulate products as new pages are loaded
+  useEffect(() => {
+    if (data?.products) {
+      if (page === 1) {
+        setAccumulatedProducts(data.products);
+      } else {
+        setAccumulatedProducts(prev => {
+          const existingIds = new Set(prev.map(p => p._id));
+          const newProducts = data.products.filter(p => !existingIds.has(p._id));
+          return [...prev, ...newProducts];
+        });
+      }
+    }
+  }, [data, page]);
+
+  // Reset pagination when search changes
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
+
+  // Intersection Observer for Infinite Scroll using Callback Ref
+  const lastElementRef = useCallback(node => {
+    if (isValidating) return;
+    if (observer.current) observer.current.disconnect();
+    
+    if (node) {
+      observer.current = new IntersectionObserver(
+        entries => {
+          if (entries[0].isIntersecting && !isValidating && hasMore) {
+             setPage(p => p + 1);
+          }
+        },
+        { threshold: 0.1 }
+      );
+      observer.current.observe(node);
+    }
+  }, [isValidating, hasMore]);
+
+  // Extract products from accumulated state
+  const products = accumulatedProducts;
+  const loading = isLoading && products.length === 0 && page === 1;
 
   const handleSearch = (e) => {
     e.preventDefault();
+    setPage(1);
     mutate(); // Trigger revalidation
+    mutateStats();
   };
 
   const openCreateModal = () => {
@@ -439,7 +501,9 @@ export default function ProductsPage() {
       setModalOpen(false);
       // Invalidate products cache and revalidate
       invalidateCachePattern('products');
+      setPage(1);
       mutate();
+      mutateStats();
     } catch (err) {
       console.error('Save error:', err);
       const resData = err.response?.data;
@@ -461,7 +525,9 @@ export default function ProductsPage() {
       setDeleteDialog({ open: false, product: null });
       // Invalidate products cache and revalidate
       invalidateCachePattern('products');
+      setPage(1);
       mutate();
+      mutateStats();
     } catch (err) {
       error(err.response?.data?.message || 'Failed to delete product');
     }
@@ -475,25 +541,18 @@ export default function ProductsPage() {
   });
 
   const stats = {
-    total: products.length,
-    lowStock: products.filter(p => p.currentStockQty <= 30 && p.currentStockQty > 0).length,
-    outOfStock: products.filter(p => p.currentStockQty === 0).length,
-    expiringSoon: products.filter(p => {
-      if (!p.expiryDate) return false;
-      const expiry = new Date(p.expiryDate);
-      const now = new Date();
-      const threshold = new Date();
-      threshold.setDate(threshold.getDate() + 30);
-      return expiry > now && expiry <= threshold;
-    }).length
+    total: statsData?.total || 0,
+    lowStock: statsData?.lowStock || 0,
+    outOfStock: statsData?.outOfStock || 0,
+    expiringSoon: statsData?.expiringSoon || 0
   };
 
   if (loading) {
     return <PageLoader />;
   }
 
-  // ✅ FIX #4: Use unique key based on filter state
-  const tableKey = `products-${filterStock}-${filteredProducts.length}`;
+  // ✅ FIX #4: Use unique key based on filter state (excluding length to prevent infinite scroll remounts)
+  const tableKey = `products-${filterStock}-${search}`;
 
   return (
     <motion.div
@@ -666,6 +725,9 @@ export default function ProductsPage() {
             onDelete={(product) => setDeleteDialog({ open: true, product })}
             formatDate={formatDate}
             formatCurrency={formatCurrency}
+            observerTarget={lastElementRef}
+            hasMore={hasMore}
+            isLoadingMore={isValidating && page > 1}
           />
         )}
       </AnimatePresence>
