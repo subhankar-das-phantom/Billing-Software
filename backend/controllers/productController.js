@@ -47,6 +47,50 @@ exports.getProducts = async (req, res, next) => {
   }
 };
 
+// @desc    Get product statistics
+// @route   GET /api/products/stats
+// @access  Private
+exports.getProductStats = async (req, res, next) => {
+  try {
+    const today = new Date();
+    const threshold = new Date(today);
+    threshold.setDate(threshold.getDate() + 30);
+
+    const baseQuery = { isActive: true };
+
+    if (req.query.search) {
+      const escaped = escapeRegex(req.query.search);
+      baseQuery.$or = [
+        { productName: { $regex: escaped, $options: 'i' } },
+        { hsnCode: { $regex: escaped, $options: 'i' } },
+        { manufacturer: { $regex: escaped, $options: 'i' } }
+      ];
+    }
+
+    const [
+      total,
+      lowStock,
+      outOfStock,
+      expiringSoon
+    ] = await Promise.all([
+      Product.countDocuments(baseQuery),
+      Product.countDocuments({ ...baseQuery, currentStockQty: { $lte: LOW_STOCK_THRESHOLD, $gt: 0 } }),
+      Product.countDocuments({ ...baseQuery, currentStockQty: 0 }),
+      Product.countDocuments({ ...baseQuery, expiryDate: { $gt: today, $lte: threshold } })
+    ]);
+
+    res.status(200).json({
+      success: true,
+      total,
+      lowStock,
+      outOfStock,
+      expiringSoon
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Get single product
 // @route   GET /api/products/:id
 // @access  Private
