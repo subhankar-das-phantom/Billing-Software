@@ -1,6 +1,33 @@
+# License
+
 Copyright (c) 2026 Subhankar Das / Bharat Enterprise
 
-All rights reserved.
+## Overview
 
-This code is provided publicly for viewing purposes only.
-Unauthorized copying, modification, distribution, or commercial use is prohibited.
+This project is **source-available** and intended for:
+
+* learning
+* personal use
+* portfolio reference
+
+## You are allowed to:
+
+* View and study the source code
+* Use the project for personal or educational purposes
+* Fork the repository for learning and experimentation
+
+## You are NOT allowed to:
+
+* Copy or redistribute this code as your own product
+* Use this code for commercial purposes
+* Sell, sublicense, or deploy this project for clients or businesses
+* Create derivative projects intended for commercial use
+
+## Commercial Use
+
+If you are interested in using this project commercially, you must obtain explicit permission from the author.
+
+## Disclaimer
+
+This software is provided "as is", without warranty of any kind.
+The author is not responsible for any damages or data loss.
