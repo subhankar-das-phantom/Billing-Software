@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   getProducts,
   getProduct,
+  getProductStats,
   createProduct,
   updateProduct,
   adjustStock,
@@ -20,6 +21,7 @@ const {
 // Apply protection to all routes
 router.use(protect);
 
+router.get('/stats', getProductStats);
 router.get('/stock/low', getLowStock);
 
 router.route('/')
