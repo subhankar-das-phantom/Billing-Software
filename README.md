@@ -27,9 +27,10 @@ Optional Batch No and Expiry fields are stored only for informational purposes a
 - ✅ **Credit Aging Dashboard** - View outstanding amounts categorized by aging buckets (30/60/90+ days)
 - ✅ **Monthly Sales Analytics** - Revenue trends, top customers, and product performance insights
 - ✅ **Snapshot-Based Invoices** - Invoice data is captured at creation time for audit-safe historical integrity
-- ✅ **SWR Caching** - Blazing fast page loads with Stale-While-Revalidate caching and background syncing across tabs.
+- ✅ **SWR Caching** - SWR-based caching with background revalidation for fast and consistent data loading
 - ✅ **Infinite Scrolling** - Seamless performance for large inventories (50k+ products) using Intersection Observer and layout-stabilized React rendering.
 - ✅ **Real-Time Global Statistics** - Dedicated aggregations calculate true database metrics instantly, independent of frontend pagination limits.
+- ✅ **Cross-Device Optimization** - Optimized for both desktop workflows and mobile accessibility without compromising usability
 - ✅ **Continuous Integration** - Automated GitHub Actions pipeline. The CI pipeline runs linting, dependency checks, backend startup verification, and frontend build validation on every push.
 - 🔜 **PDF Export** - PDF invoice generation (planned)
 
@@ -334,7 +335,7 @@ The application is designed to run on free-tier services (Render for backend, Ve
 This system prioritizes **reliability over feature bloat**:
 - Battle-tested authentication flow with proper session management
 - Comprehensive error handling and user feedback
-- Mobile-responsive design for on-the-go invoice creation
+- Responsive interface compatible across desktop and mobile devices
 - Optimized for real-world usage patterns in small business environments
 
 ---
