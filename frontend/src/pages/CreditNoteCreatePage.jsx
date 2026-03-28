@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -37,6 +37,12 @@ export default function CreditNoteCreatePage() {
   const { success, error } = useToast();
 
   const isInitialized = useRef(false);
+
+  const [invoice, setInvoice] = useState(null);
+  const [returnItems, setReturnItems] = useState([]);
+  const [existingReturns, setExistingReturns] = useState({});
+  const [reason, setReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   // 1. Fetch Invoice
   const { data: invoiceData, isLoading: invLoading, isValidating: isInvValidating, error: invError } = useSWR(
