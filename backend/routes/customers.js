@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   getCustomers,
   getCustomer,
+  getCustomerLedger,
   createCustomer,
   updateCustomer,
   deleteCustomer,
@@ -23,6 +24,9 @@ router.get('/search', searchCustomers);
 router.route('/')
   .get(getCustomers)
   .post(createCustomerValidator, createCustomer);
+
+// Ledger route (must be before /:id to avoid param collision)
+router.get('/:id/ledger', mongoIdParam, getCustomerLedger);
 
 router.route('/:id')
   .get(mongoIdParam, getCustomer)
