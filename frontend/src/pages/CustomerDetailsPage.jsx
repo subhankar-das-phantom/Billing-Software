@@ -24,6 +24,7 @@ import {
   BookOpen
 } from 'lucide-react';
 import { customerService } from '../services/customerService';
+import { ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import { getPaymentsByCustomer, getPaymentStatusColor } from '../services/creditService';
 import { manualEntryService } from '../services/manualEntryService';
 import { formatCurrency, formatDate, formatPhone } from '../utils/formatters';
@@ -75,7 +76,14 @@ const AnimatedCounter = ({ value, prefix = '', suffix = '' }) => {
 
 export default function CustomerDetailsPage() {
   const { id } = useParams();
-  const { isAdmin } = useAuth();
+  const { isAdmin, admin } = useAuth();
+  const ledgerPrintRef = useRef();
+
+  const handlePrintLedger = () => {
+    document.title = `Ledger_${customer?.customerName?.replace(/\s+/g, '_') || 'Customer'}`;
+    window.print();
+    setTimeout(() => { document.title = 'Bharat Enterprise - Billing System'; }, 1000);
+  };
   const motionConfig = useMotionConfig();
   const [customer, setCustomer] = useState(null);
   const [invoices, setInvoices] = useState([]);
@@ -86,11 +94,36 @@ export default function CustomerDetailsPage() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showManualEntryModal, setShowManualEntryModal] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [ledgerData, setLedgerData] = useState({ ledger: [], summary: null });
+  const [ledgerLoading, setLedgerLoading] = useState(false);
+  const [ledgerLoaded, setLedgerLoaded] = useState(false);
 
 
   useEffect(() => {
     loadCustomer();
+    setLedgerLoaded(false);
+    setLedgerData({ ledger: [], summary: null });
   }, [id]);
+
+  // Load ledger on tab switch
+  useEffect(() => {
+    if (activeTab === 'ledger' && !ledgerLoaded && id) {
+      loadLedger();
+    }
+  }, [activeTab, id]);
+
+  const loadLedger = async () => {
+    setLedgerLoading(true);
+    try {
+      const data = await customerService.getCustomerLedger(id);
+      setLedgerData({ ledger: data.ledger || [], summary: data.summary || null });
+      setLedgerLoaded(true);
+    } catch (error) {
+      console.error('Failed to load ledger:', error);
+    } finally {
+      setLedgerLoading(false);
+    }
+  };
 
   const loadCustomer = async (bypassCache = false) => {
     try {
@@ -293,8 +326,19 @@ export default function CustomerDetailsPage() {
   const tabs = [
     { id: 'invoices', label: 'Invoices', icon: FileText, count: invoices.length },
     { id: 'payments', label: 'Payments', icon: CreditCard, count: payments.length + paymentAdjustments.length },
-    { id: 'ledger', label: 'Ledger', icon: BookOpen, count: manualEntries.length },
+    { id: 'ledger', label: 'Ledger', icon: BookOpen, count: ledgerData.ledger.length || null },
   ];
+
+  // Ledger type badge config
+  const ledgerTypeConfig = {
+    'Invoice': { color: 'bg-blue-500/20 text-blue-400 border-blue-500/30', icon: ArrowUpRight },
+    'Payment': { color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30', icon: ArrowDownLeft },
+    'Credit Note': { color: 'bg-purple-500/20 text-purple-400 border-purple-500/30', icon: ArrowDownLeft },
+    'Opening Balance': { color: 'bg-amber-500/20 text-amber-400 border-amber-500/30', icon: ArrowUpRight },
+    'Manual Bill': { color: 'bg-orange-500/20 text-orange-400 border-orange-500/30', icon: ArrowUpRight },
+    'Payment Adjustment': { color: 'bg-teal-500/20 text-teal-400 border-teal-500/30', icon: ArrowDownLeft },
+    'Credit Adjustment': { color: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30', icon: ArrowDownLeft },
+  };
 
   // Get entry type display info
   const getEntryTypeInfo = (entryType) => {
@@ -308,12 +352,13 @@ export default function CustomerDetailsPage() {
   };
 
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="space-y-6"
-    >
+    <>
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="space-y-6 no-print"
+      >
       {/* Back Button */}
       <motion.div variants={itemVariants}>
         <Link
@@ -873,7 +918,7 @@ export default function CustomerDetailsPage() {
               </motion.div>
             )}
 
-            {/* Ledger Tab - Manual Entries */}
+            {/* Ledger Tab - Full Financial History */}
             {activeTab === 'ledger' && (
               <motion.div
                 key="ledger"
@@ -881,7 +926,12 @@ export default function CustomerDetailsPage() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
               >
-                {manualEntries.length === 0 ? (
+                {ledgerLoading ? (
+                  <div className="text-center py-12">
+                    <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                    <p className="text-sm text-slate-400">Loading ledger...</p>
+                  </div>
+                ) : ledgerData.ledger.length === 0 ? (
                   <div className="text-center py-12">
                     <motion.div
                       className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-800 mb-4"
@@ -897,83 +947,128 @@ export default function CustomerDetailsPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.3 }}
                     >
-                      No manual entries for this customer
+                      No transactions found for this customer
                     </motion.p>
-                    {isAdmin && (
-                      <motion.button
-                        onClick={() => setShowManualEntryModal(true)}
-                        className="btn btn-primary mt-4 inline-flex items-center gap-2"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4 }}
-                      >
-                        <Shield className="w-4 h-4" />
-                        Create Manual Entry
-                      </motion.button>
-                    )}
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {manualEntries.map((entry, index) => {
-                      const typeInfo = getEntryTypeInfo(entry.entryType);
-                      const isDebit = ['opening_balance', 'manual_bill'].includes(entry.entryType);
-                      const remaining = entry.entryType === 'opening_balance' && entry.paymentType === 'Credit'
-                        ? entry.amount - (entry.paidAmount || 0)
-                        : null;
-                      
-                      return (
-                        <motion.div
-                          key={entry._id}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: shouldAnimateRows ? Math.min(index * 0.02, 0.12) : 0, duration: denseRows ? 0.12 : undefined }}
-                          className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50 hover:border-purple-500/30 transition-all"
+                  <>
+                    {/* Ledger Actions + Summary Cards */}
+                    {ledgerData.summary && (
+                      <>
+                      <div className="flex justify-end mb-3 no-print">
+                        <motion.button
+                          onClick={handlePrintLedger}
+                          className="btn btn-secondary flex items-center gap-2"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
                         >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                              <div className="p-2.5 bg-purple-500/20 rounded-lg">
-                                <Shield className="w-5 h-5 text-purple-400" />
-                              </div>
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-lg mr-1">{typeInfo.icon}</span>
-                                  <span className="font-medium text-white">{typeInfo.label}</span>
-                                  <span className={`text-xs px-2 py-0.5 rounded ${
-                                    entry.paymentType === 'Credit' 
-                                      ? 'bg-amber-500/20 text-amber-400' 
-                                      : 'bg-emerald-500/20 text-emerald-400'
-                                  }`}>
-                                    {entry.paymentType}
+                          <Printer className="w-4 h-4" />
+                          Print / Download Ledger
+                        </motion.button>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+                        <div className="p-4 rounded-xl bg-slate-800/50 border border-amber-500/20">
+                          <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Total Debit</p>
+                          <p className="text-xl font-bold text-amber-400">{formatCurrency(ledgerData.summary.totalDebit)}</p>
+                        </div>
+                        <div className="p-4 rounded-xl bg-slate-800/50 border border-emerald-500/20">
+                          <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Total Credit</p>
+                          <p className="text-xl font-bold text-emerald-400">{formatCurrency(ledgerData.summary.totalCredit)}</p>
+                        </div>
+                        <div className={`p-4 rounded-xl bg-slate-800/50 border ${ledgerData.summary.closingBalance > 0 ? 'border-red-500/20' : 'border-emerald-500/20'}`}>
+                          <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Closing Balance</p>
+                          <p className={`text-xl font-bold ${ledgerData.summary.closingBalance > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                            {formatCurrency(Math.abs(ledgerData.summary.closingBalance))}
+                            <span className="text-xs ml-1 font-normal">{ledgerData.summary.closingBalance > 0 ? 'Due' : ledgerData.summary.closingBalance < 0 ? 'Advance' : ''}</span>
+                          </p>
+                        </div>
+                      </div>
+                      </>
+                    )}
+
+                    {/* Ledger Table */}
+                    <div className="table-container">
+                      <table className="table">
+                        <thead>
+                          <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Ref #</th>
+                            <th className="hidden sm:table-cell">Description</th>
+                            <th className="text-right">Debit (₹)</th>
+                            <th className="text-right">Credit (₹)</th>
+                            <th className="text-right">Balance (₹)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {ledgerData.ledger.map((entry, index) => {
+                            const config = ledgerTypeConfig[entry.type] || { color: 'bg-slate-500/20 text-slate-400 border-slate-500/30', icon: FileText };
+                            const TypeIcon = config.icon;
+
+                            // Build link for ref
+                            let refLink = null;
+                            if (entry.linkType === 'invoice') refLink = `/invoices/${entry.linkId}`;
+                            else if (entry.linkType === 'creditNote') refLink = `/credit-notes/${entry.linkId}`;
+
+                            return (
+                              <motion.tr
+                                key={`${entry.linkType}-${entry.linkId}-${index}`}
+                                custom={index}
+                                variants={tableRowVariants}
+                                initial="hidden"
+                                animate="visible"
+                                className="hover:bg-slate-700/30 transition-colors"
+                              >
+                                <td className="text-slate-300 whitespace-nowrap">
+                                  <div className="flex items-center gap-1.5">
+                                    <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                                    {formatDate(entry.date)}
+                                  </div>
+                                </td>
+                                <td>
+                                  <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border ${config.color}`}>
+                                    <TypeIcon className="w-3 h-3" />
+                                    {entry.type}
                                   </span>
-                                  <span className="text-xs px-2 py-0.5 bg-purple-500/20 text-purple-400 rounded">
-                                    Manual Entry
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-2 text-sm text-slate-400 mt-1">
-                                  <Calendar className="w-3 h-3" />
-                                  {formatDate(entry.entryDate)}
-                                </div>
-                                <p className="text-sm text-slate-300 mt-1">{entry.description}</p>
-                                {entry.notes && (
-                                  <p className="text-xs text-slate-500 mt-1">{entry.notes}</p>
-                                )}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className={`text-lg font-semibold ${isDebit ? 'text-amber-400' : 'text-emerald-400'}`}>
-                                {isDebit ? '+' : '-'}{formatCurrency(entry.amount)}
-                              </p>
-                              {remaining !== null && remaining > 0 && (
-                                <p className="text-xs text-slate-400">
-                                  Remaining: {formatCurrency(remaining)}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </motion.div>
-                      );
-                    })}
-                  </div>
+                                </td>
+                                <td className="font-medium text-white">
+                                  {refLink ? (
+                                    <Link to={refLink} className="hover:text-blue-400 hover:underline transition-colors">
+                                      {entry.ref}
+                                    </Link>
+                                  ) : (
+                                    <span className="text-slate-300">{entry.ref}</span>
+                                  )}
+                                </td>
+                                <td className="hidden sm:table-cell text-slate-400 text-sm max-w-[200px] truncate">
+                                  {entry.description}
+                                </td>
+                                <td className="text-right font-medium">
+                                  {entry.debit > 0 ? (
+                                    <span className="text-amber-400">{formatCurrency(entry.debit)}</span>
+                                  ) : (
+                                    <span className="text-slate-600">—</span>
+                                  )}
+                                </td>
+                                <td className="text-right font-medium">
+                                  {entry.credit > 0 ? (
+                                    <span className="text-emerald-400">{formatCurrency(entry.credit)}</span>
+                                  ) : (
+                                    <span className="text-slate-600">—</span>
+                                  )}
+                                </td>
+                                <td className={`text-right font-semibold ${entry.balance > 0 ? 'text-red-400' : entry.balance < 0 ? 'text-emerald-400' : 'text-slate-300'}`}>
+                                  {formatCurrency(Math.abs(entry.balance))}
+                                  {entry.balance > 0 && <span className="text-[10px] ml-0.5 text-red-400/70">Dr</span>}
+                                  {entry.balance < 0 && <span className="text-[10px] ml-0.5 text-emerald-400/70">Cr</span>}
+                                </td>
+                              </motion.tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
                 )}
               </motion.div>
             )}
@@ -981,8 +1076,9 @@ export default function CustomerDetailsPage() {
           </AnimatePresence>
         </div>
       </motion.div>
+    </motion.div>
 
-      {/* Record Payment Modal */}
+    {/* Record Payment Modal */}
       <RecordPaymentModal
         isOpen={showPaymentModal}
         onClose={() => {
@@ -996,6 +1092,128 @@ export default function CustomerDetailsPage() {
         preSelectedInvoice={selectedInvoice}
       />
 
+      {/* Printable Ledger Preview (visible on screen + used for print) */}
+      {ledgerData.ledger.length > 0 && customer && activeTab === 'ledger' && (
+        <div className="flex justify-center no-print-hide">
+          <motion.div
+            ref={ledgerPrintRef}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="invoice-print bg-white border-2 border-slate-300 shadow-lg"
+            style={{
+              width: '210mm',
+              maxWidth: '100%',
+              fontSize: '11px',
+              color: '#000000',
+              margin: '0 auto',
+              padding: '2mm'
+            }}
+          >
+          <div className="invoice-copy" style={{ padding: '8mm', fontFamily: 'Arial, sans-serif', fontSize: '11px', color: '#000' }}>
+            {/* Firm Header */}
+            <div style={{ borderBottom: '2px solid #000', paddingBottom: '8px', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <h1 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0 }}>
+                    {admin?.firmName || 'BHARAT ENTERPRISES'}
+                  </h1>
+                  <p style={{ fontSize: '10px', margin: '2px 0' }}>
+                    {admin?.firmAddress || ''}
+                  </p>
+                </div>
+                <div style={{ textAlign: 'right', fontSize: '10px' }}>
+                  {admin?.firmPhone && <p style={{ margin: '1px 0' }}>Phone: {admin.firmPhone}</p>}
+                  {admin?.firmGSTIN && <p style={{ margin: '1px 0' }}>GSTIN: {admin.firmGSTIN}</p>}
+                </div>
+              </div>
+              <div style={{ textAlign: 'center', margin: '8px 0 4px' }}>
+                <span style={{ fontSize: '14px', fontWeight: 'bold', border: '1px solid #000', padding: '2px 16px' }}>
+                  CUSTOMER LEDGER
+                </span>
+              </div>
+              <p style={{ textAlign: 'center', fontSize: '11px', fontStyle: 'italic', margin: '6px 0 0' }}>
+                From the Books of <strong>{admin?.firmName || 'BHARAT ENTERPRISES'}</strong>
+              </p>
+            </div>
+
+            {/* Customer Info */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '10px' }}>
+              <div>
+                <p style={{ margin: '2px 0' }}><strong>Customer:</strong> M/s {customer.customerName}</p>
+                {customer.address && <p style={{ margin: '2px 0' }}><strong>Address:</strong> {customer.address}</p>}
+                {customer.phone && <p style={{ margin: '2px 0' }}><strong>Phone:</strong> {customer.phone}</p>}
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                {customer.gstin && <p style={{ margin: '2px 0' }}><strong>GSTIN:</strong> {customer.gstin}</p>}
+                {customer.dlNo && <p style={{ margin: '2px 0' }}><strong>DL No:</strong> {customer.dlNo}</p>}
+                <p style={{ margin: '2px 0' }}><strong>Date:</strong> {formatDate(new Date())}</p>
+              </div>
+            </div>
+
+            {/* Ledger Table */}
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '9px', border: '1px solid #000' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid #000', background: '#f0f0f0' }}>
+                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'left' }}>Date</th>
+                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'left' }}>Type</th>
+                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'left' }}>Ref #</th>
+                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'left' }}>Description</th>
+                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'right' }}>Debit (₹)</th>
+                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'right' }}>Credit (₹)</th>
+                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'right' }}>Balance (₹)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ledgerData.ledger.map((entry, idx) => (
+                  <tr key={idx} style={{ borderBottom: '0.5px solid #ccc' }}>
+                    <td style={{ border: '1px solid #000', padding: '3px' }}>{formatDate(entry.date)}</td>
+                    <td style={{ border: '1px solid #000', padding: '3px', fontWeight: entry.debit > 0 ? 'bold' : 'normal' }}>{entry.type}</td>
+                    <td style={{ border: '1px solid #000', padding: '3px' }}>{entry.ref}</td>
+                    <td style={{ border: '1px solid #000', padding: '3px', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{entry.description}</td>
+                    <td style={{ border: '1px solid #000', padding: '3px', textAlign: 'right' }}>
+                      {entry.debit > 0 ? entry.debit.toFixed(2) : ''}
+                    </td>
+                    <td style={{ border: '1px solid #000', padding: '3px', textAlign: 'right' }}>
+                      {entry.credit > 0 ? entry.credit.toFixed(2) : ''}
+                    </td>
+                    <td style={{ border: '1px solid #000', padding: '3px', textAlign: 'right', fontWeight: 'bold' }}>
+                      {Math.abs(entry.balance).toFixed(2)} {entry.balance > 0 ? 'Dr' : entry.balance < 0 ? 'Cr' : ''}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr style={{ borderTop: '2px solid #000', fontWeight: 'bold', background: '#f0f0f0' }}>
+                  <td colSpan="4" style={{ border: '1px solid #000', padding: '4px', textAlign: 'right' }}>TOTALS</td>
+                  <td style={{ border: '1px solid #000', padding: '4px', textAlign: 'right' }}>
+                    {ledgerData.summary?.totalDebit?.toFixed(2)}
+                  </td>
+                  <td style={{ border: '1px solid #000', padding: '4px', textAlign: 'right' }}>
+                    {ledgerData.summary?.totalCredit?.toFixed(2)}
+                  </td>
+                  <td style={{ border: '1px solid #000', padding: '4px', textAlign: 'right' }}>
+                    {Math.abs(ledgerData.summary?.closingBalance || 0).toFixed(2)} {(ledgerData.summary?.closingBalance || 0) > 0 ? 'Dr' : (ledgerData.summary?.closingBalance || 0) < 0 ? 'Cr' : ''}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+
+            {/* Footer */}
+            <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
+              <div>
+                <p>E & O E</p>
+                <p style={{ marginTop: '4px', fontStyle: 'italic' }}>This is a computer-generated ledger statement.</p>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ height: '30px' }}></div>
+                <p style={{ borderTop: '1px solid #000', paddingTop: '4px' }}>Authorized Signatory</p>
+              </div>
+            </div>
+          </div>
+          </motion.div>
+        </div>
+      )}
+
       {/* Manual Entry Modal */}
       <ManualEntryModal
         isOpen={showManualEntryModal}
@@ -1006,6 +1224,6 @@ export default function CustomerDetailsPage() {
         }}
         preSelectedCustomer={customer}
       />
-    </motion.div>
+    </>
   );
 }
