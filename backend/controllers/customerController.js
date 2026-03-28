@@ -1,10 +1,168 @@
 const Customer = require('../models/Customer');
 const Invoice = require('../models/Invoice');
+const Payment = require('../models/Payment');
+const CreditNote = require('../models/CreditNote');
+const ManualEntry = require('../models/ManualEntry');
 const { getAttribution } = require('../middleware/auth');
 const { trackActivity, ACTIVITY_TYPES } = require('../utils/activityTracker');
 
 // Escape special regex characters in user input to prevent MongoDB $regex errors
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// Round to 2 decimal places safely (avoids JS floating point drift)
+const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+
+// @desc    Get customer ledger (merged financial history)
+// @route   GET /api/customers/:id/ledger
+// @access  Private
+exports.getCustomerLedger = async (req, res, next) => {
+  try {
+    const customerId = req.params.id;
+
+    // Verify customer exists
+    const customer = await Customer.findById(customerId);
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: 'Customer not found'
+      });
+    }
+
+    // Fetch all data sources in parallel
+    const [invoices, payments, creditNotes, manualEntries] = await Promise.all([
+      Invoice.find({ 'customer._id': customerId, status: { $ne: 'Cancelled' } })
+        .select('invoiceNumber invoiceDate totals.netTotal items paymentStatus paidAmount')
+        .lean(),
+      Payment.find({ customer: customerId })
+        .populate('invoice', 'invoiceNumber')
+        .lean(),
+      CreditNote.find({ 'customer._id': customerId })
+        .select('creditNoteNumber invoiceNumber totals.netTotal createdAt')
+        .lean(),
+      ManualEntry.find({ customer: customerId })
+        .lean()
+    ]);
+
+    // Build ledger entries array
+    const entries = [];
+
+    // 1. Invoices → Debit (use invoiceDate as transaction date)
+    for (const inv of invoices) {
+      const productSummary = (inv.items || [])
+        .map(i => i.product?.productName || 'Product')
+        .slice(0, 3)
+        .join(', ');
+      const suffix = inv.items?.length > 3 ? ` +${inv.items.length - 3} more` : '';
+
+      entries.push({
+        date: inv.invoiceDate,
+        type: 'Invoice',
+        ref: inv.invoiceNumber,
+        description: productSummary + suffix || 'Invoice',
+        debit: round2(inv.totals?.netTotal || 0),
+        credit: 0,
+        linkId: inv._id,
+        linkType: 'invoice'
+      });
+    }
+
+    // 2. Payments → Credit (use paymentDate as transaction date)
+    for (const pay of payments) {
+      entries.push({
+        date: pay.paymentDate,
+        type: 'Payment',
+        ref: pay.invoiceSnapshot?.invoiceNumber || pay.invoice?.invoiceNumber || '-',
+        description: `${pay.paymentMethod}${pay.referenceNumber ? ' • ' + pay.referenceNumber : ''}${pay.notes ? ' — ' + pay.notes : ''}`,
+        debit: 0,
+        credit: round2(pay.amount),
+        linkId: pay.invoice?._id || pay.invoice,
+        linkType: 'payment'
+      });
+    }
+
+    // 3. Credit Notes → Credit (use createdAt since no dedicated date field)
+    for (const cn of creditNotes) {
+      entries.push({
+        date: cn.createdAt,
+        type: 'Credit Note',
+        ref: cn.creditNoteNumber,
+        description: `Return against ${cn.invoiceNumber}`,
+        debit: 0,
+        credit: round2(cn.totals?.netTotal || 0),
+        linkId: cn._id,
+        linkType: 'creditNote'
+      });
+    }
+
+    // 4. Manual Entries (use entryDate as transaction date)
+    for (const me of manualEntries) {
+      let debit = 0;
+      let credit = 0;
+      let type = '';
+
+      switch (me.entryType) {
+        case 'opening_balance':
+          type = 'Opening Balance';
+          debit = round2(me.amount);
+          break;
+        case 'manual_bill':
+          type = 'Manual Bill';
+          debit = round2(me.amount);
+          break;
+        case 'payment_adjustment':
+          type = 'Payment Adjustment';
+          credit = round2(me.amount);
+          break;
+        case 'credit_adjustment':
+          type = 'Credit Adjustment';
+          credit = round2(me.amount);
+          break;
+        default:
+          type = me.entryType;
+          debit = round2(me.amount);
+      }
+
+      entries.push({
+        date: me.entryDate,
+        type,
+        ref: `ME-${me._id.toString().slice(-6).toUpperCase()}`,
+        description: me.description || type,
+        debit,
+        credit,
+        linkId: me._id,
+        linkType: 'manualEntry'
+      });
+    }
+
+    // CRITICAL: Sort by date ASCENDING before computing running balance
+    entries.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // Compute running balance
+    let runningBalance = 0;
+    let totalDebit = 0;
+    let totalCredit = 0;
+
+    for (const entry of entries) {
+      runningBalance = round2(runningBalance + entry.debit - entry.credit);
+      entry.balance = runningBalance;
+      totalDebit = round2(totalDebit + entry.debit);
+      totalCredit = round2(totalCredit + entry.credit);
+    }
+
+    res.status(200).json({
+      success: true,
+      count: entries.length,
+      ledger: entries,
+      summary: {
+        totalDebit,
+        totalCredit,
+        closingBalance: round2(totalDebit - totalCredit)
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 // @desc    Get all customers
 // @route   GET /api/customers
