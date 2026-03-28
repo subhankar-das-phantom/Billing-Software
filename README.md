@@ -37,6 +37,7 @@ Test Credentials:
 
 ### Core Functionality
 - ✅ **Invoice & Payment Engine** - Multi-item GST calculations, full/partial payment tracking, and GST-compliant sales returns (Credit Notes)
+- ✅ **Customer Ledger & Collections** - Unified financial history per customer with running balances, and daily cash flow tracking across all payment methods
 - ✅ **Product & Customer Management** - Real-time stock tracking with informational MRP/Batch tracking, and customer credit profiles
 - ✅ **Analytics & Reporting** - Monthly sales trends, top customers, credit aging dashboards (30/60/90+ days), and employee performance
 - ✅ **Secure Authentication** - JWT-based login with admin-controlled employee accounts (No self-signup)
@@ -185,6 +186,7 @@ bharat-billing/
 ### Customers
 - `GET /api/customers` - List customers
 - `GET /api/customers/search?q=` - Search customers
+- `GET /api/customers/:id/ledger` - Get unified financial ledger
 - `POST /api/customers` - Create customer
 - `PUT /api/customers/:id` - Update customer
 - `DELETE /api/customers/:id` - Delete customer
@@ -214,6 +216,7 @@ bharat-billing/
 
 ### Payments
 - `GET /api/payments` - List all payments
+- `GET /api/payments/collections` - Get daily aggregated collections
 - `POST /api/payments` - Record a payment
 - `GET /api/payments/:id` - Get payment details
 - `DELETE /api/payments/:id` - Delete payment
