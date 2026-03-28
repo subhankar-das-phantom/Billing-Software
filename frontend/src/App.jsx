@@ -20,6 +20,7 @@ const NotesPage = lazy(() => import('./pages/NotesPage'));
 const CreditsPage = lazy(() => import('./pages/CreditsPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+const CollectionsPage = lazy(() => import('./pages/CollectionsPage'));
 
 // Admin-only pages
 const EmployeesPage = lazy(() => import('./pages/EmployeesPage'));
@@ -126,6 +127,7 @@ function AppRoutes() {
           <Route path="/credit-notes/:id" element={<CreditNoteViewPage />} />
           <Route path="/notes" element={<NotesPage />} />
           <Route path="/credits" element={<CreditsPage />} />
+          <Route path="/collections" element={<CollectionsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           
           {/* Admin-only routes */}
