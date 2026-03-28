@@ -16,6 +16,7 @@ import {
   User,
   StickyNote,
   Wallet,
+  Banknote,
   UsersRound,
   Shield
 } from 'lucide-react';
@@ -30,6 +31,7 @@ const getMenuItems = (invoiceCount) => [
   { path: '/invoices/create', label: 'Create Invoice', icon: FilePlus, badge: 'New', badgeColor: 'bg-emerald-500' },
   { path: '/invoices', label: 'All Invoices', icon: FileText, badge: invoiceCount > 0 ? String(invoiceCount) : null, badgeColor: 'bg-blue-500' },
   { path: '/credits', label: 'Credits', icon: Wallet, badge: null },
+  { path: '/collections', label: 'Collections', icon: Banknote, badge: null },
 ];
 
 // Quick actions - some are admin only

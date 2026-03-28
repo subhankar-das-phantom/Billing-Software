@@ -13,6 +13,7 @@ import {
   Sparkles,
   StickyNote,
   Wallet,
+  Banknote,
   UsersRound,
   BarChart3,
   Shield,
@@ -26,6 +27,7 @@ const navItems = [
   { path: '/customers', label: 'Customers', icon: Users },
   { path: '/invoices', label: 'Invoices', icon: FileText },
   { path: '/credits', label: 'Credits', icon: Wallet },
+  { path: '/collections', label: 'Collections', icon: Banknote },
   { path: '/notes', label: 'Notes', icon: StickyNote },
   { path: '/invoices/create', label: 'Create Invoice', icon: FilePlus, highlight: true },
 ];
@@ -144,10 +146,10 @@ export default function Navbar() {
                     >
                       <item.icon size={18} strokeWidth={isActive ? 2.5 : 2} />
                     </motion.div>
-                    <span className="font-medium text-sm hidden xl:block">{item.label}</span>
+                    <span className="font-medium text-sm hidden 2xl:block">{item.label}</span>
                     
                     {/* Tooltip for icon-only mode (< xl screens) */}
-                    <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 border border-slate-700 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none xl:hidden z-50">
+                    <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 border border-slate-700 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none 2xl:hidden z-50">
                       {item.label}
                     </div>
                     
@@ -161,7 +163,7 @@ export default function Navbar() {
                       </motion.div>
                     )}
                     {item.adminOnly && (
-                      <span className="text-[10px] px-1.5 py-0.5 bg-purple-500/20 text-purple-400 rounded font-semibold hidden xl:inline-block">Admin</span>
+                      <span className="text-[10px] px-1.5 py-0.5 bg-purple-500/20 text-purple-400 rounded font-semibold hidden 2xl:inline-block">Admin</span>
                     )}
                   </motion.div>
                 </Link>
@@ -182,7 +184,7 @@ export default function Navbar() {
                   whileTap={{ scale: 0.95 }}
                 >
                   <Shield size={18} />
-                  <span className="font-medium text-sm hidden xl:block">Admin</span>
+                  <span className="font-medium text-sm hidden 2xl:block">Admin</span>
                   <ChevronDown size={14} className={`transition-transform duration-200 ${adminMenuOpen ? 'rotate-180' : ''}`} />
                 </motion.button>
                 
@@ -231,7 +233,7 @@ export default function Navbar() {
                   {isAdmin ? (admin?.firmName?.charAt(0) || 'A') : (user?.name?.charAt(0) || 'E')}
                 </span>
               </div>
-              <div className="hidden xl:block text-left">
+              <div className="hidden 2xl:block text-left">
                 <p className="text-sm font-medium text-white truncate max-w-[150px]">
                   {isAdmin ? (admin?.firmName || 'Admin') : (user?.name || 'Employee')}
                 </p>
