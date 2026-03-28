@@ -1,8 +1,170 @@
 const Payment = require('../models/Payment');
 const Invoice = require('../models/Invoice');
 const Customer = require('../models/Customer');
+const ManualEntry = require('../models/ManualEntry');
 const { getAttribution } = require('../middleware/auth');
 const { trackActivity, ACTIVITY_TYPES } = require('../utils/activityTracker');
+
+// Round to 2 decimal places safely
+const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+
+// @desc    Get daily collections summary + payment list
+// @route   GET /api/payments/collections
+// @access  Private
+exports.getCollections = async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+
+    // Build date range
+    let startOfDay, endOfDay;
+    if (req.query.date) {
+      const d = new Date(req.query.date);
+      startOfDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      endOfDay = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+    } else if (req.query.startDate || req.query.endDate) {
+      if (req.query.startDate) {
+        const s = new Date(req.query.startDate);
+        startOfDay = new Date(s.getFullYear(), s.getMonth(), s.getDate());
+      }
+      if (req.query.endDate) {
+        const e = new Date(req.query.endDate);
+        endOfDay = new Date(e.getFullYear(), e.getMonth(), e.getDate() + 1);
+      }
+    } else {
+      const today = new Date();
+      startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+    }
+
+    // Build payment query
+    const paymentQuery = {};
+    const paymentMatch = {};
+    if (startOfDay || endOfDay) {
+      paymentQuery.paymentDate = {};
+      paymentMatch.paymentDate = {};
+      if (startOfDay) { paymentQuery.paymentDate.$gte = startOfDay; paymentMatch.paymentDate.$gte = startOfDay; }
+      if (endOfDay) { paymentQuery.paymentDate.$lt = endOfDay; paymentMatch.paymentDate.$lt = endOfDay; }
+    }
+    if (req.query.paymentMethod) {
+      paymentQuery.paymentMethod = req.query.paymentMethod;
+      paymentMatch.paymentMethod = req.query.paymentMethod;
+    }
+    if (req.query.customerId) {
+      const mongoose = require('mongoose');
+      paymentQuery.customer = new mongoose.Types.ObjectId(req.query.customerId);
+      paymentMatch.customer = paymentQuery.customer;
+    }
+
+    // Build manual entry query (payment_adjustment and credit_adjustment)
+    const meQuery = {
+      entryType: { $in: ['payment_adjustment', 'credit_adjustment'] }
+    };
+    if (startOfDay || endOfDay) {
+      meQuery.entryDate = {};
+      if (startOfDay) meQuery.entryDate.$gte = startOfDay;
+      if (endOfDay) meQuery.entryDate.$lt = endOfDay;
+    }
+    if (req.query.paymentMethod) {
+      meQuery.paymentMethod = req.query.paymentMethod;
+    }
+    if (req.query.customerId) {
+      const mongoose = require('mongoose');
+      meQuery.customer = new mongoose.Types.ObjectId(req.query.customerId);
+    }
+
+    // Run all queries in parallel
+    const [summaryResult, payments, manualEntries] = await Promise.all([
+      Payment.aggregate([
+        { $match: paymentMatch },
+        {
+          $facet: {
+            totals: [{ $group: { _id: null, totalCollected: { $sum: '$amount' }, paymentCount: { $sum: 1 } } }],
+            byMethod: [{ $group: { _id: '$paymentMethod', count: { $sum: 1 }, total: { $sum: '$amount' } } }]
+          }
+        }
+      ]),
+      Payment.find(paymentQuery)
+        .populate('customer', 'customerName phone')
+        .populate('invoice', 'invoiceNumber totals.netTotal')
+        .sort({ paymentDate: -1, createdAt: -1 })
+        .lean(),
+      ManualEntry.find(meQuery)
+        .populate('customer', 'customerName phone')
+        .lean()
+    ]);
+
+    // Process payment aggregation
+    const payTotals = summaryResult[0]?.totals[0] || { totalCollected: 0, paymentCount: 0 };
+    const byMethodArray = summaryResult[0]?.byMethod || [];
+
+    // Merge manual entry payments into totals and byMethod
+    let meTotalCollected = 0;
+    let mePaymentCount = manualEntries.length;
+    const meByMethod = {};
+
+    for (const me of manualEntries) {
+      meTotalCollected += me.amount;
+      const method = me.paymentMethod || 'Cash';
+      if (!meByMethod[method]) meByMethod[method] = { count: 0, total: 0 };
+      meByMethod[method].count += 1;
+      meByMethod[method].total += me.amount;
+    }
+
+    // Merge byMethod from both sources
+    const byMethod = {};
+    for (const m of byMethodArray) {
+      byMethod[m._id] = { count: m.count, total: round2(m.total) };
+    }
+    for (const [method, info] of Object.entries(meByMethod)) {
+      if (byMethod[method]) {
+        byMethod[method].count += info.count;
+        byMethod[method].total = round2(byMethod[method].total + info.total);
+      } else {
+        byMethod[method] = { count: info.count, total: round2(info.total) };
+      }
+    }
+
+    // Normalize manual entries to look like payments for frontend
+    const normalizedME = manualEntries.map(me => ({
+      _id: me._id,
+      paymentDate: me.entryDate,
+      amount: me.amount,
+      paymentMethod: me.paymentMethod || 'Cash',
+      referenceNumber: me.referenceNumber || '',
+      notes: me.description || me.notes || '',
+      customer: me.customer,
+      invoice: null,
+      invoiceSnapshot: null,
+      isManualEntry: true,
+      entryType: me.entryType,
+      description: me.description
+    }));
+
+    // Merge and sort all payments by date descending
+    const allPayments = [...payments, ...normalizedME]
+      .sort((a, b) => new Date(b.paymentDate) - new Date(a.paymentDate));
+
+    const total = allPayments.length;
+    const paginatedPayments = allPayments.slice((page - 1) * limit, page * limit);
+
+    res.status(200).json({
+      success: true,
+      summary: {
+        totalCollected: round2(payTotals.totalCollected + meTotalCollected),
+        paymentCount: payTotals.paymentCount + mePaymentCount,
+        byMethod
+      },
+      count: paginatedPayments.length,
+      total,
+      page,
+      pages: Math.ceil(total / limit),
+      payments: paginatedPayments
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 // @desc    Record a new payment
 // @route   POST /api/payments
