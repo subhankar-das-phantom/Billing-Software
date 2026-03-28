@@ -74,7 +74,17 @@ To process returned items:
 
 ---
 
-## 6. Mobile Usage
+## 6. Customer Ledger & Daily Collections
+
+**Tracking Customer Balances (Ledger)**
+Go to any Customer's details page and click the **Ledger** tab to see their complete financial history, including invoices, payments, credit notes, and manual adjustments, complete with a running closing balance. You can also print a professional ledger statement to share with the customer.
+
+**Tracking Daily Cash Flow (Collections)**
+Click on **Collections** from the navigation menu to see a dashboard of your daily revenue. It breaks down total collections by payment method (Cash, UPI, Bank Transfer) and lists all incoming payments for any selected date.
+
+---
+
+## 7. Mobile Usage
 
 This system is optimized for real-world usage on mobile devices:
 
@@ -86,7 +96,7 @@ You can run your entire billing operation directly from your phone.
 
 ---
 
-## 7. Common Questions
+## 8. Common Questions
 
 **Q: What happens when I edit an invoice?**
 → The system automatically adjusts stock based on the difference. No manual work needed.
@@ -99,7 +109,7 @@ You can run your entire billing operation directly from your phone.
 
 ---
 
-## 8. Reliability
+## 9. Reliability
 
 * Your data is stored safely
 * Stock calculations are automatic and consistent
