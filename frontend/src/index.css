@@ -406,6 +406,11 @@
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
+
+  /* Force show hidden printable areas during print */
+  .invoice-print[style*="display: none"] {
+    display: block !important;
+  }
 }
 
 /* Force black text in invoice */
