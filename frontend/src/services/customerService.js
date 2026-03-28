@@ -146,6 +146,20 @@ export const customerService = {
   },
 
   /**
+   * Get customer ledger (merged financial history)
+   * @param {string} id - Customer ID
+   * @returns {Promise<{ledger: array, summary: object}>}
+   */
+  getCustomerLedger: async (id) => {
+    try {
+      const response = await api.get(`/customers/${id}/ledger`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
    * Get customer invoices
    * @param {string} id - Customer ID
    * @param {object} params - Query parameters
