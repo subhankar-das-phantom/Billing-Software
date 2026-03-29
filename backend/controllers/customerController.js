@@ -5,6 +5,7 @@ const CreditNote = require('../models/CreditNote');
 const ManualEntry = require('../models/ManualEntry');
 const { getAttribution } = require('../middleware/auth');
 const { trackActivity, ACTIVITY_TYPES } = require('../utils/activityTracker');
+const mongoose = require('mongoose');
 
 // Escape special regex characters in user input to prevent MongoDB $regex errors
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -18,6 +19,10 @@ const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 exports.getCustomerLedger = async (req, res, next) => {
   try {
     const customerId = req.params.id;
+    const { startDate, endDate, sortOrder, limit = 200, offset = 0 } = req.query;
+    
+    const parsedLimit = parseInt(limit, 10);
+    const parsedOffset = parseInt(offset, 10);
 
     // Verify customer exists
     const customer = await Customer.findById(customerId);
@@ -28,130 +33,362 @@ exports.getCustomerLedger = async (req, res, next) => {
       });
     }
 
-    // Fetch all data sources in parallel
-    const [invoices, payments, creditNotes, manualEntries] = await Promise.all([
-      Invoice.find({ 'customer._id': customerId, status: { $ne: 'Cancelled' } })
-        .select('invoiceNumber invoiceDate totals.netTotal items paymentStatus paidAmount')
-        .lean(),
-      Payment.find({ customer: customerId })
-        .populate('invoice', 'invoiceNumber')
-        .lean(),
-      CreditNote.find({ 'customer._id': customerId })
-        .select('creditNoteNumber invoiceNumber totals.netTotal createdAt')
-        .lean(),
-      ManualEntry.find({ customer: customerId })
-        .lean()
+    const objectId = new mongoose.Types.ObjectId(customerId);
+
+    // Parse dates
+    const start = startDate ? new Date(startDate) : null;
+    const end = endDate ? new Date(endDate) : new Date();
+    
+    // Set time to end of day for the end date to include the whole day
+    if (endDate) {
+      end.setHours(23, 59, 59, 999);
+    }
+
+    // --- 1. Compute Opening Balance Using Aggregate ($unionWith) ---
+    let openingBalanceDebit = 0;
+    let openingBalanceCredit = 0;
+
+    if (start) {
+      const openingBalanceResult = await Invoice.aggregate([
+        { 
+          $match: { 
+            'customer._id': objectId, 
+            invoiceDate: { $lt: start }, 
+            status: { $ne: 'Cancelled' } 
+          } 
+        },
+        { 
+          $project: { _id: 0, debit: '$totals.netTotal', credit: { $literal: 0 } } 
+        },
+        {
+          $unionWith: {
+            coll: 'payments',
+            pipeline: [
+              { $match: { customer: objectId, paymentDate: { $lt: start } } },
+              { $project: { _id: 0, debit: { $literal: 0 }, credit: '$amount' } }
+            ]
+          }
+        },
+        {
+          $unionWith: {
+            coll: 'creditnotes',
+            pipeline: [
+              { $match: { 'customer._id': objectId, createdAt: { $lt: start } } },
+              { $project: { _id: 0, debit: { $literal: 0 }, credit: '$totals.netTotal' } }
+            ]
+          }
+        },
+        {
+          $unionWith: {
+            coll: 'manualentries',
+            pipeline: [
+              { $match: { customer: objectId, entryDate: { $lt: start } } },
+              { 
+                $project: { 
+                  _id: 0, 
+                  debit: { 
+                    $cond: [{ $in: ['$entryType', ['opening_balance', 'manual_bill']] }, '$amount', 0] 
+                  },
+                  credit: { 
+                    $cond: [{ $in: ['$entryType', ['payment_adjustment', 'credit_adjustment']] }, '$amount', 0] 
+                  }
+                } 
+              }
+            ]
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            totalDebit: { $sum: '$debit' },
+            totalCredit: { $sum: '$credit' }
+          }
+        }
+      ]);
+
+      if (openingBalanceResult.length > 0) {
+        openingBalanceDebit = openingBalanceResult[0].totalDebit || 0;
+        openingBalanceCredit = openingBalanceResult[0].totalCredit || 0;
+      }
+    }
+
+    // Compute net opening balance 
+    const netOpening = openingBalanceDebit - openingBalanceCredit;
+    const isOpeningCredit = netOpening < 0;
+
+    // --- 2. Fetch Ledger Entries Using Aggregate ($unionWith) ---
+    const dateMatchInvoice = start ? { invoiceDate: { $gte: start, $lte: end } } : { invoiceDate: { $lte: end } };
+    const dateMatchPayment = start ? { paymentDate: { $gte: start, $lte: end } } : { paymentDate: { $lte: end } };
+    const dateMatchCreditNote = start ? { createdAt: { $gte: start, $lte: end } } : { createdAt: { $lte: end } };
+    const dateMatchManual = start ? { entryDate: { $gte: start, $lte: end } } : { entryDate: { $lte: end } };
+
+    const ledgerEntries = await Invoice.aggregate([
+      // Invoices pipeline
+      { 
+        $match: { 'customer._id': objectId, status: { $ne: 'Cancelled' }, ...dateMatchInvoice } 
+      },
+      { 
+        $project: { 
+          date: '$invoiceDate', 
+          type: { $literal: 'Invoice' }, 
+          debit: '$totals.netTotal', 
+          credit: { $literal: 0 }, 
+          ref: '$invoiceNumber', 
+          linkId: '$_id', 
+          linkType: { $literal: 'invoice' },
+          items: '$items' 
+        } 
+      },
+      // Payments union
+      {
+        $unionWith: {
+          coll: 'payments',
+          pipeline: [
+            { $match: { customer: objectId, ...dateMatchPayment } },
+            { 
+              $lookup: {
+                from: 'invoices',
+                localField: 'invoice',
+                foreignField: '_id',
+                as: 'invoiceData'
+              }
+            },
+            {
+              $project: { 
+                date: '$paymentDate', 
+                type: { $literal: 'Payment' }, 
+                debit: { $literal: 0 }, 
+                credit: '$amount', 
+                ref: {
+                  $cond: { 
+                    if: { $gt: [{ $size: '$invoiceData' }, 0] }, 
+                    then: { $arrayElemAt: ['$invoiceData.invoiceNumber', 0] }, 
+                    else: '-' 
+                  }
+                },
+                linkId: '$invoice', 
+                linkType: { $literal: 'payment' },
+                descriptionInfo: { 
+                  method: '$paymentMethod', 
+                  ref: '$referenceNumber', 
+                  notes: '$notes' 
+                }
+              } 
+            }
+          ]
+        }
+      },
+      // Credit Notes union
+      {
+        $unionWith: {
+          coll: 'creditnotes',
+          pipeline: [
+            { $match: { 'customer._id': objectId, ...dateMatchCreditNote } },
+            { 
+              $project: { 
+                date: '$createdAt', 
+                type: { $literal: 'Credit Note' }, 
+                debit: { $literal: 0 }, 
+                credit: '$totals.netTotal', 
+                ref: '$creditNoteNumber', 
+                linkId: '$_id', 
+                linkType: { $literal: 'creditNote' },
+                invoiceNumber: '$invoiceNumber'
+              } 
+            }
+          ]
+        }
+      },
+      // Manual Entries union
+      {
+        $unionWith: {
+          coll: 'manualentries',
+          pipeline: [
+            { $match: { customer: objectId, ...dateMatchManual } },
+            { 
+              $project: { 
+                date: '$entryDate', 
+                type: {
+                  $switch: {
+                    branches: [
+                      { case: { $eq: ['$entryType', 'opening_balance'] }, then: 'Opening Balance' },
+                      { case: { $eq: ['$entryType', 'manual_bill'] }, then: 'Manual Bill' },
+                      { case: { $eq: ['$entryType', 'payment_adjustment'] }, then: 'Payment Adjustment' },
+                      { case: { $eq: ['$entryType', 'credit_adjustment'] }, then: 'Credit Adjustment' }
+                    ],
+                    default: '$entryType'
+                  }
+                }, 
+                debit: { 
+                  $cond: [{ $in: ['$entryType', ['opening_balance', 'manual_bill']] }, '$amount', 0] 
+                },
+                credit: { 
+                  $cond: [{ $in: ['$entryType', ['payment_adjustment', 'credit_adjustment']] }, '$amount', 0] 
+                }, 
+                ref: { $concat: ['ME-', { $toUpper: { $substr: [{ $toString: '$_id' }, 18, 6] } }] }, 
+                linkId: '$_id', 
+                linkType: { $literal: 'manualEntry' },
+                descriptionInfo: { 
+                  desc: '$description',
+                  method: '$paymentMethod'
+                }
+              } 
+            }
+          ]
+        }
+      },
+      { $sort: { date: 1 } },
+      {
+        $facet: {
+          metadata: [
+            { $count: 'totalCount' }
+          ],
+          skippedSum: [
+            { $limit: parsedOffset > 0 ? parsedOffset : 1 }, // limit 1 if offset 0 to avoid empty pipeline error in some mongo versions
+            { 
+               $group: { 
+                 _id: null, 
+                 skippedDebit: { $sum: '$debit' }, 
+                 skippedCredit: { $sum: '$credit' } 
+               } 
+            }
+          ],
+          data: [
+            { $skip: parsedOffset },
+            { $limit: parsedLimit }
+          ]
+        }
+      }
     ]);
 
-    // Build ledger entries array
+    const result = ledgerEntries[0] || { metadata: [], skippedSum: [], data: [] };
+    const rawData = result.data || [];
+    const totalCount = result.metadata[0]?.totalCount || 0;
+    
+    let skippedDebit = 0;
+    let skippedCredit = 0;
+    
+    if (parsedOffset > 0 && result.skippedSum.length > 0) {
+      skippedDebit = result.skippedSum[0].skippedDebit || 0;
+      skippedCredit = result.skippedSum[0].skippedCredit || 0;
+    }
+
+    // Build ledger array from sorted raw aggregated entries
     const entries = [];
 
-    // 1. Invoices → Debit (use invoiceDate as transaction date)
-    for (const inv of invoices) {
-      const productSummary = (inv.items || [])
-        .map(i => i.product?.productName || 'Product')
-        .slice(0, 3)
-        .join(', ');
-      const suffix = inv.items?.length > 3 ? ` +${inv.items.length - 3} more` : '';
+    // Format fields in JS cleanly
+    for (const item of rawData) {
+      let description = '';
+      let mode = '-';
 
-      entries.push({
-        date: inv.invoiceDate,
-        type: 'Invoice',
-        ref: inv.invoiceNumber,
-        description: productSummary + suffix || 'Invoice',
-        debit: round2(inv.totals?.netTotal || 0),
-        credit: 0,
-        linkId: inv._id,
-        linkType: 'invoice'
-      });
-    }
-
-    // 2. Payments → Credit (use paymentDate as transaction date)
-    for (const pay of payments) {
-      entries.push({
-        date: pay.paymentDate,
-        type: 'Payment',
-        ref: pay.invoiceSnapshot?.invoiceNumber || pay.invoice?.invoiceNumber || '-',
-        description: `${pay.paymentMethod}${pay.referenceNumber ? ' • ' + pay.referenceNumber : ''}${pay.notes ? ' — ' + pay.notes : ''}`,
-        debit: 0,
-        credit: round2(pay.amount),
-        linkId: pay.invoice?._id || pay.invoice,
-        linkType: 'payment'
-      });
-    }
-
-    // 3. Credit Notes → Credit (use createdAt since no dedicated date field)
-    for (const cn of creditNotes) {
-      entries.push({
-        date: cn.createdAt,
-        type: 'Credit Note',
-        ref: cn.creditNoteNumber,
-        description: `Return against ${cn.invoiceNumber}`,
-        debit: 0,
-        credit: round2(cn.totals?.netTotal || 0),
-        linkId: cn._id,
-        linkType: 'creditNote'
-      });
-    }
-
-    // 4. Manual Entries (use entryDate as transaction date)
-    for (const me of manualEntries) {
-      let debit = 0;
-      let credit = 0;
-      let type = '';
-
-      switch (me.entryType) {
-        case 'opening_balance':
-          type = 'Opening Balance';
-          debit = round2(me.amount);
-          break;
-        case 'manual_bill':
-          type = 'Manual Bill';
-          debit = round2(me.amount);
-          break;
-        case 'payment_adjustment':
-          type = 'Payment Adjustment';
-          credit = round2(me.amount);
-          break;
-        case 'credit_adjustment':
-          type = 'Credit Adjustment';
-          credit = round2(me.amount);
-          break;
-        default:
-          type = me.entryType;
-          debit = round2(me.amount);
+      if (item.type === 'Invoice') {
+        const productSummary = (item.items || [])
+          .map(i => i.product?.productName || 'Product')
+          .slice(0, 3)
+          .join(', ');
+        const suffix = item.items?.length > 3 ? ` +${item.items.length - 3} more` : '';
+        description = productSummary + (suffix || '');
+        delete item.items;
+      } else if (item.type === 'Payment') {
+        const info = item.descriptionInfo || {};
+        mode = info.method || 'Cash';
+        description = `${info.ref ? 'Ref: ' + info.ref : ''}${info.notes ? ' — ' + info.notes : ''}`.trim() || 'Payment Received';
+        delete item.descriptionInfo;
+      } else if (item.type === 'Credit Note') {
+        description = `Return against ${item.invoiceNumber || 'Unknown'}`;
+        delete item.invoiceNumber;
+      } else {
+        // Manual entry
+        const info = item.descriptionInfo || {};
+        if (item.type === 'Opening Balance') {
+          description = 'Opening balance carried forward from previous records';
+        } else {
+          description = info.desc || item.type;
+        }
+        
+        if (['Payment Adjustment', 'Opening Balance', 'Manual Bill'].includes(item.type)) {
+           mode = info.method || 'Cash';
+        }
+        
+        delete item.descriptionInfo;
       }
 
-      entries.push({
-        date: me.entryDate,
-        type,
-        ref: `ME-${me._id.toString().slice(-6).toUpperCase()}`,
-        description: me.description || type,
-        debit,
-        credit,
-        linkId: me._id,
-        linkType: 'manualEntry'
-      });
+      item.description = description || item.type;
+      item.mode = mode;
+      item.debit = round2(item.debit);
+      item.credit = round2(item.credit);
+
+      entries.push(item);
     }
 
-    // CRITICAL: Sort by date ASCENDING before computing running balance
-    entries.sort((a, b) => new Date(a.date) - new Date(b.date));
+    // --- 3. Compute running balance ---
+    let runningBalance = netOpening + (skippedDebit - skippedCredit);
+    
+    // Period total variables
+    let totalDebit = round2(openingBalanceDebit + skippedDebit);
+    let totalCredit = round2(openingBalanceCredit + skippedCredit);
 
-    // Compute running balance
-    let runningBalance = 0;
-    let totalDebit = 0;
-    let totalCredit = 0;
+    // If there is an opening balance, inject it as the first row natively
+    // We only show the Opening Balance row on the FIRST page (offset === 0)
+    if (start && netOpening !== 0 && parsedOffset === 0) {
+      entries.unshift({
+        date: start, // Place at start date
+        type: 'Opening Balance',
+        ref: '-',
+        description: 'B/F Balance',
+        debit: !isOpeningCredit ? round2(Math.abs(netOpening)) : 0,
+        credit: isOpeningCredit ? round2(Math.abs(netOpening)) : 0,
+        linkId: null,
+        linkType: 'system',
+        balance: round2(netOpening),
+        isOpeningRow: true
+      });
+    } else if (parsedOffset > 0) {
+      // If we are on page 2+, inject a "Brought Forward" row representing everything prior
+      entries.unshift({
+        date: rawData.length > 0 ? rawData[0].date : start || new Date(),
+        type: 'Brought Forward',
+        ref: '-',
+        description: 'Balance from previous pages',
+        debit: runningBalance > 0 ? round2(Math.abs(runningBalance)) : 0,
+        credit: runningBalance < 0 ? round2(Math.abs(runningBalance)) : 0,
+        linkId: null,
+        linkType: 'system',
+        balance: round2(runningBalance),
+        isOpeningRow: true
+      });
+    } else if (!start) {
+      // If full history fetched and offset 0, no explicit prior opening balance.
+      totalDebit = 0;
+      totalCredit = 0;
+    }
 
-    for (const entry of entries) {
-      runningBalance = round2(runningBalance + entry.debit - entry.credit);
-      entry.balance = runningBalance;
-      totalDebit = round2(totalDebit + entry.debit);
-      totalCredit = round2(totalCredit + entry.credit);
+    let currentBalance = round2(runningBalance);
+
+    for (let i = 0; i < entries.length; i++) {
+       if (entries[i].isOpeningRow) {
+          continue;
+       }
+       currentBalance = round2(currentBalance + entries[i].debit - entries[i].credit);
+       entries[i].balance = currentBalance;
+       
+       // Track totals for the queried period (plus opening history)
+       if (start || !entries[i].isOpeningRow) {
+          totalDebit = round2(totalDebit + entries[i].debit);
+          totalCredit = round2(totalCredit + entries[i].credit);
+       }
+    }
+
+    // Reverse if requested
+    if (sortOrder === 'desc') {
+      entries.reverse();
     }
 
     res.status(200).json({
       success: true,
       count: entries.length,
+      totalCount,
+      hasMore: (parsedOffset + parsedLimit) < totalCount,
       ledger: entries,
       summary: {
         totalDebit,
@@ -159,6 +396,7 @@ exports.getCustomerLedger = async (req, res, next) => {
         closingBalance: round2(totalDebit - totalCredit)
       }
     });
+
   } catch (error) {
     next(error);
   }

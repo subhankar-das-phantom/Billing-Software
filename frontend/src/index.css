@@ -354,6 +354,22 @@
     border: 1px solid #ddd !important;
     box-shadow: none !important;
   }
+
+  /* Multi-page table print support */
+  .print-table {
+    page-break-inside: auto;
+    width: 100%;
+  }
+  .print-table tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+  .print-table thead {
+    display: table-header-group;
+  }
+  .print-table tfoot {
+    display: table-footer-group;
+  }
 }
 
 

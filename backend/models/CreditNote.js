@@ -117,6 +117,8 @@ const creditNoteSchema = new mongoose.Schema({
 // Indexes
 creditNoteSchema.index({ invoiceId: 1 });
 creditNoteSchema.index({ 'customer._id': 1 });
+creditNoteSchema.index({ 'customer._id': 1, createdAt: 1 });
+creditNoteSchema.index({ 'customer._id': 1, createdAt: -1 });
 creditNoteSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model('CreditNote', creditNoteSchema);

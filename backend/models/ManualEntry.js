@@ -132,6 +132,8 @@ manualEntrySchema.set('toObject', { virtuals: true });
 
 // Indexes
 manualEntrySchema.index({ customer: 1 });
+manualEntrySchema.index({ customer: 1, entryDate: 1 });
+manualEntrySchema.index({ customer: 1, entryDate: -1 });
 manualEntrySchema.index({ entryType: 1 });
 manualEntrySchema.index({ entryDate: -1 });
 manualEntrySchema.index({ createdAt: -1 });

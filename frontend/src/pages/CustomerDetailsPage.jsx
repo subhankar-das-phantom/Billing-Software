@@ -84,6 +84,7 @@ export default function CustomerDetailsPage() {
     window.print();
     setTimeout(() => { document.title = 'Bharat Enterprise - Billing System'; }, 1000);
   };
+
   const motionConfig = useMotionConfig();
   const [customer, setCustomer] = useState(null);
   const [invoices, setInvoices] = useState([]);
@@ -96,28 +97,41 @@ export default function CustomerDetailsPage() {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [ledgerData, setLedgerData] = useState({ ledger: [], summary: null });
   const [ledgerLoading, setLedgerLoading] = useState(false);
-  const [ledgerLoaded, setLedgerLoaded] = useState(false);
+
+  // Calculate current financial year
+  const getInitialFY = () => {
+    const today = new Date();
+    const year = today.getMonth() >= 3 ? today.getFullYear() : today.getFullYear() - 1;
+    return {
+      startDate: `${year}-04-01`,
+      endDate: `${year + 1}-03-31`,
+      sortOrder: 'asc',
+      limit: 200,
+      offset: 0
+    };
+  };
+  const [ledgerFilters, setLedgerFilters] = useState(getInitialFY());
+  const [ledgerMeta, setLedgerMeta] = useState({ totalCount: 0, hasMore: false });
 
 
   useEffect(() => {
     loadCustomer();
-    setLedgerLoaded(false);
     setLedgerData({ ledger: [], summary: null });
   }, [id]);
 
-  // Load ledger on tab switch
+  // Load ledger on tab switch or filter change
   useEffect(() => {
-    if (activeTab === 'ledger' && !ledgerLoaded && id) {
+    if (activeTab === 'ledger' && id) {
       loadLedger();
     }
-  }, [activeTab, id]);
+  }, [activeTab, id, ledgerFilters.startDate, ledgerFilters.endDate, ledgerFilters.sortOrder, ledgerFilters.offset]);
 
   const loadLedger = async () => {
     setLedgerLoading(true);
     try {
-      const data = await customerService.getCustomerLedger(id);
+      const data = await customerService.getCustomerLedger(id, ledgerFilters);
       setLedgerData({ ledger: data.ledger || [], summary: data.summary || null });
-      setLedgerLoaded(true);
+      setLedgerMeta({ totalCount: data.totalCount || 0, hasMore: data.hasMore || false });
     } catch (error) {
       console.error('Failed to load ledger:', error);
     } finally {
@@ -620,8 +634,35 @@ export default function CustomerDetailsPage() {
           </div>
 
           {/* Actions */}
-          <div className="flex gap-2 flex-wrap">
-            {isAdmin && (
+          <div className="flex gap-2 flex-wrap items-center">
+            {activeTab === 'ledger' && (
+              <>
+                <div className="flex bg-slate-800/50 rounded-lg p-1 border border-slate-700">
+                  <input 
+                    type="date" 
+                    className="bg-transparent text-sm text-slate-300 border-none outline-none px-2 [color-scheme:dark]"
+                    value={ledgerFilters.startDate}
+                    onChange={(e) => setLedgerFilters(f => ({ ...f, startDate: e.target.value, offset: 0 }))}
+                  />
+                  <span className="text-slate-500 self-center px-1">to</span>
+                  <input 
+                    type="date" 
+                    className="bg-transparent text-sm text-slate-300 border-none outline-none px-2 [color-scheme:dark]"
+                    value={ledgerFilters.endDate}
+                    onChange={(e) => setLedgerFilters(f => ({ ...f, endDate: e.target.value, offset: 0 }))}
+                  />
+                </div>
+                <button
+                  onClick={() => setLedgerFilters(f => ({ ...f, sortOrder: f.sortOrder === 'asc' ? 'desc' : 'asc', offset: 0 }))}
+                  className="btn btn-secondary btn-sm flex items-center gap-1"
+                >
+                  {ledgerFilters.sortOrder === 'asc' ? 'Oldest First' : 'Newest First'}
+                </button>
+                <div className="w-px h-6 bg-slate-700 mx-1"></div>
+              </>
+            )}
+            
+            {isAdmin && activeTab !== 'ledger' && (
               <motion.button
                 onClick={() => setShowManualEntryModal(true)}
                 className="btn btn-secondary flex items-center gap-2"
@@ -632,7 +673,7 @@ export default function CustomerDetailsPage() {
                 Manual Entry
               </motion.button>
             )}
-            {(calculatedOutstanding > 0 || unpaidInvoices.length > 0) && (
+            {activeTab !== 'ledger' && (calculatedOutstanding > 0 || unpaidInvoices.length > 0) && (
               <motion.button
                 onClick={() => handleRecordPayment()}
                 className="btn btn-secondary flex items-center gap-2"
@@ -641,6 +682,17 @@ export default function CustomerDetailsPage() {
               >
                 <CreditCard className="w-4 h-4" />
                 Record Payment
+              </motion.button>
+            )}
+            {activeTab === 'ledger' && (
+              <motion.button
+                onClick={handlePrintLedger}
+                className="btn btn-secondary btn-sm flex items-center gap-2"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Printer className="w-4 h-4" />
+                Print / Download
               </motion.button>
             )}
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -955,18 +1007,7 @@ export default function CustomerDetailsPage() {
                     {/* Ledger Actions + Summary Cards */}
                     {ledgerData.summary && (
                       <>
-                      <div className="flex justify-end mb-3 no-print">
-                        <motion.button
-                          onClick={handlePrintLedger}
-                          className="btn btn-secondary flex items-center gap-2"
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                        >
-                          <Printer className="w-4 h-4" />
-                          Print / Download Ledger
-                        </motion.button>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
                         <div className="p-4 rounded-xl bg-slate-800/50 border border-amber-500/20">
                           <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Total Debit</p>
                           <p className="text-xl font-bold text-amber-400">{formatCurrency(ledgerData.summary.totalDebit)}</p>
@@ -986,18 +1027,32 @@ export default function CustomerDetailsPage() {
                       </>
                     )}
 
+                    {/* Descending Sort Banner */}
+                    {ledgerFilters.sortOrder === 'desc' && ledgerData.summary && (
+                      <div className="bg-slate-800/80 p-4 rounded-xl border-l-4 border-l-blue-500 mb-4 flex justify-between items-center shadow-lg">
+                        <span className="text-slate-400 font-medium">Closing Balance (As of {formatDate(ledgerFilters.endDate || new Date())})</span>
+                        <span className={`text-xl font-bold ${ledgerData.summary.closingBalance > 0 ? 'text-red-400' : ledgerData.summary.closingBalance < 0 ? 'text-emerald-400' : 'text-slate-100'}`}>
+                          {formatCurrency(Math.abs(ledgerData.summary.closingBalance))}
+                          <span className="text-sm font-normal ml-1">
+                            {ledgerData.summary.closingBalance > 0 ? 'Dr' : ledgerData.summary.closingBalance < 0 ? 'Cr' : ''}
+                          </span>
+                        </span>
+                      </div>
+                    )}
+
                     {/* Ledger Table */}
-                    <div className="table-container">
+                    <div className="table-container bg-slate-800/50 rounded-xl overflow-hidden">
                       <table className="table">
                         <thead>
-                          <tr>
-                            <th>Date</th>
-                            <th>Type</th>
-                            <th>Ref #</th>
+                          <tr className="border-b border-slate-700">
+                            <th className="w-28">Date</th>
+                            <th className="w-32">Type</th>
+                            <th className="w-28">Ref #</th>
+                            <th className="w-24 text-right">Mode</th>
                             <th className="hidden sm:table-cell">Description</th>
-                            <th className="text-right">Debit (₹)</th>
-                            <th className="text-right">Credit (₹)</th>
-                            <th className="text-right">Balance (₹)</th>
+                            <th className="text-right w-28">Debit (₹)</th>
+                            <th className="text-right w-28">Credit (₹)</th>
+                            <th className="text-right w-32">Balance (₹)</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1040,7 +1095,15 @@ export default function CustomerDetailsPage() {
                                     <span className="text-slate-300">{entry.ref}</span>
                                   )}
                                 </td>
-                                <td className="hidden sm:table-cell text-slate-400 text-sm max-w-[200px] truncate">
+                                <td className="text-right">
+                                  {entry.mode && entry.mode !== '-' && (
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-700/50 text-slate-300 border border-slate-600">
+                                      {entry.mode}
+                                    </span>
+                                  )}
+                                  {(!entry.mode || entry.mode === '-') && <span className="text-slate-600">—</span>}
+                                </td>
+                                <td className="hidden sm:table-cell text-slate-400 text-sm max-w-[200px] truncate" title={entry.description}>
                                   {entry.description}
                                 </td>
                                 <td className="text-right font-medium">
@@ -1059,15 +1122,53 @@ export default function CustomerDetailsPage() {
                                 </td>
                                 <td className={`text-right font-semibold ${entry.balance > 0 ? 'text-red-400' : entry.balance < 0 ? 'text-emerald-400' : 'text-slate-300'}`}>
                                   {formatCurrency(Math.abs(entry.balance))}
-                                  {entry.balance > 0 && <span className="text-[10px] ml-0.5 text-red-400/70">Dr</span>}
-                                  {entry.balance < 0 && <span className="text-[10px] ml-0.5 text-emerald-400/70">Cr</span>}
+                                  {entry.balance > 0 && <span className="text-[10px] ml-1 opacity-70">(Dr)</span>}
+                                  {entry.balance < 0 && <span className="text-[10px] ml-1 opacity-70">(Cr)</span>}
                                 </td>
                               </motion.tr>
                             );
                           })}
+                          {/* Closing Balance row */}
+                          {ledgerData.summary && (
+                            <tr className="bg-slate-800/80 border-t border-slate-600">
+                              <td colSpan={5} className="text-right font-bold text-white uppercase text-xs sm:text-sm py-4">Closing Balance:</td>
+                              <td className="text-right font-bold text-amber-400 py-4 opacity-50">{formatCurrency(ledgerData.summary.totalDebit)}</td>
+                              <td className="text-right font-bold text-emerald-400 py-4 opacity-50">{formatCurrency(ledgerData.summary.totalCredit)}</td>
+                              <td className={`text-right font-bold py-4 text-sm sm:text-base ${ledgerData.summary.closingBalance > 0 ? 'text-white' : ledgerData.summary.closingBalance < 0 ? 'text-white' : 'text-slate-300'}`}>
+                                {formatCurrency(Math.abs(ledgerData.summary.closingBalance))}
+                                {ledgerData.summary.closingBalance > 0 && <span className="text-xs ml-1.5 text-red-400">(Dr)</span>}
+                                {ledgerData.summary.closingBalance < 0 && <span className="text-xs ml-1.5 text-emerald-400">(Cr)</span>}
+                              </td>
+                            </tr>
+                          )}
                         </tbody>
                       </table>
                     </div>
+
+                    {/* Pagination Controls */}
+                    {(ledgerFilters.offset > 0 || ledgerMeta.hasMore) && (
+                      <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-xl mt-4 border border-slate-700">
+                        <span className="text-sm text-slate-400">
+                          Showing {ledgerFilters.offset + 1} to {Math.min(ledgerFilters.offset + ledgerFilters.limit, ledgerMeta.totalCount)} of {ledgerMeta.totalCount} transactions
+                        </span>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setLedgerFilters(f => ({ ...f, offset: Math.max(0, f.offset - f.limit) }))}
+                            disabled={ledgerFilters.offset === 0}
+                            className={`btn btn-sm ${ledgerFilters.offset === 0 ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'btn-secondary'}`}
+                          >
+                            Previous
+                          </button>
+                          <button
+                            onClick={() => setLedgerFilters(f => ({ ...f, offset: f.offset + f.limit }))}
+                            disabled={!ledgerMeta.hasMore}
+                            className={`btn btn-sm ${!ledgerMeta.hasMore ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'btn-secondary'}`}
+                          >
+                            Next
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </>
                 )}
               </motion.div>
@@ -1151,16 +1252,17 @@ export default function CustomerDetailsPage() {
             </div>
 
             {/* Ledger Table */}
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '9px', border: '1px solid #000' }}>
+            <table className="print-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '9px', border: '1px solid #000' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid #000', background: '#f0f0f0' }}>
-                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'left' }}>Date</th>
-                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'left' }}>Type</th>
-                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'left' }}>Ref #</th>
-                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'left' }}>Description</th>
-                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'right' }}>Debit (₹)</th>
-                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'right' }}>Credit (₹)</th>
-                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'right' }}>Balance (₹)</th>
+                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'left', width: '10%' }}>Date</th>
+                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'left', width: '12%' }}>Type</th>
+                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'left', width: '12%' }}>Ref #</th>
+                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'left', width: '10%' }}>Mode</th>
+                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'left', width: '26%' }}>Description</th>
+                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'right', width: '10%' }}>Debit (₹)</th>
+                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'right', width: '10%' }}>Credit (₹)</th>
+                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'right', width: '10%' }}>Balance (₹)</th>
                 </tr>
               </thead>
               <tbody>
@@ -1169,6 +1271,7 @@ export default function CustomerDetailsPage() {
                     <td style={{ border: '1px solid #000', padding: '3px' }}>{formatDate(entry.date)}</td>
                     <td style={{ border: '1px solid #000', padding: '3px', fontWeight: entry.debit > 0 ? 'bold' : 'normal' }}>{entry.type}</td>
                     <td style={{ border: '1px solid #000', padding: '3px' }}>{entry.ref}</td>
+                    <td style={{ border: '1px solid #000', padding: '3px' }}>{entry.mode && entry.mode !== '-' ? entry.mode : ''}</td>
                     <td style={{ border: '1px solid #000', padding: '3px', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{entry.description}</td>
                     <td style={{ border: '1px solid #000', padding: '3px', textAlign: 'right' }}>
                       {entry.debit > 0 ? entry.debit.toFixed(2) : ''}
@@ -1177,22 +1280,28 @@ export default function CustomerDetailsPage() {
                       {entry.credit > 0 ? entry.credit.toFixed(2) : ''}
                     </td>
                     <td style={{ border: '1px solid #000', padding: '3px', textAlign: 'right', fontWeight: 'bold' }}>
-                      {Math.abs(entry.balance).toFixed(2)} {entry.balance > 0 ? 'Dr' : entry.balance < 0 ? 'Cr' : ''}
+                      {Math.abs(entry.balance).toFixed(2)} {entry.balance > 0 ? '(Dr)' : entry.balance < 0 ? '(Cr)' : ''}
                     </td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
-                <tr style={{ borderTop: '2px solid #000', fontWeight: 'bold', background: '#f0f0f0' }}>
-                  <td colSpan="4" style={{ border: '1px solid #000', padding: '4px', textAlign: 'right' }}>TOTALS</td>
-                  <td style={{ border: '1px solid #000', padding: '4px', textAlign: 'right' }}>
+                <tr style={{ fontWeight: 'bold', background: '#fafafa', borderTop: '2px solid #000', borderBottom: '1px solid #ccc' }}>
+                  <td colSpan="5" style={{ border: '1px solid #000', padding: '4px', textAlign: 'right' }}>TOTAL TRANSACTIONS</td>
+                  <td style={{ border: '1px solid #000', padding: '4px', textAlign: 'right', opacity: 0.7 }}>
                     {ledgerData.summary?.totalDebit?.toFixed(2)}
                   </td>
-                  <td style={{ border: '1px solid #000', padding: '4px', textAlign: 'right' }}>
+                  <td style={{ border: '1px solid #000', padding: '4px', textAlign: 'right', opacity: 0.7 }}>
                     {ledgerData.summary?.totalCredit?.toFixed(2)}
                   </td>
-                  <td style={{ border: '1px solid #000', padding: '4px', textAlign: 'right' }}>
-                    {Math.abs(ledgerData.summary?.closingBalance || 0).toFixed(2)} {(ledgerData.summary?.closingBalance || 0) > 0 ? 'Dr' : (ledgerData.summary?.closingBalance || 0) < 0 ? 'Cr' : ''}
+                  <td style={{ border: '1px solid #000', padding: '4px', textAlign: 'right', opacity: 0.7 }}>
+                    -
+                  </td>
+                </tr>
+                <tr style={{ borderTop: '2px solid #000', fontWeight: 'bold', background: '#f0f0f0', fontSize: '10px' }}>
+                  <td colSpan="7" style={{ border: '1px solid #000', padding: '6px', textAlign: 'right' }}>CLOSING BALANCE:</td>
+                  <td style={{ border: '1px solid #000', padding: '6px', textAlign: 'right' }}>
+                    {Math.abs(ledgerData.summary?.closingBalance || 0).toFixed(2)} {(ledgerData.summary?.closingBalance || 0) > 0 ? '(Dr)' : (ledgerData.summary?.closingBalance || 0) < 0 ? '(Cr)' : ''}
                   </td>
                 </tr>
               </tfoot>

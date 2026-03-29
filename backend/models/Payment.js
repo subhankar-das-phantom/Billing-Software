@@ -67,6 +67,8 @@ const paymentSchema = new mongoose.Schema({
 // Indexes for quick lookups
 paymentSchema.index({ invoice: 1 });
 paymentSchema.index({ customer: 1 });
+paymentSchema.index({ customer: 1, paymentDate: 1 });
+paymentSchema.index({ customer: 1, paymentDate: -1 });
 paymentSchema.index({ paymentDate: -1 });
 paymentSchema.index({ createdAt: -1 });
 
