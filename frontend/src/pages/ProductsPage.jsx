@@ -625,7 +625,7 @@ export default function ProductsPage() {
             <div>
               <h2 className="text-xl font-semibold text-white">All Products</h2>
               <p className="text-sm text-slate-400">
-                Showing {filteredProducts.length} of {products.length} products
+                Showing {filteredProducts.length} of {data?.total || 0} products
               </p>
             </div>
           </div>
