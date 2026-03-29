@@ -211,13 +211,13 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatDate, formatC
     <div className="table-container">
       <table className="table">
         <thead>
-          <tr>
+          <tr className="border-b border-slate-700">
             <th>Product Name</th>
-            <th>HSN</th>
-            <th>MRP</th>
-            <th>GST</th>
-            <th>Stock</th>
-            <th>Actions</th>
+            <th className="text-center">HSN</th>
+            <th className="text-right">MRP</th>
+            <th className="text-center">GST</th>
+            <th className="text-center">Stock</th>
+            <th className="text-center">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -250,14 +250,14 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatDate, formatC
                       </div>
                     </Link>
                   </td>
-                  <td className="text-slate-300 font-mono text-sm">
-                    <div className="flex items-center gap-2">
+                  <td className="text-slate-300 font-mono text-sm text-center">
+                    <div className="flex items-center justify-center gap-2">
                       <Barcode className="w-4 h-4 text-slate-500" />
                       {product.hsnCode}
                     </div>
                   </td>
-                  <td>
-                    <div className="flex items-center gap-2">
+                  <td className="text-right">
+                    <div className="flex items-center justify-end gap-2">
                       {product.oldMRP > 0 && product.oldMRP !== product.newMRP && (
                         <motion.span
                           className="text-slate-500 line-through text-sm flex items-center gap-1"
@@ -265,7 +265,7 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatDate, formatC
                           animate={{ opacity: 1, x: 0 }}
                         >
                           {product.oldMRP > product.newMRP ? (
-                            <TrendingDown className="w-3 h-3 text-green-400" />
+                            <TrendingDown className="w-3 h-3 text-emerald-400" />
                           ) : (
                             <TrendingUp className="w-3 h-3 text-red-400" />
                           )}
@@ -277,12 +277,12 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatDate, formatC
                       </span>
                     </div>
                   </td>
-                  <td>
+                  <td className="text-center">
                     <span className="inline-flex items-center px-2 py-1 bg-blue-500/20 rounded text-blue-400 text-sm font-medium">
                       {product.gstPercentage}%
                     </span>
                   </td>
-                  <td>
+                  <td className="text-center">
                     <motion.span
                       className={`badge inline-flex items-center gap-1.5 ${
                         outOfStock ? 'badge-danger' :
@@ -300,24 +300,24 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatDate, formatC
                     </motion.span>
                   </td>
                   <td>
-                    <div className="flex gap-2">
+                    <div className="flex justify-center gap-2">
                       <motion.button
                         onClick={() => onEdit(product)}
-                        className="p-2 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-blue-400 transition-colors"
+                        className="p-2.5 rounded-lg bg-slate-800/40 hover:bg-slate-700 hover:text-blue-400 border border-transparent hover:border-slate-600 transition-colors tooltip-trigger relative"
                         whileHover={{ scale: 1.1, rotate: 5 }}
                         whileTap={{ scale: 0.9 }}
-                        title="Edit"
+                        title="Edit Product"
                       >
-                        <Edit2 className="w-4 h-4" />
+                        <Edit2 className="w-4 h-4 text-slate-400 hover:text-blue-400" />
                       </motion.button>
                       <motion.button
                         onClick={() => onDelete(product)}
-                        className="p-2 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-red-400 transition-colors"
+                        className="p-2.5 rounded-lg bg-slate-800/40 hover:bg-slate-700 hover:text-red-400 border border-transparent hover:border-slate-600 transition-colors tooltip-trigger relative"
                         whileHover={{ scale: 1.1, rotate: -5 }}
                         whileTap={{ scale: 0.9 }}
-                        title="Delete"
+                        title="Delete Product"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-4 h-4 text-slate-400 hover:text-red-400" />
                       </motion.button>
                     </div>
                   </td>
