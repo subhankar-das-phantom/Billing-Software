@@ -5,6 +5,10 @@ const { trackActivity, ACTIVITY_TYPES } = require('../utils/activityTracker');
 
 // Escape special regex characters in user input to prevent MongoDB $regex errors
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const getSearchPattern = (search, usePrefix = false) => {
+  const escaped = escapeRegex(search);
+  return usePrefix ? `^${escaped}` : escaped;
+};
 
 // @desc    Get all products
 // @route   GET /api/products
@@ -19,11 +23,12 @@ exports.getProducts = async (req, res, next) => {
 
     // Search
     if (req.query.search) {
-      const escaped = escapeRegex(req.query.search);
+      const usePrefix = req.query.prefix === 'true';
+      const pattern = getSearchPattern(req.query.search, usePrefix);
       query.$or = [
-        { productName: { $regex: escaped, $options: 'i' } },
-        { hsnCode: { $regex: escaped, $options: 'i' } },
-        { manufacturer: { $regex: escaped, $options: 'i' } }
+        { productName: { $regex: pattern, $options: 'i' } },
+        { hsnCode: { $regex: pattern, $options: 'i' } },
+        { manufacturer: { $regex: pattern, $options: 'i' } }
       ];
     }
 
@@ -59,11 +64,12 @@ exports.getProductStats = async (req, res, next) => {
     const baseQuery = { isActive: true };
 
     if (req.query.search) {
-      const escaped = escapeRegex(req.query.search);
+      const usePrefix = req.query.prefix === 'true';
+      const pattern = getSearchPattern(req.query.search, usePrefix);
       baseQuery.$or = [
-        { productName: { $regex: escaped, $options: 'i' } },
-        { hsnCode: { $regex: escaped, $options: 'i' } },
-        { manufacturer: { $regex: escaped, $options: 'i' } }
+        { productName: { $regex: pattern, $options: 'i' } },
+        { hsnCode: { $regex: pattern, $options: 'i' } },
+        { manufacturer: { $regex: pattern, $options: 'i' } }
       ];
     }
 
