@@ -9,6 +9,10 @@ const mongoose = require('mongoose');
 
 // Escape special regex characters in user input to prevent MongoDB $regex errors
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const getSearchPattern = (search, usePrefix = false) => {
+  const escaped = escapeRegex(search);
+  return usePrefix ? `^${escaped}` : escaped;
+};
 
 // Round to 2 decimal places safely (avoids JS floating point drift)
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
@@ -420,11 +424,12 @@ exports.getCustomers = async (req, res, next) => {
 
     // Search
     if (req.query.search) {
-      const escaped = escapeRegex(req.query.search);
+      const usePrefix = req.query.prefix === 'true';
+      const pattern = getSearchPattern(req.query.search, usePrefix);
       query.$or = [
-        { customerName: { $regex: escaped, $options: 'i' } },
-        { phone: { $regex: escaped, $options: 'i' } },
-        { gstin: { $regex: escaped, $options: 'i' } }
+        { customerName: { $regex: pattern, $options: 'i' } },
+        { phone: { $regex: pattern, $options: 'i' } },
+        { gstin: { $regex: pattern, $options: 'i' } }
       ];
     }
 
@@ -462,12 +467,15 @@ exports.searchCustomers = async (req, res, next) => {
       });
     }
 
+    const usePrefix = req.query.prefix === 'true';
+    const pattern = getSearchPattern(q, usePrefix);
+
     const customers = await Customer.find({
       isActive: true,
       $or: [
-        { customerName: { $regex: escapeRegex(q), $options: 'i' } },
-        { phone: { $regex: escapeRegex(q), $options: 'i' } },
-        { gstin: { $regex: escapeRegex(q), $options: 'i' } }
+        { customerName: { $regex: pattern, $options: 'i' } },
+        { phone: { $regex: pattern, $options: 'i' } },
+        { gstin: { $regex: pattern, $options: 'i' } }
       ]
     }).limit(10);
 
