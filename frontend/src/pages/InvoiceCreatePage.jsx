@@ -142,8 +142,10 @@ export default function InvoiceCreatePage() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [products, setProducts] = useState([]);
-  const [customers, setCustomers] = useState([]);
+  const [customerResults, setCustomerResults] = useState([]);
+  const [isCustomerSearchLoading, setIsCustomerSearchLoading] = useState(false);
+  const [productResults, setProductResults] = useState([]);
+  const [isProductSearchLoading, setIsProductSearchLoading] = useState(false);
   
   const [customerSearch, setCustomerSearch] = useState('');
   const [productSearch, setProductSearch] = useState('');
@@ -157,6 +159,37 @@ export default function InvoiceCreatePage() {
   
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [originalInvoice, setOriginalInvoice] = useState(null);
+  const latestCustomerSearchRequest = useRef(0);
+  const latestProductSearchRequest = useRef(0);
+  const isRequestCanceled = (err) => err?.code === 'ERR_CANCELED' || err?.name === 'CanceledError' || err?.name === 'AbortError';
+
+  const getCurrentStockByProductId = async (items = []) => {
+    const productIds = [...new Set(items.map(item => item?.product?._id).filter(Boolean))];
+    if (productIds.length === 0) return new Map();
+
+    const productResponses = await Promise.all(
+      productIds.map(async (id) => {
+        try {
+          const data = await productService.getProduct(id, false);
+          return [id, data?.product?.currentStockQty ?? 0];
+        } catch {
+          return [id, 0];
+        }
+      })
+    );
+
+    return new Map(productResponses);
+  };
+
+  const getCustomerById = async (customerId) => {
+    if (!customerId) return null;
+    try {
+      const data = await customerService.getCustomer(customerId, false);
+      return data?.customer || null;
+    } catch {
+      return null;
+    }
+  };
 
   // Save draft to sessionStorage whenever relevant state changes (works for both create and edit modes)
   useEffect(() => {
@@ -182,16 +215,101 @@ export default function InvoiceCreatePage() {
     loadInitialData();
   }, [editInvoiceId]);
 
+  useEffect(() => {
+    const query = customerSearch.trim();
+    const abortController = new AbortController();
+
+    if (!showCustomerDropdown) return;
+
+    if (query.length < 2) {
+      setCustomerResults([]);
+      setIsCustomerSearchLoading(false);
+      return;
+    }
+
+    const requestId = latestCustomerSearchRequest.current + 1;
+    latestCustomerSearchRequest.current = requestId;
+    setIsCustomerSearchLoading(true);
+
+    const debounceTimer = setTimeout(async () => {
+      try {
+        const data = await customerService.getCustomers({
+          search: query,
+          prefix: true,
+          limit: 10,
+          page: 1,
+          includeInactive: true
+        }, {
+          signal: abortController.signal
+        });
+
+        if (latestCustomerSearchRequest.current !== requestId) return;
+        setCustomerResults(data.customers || []);
+      } catch (err) {
+        if (isRequestCanceled(err)) return;
+        if (latestCustomerSearchRequest.current !== requestId) return;
+        setCustomerResults([]);
+      } finally {
+        if (latestCustomerSearchRequest.current === requestId) {
+          setIsCustomerSearchLoading(false);
+        }
+      }
+    }, 300);
+
+    return () => {
+      clearTimeout(debounceTimer);
+      abortController.abort();
+    };
+  }, [customerSearch, showCustomerDropdown]);
+
+  useEffect(() => {
+    const query = productSearch.trim();
+    const abortController = new AbortController();
+
+    if (!showProductDropdown) return;
+
+    if (query.length < 2) {
+      setProductResults([]);
+      setIsProductSearchLoading(false);
+      return;
+    }
+
+    const requestId = latestProductSearchRequest.current + 1;
+    latestProductSearchRequest.current = requestId;
+    setIsProductSearchLoading(true);
+
+    const debounceTimer = setTimeout(async () => {
+      try {
+        const data = await productService.getProducts({
+          search: query,
+          prefix: true,
+          limit: 10,
+          page: 1
+        }, {
+          signal: abortController.signal
+        });
+
+        if (latestProductSearchRequest.current !== requestId) return;
+        setProductResults(data.products || []);
+      } catch (err) {
+        if (isRequestCanceled(err)) return;
+        if (latestProductSearchRequest.current !== requestId) return;
+        setProductResults([]);
+      } finally {
+        if (latestProductSearchRequest.current === requestId) {
+          setIsProductSearchLoading(false);
+        }
+      }
+    }, 300);
+
+    return () => {
+      clearTimeout(debounceTimer);
+      abortController.abort();
+    };
+  }, [productSearch, showProductDropdown]);
+
   const loadInitialData = async () => {
     try {
-      const [productsData, customersData] = await Promise.all([
-        productService.getProducts({ limit: 300 }),
-        customerService.getCustomers({ limit: 200, includeInactive: true })
-      ]);
-      
-      setProducts(productsData.products || []);
-      setCustomers(customersData.customers || []);
-
       // Load saved draft (works for both create and edit modes)
       const savedDraft = loadDraftFromStorage();
       console.log('Draft key:', getDraftStorageKey());
@@ -211,15 +329,17 @@ export default function InvoiceCreatePage() {
             setSelectedCustomer(savedDraft.selectedCustomer);
             setCustomerSearch(savedDraft.customerSearch || savedDraft.selectedCustomer.customerName);
           }
+
+          const stockMap = await getCurrentStockByProductId(savedDraft.invoiceItems);
           
           const restoredItems = savedDraft.invoiceItems.map(item => {
-            const currentProduct = productsData.products?.find(p => p._id === item.product._id);
+            const currentStockQty = stockMap.get(item.product._id);
             return {
               ...item,
               product: {
                 ...item.product,
                 // Add back the quantities already allocated in this invoice, just like the DB-load path
-                currentStock: (currentProduct?.currentStockQty || item.product.currentStock || 0) + (item.quantitySold || 0) + (item.freeQuantity || 0)
+                currentStock: (currentStockQty ?? item.product.currentStock ?? 0) + (item.quantitySold || 0) + (item.freeQuantity || 0)
               }
             };
           });
@@ -238,24 +358,26 @@ export default function InvoiceCreatePage() {
           // Regular create draft on create page - restore it
           console.log('Restoring create draft');
           if (savedDraft.selectedCustomer) {
-            const customer = customersData.customers?.find(c => c._id === savedDraft.selectedCustomer._id);
+            const customer = await getCustomerById(savedDraft.selectedCustomer._id);
             if (customer) {
               setSelectedCustomer(customer);
               setCustomerSearch(savedDraft.customerSearch || customer.customerName);
+            } else {
+              setSelectedCustomer(savedDraft.selectedCustomer);
+              setCustomerSearch(savedDraft.customerSearch || savedDraft.selectedCustomer.customerName);
             }
           }
           
           if (savedDraft.invoiceItems && savedDraft.invoiceItems.length > 0) {
+            const stockMap = await getCurrentStockByProductId(savedDraft.invoiceItems);
             const validItems = savedDraft.invoiceItems.filter(item => {
-              const product = productsData.products?.find(p => p._id === item.product._id);
-              return product && product.currentStockQty > 0;
+              return (stockMap.get(item.product._id) ?? 0) > 0;
             }).map(item => {
-              const product = productsData.products?.find(p => p._id === item.product._id);
               return {
                 ...item,
                 product: {
                   ...item.product,
-                  currentStock: product?.currentStockQty || 0
+                  currentStock: stockMap.get(item.product._id) ?? 0
                 }
               };
             });
@@ -274,12 +396,13 @@ export default function InvoiceCreatePage() {
             const invoiceData = await invoiceService.getInvoice(editInvoiceId, false);
             const invoice = invoiceData.invoice;
             setOriginalInvoice(invoice);
+            const stockMap = await getCurrentStockByProductId(invoice.items);
             
             setSelectedCustomer(invoice.customer);
             setCustomerSearch(invoice.customer.customerName);
             
             const loadedItems = invoice.items.map(item => {
-              const currentProduct = productsData.products?.find(p => p._id === item.product._id);
+              const currentStockQty = stockMap.get(item.product._id) ?? 0;
               const baseRate = item.ratePerUnit;
               const amounts = calculateItemAmounts(
                 item.quantitySold,
@@ -292,7 +415,7 @@ export default function InvoiceCreatePage() {
                 product: {
                   ...item.product,
                   rate: item.product.newMRP,
-                  currentStock: (currentProduct?.currentStockQty || 0) + item.quantitySold + (item.freeQuantity || 0)
+                  currentStock: currentStockQty + item.quantitySold + (item.freeQuantity || 0)
                 },
                 quantitySold: item.quantitySold,
                 freeQuantity: item.freeQuantity || 0,
@@ -307,7 +430,7 @@ export default function InvoiceCreatePage() {
             setPaymentType(invoice.paymentType || 'Credit');
             setNotes(invoice.notes || '');
             
-          } catch (err) {
+          } catch {
             error('Failed to load invoice for editing');
             navigate('/invoices');
             return;
@@ -320,12 +443,13 @@ export default function InvoiceCreatePage() {
           const invoiceData = await invoiceService.getInvoice(editInvoiceId, false);
           const invoice = invoiceData.invoice;
           setOriginalInvoice(invoice);
+          const stockMap = await getCurrentStockByProductId(invoice.items);
           
           setSelectedCustomer(invoice.customer);
           setCustomerSearch(invoice.customer.customerName);
           
           const loadedItems = invoice.items.map(item => {
-            const currentProduct = productsData.products?.find(p => p._id === item.product._id);
+            const currentStockQty = stockMap.get(item.product._id) ?? 0;
             const baseRate = item.ratePerUnit;
             const amounts = calculateItemAmounts(
               item.quantitySold,
@@ -338,7 +462,7 @@ export default function InvoiceCreatePage() {
               product: {
                 ...item.product,
                 rate: item.product.newMRP,
-                currentStock: (currentProduct?.currentStockQty || 0) + item.quantitySold + (item.freeQuantity || 0)
+                currentStock: currentStockQty + item.quantitySold + (item.freeQuantity || 0)
               },
               quantitySold: item.quantitySold,
               freeQuantity: item.freeQuantity || 0,
@@ -353,7 +477,7 @@ export default function InvoiceCreatePage() {
           setPaymentType(invoice.paymentType || 'Credit');
           setNotes(invoice.notes || '');
           
-        } catch (err) {
+        } catch {
           error('Failed to load invoice for editing');
           navigate('/invoices');
           return;
@@ -362,14 +486,14 @@ export default function InvoiceCreatePage() {
         // Create mode with no draft - check for customer from URL params
         const customerId = searchParams.get('customer');
         if (customerId) {
-          const customer = customersData.customers?.find(c => c._id === customerId);
+          const customer = await getCustomerById(customerId);
           if (customer) {
             setSelectedCustomer(customer);
             setCustomerSearch(customer.customerName);
           }
         }
       }
-    } catch (err) {
+    } catch {
       error('Failed to load data');
     } finally {
       setLoading(false);
@@ -377,21 +501,10 @@ export default function InvoiceCreatePage() {
     }
   };
 
-  const filteredCustomers = customers.filter(c =>
-    c.customerName.toLowerCase().includes(customerSearch.toLowerCase()) ||
-    c.phone.includes(customerSearch) ||
-    c.gstin?.toLowerCase().includes(customerSearch.toLowerCase())
-  );
-
-  const filteredProducts = products.filter(p =>
-    p.productName?.toLowerCase().includes(productSearch.toLowerCase()) ||
-    p.hsnCode?.includes(productSearch) ||
-    p.batchNo?.toLowerCase().includes(productSearch.toLowerCase())
-  );
-
   const handleCustomerSelect = (customer) => {
     setSelectedCustomer(customer);
     setCustomerSearch(customer.customerName);
+    setCustomerResults([]);
     setShowCustomerDropdown(false);
   };
 
@@ -426,6 +539,7 @@ export default function InvoiceCreatePage() {
     }]);
 
     setProductSearch('');
+    setProductResults([]);
     setShowProductDropdown(false);
   };
 
@@ -665,7 +779,7 @@ export default function InvoiceCreatePage() {
           )}
         </div>
         
-        <div className={`relative ${showCustomerDropdown && customerSearch && filteredCustomers.length > 0 ? 'pb-64' : ''}`}>
+        <div className={`relative ${showCustomerDropdown && customerSearch ? 'pb-64' : ''}`}>
           <motion.div
             className="relative"
             whileFocus={{ scale: 1.01 }}
@@ -688,7 +802,7 @@ export default function InvoiceCreatePage() {
           </motion.div>
           
           <AnimatePresence>
-            {showCustomerDropdown && customerSearch && filteredCustomers.length > 0 && (
+            {showCustomerDropdown && customerSearch && (
               <motion.div
                 variants={dropdownVariants}
                 initial="hidden"
@@ -696,7 +810,26 @@ export default function InvoiceCreatePage() {
                 exit="exit"
                 className="absolute z-50 w-full mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl max-h-60 overflow-y-auto"
               >
-                {filteredCustomers.slice(0, 10).map((customer, index) => (
+                {isCustomerSearchLoading && (
+                  <div className="px-4 py-3 text-sm text-slate-300 flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Searching customers...
+                  </div>
+                )}
+
+                {!isCustomerSearchLoading && customerSearch.trim().length < 2 && (
+                  <div className="px-4 py-3 text-sm text-slate-400">
+                    Type at least 2 characters to search customers
+                  </div>
+                )}
+
+                {!isCustomerSearchLoading && customerSearch.trim().length >= 2 && customerResults.length === 0 && (
+                  <div className="px-4 py-3 text-sm text-slate-400">
+                    No customers found
+                  </div>
+                )}
+
+                {!isCustomerSearchLoading && customerSearch.trim().length >= 2 && customerResults.map((customer, index) => (
                   <motion.button
                     key={customer._id}
                     onClick={(e) => {
@@ -815,12 +948,12 @@ export default function InvoiceCreatePage() {
               setShowProductDropdown(true);
             }}
             onFocus={() => setShowProductDropdown(true)}
-            placeholder="Search product by name, HSN, or batch..."
+            placeholder="Search product by name or HSN..."
             className="input pl-10"
           />
           
           <AnimatePresence>
-            {showProductDropdown && productSearch && filteredProducts.length > 0 && (
+            {showProductDropdown && productSearch && (
               <motion.div
                 variants={dropdownVariants}
                 initial="hidden"
@@ -828,7 +961,26 @@ export default function InvoiceCreatePage() {
                 exit="exit"
                 className="absolute z-50 w-full mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl max-h-60 overflow-y-auto"
               >
-                {filteredProducts.slice(0, 10).map((product, index) => (
+                {isProductSearchLoading && (
+                  <div className="px-4 py-3 text-sm text-slate-300 flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Searching products...
+                  </div>
+                )}
+
+                {!isProductSearchLoading && productSearch.trim().length < 2 && (
+                  <div className="px-4 py-3 text-sm text-slate-400">
+                    Type at least 2 characters to search products
+                  </div>
+                )}
+
+                {!isProductSearchLoading && productSearch.trim().length >= 2 && productResults.length === 0 && (
+                  <div className="px-4 py-3 text-sm text-slate-400">
+                    No products found
+                  </div>
+                )}
+
+                {!isProductSearchLoading && productSearch.trim().length >= 2 && productResults.map((product, index) => (
                   <motion.button
                     key={product._id}
                     onClick={(e) => {
