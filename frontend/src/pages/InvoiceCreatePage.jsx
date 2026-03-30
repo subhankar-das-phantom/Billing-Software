@@ -185,8 +185,8 @@ export default function InvoiceCreatePage() {
   const loadInitialData = async () => {
     try {
       const [productsData, customersData] = await Promise.all([
-        productService.getProducts({ limit: 100 }),
-        customerService.getCustomers({ limit: 100, includeInactive: true })
+        productService.getProducts({ limit: 200 }),
+        customerService.getCustomers({ limit: 200, includeInactive: true })
       ]);
       
       setProducts(productsData.products || []);
