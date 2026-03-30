@@ -10,9 +10,9 @@ export const productService = {
    * @param {object} params - Query parameters (search, page, limit, category, inStock)
    * @returns {Promise<{products: array, total: number, pages: number}>}
    */
-  getProducts: async (params = {}) => {
+  getProducts: async (params = {}, options = {}) => {
     try {
-      const response = await api.get('/products', { params });
+      const response = await api.get('/products', { params, ...options });
       return response.data;
     } catch (error) {
       throw error;
