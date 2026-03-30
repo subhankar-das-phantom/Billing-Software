@@ -200,142 +200,260 @@ const EmptyProductsState = ({ search, onAddClick }) => (
 
 // ✅ FIX #2: Separate component for table - simplified for mobile
 const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatDate, formatCurrency, observerTarget, hasMore, isLoadingMore }) => (
-  <motion.div
-    key="products-table"
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    transition={{ duration: 0.15 }}
-    className="glass-card overflow-hidden"
-  >
-    <div className="table-container">
-      <table className="table">
-        <thead>
-          <tr className="border-b border-slate-700">
-            <th>Product Name</th>
-            <th className="text-center">HSN</th>
-            <th className="text-right">MRP</th>
-            <th className="text-center">GST</th>
-            <th className="text-center">Stock</th>
-            <th className="text-center">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <AnimatePresence>
-            {filteredProducts.map((product, index) => {
-              const lowStock = product.currentStockQty <= 30;
-              const outOfStock = product.currentStockQty === 0;
+  <div className="space-y-4">
+    {/* Desktop/Tablet Table View */}
+    <motion.div
+      key="products-table-desktop"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.15 }}
+      className="hidden md:block glass-card overflow-hidden"
+    >
+      <div className="table-container">
+        <table className="table">
+          <thead>
+            <tr className="border-b border-slate-700">
+              <th>Product Name</th>
+              <th className="text-center">HSN</th>
+              <th className="text-right">MRP</th>
+              <th className="text-center">GST</th>
+              <th className="text-center">Stock</th>
+              <th className="text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <AnimatePresence>
+              {filteredProducts.map((product, index) => {
+                const lowStock = product.currentStockQty <= 30;
+                const outOfStock = product.currentStockQty === 0;
 
-              return (
-                <motion.tr
-                  key={product._id}
-                  layout
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.15 }}
-                  className="hover:bg-slate-700/50 transition-colors"
-                >
-                  <td>
-                    <Link to={`/products/${product._id}`} className="flex items-center gap-3 group">
-                      <div className="p-2 bg-blue-500/20 rounded-lg">
-                        <Package className="w-4 h-4 text-blue-400" />
+                return (
+                  <motion.tr
+                    key={product._id}
+                    layout
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="hover:bg-slate-700/50 transition-colors"
+                  >
+                    <td>
+                      <Link to={`/products/${product._id}`} className="flex items-center gap-3 group">
+                        <div className="p-2 bg-blue-500/20 rounded-lg">
+                          <Package className="w-4 h-4 text-blue-400" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-white group-hover:text-blue-400 transition-colors">{product.productName}</p>
+                          <p className="text-xs text-slate-400 flex items-center gap-1.5">
+                            <Building2 className="w-3 h-3" />
+                            {product.manufacturer}
+                          </p>
+                        </div>
+                      </Link>
+                    </td>
+                    <td className="text-slate-300 font-mono text-sm text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <Barcode className="w-4 h-4 text-slate-500" />
+                        {product.hsnCode}
                       </div>
-                      <div>
-                        <p className="font-medium text-white group-hover:text-blue-400 transition-colors">{product.productName}</p>
-                        <p className="text-xs text-slate-400 flex items-center gap-1.5">
-                          <Building2 className="w-3 h-3" />
-                          {product.manufacturer}
-                        </p>
+                    </td>
+                    <td className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {product.oldMRP > 0 && product.oldMRP !== product.newMRP && (
+                          <motion.span
+                            className="text-slate-500 line-through text-sm flex items-center gap-1"
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                          >
+                            {product.oldMRP > product.newMRP ? (
+                              <TrendingDown className="w-3 h-3 text-emerald-400" />
+                            ) : (
+                              <TrendingUp className="w-3 h-3 text-red-400" />
+                            )}
+                            {formatCurrency(product.oldMRP)}
+                          </motion.span>
+                        )}
+                        <span className="text-emerald-400 font-medium">
+                          {formatCurrency(product.newMRP)}
+                        </span>
                       </div>
-                    </Link>
-                  </td>
-                  <td className="text-slate-300 font-mono text-sm text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <Barcode className="w-4 h-4 text-slate-500" />
-                      {product.hsnCode}
-                    </div>
-                  </td>
-                  <td className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      {product.oldMRP > 0 && product.oldMRP !== product.newMRP && (
-                        <motion.span
-                          className="text-slate-500 line-through text-sm flex items-center gap-1"
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
+                    </td>
+                    <td className="text-center">
+                      <span className="inline-flex items-center px-2 py-1 bg-blue-500/20 rounded text-blue-400 text-sm font-medium">
+                        {product.gstPercentage}%
+                      </span>
+                    </td>
+                    <td className="text-center">
+                      <motion.span
+                        className={`badge inline-flex items-center gap-1.5 ${
+                          outOfStock ? 'badge-danger' :
+                          lowStock ? 'badge-warning' :
+                          'badge-success'
+                        }`}
+                        whileHover={{ scale: 1.05 }}
+                        animate={outOfStock ? {
+                          scale: [1, 1.05, 1],
+                          transition: { duration: 2, repeat: Infinity }
+                        } : {}}
+                      >
+                        <Layers className="w-3 h-3" />
+                        {product.currentStockQty} {product.unit}
+                      </motion.span>
+                    </td>
+                    <td>
+                      <div className="flex justify-center gap-2">
+                        <motion.button
+                          onClick={() => onEdit(product)}
+                          className="p-2.5 rounded-lg bg-slate-800/40 hover:bg-slate-700 hover:text-blue-400 border border-transparent hover:border-slate-600 transition-colors tooltip-trigger relative"
+                          whileHover={{ scale: 1.1, rotate: 5 }}
+                          whileTap={{ scale: 0.9 }}
+                          title="Edit Product"
                         >
-                          {product.oldMRP > product.newMRP ? (
-                            <TrendingDown className="w-3 h-3 text-emerald-400" />
-                          ) : (
-                            <TrendingUp className="w-3 h-3 text-red-400" />
-                          )}
-                          {formatCurrency(product.oldMRP)}
-                        </motion.span>
-                      )}
-                      <span className="text-emerald-400 font-medium">
-                        {formatCurrency(product.newMRP)}
+                          <Edit2 className="w-4 h-4 text-slate-400 hover:text-blue-400" />
+                        </motion.button>
+                        <motion.button
+                          onClick={() => onDelete(product)}
+                          className="p-2.5 rounded-lg bg-slate-800/40 hover:bg-slate-700 hover:text-red-400 border border-transparent hover:border-slate-600 transition-colors tooltip-trigger relative"
+                          whileHover={{ scale: 1.1, rotate: -5 }}
+                          whileTap={{ scale: 0.9 }}
+                          title="Delete Product"
+                        >
+                          <Trash2 className="w-4 h-4 text-slate-400 hover:text-red-400" />
+                        </motion.button>
+                      </div>
+                    </td>
+                  </motion.tr>
+                );
+              })}
+            </AnimatePresence>
+          </tbody>
+        </table>
+      </div>
+    </motion.div>
+
+    {/* Mobile Card View */}
+    <motion.div
+      key="products-table-mobile"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.15 }}
+      className="md:hidden space-y-4"
+    >
+      <AnimatePresence>
+        {filteredProducts.map((product) => {
+          const lowStock = product.currentStockQty <= 30;
+          const outOfStock = product.currentStockQty === 0;
+
+          return (
+            <motion.div
+              key={`mobile-${product._id}`}
+              layout
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+              className="glass-card p-4 flex flex-col gap-4 relative overflow-hidden"
+            >
+              {/* Product Info Section */}
+              <div className="flex justify-between items-start gap-3">
+                <Link to={`/products/${product._id}`} className="flex gap-3 flex-1 group">
+                  <div className="p-2.5 bg-blue-500/20 rounded-xl shrink-0 h-fit">
+                    <Package className="w-5 h-5 text-blue-400" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-white group-hover:text-blue-400 transition-colors text-base truncate mb-1">
+                      {product.productName}
+                    </h3>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
+                      <span className="flex items-center gap-1.5 shrink-0">
+                        <Building2 className="w-3.5 h-3.5" />
+                        <span className="truncate max-w-[120px]">{product.manufacturer}</span>
+                      </span>
+                      <span className="flex items-center gap-1.5 shrink-0">
+                        <Barcode className="w-3.5 h-3.5" />
+                        <span>{product.hsnCode}</span>
                       </span>
                     </div>
-                  </td>
-                  <td className="text-center">
-                    <span className="inline-flex items-center px-2 py-1 bg-blue-500/20 rounded text-blue-400 text-sm font-medium">
-                      {product.gstPercentage}%
-                    </span>
-                  </td>
-                  <td className="text-center">
-                    <motion.span
-                      className={`badge inline-flex items-center gap-1.5 ${
-                        outOfStock ? 'badge-danger' :
-                        lowStock ? 'badge-warning' :
-                        'badge-success'
-                      }`}
-                      whileHover={{ scale: 1.05 }}
-                      animate={outOfStock ? {
-                        scale: [1, 1.05, 1],
-                        transition: { duration: 2, repeat: Infinity }
-                      } : {}}
-                    >
-                      <Layers className="w-3 h-3" />
-                      {product.currentStockQty} {product.unit}
-                    </motion.span>
-                  </td>
-                  <td>
-                    <div className="flex justify-center gap-2">
-                      <motion.button
-                        onClick={() => onEdit(product)}
-                        className="p-2.5 rounded-lg bg-slate-800/40 hover:bg-slate-700 hover:text-blue-400 border border-transparent hover:border-slate-600 transition-colors tooltip-trigger relative"
-                        whileHover={{ scale: 1.1, rotate: 5 }}
-                        whileTap={{ scale: 0.9 }}
-                        title="Edit Product"
-                      >
-                        <Edit2 className="w-4 h-4 text-slate-400 hover:text-blue-400" />
-                      </motion.button>
-                      <motion.button
-                        onClick={() => onDelete(product)}
-                        className="p-2.5 rounded-lg bg-slate-800/40 hover:bg-slate-700 hover:text-red-400 border border-transparent hover:border-slate-600 transition-colors tooltip-trigger relative"
-                        whileHover={{ scale: 1.1, rotate: -5 }}
-                        whileTap={{ scale: 0.9 }}
-                        title="Delete Product"
-                      >
-                        <Trash2 className="w-4 h-4 text-slate-400 hover:text-red-400" />
-                      </motion.button>
+                  </div>
+                </Link>
+              </div>
+
+              {/* Pricing & Stock Grid */}
+              <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-700/50 bg-slate-800/30 -mx-4 px-4 pb-1">
+                <div className="space-y-1.5">
+                  <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Price Details</p>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex flex-wrap items-baseline gap-2">
+                       <span className="text-emerald-400 font-semibold text-sm">
+                        {formatCurrency(product.newMRP)}
+                      </span>
+                      {product.oldMRP > 0 && product.oldMRP !== product.newMRP && (
+                        <span className="text-slate-500 line-through text-xs">
+                          {formatCurrency(product.oldMRP)}
+                        </span>
+                      )}
                     </div>
-                  </td>
-                </motion.tr>
-              );
-            })}
-          </AnimatePresence>
-        </tbody>
-      </table>
-      
-      {/* Infinite Scroll Loading Indicator */}
-      {(hasMore || isLoadingMore) && (
-        <div ref={observerTarget} className="flex justify-center items-center p-6 border-t border-slate-700/50">
-          <Loader2 className="w-6 h-6 text-blue-400 animate-spin" />
-        </div>
-      )}
-    </div>
-  </motion.div>
+                    <div>
+                      <span className="inline-flex items-center px-1.5 py-0.5 bg-blue-500/20 rounded text-blue-400 text-[10px] font-medium border border-blue-500/20">
+                        GST: {product.gstPercentage}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-1.5 flex flex-col items-end">
+                  <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Stock Status</p>
+                  <motion.span
+                    className={`badge inline-flex items-center gap-1.5 px-2 py-1 text-xs ${
+                      outOfStock ? 'badge-danger' :
+                      lowStock ? 'badge-warning' :
+                      'badge-success'
+                    }`}
+                    animate={outOfStock ? {
+                      scale: [1, 1.05, 1],
+                      transition: { duration: 2, repeat: Infinity }
+                    } : {}}
+                  >
+                    <Layers className="w-3.5 h-3.5" />
+                    <span className="font-medium">{product.currentStockQty}</span>
+                    <span className="text-[10px] opacity-90">{product.unit}</span>
+                  </motion.span>
+                </div>
+              </div>
+
+              {/* Action Buttons Row */}
+              <div className="flex gap-2 pt-1 border-t border-slate-700/50 mt-1">
+                <motion.button
+                  onClick={() => onEdit(product)}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-slate-800/60 hover:bg-slate-700 text-slate-300 hover:text-blue-400 border border-slate-700 hover:border-blue-500/30 transition-all text-sm font-medium"
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Edit2 className="w-4 h-4" /> Edit
+                </motion.button>
+                <motion.button
+                  onClick={() => onDelete(product)}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-slate-800/60 hover:bg-slate-700 text-slate-300 hover:text-red-400 border border-slate-700 hover:border-red-500/30 transition-all text-sm font-medium"
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Trash2 className="w-4 h-4" /> Delete
+                </motion.button>
+              </div>
+            </motion.div>
+          );
+        })}
+      </AnimatePresence>
+    </motion.div>
+
+    {/* Infinite Scroll Loading Indicator */}
+    {(hasMore || isLoadingMore) && (
+      <div ref={observerTarget} className="flex justify-center items-center p-4 glass-card my-4">
+        <Loader2 className="w-5 h-5 text-blue-400 animate-spin mr-3" />
+        <span className="text-sm font-medium text-slate-400">Loading more products...</span>
+      </div>
+    )}
+  </div>
 );
 
 export default function ProductsPage() {
