@@ -10,9 +10,9 @@ export const customerService = {
    * @param {object} params - Query parameters (search, page, limit, sortBy, sortOrder)
    * @returns {Promise<{customers: array, total: number, pages: number}>}
    */
-  getCustomers: async (params = {}) => {
+  getCustomers: async (params = {}, options = {}) => {
     try {
-      const response = await api.get('/customers', { params });
+      const response = await api.get('/customers', { params, ...options });
       return response.data;
     } catch (error) {
       throw error;
