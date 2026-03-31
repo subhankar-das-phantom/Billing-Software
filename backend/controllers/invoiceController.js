@@ -13,6 +13,13 @@ const UPDATE_INVOICE_TRANSACTION_RETRIES = 3;
 const UPDATE_INVOICE_RETRY_BASE_DELAY_MS = 150;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const escapeRegex = (str = '') => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const buildFuzzyPattern = (str = '') => {
+  const normalized = str.trim().replace(/\s+/g, '');
+  if (!normalized) return '';
+  const limited = normalized.slice(0, 32);
+  return [...limited].map(ch => escapeRegex(ch)).join('.*');
+};
 
 const hasTransientTransactionLabel = (error) => {
   if (!error) return false;
@@ -41,23 +48,66 @@ const isRetryableInvoiceTransactionError = (error) => {
 // @access  Private
 exports.getInvoices = async (req, res, next) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 50;
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
     const skip = (page - 1) * limit;
 
     const query = {};
 
     // Filter by status
-    if (req.query.status) {
+    if (req.query.status && req.query.status !== 'all') {
       query.status = req.query.status;
     }
 
     // Filter by date range
-    if (req.query.startDate && req.query.endDate) {
-      query.invoiceDate = {
-        $gte: new Date(req.query.startDate),
-        $lte: new Date(req.query.endDate)
-      };
+    if (req.query.startDate || req.query.endDate) {
+      query.invoiceDate = {};
+
+      if (req.query.startDate) {
+        const start = new Date(req.query.startDate);
+        start.setHours(0, 0, 0, 0);
+        if (!Number.isNaN(start.getTime())) {
+          query.invoiceDate.$gte = start;
+        }
+      }
+
+      if (req.query.endDate) {
+        const end = new Date(req.query.endDate);
+        end.setHours(23, 59, 59, 999);
+        if (!Number.isNaN(end.getTime())) {
+          query.invoiceDate.$lte = end;
+        }
+      }
+
+      if (Object.keys(query.invoiceDate).length === 0) {
+        delete query.invoiceDate;
+      }
+    }
+
+    // Search by invoice number and customer name (server-side)
+    const search = String(req.query.search || '').trim();
+    if (search) {
+      const escaped = escapeRegex(search);
+      const usePrefix = req.query.prefix === 'true';
+      const useFuzzy = req.query.fuzzy === 'true';
+
+      const primaryPattern = usePrefix ? `^${escaped}` : escaped;
+      const primaryConditions = [
+        { invoiceNumber: { $regex: primaryPattern, $options: 'i' } },
+        { 'customer.customerName': { $regex: primaryPattern, $options: 'i' } }
+      ];
+
+      if (useFuzzy && search.length >= 2) {
+        const fuzzyPattern = buildFuzzyPattern(search);
+        if (fuzzyPattern && fuzzyPattern !== primaryPattern) {
+          primaryConditions.push(
+            { invoiceNumber: { $regex: fuzzyPattern, $options: 'i' } },
+            { 'customer.customerName': { $regex: fuzzyPattern, $options: 'i' } }
+          );
+        }
+      }
+
+      query.$or = primaryConditions;
     }
 
     const invoices = await Invoice.find(query)
@@ -67,12 +117,15 @@ exports.getInvoices = async (req, res, next) => {
 
     const total = await Invoice.countDocuments(query);
 
+    const pages = Math.max(1, Math.ceil(total / limit));
+
     res.status(200).json({
       success: true,
       count: invoices.length,
       total,
       page,
-      pages: Math.ceil(total / limit),
+      pages,
+      hasMore: page < pages,
       invoices
     });
   } catch (error) {
