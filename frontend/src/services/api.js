@@ -41,10 +41,17 @@ const removePendingRequest = (config) => {
 };
 
 // Retry configuration
+const IDEMPOTENT_METHODS = new Set(['get', 'head', 'options']);
+
 const retryConfig = {
   retries: 3,
   retryDelay: 1000,
   retryCondition: (error) => {
+    const method = error?.config?.method?.toLowerCase();
+    if (!IDEMPOTENT_METHODS.has(method)) {
+      return false;
+    }
+
     // Retry on network errors or 5xx server errors
     return (
       !error.response ||

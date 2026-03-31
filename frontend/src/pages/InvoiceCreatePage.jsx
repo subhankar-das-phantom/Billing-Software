@@ -161,6 +161,7 @@ export default function InvoiceCreatePage() {
   const [originalInvoice, setOriginalInvoice] = useState(null);
   const latestCustomerSearchRequest = useRef(0);
   const latestProductSearchRequest = useRef(0);
+  const submitInFlightRef = useRef(false);
   const isRequestCanceled = (err) => err?.code === 'ERR_CANCELED' || err?.name === 'CanceledError' || err?.name === 'AbortError';
 
   const getCurrentStockByProductId = async (items = []) => {
@@ -681,8 +682,10 @@ export default function InvoiceCreatePage() {
   };
 
   const handleSubmit = async () => {
+    if (saving || submitInFlightRef.current) return;
     if (!validateInvoice()) return;
 
+    submitInFlightRef.current = true;
     setSaving(true);
     try {
       const invoiceData = {
@@ -697,6 +700,10 @@ export default function InvoiceCreatePage() {
         paymentType,
         notes
       };
+
+      if (isEditMode && originalInvoice?.updatedAt) {
+        invoiceData.lastKnownUpdatedAt = originalInvoice.updatedAt;
+      }
 
       let result;
       if (isEditMode && editInvoiceId) {
@@ -718,12 +725,14 @@ export default function InvoiceCreatePage() {
         invalidateCachePattern('products'); // Stock changed
         success('Invoice created successfully!');
       }
-      
-      navigate(`/invoices/${result.invoice._id}`);
+
+      const invoiceIdToNavigate = result?.invoice?._id || editInvoiceId;
+      navigate(invoiceIdToNavigate ? `/invoices/${invoiceIdToNavigate}` : '/invoices');
     } catch (err) {
-      error(err.response?.data?.message || `Failed to ${isEditMode ? 'update' : 'create'} invoice`);
+      error(err.response?.data?.message || err.message || `Failed to ${isEditMode ? 'update' : 'create'} invoice`);
     } finally {
       setSaving(false);
+      submitInFlightRef.current = false;
     }
   };
 
@@ -1274,6 +1283,7 @@ export default function InvoiceCreatePage() {
             </div>
 
             <button
+              type="button"
               onClick={handleSubmit}
               disabled={saving}
               className="btn btn-primary w-full mt-6 py-3 flex items-center justify-center gap-2"
@@ -1281,12 +1291,12 @@ export default function InvoiceCreatePage() {
               {saving ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Creating Invoice...
+                  {isEditMode ? 'Updating Invoice...' : 'Creating Invoice...'}
                 </>
               ) : (
                 <>
                   <CheckCircle className="w-5 h-5" />
-                  Create Invoice
+                  {isEditMode ? 'Update Invoice' : 'Create Invoice'}
                 </>
               )}
             </button>

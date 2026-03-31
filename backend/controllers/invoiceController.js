@@ -9,6 +9,33 @@ const { generateInvoiceExcel, generateInvoiceCSV } = require('../utils/excelExpo
 const { getAttribution } = require('../middleware/auth');
 const { trackActivity, ACTIVITY_TYPES } = require('../utils/activityTracker');
 
+const UPDATE_INVOICE_TRANSACTION_RETRIES = 3;
+const UPDATE_INVOICE_RETRY_BASE_DELAY_MS = 150;
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const hasTransientTransactionLabel = (error) => {
+  if (!error) return false;
+
+  if (error.errorLabelSet && typeof error.errorLabelSet.has === 'function') {
+    return error.errorLabelSet.has('TransientTransactionError');
+  }
+
+  const topLevelLabels = Array.isArray(error.errorLabels) ? error.errorLabels : [];
+  if (topLevelLabels.includes('TransientTransactionError')) return true;
+
+  const responseLabels = Array.isArray(error.errorResponse?.errorLabels)
+    ? error.errorResponse.errorLabels
+    : [];
+
+  return responseLabels.includes('TransientTransactionError');
+};
+
+const isRetryableInvoiceTransactionError = (error) => {
+  const code = error?.code ?? error?.errorResponse?.code;
+  return code === 112 || hasTransientTransactionLabel(error);
+};
+
 // @desc    Get all invoices
 // @route   GET /api/invoices
 // @access  Private
@@ -324,11 +351,12 @@ exports.createInvoice = async (req, res, next) => {
 // @route   PUT /api/invoices/:id
 // @access  Private
 exports.updateInvoice = async (req, res, next) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
+  for (let attempt = 1; attempt <= UPDATE_INVOICE_TRANSACTION_RETRIES; attempt += 1) {
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-  try {
-    const { customerId, items, paymentType, notes, lastKnownUpdatedAt } = req.body;
+    try {
+      const { customerId, items, paymentType, notes, lastKnownUpdatedAt } = req.body;
 
     // ── STEP 1: Fetch existing invoice ─────────────────────────────────
     const existingInvoice = await Invoice.findById(req.params.id).session(session);
@@ -609,16 +637,35 @@ exports.updateInvoice = async (req, res, next) => {
     // ── STEP 11: Commit ────────────────────────────────────────────────
     await session.commitTransaction();
 
-    res.status(200).json({
+      return res.status(200).json({
       success: true,
       message: 'Invoice updated successfully',
       invoice: updatedInvoice
-    });
-  } catch (error) {
-    await session.abortTransaction();
-    next(error);
-  } finally {
-    session.endSession();
+      });
+    } catch (error) {
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
+
+      const shouldRetry = isRetryableInvoiceTransactionError(error)
+        && attempt < UPDATE_INVOICE_TRANSACTION_RETRIES;
+
+      if (shouldRetry) {
+        await sleep(UPDATE_INVOICE_RETRY_BASE_DELAY_MS * attempt);
+        continue;
+      }
+
+      if (isRetryableInvoiceTransactionError(error) && !res.headersSent) {
+        return res.status(503).json({
+          success: false,
+          message: 'Invoice update hit a temporary write conflict. Please retry.'
+        });
+      }
+
+      return next(error);
+    } finally {
+      session.endSession();
+    }
   }
 };
 
