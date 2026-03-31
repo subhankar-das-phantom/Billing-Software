@@ -133,6 +133,39 @@ exports.getInvoices = async (req, res, next) => {
   }
 };
 
+// @desc    Get invoice stats for cards
+// @route   GET /api/invoices/stats
+// @access  Private
+exports.getInvoiceStats = async (req, res, next) => {
+  try {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const tomorrowStart = new Date(todayStart);
+    tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+
+    const monthStart = new Date(todayStart.getFullYear(), todayStart.getMonth(), 1);
+    const nextMonthStart = new Date(todayStart.getFullYear(), todayStart.getMonth() + 1, 1);
+
+    const [totalInvoices, todayInvoices, thisMonthInvoices] = await Promise.all([
+      Invoice.countDocuments(),
+      Invoice.countDocuments({ invoiceDate: { $gte: todayStart, $lt: tomorrowStart } }),
+      Invoice.countDocuments({ invoiceDate: { $gte: monthStart, $lt: nextMonthStart } })
+    ]);
+
+    res.status(200).json({
+      success: true,
+      stats: {
+        totalInvoices,
+        todayInvoices,
+        thisMonthInvoices
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Get single invoice
 // @route   GET /api/invoices/:id
 // @access  Private
