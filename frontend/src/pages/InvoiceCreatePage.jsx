@@ -231,7 +231,7 @@ export default function InvoiceCreatePage() {
 
     if (!showCustomerDropdown) return;
 
-    if (query.length < 2) {
+    if (query.length < 1) {
       setCustomerResults([]);
       setIsCustomerSearchLoading(false);
       return;
@@ -245,7 +245,6 @@ export default function InvoiceCreatePage() {
       try {
         const data = await customerService.getCustomers({
           search: query,
-          prefix: true,
           limit: 10,
           page: 1,
           includeInactive: true
@@ -278,7 +277,7 @@ export default function InvoiceCreatePage() {
 
     if (!showProductDropdown) return;
 
-    if (query.length < 2) {
+    if (query.length < 1) {
       setProductResults([]);
       setIsProductSearchLoading(false);
       return;
@@ -292,7 +291,6 @@ export default function InvoiceCreatePage() {
       try {
         const data = await productService.getProducts({
           search: query,
-          prefix: true,
           limit: 10,
           page: 1
         }, {
@@ -847,19 +845,19 @@ export default function InvoiceCreatePage() {
                   </div>
                 )}
 
-                {!isCustomerSearchLoading && customerSearch.trim().length < 2 && (
+                {!isCustomerSearchLoading && customerSearch.trim().length < 1 && (
                   <div className="px-4 py-3 text-sm text-slate-400">
-                    Type at least 2 characters to search customers
+                    Start typing to search customers
                   </div>
                 )}
 
-                {!isCustomerSearchLoading && customerSearch.trim().length >= 2 && customerResults.length === 0 && (
+                {!isCustomerSearchLoading && customerSearch.trim().length >= 1 && customerResults.length === 0 && (
                   <div className="px-4 py-3 text-sm text-slate-400">
                     No customers found
                   </div>
                 )}
 
-                {!isCustomerSearchLoading && customerSearch.trim().length >= 2 && customerResults.map((customer, index) => (
+                {!isCustomerSearchLoading && customerSearch.trim().length >= 1 && customerResults.map((customer, index) => (
                   <motion.button
                     key={customer._id}
                     onClick={(e) => {
@@ -998,19 +996,19 @@ export default function InvoiceCreatePage() {
                   </div>
                 )}
 
-                {!isProductSearchLoading && productSearch.trim().length < 2 && (
+                {!isProductSearchLoading && productSearch.trim().length < 1 && (
                   <div className="px-4 py-3 text-sm text-slate-400">
-                    Type at least 2 characters to search products
+                    Start typing to search products
                   </div>
                 )}
 
-                {!isProductSearchLoading && productSearch.trim().length >= 2 && productResults.length === 0 && (
+                {!isProductSearchLoading && productSearch.trim().length >= 1 && productResults.length === 0 && (
                   <div className="px-4 py-3 text-sm text-slate-400">
                     No products found
                   </div>
                 )}
 
-                {!isProductSearchLoading && productSearch.trim().length >= 2 && productResults.map((product, index) => (
+                {!isProductSearchLoading && productSearch.trim().length >= 1 && productResults.map((product, index) => (
                   <motion.button
                     key={product._id}
                     onClick={(e) => {
