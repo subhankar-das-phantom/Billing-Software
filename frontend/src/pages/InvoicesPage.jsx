@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -9,25 +9,22 @@ import {
   Package,
   DollarSign,
   CreditCard,
-  CheckCircle,
   Printer,
   XCircle,
   Eye,
-  ChevronLeft,
-  ChevronRight,
   Search,
   Filter,
   Download,
   TrendingUp,
   Clock,
-  AlertCircle
+  Loader2
 } from 'lucide-react';
 import { invoiceService } from '../services/invoiceService';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { PageLoader } from '../components/Common/Loader';
 import ExportModal from '../components/Common/ExportModal';
 import { useToast } from '../context/ToastContext';
-import { useMotionConfig, useSWR, invalidateCachePattern } from '../hooks';
+import { useMotionConfig, useSWR } from '../hooks';
 import RefreshIndicator from '../components/Common/RefreshIndicator';
 
 // Factory functions for adaptive variants
@@ -70,8 +67,13 @@ const createTableRowVariants = (isMobile, shouldStagger) => ({
 
 export default function InvoicesPage() {
   const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [accumulatedInvoices, setAccumulatedInvoices] = useState([]);
+  const observer = useRef(null);
   const [showExportModal, setShowExportModal] = useState(false);
   const { success, error } = useToast();
   
@@ -82,15 +84,80 @@ export default function InvoicesPage() {
   const tableRowVariants = useMemo(() => createTableRowVariants(motionConfig.isMobile, motionConfig.shouldStagger), [motionConfig.isMobile, motionConfig.shouldStagger]);
 
   // SWR: Instant cached data + background revalidation
-  const { data, isLoading, isValidating, mutate } = useSWR(
-    `invoices-page-${page}`,
-    () => invoiceService.getInvoices({ page, limit: 20 }),
+  const { data, isLoading, isValidating } = useSWR(
+    `invoices-page-${search}-${statusFilter}-${startDate}-${endDate}-${page}`,
+    () => {
+      const params = {
+        page,
+        limit: 20,
+        prefix: true,
+        fuzzy: true
+      };
+
+      if (search) params.search = search;
+      if (statusFilter !== 'all') params.status = statusFilter;
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+
+      return invoiceService.getInvoices(params);
+    },
     { ttl: 5 * 60 * 1000 } // 5 minute cache
   );
 
-  // Extract data from SWR response
-  const invoices = data?.invoices || [];
-  const totalPages = data?.pages || 1;
+  const invoices = accumulatedInvoices;
+  const totalMatched = data?.total || 0;
+  const hasMore = data?.hasMore ?? (data?.pages ? page < data.pages : false);
+
+  // Debounced search to avoid API spam
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchInput.trim());
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  // Reset infinite list when filters/search change
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPage(1);
+    setAccumulatedInvoices([]);
+  }, [search, statusFilter, startDate, endDate]);
+
+  // Accumulate invoices as pages arrive
+  useEffect(() => {
+    if (!data?.invoices) return;
+
+    if (page === 1) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAccumulatedInvoices(data.invoices);
+      return;
+    }
+
+    setAccumulatedInvoices(prev => {
+      const existingIds = new Set(prev.map(inv => inv._id));
+      const newInvoices = data.invoices.filter(inv => !existingIds.has(inv._id));
+      return [...prev, ...newInvoices];
+    });
+  }, [data, page]);
+
+  // Infinite Scroll Observer
+  const lastElementRef = useCallback((node) => {
+    if (isValidating) return;
+    if (observer.current) observer.current.disconnect();
+
+    if (node) {
+      observer.current = new IntersectionObserver(
+        entries => {
+          if (entries[0].isIntersecting && !isValidating && hasMore) {
+            setPage(prev => prev + 1);
+          }
+        },
+        { threshold: 0.1 }
+      );
+      observer.current.observe(node);
+    }
+  }, [isValidating, hasMore]);
 
   // Calculate stats from current data
   const stats = useMemo(() => {
@@ -107,22 +174,9 @@ export default function InvoicesPage() {
     };
   }, [invoices]);
 
-  const filteredInvoices = invoices.filter(invoice => {
-    const matchesSearch = 
-      invoice.invoiceNumber.toLowerCase().includes(search.toLowerCase()) ||
-      invoice.customer?.customerName.toLowerCase().includes(search.toLowerCase());
-    
-    // Case-insensitive status matching
-    const matchesStatus = statusFilter === 'all' || 
-      invoice.status?.toLowerCase() === statusFilter.toLowerCase();
-    
-    return matchesSearch && matchesStatus;
-  });
-
-
   const handleExport = async ({ format, dateRange }) => {
     try {
-      let dataToExport = filteredInvoices;
+      let dataToExport = invoices;
 
       // Filter by date range if specified
       if (dateRange.startDate && dateRange.endDate) {
@@ -172,10 +226,10 @@ export default function InvoicesPage() {
 
   // Calculate export stats
   const exportStats = {
-    total: filteredInvoices.length,
-    totalAmount: filteredInvoices.reduce((sum, inv) => sum + (inv.totals?.netTotal || 0), 0),
-    cash: filteredInvoices.filter(inv => inv.paymentType === 'Cash').length,
-    credit: filteredInvoices.filter(inv => inv.paymentType === 'Credit').length
+    total: invoices.length,
+    totalAmount: invoices.reduce((sum, inv) => sum + (inv.totals?.netTotal || 0), 0),
+    cash: invoices.filter(inv => inv.paymentType === 'Cash').length,
+    credit: invoices.filter(inv => inv.paymentType === 'Credit').length
   };
 
 
@@ -191,7 +245,7 @@ export default function InvoicesPage() {
   };
 
   // Only show full page loader on first load with no cached data
-  if (isLoading && invoices.length === 0) {
+  if (isLoading && invoices.length === 0 && page === 1) {
     return <PageLoader />;
   }
 
@@ -277,9 +331,9 @@ export default function InvoicesPage() {
                 <RefreshIndicator isRefreshing={isValidating} size="sm" />
               </div>
               <p className="text-sm text-slate-400 mt-1">
-                Showing {filteredInvoices.length} of {invoices.length} invoices
-              </p>
-            </div>
+                  Showing {invoices.length} of {totalMatched || invoices.length} invoices
+                </p>
+              </div>
           </div>
 
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -291,24 +345,27 @@ export default function InvoicesPage() {
         </div>
 
         {/* Search and Filters */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mt-6">
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
             <input
               type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search invoices..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search invoice # or customer..."
               className="input pl-10 w-full"
             />
             <AnimatePresence>
-              {search && (
+              {searchInput && (
                 <motion.button
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0 }}
-                  onClick={() => setSearch('')}
+                  onClick={() => {
+                    setSearchInput('');
+                    setSearch('');
+                  }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
                   whileHover={{ rotate: 90 }}
                 >
@@ -333,6 +390,28 @@ export default function InvoicesPage() {
             </select>
           </div>
 
+          {/* Date From */}
+          <div className="relative">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="input pl-10 w-full"
+            />
+          </div>
+
+          {/* Date To */}
+          <div className="relative">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="input pl-10 w-full"
+            />
+          </div>
+
           {/* Export Button */}
           <motion.button
             onClick={() => setShowExportModal(true)}
@@ -348,7 +427,7 @@ export default function InvoicesPage() {
 
       {/* Invoices Table */}
       <AnimatePresence mode="wait">
-        {filteredInvoices.length === 0 ? (
+        {invoices.length === 0 ? (
           <motion.div
             key={`empty-${statusFilter}`}
             initial={{ opacity: 0, scale: 0.95 }}
@@ -371,13 +450,13 @@ export default function InvoicesPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              {search 
+              {search || searchInput || startDate || endDate
                 ? 'No invoices found matching your search' 
                 : statusFilter !== 'all' 
                   ? `No ${statusFilter} invoices found`
                   : 'No invoices found. Create your first invoice!'}
             </motion.p>
-            {!search && (
+            {!search && !searchInput && !startDate && !endDate && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -392,7 +471,7 @@ export default function InvoicesPage() {
           </motion.div>
         ) : (
           <motion.div
-            key={`table-${statusFilter}-${filteredInvoices.length}`}
+            key={`table-${statusFilter}-${search}-${startDate}-${endDate}`}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
@@ -419,7 +498,7 @@ export default function InvoicesPage() {
                 </thead>
                 <tbody>
                   <AnimatePresence mode="popLayout">
-                    {filteredInvoices.map((invoice, index) => {
+                    {invoices.map((invoice, index) => {
                       const StatusIcon = statusConfig[invoice.status]?.icon || FileText;
                       const PaymentIcon = paymentConfig[invoice.paymentType]?.icon || CreditCard;
 
@@ -513,82 +592,25 @@ export default function InvoicesPage() {
               </table>
             </div>
 
-            {/* Pagination */}
-            <AnimatePresence>
-              {totalPages > 1 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 20 }}
-                  className="p-4 border-t border-slate-700 flex items-center justify-between"
-                >
-                  <motion.button
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                    className="btn btn-secondary flex items-center gap-2"
-                    whileHover={{ scale: page === 1 ? 1 : 1.05 }}
-                    whileTap={{ scale: page === 1 ? 1 : 0.95 }}
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                    Previous
-                  </motion.button>
-
-                  <div className="flex items-center gap-2">
-                    {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                      let pageNum;
-                      if (totalPages <= 5) {
-                        pageNum = i + 1;
-                      } else if (page <= 3) {
-                        pageNum = i + 1;
-                      } else if (page >= totalPages - 2) {
-                        pageNum = totalPages - 4 + i;
-                      } else {
-                        pageNum = page - 2 + i;
-                      }
-
-                      return (
-                        <motion.button
-                          key={pageNum}
-                          onClick={() => setPage(pageNum)}
-                          className={`w-10 h-10 rounded-lg font-medium transition-colors ${
-                            page === pageNum
-                              ? 'bg-blue-500 text-white'
-                              : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
-                          }`}
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.95 }}
-                        >
-                          {pageNum}
-                        </motion.button>
-                      );
-                    })}
-                  </div>
-
-                  <motion.button
-                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
-                    className="btn btn-secondary flex items-center gap-2"
-                    whileHover={{ scale: page === totalPages ? 1 : 1.05 }}
-                    whileTap={{ scale: page === totalPages ? 1 : 0.95 }}
-                  >
-                    Next
-                    <ChevronRight className="w-4 h-4" />
-                  </motion.button>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {/* Infinite Scroll Loader */}
+            {(hasMore || isValidating) && (
+              <div ref={lastElementRef} className="p-4 border-t border-slate-700 flex items-center justify-center gap-2 text-slate-400">
+                <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
+                <span className="text-sm">Loading more invoices...</span>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Export Modal */}
-      <ExportModal
-        isOpen={showExportModal}
-        onClose={() => setShowExportModal(false)}
-        data={filteredInvoices}
-        stats={exportStats}
-        onExport={handleExport}
-        entityType="Invoices"
+        <ExportModal
+          isOpen={showExportModal}
+          onClose={() => setShowExportModal(false)}
+          data={invoices}
+          stats={exportStats}
+          onExport={handleExport}
+          entityType="Invoices"
       />
     </motion.div>
   );
