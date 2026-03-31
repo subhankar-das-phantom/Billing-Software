@@ -423,6 +423,8 @@ export default function InvoicesPage() {
                       const StatusIcon = statusConfig[invoice.status]?.icon || FileText;
                       const PaymentIcon = paymentConfig[invoice.paymentType]?.icon || CreditCard;
 
+                      const isCancelled = invoice.status === 'Cancelled';
+
                       return (
                         <motion.tr
                           key={invoice._id}
@@ -432,10 +434,8 @@ export default function InvoicesPage() {
                           animate="visible"
                           exit={{ opacity: 0, x: -20 }}
                           layout
-                          whileHover={{ 
-                            backgroundColor: 'rgba(51, 65, 85, 0.5)',
-                            x: 4
-                          }}
+                          className={`transition-colors ${isCancelled ? 'bg-red-500/10 hover:bg-red-500/20' : 'hover:bg-slate-700/50'}`}
+                          whileHover={{ x: 4 }}
                           transition={{ type: 'spring', stiffness: 400, damping: 25 }}
                         >
                           <td className="font-medium text-white">

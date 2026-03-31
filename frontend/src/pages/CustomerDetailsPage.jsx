@@ -773,6 +773,7 @@ export default function CustomerDetailsPage() {
                           const paymentStatus = invoice.paymentStatus || 'Unpaid';
                           const PaymentIcon = paymentStatusConfig[paymentStatus]?.icon || AlertTriangle;
                           const remaining = (invoice.totals?.netTotal || 0) - (invoice.paidAmount || 0);
+                          const isCancelled = invoice.status === 'Cancelled';
                           
                           return (
                             <motion.tr
@@ -781,8 +782,9 @@ export default function CustomerDetailsPage() {
                               variants={tableRowVariants}
                               initial="hidden"
                               animate="visible"
-                              whileHover={denseRows ? { backgroundColor: 'rgba(51, 65, 85, 0.5)' } : {
-                                backgroundColor: 'rgba(51, 65, 85, 0.5)',
+                              className={`transition-colors ${isCancelled ? 'bg-red-500/10' : ''}`}
+                              whileHover={denseRows ? { backgroundColor: isCancelled ? 'rgba(239, 68, 68, 0.2)' : 'rgba(51, 65, 85, 0.5)' } : {
+                                backgroundColor: isCancelled ? 'rgba(239, 68, 68, 0.2)' : 'rgba(51, 65, 85, 0.5)',
                                 x: 4
                               }}
                               transition={denseRows ? { duration: 0.12 } : { type: 'spring', stiffness: 400, damping: 25 }}
