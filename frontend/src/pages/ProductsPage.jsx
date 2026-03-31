@@ -482,8 +482,8 @@ export default function ProductsPage() {
 
   // SWR: Global Stats
   const { data: statsData, mutate: mutateStats } = useSWR(
-    `products-stats-${search}`,
-    () => productService.getProductStats({ search }),
+    'products-stats-global',
+    () => productService.getProductStats(),
     { ttl: 5 * 60 * 1000 } // 5 minute cache
   );
 
