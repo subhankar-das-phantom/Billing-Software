@@ -789,25 +789,25 @@ export default function CustomerDetailsPage() {
                               }}
                               transition={denseRows ? { duration: 0.12 } : { type: 'spring', stiffness: 400, damping: 25 }}
                             >
-                              <td className="font-medium text-white">
+                              <td className={`font-medium ${isCancelled ? 'text-red-400' : 'text-white'}`}>
                                 <div className="flex items-center gap-2">
-                                  <FileText className="w-4 h-4 text-blue-400" />
+                                  <FileText className={`w-4 h-4 ${isCancelled ? 'text-red-400' : 'text-blue-400'}`} />
                                   {invoice.invoiceNumber}
                                 </div>
                               </td>
-                              <td className="text-slate-300">
+                              <td className={isCancelled ? 'text-red-400' : 'text-slate-300'}>
                                 <div className="flex items-center gap-2">
-                                  <Calendar className="w-4 h-4 text-slate-500" />
+                                  <Calendar className={`w-4 h-4 ${isCancelled ? 'text-red-400' : 'text-slate-500'}`} />
                                   {formatDate(invoice.invoiceDate)}
                                 </div>
                               </td>
-                              <td className="text-slate-300">
+                              <td className={isCancelled ? 'text-red-400' : 'text-slate-300'}>
                                 <div className="flex items-center gap-2">
-                                  <Package className="w-4 h-4 text-slate-500" />
+                                  <Package className={`w-4 h-4 ${isCancelled ? 'text-red-400' : 'text-slate-500'}`} />
                                   {invoice.items?.length || 0} items
                                 </div>
                               </td>
-                              <td className="text-emerald-400 font-medium">
+                              <td className={`font-medium ${isCancelled ? 'text-red-400 font-bold' : 'text-emerald-400'}`}>
                                 {formatCurrency(invoice.totals?.netTotal)}
                               </td>
                               <td>

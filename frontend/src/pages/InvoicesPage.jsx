@@ -438,42 +438,42 @@ export default function InvoicesPage() {
                           whileHover={{ x: 4 }}
                           transition={{ type: 'spring', stiffness: 400, damping: 25 }}
                         >
-                          <td className="font-medium text-white">
+                          <td className={`font-medium ${isCancelled ? 'text-red-400' : 'text-white'}`}>
                             <div className="flex items-center gap-2">
-                              <FileText className="w-4 h-4 text-blue-400" />
+                              <FileText className={`w-4 h-4 ${isCancelled ? 'text-red-400' : 'text-blue-400'}`} />
                               {invoice.invoiceNumber}
                             </div>
                           </td>
-                          <td className="text-slate-300">
+                          <td className={isCancelled ? 'text-red-400' : 'text-slate-300'}>
                             <div className="flex items-center gap-2">
-                              <Calendar className="w-4 h-4 text-slate-500" />
+                              <Calendar className={`w-4 h-4 ${isCancelled ? 'text-red-400' : 'text-slate-500'}`} />
                               {formatDate(invoice.invoiceDate)}
                             </div>
                           </td>
                           <td>
                             <div className="flex items-center gap-2">
                               <motion.div
-                                className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-xs font-bold shadow-lg shadow-emerald-500/30"
+                                className={`w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-lg ${isCancelled ? 'bg-red-500/20 text-red-400 shadow-red-500/20' : 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/30'}`}
                                 whileHover={{ scale: 1.1, rotate: 5 }}
                               >
                                 {invoice.customer?.customerName?.charAt(0)}
                               </motion.div>
                               <div>
-                                <p className="text-white font-medium">{invoice.customer?.customerName}</p>
-                                <p className="text-xs text-slate-400 flex items-center gap-1">
+                                <p className={`font-medium ${isCancelled ? 'text-red-400' : 'text-white'}`}>{invoice.customer?.customerName}</p>
+                                <p className={`text-xs flex items-center gap-1 ${isCancelled ? 'text-red-400 opacity-80' : 'text-slate-400'}`}>
                                   <User className="w-3 h-3" />
                                   {invoice.customer?.phone}
                                 </p>
                               </div>
                             </div>
                           </td>
-                          <td className="text-slate-300">
+                          <td className={isCancelled ? 'text-red-400' : 'text-slate-300'}>
                             <div className="flex items-center gap-2">
-                              <Package className="w-4 h-4 text-slate-500" />
+                              <Package className={`w-4 h-4 ${isCancelled ? 'text-red-400' : 'text-slate-500'}`} />
                               {invoice.items?.length || 0} items
                             </div>
                           </td>
-                          <td className="text-emerald-400 font-medium">
+                          <td className={`font-medium ${isCancelled ? 'text-red-400 font-bold' : 'text-emerald-400'}`}>
                             {formatCurrency(invoice.totals?.netTotal)}
                           </td>
                           <td>
