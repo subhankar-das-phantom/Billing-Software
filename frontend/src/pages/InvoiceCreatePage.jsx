@@ -96,6 +96,13 @@ const tableRowVariants = {
 
 const DRAFT_STORAGE_KEY = 'invoice_working_draft';
 
+const generateCreateRequestId = () => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `invreq_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+};
+
 // Helper to load draft from sessionStorage (tab-specific)
 const loadDraftFromStorage = () => {
   try {
@@ -156,6 +163,7 @@ export default function InvoiceCreatePage() {
   const [invoiceItems, setInvoiceItems] = useState([]);
   const [paymentType, setPaymentType] = useState('Credit');
   const [notes, setNotes] = useState('');
+  const [createRequestId, setCreateRequestId] = useState(() => generateCreateRequestId());
   
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [originalInvoice, setOriginalInvoice] = useState(null);
@@ -198,6 +206,7 @@ export default function InvoiceCreatePage() {
     
     const draft = {
       editInvoiceId: isEditMode ? editInvoiceId : null,
+      createRequestId,
       selectedCustomer,
       customerSearch,
       invoiceItems,
@@ -210,7 +219,7 @@ export default function InvoiceCreatePage() {
     if (selectedCustomer || invoiceItems.length > 0 || notes) {
       saveDraftToStorage(draft);
     }
-  }, [selectedCustomer, customerSearch, invoiceItems, paymentType, notes, draftLoaded, isEditMode, editInvoiceId]);
+  }, [selectedCustomer, customerSearch, invoiceItems, paymentType, notes, createRequestId, draftLoaded, isEditMode, editInvoiceId]);
 
   useEffect(() => {
     loadInitialData();
@@ -315,6 +324,10 @@ export default function InvoiceCreatePage() {
       const savedDraft = loadDraftFromStorage();
       console.log('Draft key:', getDraftStorageKey());
       console.log('Loaded draft:', savedDraft);
+
+      if (savedDraft?.createRequestId) {
+        setCreateRequestId(savedDraft.createRequestId);
+      }
       
       // Check if we have a valid draft with items
       if (savedDraft && savedDraft.invoiceItems?.length > 0) {
@@ -704,6 +717,13 @@ export default function InvoiceCreatePage() {
       if (isEditMode && originalInvoice?.updatedAt) {
         invoiceData.lastKnownUpdatedAt = originalInvoice.updatedAt;
       }
+      if (!isEditMode) {
+        const requestId = createRequestId || generateCreateRequestId();
+        invoiceData.createRequestId = requestId;
+        if (!createRequestId) {
+          setCreateRequestId(requestId);
+        }
+      }
 
       let result;
       if (isEditMode && editInvoiceId) {
@@ -743,6 +763,7 @@ export default function InvoiceCreatePage() {
     setInvoiceItems([]);
     setPaymentType('Credit');
     setNotes('');
+    setCreateRequestId(generateCreateRequestId());
     clearDraftFromStorage();
     success('Draft cleared');
   };

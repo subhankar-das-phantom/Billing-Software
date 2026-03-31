@@ -136,6 +136,28 @@ exports.getCustomerInvoices = async (req, res, next) => {
 // @route   POST /api/invoices
 // @access  Private
 exports.createInvoice = async (req, res, next) => {
+  const createRequestId = typeof req.body?.createRequestId === 'string'
+    ? req.body.createRequestId.trim()
+    : '';
+
+  if (req.body?.createRequestId !== undefined && !createRequestId) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid create request ID'
+    });
+  }
+
+  if (createRequestId) {
+    const existingInvoice = await Invoice.findOne({ createRequestId });
+    if (existingInvoice) {
+      return res.status(200).json({
+        success: true,
+        invoice: existingInvoice,
+        message: 'Invoice already created for this request'
+      });
+    }
+  }
+
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -265,6 +287,7 @@ exports.createInvoice = async (req, res, next) => {
       totals,
       paymentType: paymentType || 'Credit',
       notes,
+      createRequestId: createRequestId || undefined,
       createdBy: getAttribution(req)
     }], { session });
 
@@ -320,7 +343,26 @@ exports.createInvoice = async (req, res, next) => {
       invoice: invoice[0]
     });
   } catch (error) {
-    await session.abortTransaction();
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
+
+    const duplicateCreateRequest =
+      createRequestId
+      && error?.code === 11000
+      && (error?.keyPattern?.createRequestId || String(error?.message || '').includes('createRequestId'));
+
+    if (duplicateCreateRequest) {
+      const existingInvoice = await Invoice.findOne({ createRequestId });
+      if (existingInvoice) {
+        return res.status(200).json({
+          success: true,
+          invoice: existingInvoice,
+          message: 'Invoice already created for this request'
+        });
+      }
+    }
+
     next(error);
   } finally {
     session.endSession();

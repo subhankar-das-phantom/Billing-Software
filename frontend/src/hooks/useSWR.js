@@ -24,12 +24,12 @@ try {
       if (type === 'invalidate') {
         if (pattern) {
           for (const cacheKey of memoryCache.keys()) {
-            if (cacheKey.includes(pattern)) {
+            if (isPatternMatch(cacheKey, pattern)) {
               memoryCache.delete(cacheKey);
             }
           }
           for (const [subKey, callback] of invalidationSubscribers.entries()) {
-            if (subKey.includes(pattern)) {
+            if (isPatternMatch(subKey, pattern)) {
               callback();
             }
           }
@@ -53,6 +53,11 @@ const safeJSONParse = (str) => {
     return null;
   }
 };
+
+const isPatternMatch = (cacheKey, pattern) =>
+  typeof cacheKey === 'string'
+  && typeof pattern === 'string'
+  && cacheKey.includes(pattern);
 
 const getCachedData = (key) => {
   if (memoryCache.has(key)) {
@@ -127,12 +132,12 @@ export const invalidateCache = (key) => {
 
 export const invalidateCachePattern = (pattern) => {
   for (const key of memoryCache.keys()) {
-    if (key.includes(pattern)) memoryCache.delete(key);
+    if (isPatternMatch(key, pattern)) memoryCache.delete(key);
   }
   const keysToRemove = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (key?.startsWith(CACHE_PREFIX) && key.includes(pattern)) {
+    if (key?.startsWith(CACHE_PREFIX) && isPatternMatch(key, pattern)) {
       keysToRemove.push(key);
     }
   }
