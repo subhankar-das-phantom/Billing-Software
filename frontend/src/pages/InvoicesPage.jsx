@@ -83,7 +83,7 @@ export default function InvoicesPage() {
   const cardVariants = useMemo(() => createCardVariants(motionConfig.isMobile), [motionConfig.isMobile]);
   const tableRowVariants = useMemo(() => createTableRowVariants(motionConfig.isMobile, motionConfig.shouldStagger), [motionConfig.isMobile, motionConfig.shouldStagger]);
 
-  // SWR: Instant cached data + background revalidation
+  // SWR: Invoice list (server-side filters + infinite scroll)
   const { data, isLoading, isValidating } = useSWR(
     `invoices-page-${search}-${statusFilter}-${startDate}-${endDate}-${page}`,
     () => {
@@ -102,6 +102,13 @@ export default function InvoicesPage() {
       return invoiceService.getInvoices(params);
     },
     { ttl: 5 * 60 * 1000 } // 5 minute cache
+  );
+
+  // SWR: Global invoice stats for cards (not affected by search/filter)
+  const { data: invoiceStatsData } = useSWR(
+    'invoices-stats',
+    () => invoiceService.getInvoiceStats(),
+    { ttl: 5 * 60 * 1000 }
   );
 
   const invoices = accumulatedInvoices;
@@ -159,20 +166,11 @@ export default function InvoicesPage() {
     }
   }, [isValidating, hasMore]);
 
-  // Calculate stats from current data
-  const stats = useMemo(() => {
-    const today = new Date().toDateString();
-    const thisMonth = new Date().getMonth();
-    return {
-      total: invoices.length,
-      today: invoices.filter(inv => 
-        new Date(inv.invoiceDate).toDateString() === today
-      ).length,
-      thisMonth: invoices.filter(inv => 
-        new Date(inv.invoiceDate).getMonth() === thisMonth
-      ).length
-    };
-  }, [invoices]);
+  const stats = {
+    total: invoiceStatsData?.stats?.totalInvoices || 0,
+    today: invoiceStatsData?.stats?.todayInvoices || 0,
+    thisMonth: invoiceStatsData?.stats?.thisMonthInvoices || 0
+  };
 
   const handleExport = async ({ format, dateRange }) => {
     try {
@@ -261,7 +259,7 @@ export default function InvoicesPage() {
         {[
           { 
             label: 'Total Invoices', 
-            value: invoices.length, 
+            value: stats.total, 
             icon: FileText,
             color: 'from-blue-500 to-blue-600',
             iconColor: 'text-blue-400',
