@@ -944,7 +944,7 @@ export default function InvoiceCreatePage() {
       </motion.div>
 
       {/* Product Selection */}
-      <motion.div variants={cardVariants} className="glass-card p-6">
+      <motion.div variants={cardVariants} className="glass-card p-6 relative z-40">
         <div className="flex items-center gap-3 mb-6">
           <motion.div
             className="p-2 bg-purple-500/20 rounded-lg"
@@ -1220,7 +1220,7 @@ export default function InvoiceCreatePage() {
       {invoiceItems.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Additional Details */}
-          <div className="glass-card p-6 lg:col-span-2">
+          <div className="glass-card p-6 lg:col-span-2 relative z-0">
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 bg-yellow-500/20 rounded-lg">
                 <FileText className="w-5 h-5 text-yellow-400" />
@@ -1261,7 +1261,7 @@ export default function InvoiceCreatePage() {
           </div>
 
           {/* Totals */}
-          <div className="glass-card p-6">
+          <div className="glass-card p-6 relative z-0">
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 bg-emerald-500/20 rounded-lg">
                 <Calculator className="w-5 h-5 text-emerald-400" />
