@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
   getInvoices,
+  getInvoiceStats,
   getInvoice,
   createInvoice,
   updateInvoice,
@@ -21,6 +22,7 @@ router.use(protect);
 
 // Export route (before :id route to avoid conflicts)
 router.get('/export', exportInvoices);
+router.get('/stats', getInvoiceStats);
 
 router.route('/')
   .get(getInvoices)
