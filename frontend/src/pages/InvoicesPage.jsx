@@ -24,7 +24,7 @@ import { formatCurrency, formatDate } from '../utils/formatters';
 import { PageLoader } from '../components/Common/Loader';
 import ExportModal from '../components/Common/ExportModal';
 import { useToast } from '../context/ToastContext';
-import { useMotionConfig, useSWR } from '../hooks';
+import { invalidateCachePattern, useMotionConfig, useSWR } from '../hooks';
 import RefreshIndicator from '../components/Common/RefreshIndicator';
 
 // Factory functions for adaptive variants
@@ -75,6 +75,7 @@ export default function InvoicesPage() {
   const [accumulatedInvoices, setAccumulatedInvoices] = useState([]);
   const observer = useRef(null);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [statusUpdating, setStatusUpdating] = useState({});
   const { success, error } = useToast();
   
   // Adaptive motion configuration
@@ -240,6 +241,31 @@ export default function InvoicesPage() {
   const paymentConfig = {
     Cash: { icon: DollarSign, class: 'badge-success', color: 'text-green-400' },
     Credit: { icon: CreditCard, class: 'badge-info', color: 'text-blue-400' }
+  };
+
+  const handlePrintedToggle = async (invoiceId, checked) => {
+    setStatusUpdating(prev => ({ ...prev, [invoiceId]: true }));
+    const nextStatus = checked ? 'Printed' : 'Created';
+
+    try {
+      await invoiceService.updateStatus(invoiceId, nextStatus);
+
+      setAccumulatedInvoices(prev => prev.filter(inv => {
+        if (inv._id !== invoiceId) return true;
+        if (statusFilter === 'all') return true;
+        return nextStatus === statusFilter;
+      }).map(inv => (
+        inv._id === invoiceId ? { ...inv, status: nextStatus } : inv
+      )));
+
+      invalidateCachePattern('invoices');
+      success(`Invoice marked as ${nextStatus.toLowerCase()}`);
+    } catch (err) {
+      console.error('Failed to update invoice status:', err);
+      error('Failed to update print status');
+    } finally {
+      setStatusUpdating(prev => ({ ...prev, [invoiceId]: false }));
+    }
   };
 
   // Only show full page loader on first load with no cached data
@@ -491,6 +517,7 @@ export default function InvoicesPage() {
                     <th>Amount</th>
                     <th>Payment</th>
                     <th>Status</th>
+                    <th className="text-center w-20">Printed</th>
                     <th>Action</th>
                   </motion.tr>
                 </thead>
@@ -570,6 +597,21 @@ export default function InvoicesPage() {
                               <StatusIcon className="w-3 h-3" />
                               {invoice.status}
                             </motion.span>
+                          </td>
+                          <td className="text-center">
+                            <label className="inline-flex items-center justify-center cursor-pointer">
+                              <input
+                                type="checkbox"
+                                aria-label={`Mark invoice ${invoice.invoiceNumber} as printed`}
+                                className="sr-only peer"
+                                checked={invoice.status === 'Printed'}
+                                disabled={isCancelled || statusUpdating[invoice._id]}
+                                onChange={(e) => handlePrintedToggle(invoice._id, e.target.checked)}
+                              />
+                              <div className="relative w-10 h-5 rounded-full bg-slate-700 peer-checked:bg-emerald-500 transition-colors shadow-inner peer-disabled:opacity-50 peer-disabled:cursor-not-allowed">
+                                <span className="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5" />
+                              </div>
+                            </label>
                           </td>
                           <td>
                             <motion.div whileHover={{ x: 4 }}>
