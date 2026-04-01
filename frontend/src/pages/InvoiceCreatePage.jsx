@@ -875,8 +875,17 @@ export default function InvoiceCreatePage() {
                       {customer.customerName}
                     </p>
                     <p className="text-sm text-slate-400 flex items-center gap-2 mt-1">
-                      <Phone className="w-3 h-3" />
-                      {customer.phone}
+                      {customer.address ? (
+                        <>
+                          <MapPin className="w-3 h-3" />
+                          {customer.address}
+                        </>
+                      ) : (
+                        <>
+                          <Phone className="w-3 h-3" />
+                          {customer.phone}
+                        </>
+                      )}
                       {customer.gstin && <><span className="text-slate-600">•</span> {customer.gstin}</>}
                     </p>
                   </motion.button>
