@@ -135,9 +135,9 @@ const CustomerCard = memo(function CustomerCard({
             <DollarSign className="w-4 h-4 text-emerald-400" />
           </div>
           <div>
-            <p className="text-xs text-slate-500">Total Purchases</p>
+            <p className="text-xs text-slate-500">Outstanding</p>
             <p className="font-semibold text-emerald-400">
-              {formatCurrency(customer.totalPurchases)}
+              {formatCurrency(customer.outstandingBalance || 0)}
             </p>
           </div>
         </div>
