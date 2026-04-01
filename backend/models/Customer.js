@@ -78,6 +78,11 @@ const customerSchema = new mongoose.Schema({
   creditBalance: {
     type: Number,
     default: 0
+  },
+  // UI theme for customer avatar
+  theme: {
+    type: String,
+    default: 'blue'
   }
 }, {
   timestamps: true

@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { customerService } from '../services/customerService';
 import { formatCurrency, formatPhone } from '../utils/formatters';
+import { getCustomerTheme } from '../utils/customerTheme';
 import { PageLoader } from '../components/Common/Loader';
 import Modal from '../components/Common/Modal';
 import ConfirmDialog from '../components/Common/ConfirmDialog';
@@ -48,6 +49,8 @@ const CustomerCard = memo(function CustomerCard({
   openEditModal,
   setDeleteDialog
 }) {
+  const theme = getCustomerTheme(customer.theme);
+
   return (
     <motion.div
       layout={!denseMode}
@@ -66,7 +69,7 @@ const CustomerCard = memo(function CustomerCard({
     >
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3 flex-1 min-w-0">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center relative overflow-hidden shadow-lg shadow-emerald-500/30 flex-shrink-0">
+          <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${theme.gradient} flex items-center justify-center relative overflow-hidden shadow-lg ${theme.shadow} flex-shrink-0`}>
             <span className="text-white font-bold text-lg">
               {customer.customerName?.charAt(0)}
             </span>

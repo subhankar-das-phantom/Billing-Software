@@ -530,7 +530,8 @@ exports.createCustomer = async (req, res, next) => {
       email,
       gstin,
       dlNo,
-      customerCode
+      customerCode,
+      theme
     } = req.body;
 
     const customer = await Customer.create({
@@ -541,6 +542,7 @@ exports.createCustomer = async (req, res, next) => {
       gstin,
       dlNo,
       customerCode,
+      theme,
       createdBy: getAttribution(req)
     });
 
@@ -577,20 +579,23 @@ exports.updateCustomer = async (req, res, next) => {
       email,
       gstin,
       dlNo,
-      customerCode
+      customerCode,
+      theme
     } = req.body;
+
+    const updateFields = {};
+    if (customerName !== undefined) updateFields.customerName = customerName;
+    if (address !== undefined) updateFields.address = address;
+    if (phone !== undefined) updateFields.phone = phone;
+    if (email !== undefined) updateFields.email = email;
+    if (gstin !== undefined) updateFields.gstin = gstin;
+    if (dlNo !== undefined) updateFields.dlNo = dlNo;
+    if (customerCode !== undefined) updateFields.customerCode = customerCode;
+    if (theme !== undefined) updateFields.theme = theme;
 
     customer = await Customer.findByIdAndUpdate(
       req.params.id,
-      {
-        customerName,
-        address,
-        phone,
-        email,
-        gstin,
-        dlNo,
-        customerCode
-      },
+      updateFields,
       { new: true, runValidators: true }
     );
 

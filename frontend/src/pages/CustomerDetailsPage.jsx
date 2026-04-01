@@ -21,17 +21,20 @@ import {
   Clock,
   AlertTriangle,
   Shield,
-  BookOpen
+  BookOpen,
+  Palette
 } from 'lucide-react';
 import { customerService } from '../services/customerService';
 import { ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import { getPaymentsByCustomer, getPaymentStatusColor } from '../services/creditService';
 import { manualEntryService } from '../services/manualEntryService';
 import { formatCurrency, formatDate, formatPhone } from '../utils/formatters';
+import { CUSTOMER_THEMES, getCustomerTheme } from '../utils/customerTheme';
 import { PageLoader } from '../components/Common/Loader';
 import RecordPaymentModal from '../components/Common/RecordPaymentModal';
 import ManualEntryModal from '../components/ManualEntry/ManualEntryModal';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { invalidateCachePattern, useMotionConfig } from '../hooks';
 
 const LARGE_ROW_THRESHOLD = 20;
@@ -77,6 +80,7 @@ const AnimatedCounter = ({ value, prefix = '', suffix = '' }) => {
 export default function CustomerDetailsPage() {
   const { id } = useParams();
   const { isAdmin, admin } = useAuth();
+  const { success, error } = useToast();
   const ledgerPrintRef = useRef();
 
   const handlePrintLedger = () => {
@@ -97,6 +101,7 @@ export default function CustomerDetailsPage() {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [ledgerData, setLedgerData] = useState({ ledger: [], summary: null });
   const [ledgerLoading, setLedgerLoading] = useState(false);
+  const [themeSaving, setThemeSaving] = useState(false);
 
   // Calculate current financial year
   const getInitialFY = () => {
@@ -171,6 +176,33 @@ export default function CustomerDetailsPage() {
   const handleRecordPayment = (invoice = null) => {
     setSelectedInvoice(invoice);
     setShowPaymentModal(true);
+  };
+
+  const handleThemeChange = async (themeId) => {
+    if (!customer || themeSaving) return;
+    if (themeId === (customer.theme || 'emerald')) return;
+
+    setThemeSaving(true);
+    try {
+      await customerService.updateCustomer(customer._id, {
+        customerName: customer.customerName || '',
+        address: customer.address || '',
+        phone: customer.phone || '',
+        email: customer.email || '',
+        gstin: customer.gstin || '',
+        dlNo: customer.dlNo || '',
+        customerCode: customer.customerCode || '',
+        theme: themeId
+      });
+      setCustomer(prev => ({ ...prev, theme: themeId }));
+      invalidateCachePattern('customers');
+      success('Customer theme updated');
+    } catch (err) {
+      console.error('Failed to update customer theme:', err);
+      error('Failed to update customer theme');
+    } finally {
+      setThemeSaving(false);
+    }
   };
 
   const unpaidInvoices = useMemo(() => invoices.filter(inv => {
@@ -365,6 +397,9 @@ export default function CustomerDetailsPage() {
     return types[entryType] || { label: entryType, icon: '📋' };
   };
 
+  const activeTheme = getCustomerTheme(customer.theme);
+  const activeThemeId = customer.theme || 'blue';
+
   return (
     <>
       <motion.div
@@ -394,7 +429,7 @@ export default function CustomerDetailsPage() {
         <div className="flex flex-col lg:flex-row lg:items-start gap-6">
           {/* Avatar */}
           <motion.div
-            className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-emerald-500/30 relative overflow-hidden"
+            className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${activeTheme.gradient} flex items-center justify-center flex-shrink-0 shadow-lg ${activeTheme.shadow} relative overflow-hidden`}
             whileHover={{ scale: 1.05, rotate: 5 }}
             transition={{ type: 'spring', stiffness: 400 }}
           >
@@ -402,7 +437,7 @@ export default function CustomerDetailsPage() {
               {customer.customerName?.charAt(0)}
             </span>
             <motion.div
-              className="absolute inset-0 bg-gradient-to-br from-teal-600 to-emerald-500"
+              className={`absolute inset-0 bg-gradient-to-br ${activeTheme.hoverGradient}`}
               initial={{ scale: 0, opacity: 0 }}
               whileHover={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.3 }}
@@ -493,6 +528,37 @@ export default function CustomerDetailsPage() {
                   <span className="text-slate-300">{customer.address}</span>
                 </motion.div>
               )}
+            </div>
+
+            <div className="mt-5">
+              <div className="flex items-center gap-2 text-xs text-slate-500 uppercase tracking-wider mb-2">
+                <Palette className="w-4 h-4 text-slate-500" />
+                Theme
+                {themeSaving && <span className="text-slate-400 normal-case">Saving...</span>}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {CUSTOMER_THEMES.map((theme) => {
+                  const isSelected = theme.id === activeThemeId;
+                  return (
+                    <button
+                      key={theme.id}
+                      type="button"
+                      onClick={() => handleThemeChange(theme.id)}
+                      disabled={themeSaving}
+                      aria-pressed={isSelected}
+                      title={theme.label}
+                      className={`relative w-9 h-9 rounded-lg bg-gradient-to-br ${theme.gradient} shadow-lg ${theme.shadow} ring-2 ring-transparent transition-transform ${
+                        isSelected ? 'ring-white/70 scale-105' : 'hover:scale-105'
+                      } ${themeSaving ? 'opacity-70 cursor-not-allowed' : ''}`}
+                    >
+                      {isSelected && (
+                        <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-white shadow-sm" />
+                      )}
+                    </button>
+                  );
+                })}
+                <span className="text-xs text-slate-400 ml-1">{activeTheme.label}</span>
+              </div>
             </div>
           </div>
 
