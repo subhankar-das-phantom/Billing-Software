@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -165,6 +165,8 @@ const CustomerCard = memo(function CustomerCard({
 export default function CustomersPage() {
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [accumulatedCustomers, setAccumulatedCustomers] = useState([]);
   const [searchFocused, setSearchFocused] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
@@ -173,22 +175,66 @@ export default function CustomersPage() {
   const [deleteDialog, setDeleteDialog] = useState({ open: false, customer: null });
   const { success, error } = useToast();
   const searchTimeoutRef = useRef(null);
+  const observer = useRef(null);
   
   // Adaptive motion configuration
   const motionConfig = useMotionConfig();
 
   // SWR: Instant cached data + background revalidation
   const { data, isLoading, isValidating, mutate } = useSWR(
-    `customers-${search}`,
-    () => customerService.getCustomers({ search }),
+    `customers-${search}-${page}`,
+    () => customerService.getCustomers({ search, page, limit: 50 }),
     { ttl: 5 * 60 * 1000 } // 5 minute cache
   );
 
   // Extract customers from SWR response
-  const customers = data?.customers || [];
+  const hasMore = data?.pages ? page < data.pages : false;
+
+  // Accumulate customers as new pages are loaded
+  useEffect(() => {
+    if (!data?.customers) return;
+
+    if (page === 1) {
+      setAccumulatedCustomers(data.customers);
+      return;
+    }
+
+    setAccumulatedCustomers(prev => {
+      const existingIds = new Set(prev.map(c => c._id));
+      const newCustomers = data.customers.filter(c => !existingIds.has(c._id));
+      return [...prev, ...newCustomers];
+    });
+  }, [data, page]);
+
+  // Reset pagination when search changes
+  useEffect(() => {
+    setPage(1);
+    setAccumulatedCustomers([]);
+  }, [search]);
+
+  // Intersection Observer for Infinite Scroll
+  const lastElementRef = useCallback((node) => {
+    if (isValidating) return;
+    if (observer.current) observer.current.disconnect();
+
+    if (node) {
+      observer.current = new IntersectionObserver(
+        entries => {
+          if (entries[0].isIntersecting && !isValidating && hasMore) {
+            setPage(prev => prev + 1);
+          }
+        },
+        { threshold: 0.1 }
+      );
+      observer.current.observe(node);
+    }
+  }, [isValidating, hasMore]);
+
+  // Extract customers from accumulated state
+  const customers = accumulatedCustomers;
   // Only show full-page loader on the very first load — never during search
   // (PageLoader replaces the entire UI including the search input, eating keystrokes)
-  const loading = isLoading && customers.length === 0 && !search && !searchInput;
+  const loading = isLoading && customers.length === 0 && page === 1 && !search && !searchInput;
 
   // Debounced search key update
   useEffect(() => {
@@ -212,6 +258,8 @@ export default function CustomersPage() {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
+    setPage(1);
+    setAccumulatedCustomers([]);
     setSearch(searchInput);
   };
 
@@ -221,6 +269,8 @@ export default function CustomersPage() {
     }
     setSearchInput('');
     setSearch('');
+    setPage(1);
+    setAccumulatedCustomers([]);
   };
 
   const openCreateModal = () => {
@@ -269,6 +319,8 @@ export default function CustomersPage() {
       setModalOpen(false);
       // Invalidate customers cache and revalidate
       invalidateCachePattern('customers');
+      setPage(1);
+      setAccumulatedCustomers([]);
       mutate();
     } catch (err) {
       error(err.response?.data?.message || 'Failed to save customer');
@@ -284,6 +336,8 @@ export default function CustomersPage() {
       setDeleteDialog({ open: false, customer: null });
       // Invalidate customers cache and revalidate
       invalidateCachePattern('customers');
+      setPage(1);
+      setAccumulatedCustomers([]);
       mutate();
     } catch (err) {
       error(err.response?.data?.message || 'Failed to delete customer');
@@ -457,6 +511,14 @@ export default function CustomersPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Infinite Scroll Loading Indicator */}
+      {(hasMore || isValidating) && customers.length > 0 && (
+        <div ref={lastElementRef} className="flex justify-center items-center p-4 glass-card my-4">
+          <Loader2 className="w-5 h-5 text-blue-400 animate-spin mr-3" />
+          <span className="text-sm font-medium text-slate-400">Loading more customers...</span>
+        </div>
+      )}
 
       {/* Customer Modal */}
       <Modal
