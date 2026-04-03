@@ -449,7 +449,7 @@ export default function CustomersPage() {
       </motion.div>
 
       {/* Customers Grid */}
-      <AnimatePresence mode="wait">
+      <AnimatePresence>
         {customers.length === 0 ? (
           <motion.div
             key="empty"

@@ -212,6 +212,9 @@ export function useSWR(key, fetcher, options = {}) {
   useEffect(() => {
     mountedRef.current = true;
     let aborted = false;
+    // Keep key/fetcher aligned for this effect cycle. Using fetcherRef here can
+    // accidentally pair old keys with newer fetchers during fast input changes.
+    const fetchForKey = fetcher;
 
     // Swap to cached data for the new key if available
     const cached = getCachedData(key);
@@ -228,7 +231,7 @@ export function useSWR(key, fetcher, options = {}) {
       setIsValidating(true);
       setError(null);
       try {
-        const freshData = await fetcherRef.current();
+        const freshData = await fetchForKey();
         if (aborted) return;
         setCachedData(key, freshData, ttl);
         setData(freshData);
