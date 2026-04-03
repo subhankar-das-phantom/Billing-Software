@@ -140,7 +140,9 @@ const CustomerCard = memo(function CustomerCard({
           <div>
             <p className="text-xs text-slate-500">Outstanding</p>
             <p className="font-semibold text-emerald-400">
-              {formatCurrency(customer.outstandingBalance || 0)}
+              {formatCurrency(
+                customer.calculatedOutstanding ?? customer.outstandingBalance ?? 0
+              )}
             </p>
           </div>
         </div>
@@ -183,7 +185,7 @@ export default function CustomersPage() {
   // SWR: Instant cached data + background revalidation
   const { data, isLoading, isValidating, mutate } = useSWR(
     `customers-${search}-${page}`,
-    () => customerService.getCustomers({ search, page, limit: 50 }),
+    () => customerService.getCustomers({ search, page, limit: 50, includeOutstanding: true, fuzzy: true }),
     { ttl: 5 * 60 * 1000 } // 5 minute cache
   );
 

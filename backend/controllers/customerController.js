@@ -13,6 +13,12 @@ const getSearchPattern = (search, usePrefix = false) => {
   const escaped = escapeRegex(search);
   return usePrefix ? `^${escaped}` : escaped;
 };
+const buildFuzzyPattern = (str = '') => {
+  const normalized = str.trim().replace(/\s+/g, '');
+  if (!normalized) return '';
+  const limited = normalized.slice(0, 32);
+  return [...limited].map(ch => escapeRegex(ch)).join('.*');
+};
 
 // Round to 2 decimal places safely (avoids JS floating point drift)
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
@@ -424,19 +430,65 @@ exports.getCustomers = async (req, res, next) => {
 
     // Search
     if (req.query.search) {
+      const rawSearch = String(req.query.search || '').trim();
       const usePrefix = req.query.prefix === 'true';
-      const pattern = getSearchPattern(req.query.search, usePrefix);
-      query.$or = [
+      const useFuzzy = req.query.fuzzy === 'true';
+      const pattern = getSearchPattern(rawSearch, usePrefix);
+      const conditions = [
         { customerName: { $regex: pattern, $options: 'i' } },
         { phone: { $regex: pattern, $options: 'i' } },
         { gstin: { $regex: pattern, $options: 'i' } }
       ];
+
+      if (useFuzzy && rawSearch.length >= 2) {
+        const fuzzyPattern = buildFuzzyPattern(rawSearch);
+        if (fuzzyPattern && fuzzyPattern !== pattern) {
+          conditions.push(
+            { customerName: { $regex: fuzzyPattern, $options: 'i' } },
+            { phone: { $regex: fuzzyPattern, $options: 'i' } },
+            { gstin: { $regex: fuzzyPattern, $options: 'i' } }
+          );
+        }
+      }
+
+      query.$or = conditions;
     }
 
     const customers = await Customer.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
+
+    const includeOutstanding = req.query.includeOutstanding === 'true';
+    let customersWithOutstanding = customers;
+
+    if (includeOutstanding && customers.length > 0) {
+      const customerIds = customers.map(c => c._id);
+
+      const invoiceOutstanding = await Invoice.aggregate([
+        { $match: { 'customer._id': { $in: customerIds }, status: { $ne: 'Cancelled' } } },
+        { $project: { customerId: '$customer._id', remaining: { $subtract: ['$totals.netTotal', { $ifNull: ['$paidAmount', 0] }] } } },
+        { $match: { remaining: { $gt: 0 } } },
+        { $group: { _id: '$customerId', total: { $sum: '$remaining' } } }
+      ]);
+
+      const manualOutstanding = await ManualEntry.aggregate([
+        { $match: { customer: { $in: customerIds }, entryType: 'opening_balance', paymentType: 'Credit' } },
+        { $project: { customerId: '$customer', remaining: { $subtract: ['$amount', { $ifNull: ['$paidAmount', 0] }] } } },
+        { $match: { remaining: { $gt: 0 } } },
+        { $group: { _id: '$customerId', total: { $sum: '$remaining' } } }
+      ]);
+
+      const invoiceMap = new Map(invoiceOutstanding.map(row => [row._id.toString(), row.total || 0]));
+      const manualMap = new Map(manualOutstanding.map(row => [row._id.toString(), row.total || 0]));
+
+      customersWithOutstanding = customers.map(c => {
+        const base = c.toObject();
+        const key = c._id.toString();
+        const total = (invoiceMap.get(key) || 0) + (manualMap.get(key) || 0);
+        return { ...base, calculatedOutstanding: round2(total) };
+      });
+    }
 
     const total = await Customer.countDocuments(query);
 
@@ -446,7 +498,7 @@ exports.getCustomers = async (req, res, next) => {
       total,
       page,
       pages: Math.ceil(total / limit),
-      customers
+      customers: customersWithOutstanding
     });
   } catch (error) {
     next(error);
@@ -468,15 +520,28 @@ exports.searchCustomers = async (req, res, next) => {
     }
 
     const usePrefix = req.query.prefix === 'true';
+    const useFuzzy = req.query.fuzzy === 'true';
     const pattern = getSearchPattern(q, usePrefix);
+    const conditions = [
+      { customerName: { $regex: pattern, $options: 'i' } },
+      { phone: { $regex: pattern, $options: 'i' } },
+      { gstin: { $regex: pattern, $options: 'i' } }
+    ];
+
+    if (useFuzzy && q.trim().length >= 2) {
+      const fuzzyPattern = buildFuzzyPattern(q);
+      if (fuzzyPattern && fuzzyPattern !== pattern) {
+        conditions.push(
+          { customerName: { $regex: fuzzyPattern, $options: 'i' } },
+          { phone: { $regex: fuzzyPattern, $options: 'i' } },
+          { gstin: { $regex: fuzzyPattern, $options: 'i' } }
+        );
+      }
+    }
 
     const customers = await Customer.find({
       isActive: true,
-      $or: [
-        { customerName: { $regex: pattern, $options: 'i' } },
-        { phone: { $regex: pattern, $options: 'i' } },
-        { gstin: { $regex: pattern, $options: 'i' } }
-      ]
+      $or: conditions
     }).limit(10);
 
     res.status(200).json({
