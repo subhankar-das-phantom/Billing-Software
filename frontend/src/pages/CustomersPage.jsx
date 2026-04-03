@@ -179,12 +179,22 @@ export default function CustomersPage() {
   const searchTimeoutRef = useRef(null);
   const observer = useRef(null);
   
+  // Track which SWR key the latest accumulated data belongs to,
+  // so we can discard stale responses from previous search terms.
+  const activeSWRKeyRef = useRef('');
+  // Track whether we've received data for the current search term at least once.
+  // This prevents the empty state from flashing while we're still fetching.
+  const [dataReady, setDataReady] = useState(false);
+
   // Adaptive motion configuration
   const motionConfig = useMotionConfig();
 
+  // Build the SWR cache key
+  const swrKey = `customers-${search}-${page}`;
+
   // SWR: Instant cached data + background revalidation
   const { data, isLoading, isValidating, mutate } = useSWR(
-    `customers-${search}-${page}`,
+    swrKey,
     () => customerService.getCustomers({ search, page, limit: 50, includeOutstanding: true, fuzzy: true }),
     { ttl: 5 * 60 * 1000 } // 5 minute cache
   );
@@ -192,27 +202,44 @@ export default function CustomersPage() {
   // Extract customers from SWR response
   const hasMore = data?.pages ? page < data.pages : false;
 
-  // Accumulate customers as new pages are loaded
+  // Accumulate customers as new pages are loaded.
+  // Guard: only accept data that matches the CURRENT SWR key to
+  // prevent stale responses from a previous search term leaking in.
   useEffect(() => {
     if (!data?.customers) return;
 
+    // If the key changed since we last accumulated, this data belongs
+    // to a different (older) request — ignore it.
+    if (activeSWRKeyRef.current !== swrKey) return;
+
     if (page === 1) {
       setAccumulatedCustomers(data.customers);
-      return;
+    } else {
+      setAccumulatedCustomers(prev => {
+        const existingIds = new Set(prev.map(c => c._id));
+        const newCustomers = data.customers.filter(c => !existingIds.has(c._id));
+        return [...prev, ...newCustomers];
+      });
     }
 
-    setAccumulatedCustomers(prev => {
-      const existingIds = new Set(prev.map(c => c._id));
-      const newCustomers = data.customers.filter(c => !existingIds.has(c._id));
-      return [...prev, ...newCustomers];
-    });
-  }, [data, page]);
+    // Mark that we've received real data for this search term.
+    setDataReady(true);
+  }, [data, page, swrKey]);
 
-  // Reset pagination when search changes
+  // Reset pagination when search changes.
+  // DON'T clear accumulatedCustomers here — that creates a window where
+  // customers.length === 0 and the empty-state flashes. Instead, let
+  // the data-arrival effect above replace accumulatedCustomers atomically.
   useEffect(() => {
     setPage(1);
-    setAccumulatedCustomers([]);
+    setDataReady(false);
+    activeSWRKeyRef.current = `customers-${search}-1`;
   }, [search]);
+
+  // Also update the active key when page increments (infinite scroll)
+  useEffect(() => {
+    activeSWRKeyRef.current = swrKey;
+  }, [swrKey]);
 
   // Intersection Observer for Infinite Scroll
   const lastElementRef = useCallback((node) => {
@@ -261,7 +288,6 @@ export default function CustomersPage() {
       clearTimeout(searchTimeoutRef.current);
     }
     setPage(1);
-    setAccumulatedCustomers([]);
     setSearch(searchInput);
   };
 
@@ -272,7 +298,6 @@ export default function CustomersPage() {
     setSearchInput('');
     setSearch('');
     setPage(1);
-    setAccumulatedCustomers([]);
   };
 
   const openCreateModal = () => {
@@ -322,6 +347,7 @@ export default function CustomersPage() {
       // Invalidate customers cache and revalidate
       invalidateCachePattern('customers');
       setPage(1);
+      setDataReady(false);
       setAccumulatedCustomers([]);
       mutate();
     } catch (err) {
@@ -339,6 +365,7 @@ export default function CustomersPage() {
       // Invalidate customers cache and revalidate
       invalidateCachePattern('customers');
       setPage(1);
+      setDataReady(false);
       setAccumulatedCustomers([]);
       mutate();
     } catch (err) {
@@ -449,8 +476,11 @@ export default function CustomersPage() {
       </motion.div>
 
       {/* Customers Grid */}
+      {/* Only show empty state when data has actually been received for the current
+          search term (dataReady). This prevents the "no results" message from flashing
+          while SWR is still fetching or revalidating. */}
       <AnimatePresence>
-        {customers.length === 0 ? (
+        {dataReady && customers.length === 0 ? (
           <motion.div
             key="empty"
             initial={{ opacity: 0, scale: 0.95 }}
@@ -487,7 +517,7 @@ export default function CustomersPage() {
               </EnhancedButton>
             </motion.div>
           </motion.div>
-        ) : (
+        ) : customers.length > 0 ? (
           <motion.div
             key="customers-grid"
             initial={false}
@@ -511,8 +541,16 @@ export default function CustomersPage() {
             ))}
             </AnimatePresence>
           </motion.div>
-        )}
+        ) : null}
       </AnimatePresence>
+
+      {/* Inline loading indicator during search (not the full-page PageLoader) */}
+      {!dataReady && customers.length === 0 && (search || isValidating) && (
+        <div className="flex justify-center items-center p-8 glass-card">
+          <Loader2 className="w-5 h-5 text-blue-400 animate-spin mr-3" />
+          <span className="text-sm font-medium text-slate-400">Searching customers...</span>
+        </div>
+      )}
 
       {/* Infinite Scroll Loading Indicator */}
       {(hasMore || isValidating) && customers.length > 0 && (
