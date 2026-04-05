@@ -168,7 +168,6 @@ export default function CustomersPage() {
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [accumulatedCustomers, setAccumulatedCustomers] = useState([]);
   const [searchFocused, setSearchFocused] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
@@ -182,9 +181,6 @@ export default function CustomersPage() {
   // Track which SWR key the latest accumulated data belongs to,
   // so we can discard stale responses from previous search terms.
   const activeSWRKeyRef = useRef('');
-  // Track whether we've received data for the current search term at least once.
-  // This prevents the empty state from flashing while we're still fetching.
-  const [dataReady, setDataReady] = useState(false);
 
   // Adaptive motion configuration
   const motionConfig = useMotionConfig();
@@ -198,6 +194,15 @@ export default function CustomersPage() {
     () => customerService.getCustomers({ search, page, limit: 50, includeOutstanding: true, fuzzy: true }),
     { ttl: 5 * 60 * 1000 } // 5 minute cache
   );
+
+  // Seed accumulatedCustomers & dataReady from SWR cache so that
+  // navigating back to this page doesn't flash "Searching customers..."
+  const [accumulatedCustomers, setAccumulatedCustomers] = useState(() => {
+    return data?.customers ?? [];
+  });
+  const [dataReady, setDataReady] = useState(() => {
+    return !!(data?.customers);
+  });
 
   // Extract customers from SWR response
   const hasMore = data?.pages ? page < data.pages : false;
