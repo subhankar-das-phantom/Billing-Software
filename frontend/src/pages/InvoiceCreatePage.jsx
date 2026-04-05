@@ -291,7 +291,7 @@ export default function InvoiceCreatePage() {
       try {
         const data = await productService.getProducts({
           search: query,
-          limit: 10,
+          limit: 22,
           page: 1
         }, {
           signal: abortController.signal
