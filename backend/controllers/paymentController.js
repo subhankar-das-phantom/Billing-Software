@@ -191,7 +191,8 @@ exports.createPayment = async (req, res, next) => {
     }
 
     // Calculate remaining amount (handle undefined paidAmount for old invoices)
-    const remainingAmount = invoice.totals.netTotal - (invoice.paidAmount || 0);
+    // Use round2 to avoid floating-point precision drift (e.g. 0.01 vs 0.009999...)
+    const remainingAmount = round2(invoice.totals.netTotal - (invoice.paidAmount || 0));
     
     // Validate payment amount
     if (amount <= 0) {
@@ -201,7 +202,7 @@ exports.createPayment = async (req, res, next) => {
       });
     }
 
-    if (amount > remainingAmount) {
+    if (round2(amount) > remainingAmount) {
       return res.status(400).json({
         success: false,
         message: `Payment amount (₹${amount}) exceeds remaining balance (₹${remainingAmount})`
