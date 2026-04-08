@@ -729,16 +729,34 @@ exports.updateInvoice = async (req, res, next) => {
       }
     }
 
+    // Recalculate paymentStatus based on new total vs existing paidAmount
+    const existingPaidAmount = existingInvoice.paidAmount || 0;
+    let newPaymentStatus;
+    if (existingPaidAmount >= totals.netTotal && totals.netTotal > 0) {
+      newPaymentStatus = 'Paid';
+    } else if (existingPaidAmount > 0) {
+      newPaymentStatus = 'Partial';
+    } else {
+      newPaymentStatus = existingInvoice.paymentStatus || 'Unpaid';
+    }
+
     // Outstanding balance delta for Credit invoices
+    // Use actual unpaid amounts (not raw totalsDelta) to account for paidAmount
     const oldPaymentType = existingInvoice.paymentType;
     const newPaymentType = paymentType || existingInvoice.paymentType;
     let outstandingDelta = 0;
     if (oldPaymentType === 'Credit' && newPaymentType === 'Credit') {
-      outstandingDelta = totalsDelta;
+      // Old unpaid = what was still owed before edit
+      // New unpaid = what is owed after edit
+      const oldUnpaid = Math.max(0, existingInvoice.totals.netTotal - existingPaidAmount);
+      const newUnpaid = Math.max(0, totals.netTotal - existingPaidAmount);
+      outstandingDelta = newUnpaid - oldUnpaid;
     } else if (oldPaymentType === 'Credit' && newPaymentType !== 'Credit') {
-      outstandingDelta = -existingInvoice.totals.netTotal;
+      // Switching away from Credit — remove whatever was unpaid
+      outstandingDelta = -Math.max(0, existingInvoice.totals.netTotal - existingPaidAmount);
     } else if (oldPaymentType !== 'Credit' && newPaymentType === 'Credit') {
-      outstandingDelta = totals.netTotal;
+      // Switching to Credit — add the new unpaid amount
+      outstandingDelta = Math.max(0, totals.netTotal - existingPaidAmount);
     }
     if (outstandingDelta !== 0) {
       await Customer.findByIdAndUpdate(
@@ -756,6 +774,7 @@ exports.updateInvoice = async (req, res, next) => {
         items: processedItems,
         totals,
         paymentType: newPaymentType,
+        paymentStatus: newPaymentStatus,
         notes: notes !== undefined ? notes : existingInvoice.notes,
         updatedAt: new Date()
       },
