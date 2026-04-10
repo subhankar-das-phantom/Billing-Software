@@ -352,7 +352,7 @@ exports.getPayment = async (req, res, next) => {
 exports.getPaymentsByCustomer = async (req, res, next) => {
   try {
     const payments = await Payment.find({ customer: req.params.customerId })
-      .populate('invoice', 'invoiceNumber invoiceDate totals.netTotal')
+      .populate('invoice', 'invoiceNumber invoiceDate totals.netTotal paidAmount paymentType')
       .sort({ paymentDate: -1 })
       .limit(100);
 
@@ -396,6 +396,107 @@ exports.getPaymentsByInvoice = async (req, res, next) => {
       remainingAmount,
       paymentStatus: invoice.paymentStatus,
       payments
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Update a payment
+// @route   PUT /api/payments/:id
+// @access  Private
+exports.updatePayment = async (req, res, next) => {
+  try {
+    const { amount, paymentDate, paymentMethod, referenceNumber, notes } = req.body;
+
+    const payment = await Payment.findById(req.params.id);
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Payment not found'
+      });
+    }
+
+    const invoice = await Invoice.findById(payment.invoice);
+    if (!invoice) {
+      return res.status(404).json({
+        success: false,
+        message: 'Associated invoice not found'
+      });
+    }
+
+    if (invoice.status === 'Cancelled') {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot edit payment for a cancelled invoice'
+      });
+    }
+
+    // If amount is being changed, validate it
+    if (amount !== undefined) {
+      const newAmount = round2(amount);
+      if (newAmount <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Payment amount must be greater than 0'
+        });
+      }
+
+      // How much room is available?  remaining + old payment amount
+      const currentRemaining = round2(invoice.totals.netTotal - (invoice.paidAmount || 0));
+      const maxAllowed = round2(currentRemaining + payment.amount);
+
+      if (newAmount > maxAllowed) {
+        return res.status(400).json({
+          success: false,
+          message: `Payment amount (₹${newAmount}) exceeds maximum allowed (₹${maxAllowed})`
+        });
+      }
+
+      // Update invoice paidAmount by the delta
+      const delta = round2(newAmount - payment.amount);
+      if (delta !== 0) {
+        const newPaidAmount = round2((invoice.paidAmount || 0) + delta);
+        let newPaymentStatus = 'Unpaid';
+        if (newPaidAmount >= invoice.totals.netTotal) {
+          newPaymentStatus = 'Paid';
+        } else if (newPaidAmount > 0) {
+          newPaymentStatus = 'Partial';
+        }
+
+        await Invoice.findByIdAndUpdate(invoice._id, {
+          paidAmount: newPaidAmount,
+          paymentStatus: newPaymentStatus
+        });
+
+        // Update customer outstanding balance (for Credit invoices)
+        if (invoice.paymentType === 'Credit') {
+          const customer = await Customer.findById(payment.customer);
+          const currentBalance = customer?.outstandingBalance || 0;
+          // delta > 0 means more paid → reduce outstanding
+          // delta < 0 means less paid → increase outstanding
+          const newBalance = Math.max(0, round2(currentBalance - delta));
+          await Customer.findByIdAndUpdate(payment.customer, {
+            outstandingBalance: newBalance
+          });
+        }
+      }
+
+      payment.amount = newAmount;
+    }
+
+    // Update other fields if provided
+    if (paymentDate !== undefined) payment.paymentDate = paymentDate;
+    if (paymentMethod !== undefined) payment.paymentMethod = paymentMethod;
+    if (referenceNumber !== undefined) payment.referenceNumber = referenceNumber;
+    if (notes !== undefined) payment.notes = notes;
+
+    await payment.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Payment updated successfully',
+      payment
     });
   } catch (error) {
     next(error);
