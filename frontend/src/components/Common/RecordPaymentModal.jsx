@@ -118,8 +118,8 @@ export default function RecordPaymentModal({
       return;
     }
 
-    const remaining = getRemainingAmount();
-    if (amount > remaining) {
+    const remaining = parseFloat(getRemainingAmount().toFixed(2));
+    if (parseFloat(amount.toFixed(2)) > remaining) {
       setError(`Amount cannot exceed remaining balance (${formatCurrency(remaining)})`);
       return;
     }
@@ -362,7 +362,7 @@ export default function RecordPaymentModal({
                           type="number"
                           step="0.01"
                           min="0.01"
-                          max={getRemainingAmount()}
+                          max={parseFloat(getRemainingAmount().toFixed(2))}
                           value={formData.amount}
                           onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
                           placeholder="0.00"
