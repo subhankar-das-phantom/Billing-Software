@@ -22,16 +22,19 @@ import {
   AlertTriangle,
   Shield,
   BookOpen,
-  Palette
+  Palette,
+  Edit3,
+  Trash2
 } from 'lucide-react';
 import { customerService } from '../services/customerService';
 import { ArrowUpRight, ArrowDownLeft } from 'lucide-react';
-import { getPaymentsByCustomer, getPaymentStatusColor } from '../services/creditService';
+import { getPaymentsByCustomer, getPaymentStatusColor, deletePayment } from '../services/creditService';
 import { manualEntryService } from '../services/manualEntryService';
 import { formatCurrency, formatDate, formatPhone } from '../utils/formatters';
 import { CUSTOMER_THEMES, getCustomerTheme } from '../utils/customerTheme';
 import { PageLoader } from '../components/Common/Loader';
 import RecordPaymentModal from '../components/Common/RecordPaymentModal';
+import EditPaymentModal from '../components/Common/EditPaymentModal';
 import ManualEntryModal from '../components/ManualEntry/ManualEntryModal';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -97,8 +100,11 @@ export default function CustomerDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('invoices');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showEditPaymentModal, setShowEditPaymentModal] = useState(false);
   const [showManualEntryModal, setShowManualEntryModal] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [editingPayment, setEditingPayment] = useState(null);
+  const [deletingPaymentId, setDeletingPaymentId] = useState(null);
   const [ledgerData, setLedgerData] = useState({ ledger: [], summary: null });
   const [ledgerLoading, setLedgerLoading] = useState(false);
   const [themeSaving, setThemeSaving] = useState(false);
@@ -306,8 +312,11 @@ export default function CustomerDetailsPage() {
       date: p.paymentDate,
       method: p.paymentMethod,
       reference: p.referenceNumber,
+      notes: p.notes || '',
       invoiceNumber: p.invoice?.invoiceNumber || 'Unknown Invoice',
       invoiceId: p.invoice?._id || null,
+      invoiceTotal: p.invoice?.totals?.netTotal || 0,
+      invoicePaidAmount: p.invoice?.paidAmount || 0,
       isManual: false,
       type: 'Invoice Payment'
     }));
@@ -981,6 +990,7 @@ export default function CustomerDetailsPage() {
                           <th className="pb-4 font-medium text-slate-400">Method</th>
                           <th className="pb-4 font-medium text-slate-400">Amount</th>
                           <th className="pb-4 font-medium text-slate-400">Type</th>
+                          {isAdmin && <th className="pb-4 font-medium text-slate-400 text-center">Actions</th>}
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-700">
@@ -1029,6 +1039,58 @@ export default function CustomerDetailsPage() {
                                   {payment.type}
                                 </span>
                               </td>
+                              {isAdmin && (
+                                <td className="py-4">
+                                  {!payment.isManual ? (
+                                    <div className="flex items-center justify-center gap-1">
+                                      <motion.button
+                                        onClick={() => {
+                                          setEditingPayment(payment);
+                                          setShowEditPaymentModal(true);
+                                        }}
+                                        className="p-1.5 rounded-lg hover:bg-blue-500/20 text-slate-400 hover:text-blue-400 transition-colors"
+                                        whileHover={{ scale: 1.1 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        title="Edit Payment"
+                                      >
+                                        <Edit3 className="w-4 h-4" />
+                                      </motion.button>
+                                      <motion.button
+                                        onClick={async () => {
+                                          if (!window.confirm(`Delete payment of ${formatCurrency(payment.amount)} against ${payment.invoiceNumber}? This will be reversed.`)) return;
+                                          setDeletingPaymentId(payment._id);
+                                          try {
+                                            await deletePayment(payment._id);
+                                            success('Payment deleted and reversed');
+                                            invalidateCachePattern('customers');
+                                            invalidateCachePattern('invoices');
+                                            invalidateCachePattern('credits');
+                                            invalidateCachePattern('dashboard');
+                                            await loadCustomer(true);
+                                          } catch (err) {
+                                            error(err.response?.data?.message || 'Failed to delete payment');
+                                          } finally {
+                                            setDeletingPaymentId(null);
+                                          }
+                                        }}
+                                        disabled={deletingPaymentId === payment._id}
+                                        className="p-1.5 rounded-lg hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-colors disabled:opacity-50"
+                                        whileHover={{ scale: 1.1 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        title="Delete Payment"
+                                      >
+                                        {deletingPaymentId === payment._id ? (
+                                          <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                                        ) : (
+                                          <Trash2 className="w-4 h-4" />
+                                        )}
+                                      </motion.button>
+                                    </div>
+                                  ) : (
+                                    <span className="text-slate-600 text-center block">—</span>
+                                  )}
+                                </td>
+                              )}
                             </tr>
                         ))}
                       </tbody>
@@ -1259,6 +1321,24 @@ export default function CustomerDetailsPage() {
         invoices={unpaidInvoices}
         manualEntries={manualEntries}
         preSelectedInvoice={selectedInvoice}
+      />
+
+      {/* Edit Payment Modal */}
+      <EditPaymentModal
+        isOpen={showEditPaymentModal}
+        onClose={() => {
+          setShowEditPaymentModal(false);
+          setEditingPayment(null);
+        }}
+        onSuccess={() => {
+          success('Payment updated successfully');
+          invalidateCachePattern('customers');
+          invalidateCachePattern('invoices');
+          invalidateCachePattern('credits');
+          invalidateCachePattern('dashboard');
+          loadCustomer(true);
+        }}
+        payment={editingPayment}
       />
 
       {/* Printable Ledger Preview (visible on screen + used for print) */}
