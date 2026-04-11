@@ -12,14 +12,16 @@ import {
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { updatePayment, PAYMENT_METHODS } from '../../services/creditService';
+import { updateManualEntry } from '../../services/manualEntryService';
 import { formatCurrency } from '../../utils/formatters';
 
 export default function EditPaymentModal({
   isOpen,
   onClose,
   onSuccess,
-  payment // { _id, amount, date, method, reference, invoiceNumber, notes, invoiceTotal, invoicePaidAmount }
+  payment // { _id, amount, date, method, reference, invoiceNumber, notes, invoiceTotal, invoicePaidAmount, isManual }
 }) {
+  const isManual = payment?.isManual || false;
   const [formData, setFormData] = useState({
     amount: '',
     paymentDate: '',
@@ -48,9 +50,9 @@ export default function EditPaymentModal({
     }
   }, [isOpen, payment]);
 
-  // Max allowed = remaining on invoice + this payment's current amount
+  // Max allowed = remaining on invoice + this payment's current amount (invoice payments only)
   const getMaxAmount = () => {
-    if (!payment) return 0;
+    if (!payment || isManual) return Infinity;
     const remaining = (payment.invoiceTotal || 0) - (payment.invoicePaidAmount || 0);
     return parseFloat((remaining + (payment.amount || 0)).toFixed(2));
   };
@@ -66,7 +68,7 @@ export default function EditPaymentModal({
     }
 
     const maxAllowed = getMaxAmount();
-    if (parseFloat(amount.toFixed(2)) > maxAllowed) {
+    if (!isManual && parseFloat(amount.toFixed(2)) > maxAllowed) {
       setError(`Amount cannot exceed ₹${maxAllowed.toFixed(2)}`);
       return;
     }
@@ -74,13 +76,23 @@ export default function EditPaymentModal({
     setLoading(true);
 
     try {
-      await updatePayment(payment._id, {
-        amount,
-        paymentDate: formData.paymentDate,
-        paymentMethod: formData.paymentMethod,
-        referenceNumber: formData.referenceNumber,
-        notes: formData.notes
-      });
+      if (isManual) {
+        await updateManualEntry(payment._id, {
+          amount,
+          entryDate: formData.paymentDate,
+          paymentMethod: formData.paymentMethod,
+          referenceNumber: formData.referenceNumber,
+          notes: formData.notes
+        });
+      } else {
+        await updatePayment(payment._id, {
+          amount,
+          paymentDate: formData.paymentDate,
+          paymentMethod: formData.paymentMethod,
+          referenceNumber: formData.referenceNumber,
+          notes: formData.notes
+        });
+      }
 
       setSuccess(true);
 
@@ -139,9 +151,9 @@ export default function EditPaymentModal({
                   <Edit3 className="w-5 h-5 text-blue-400" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-white">Edit Payment</h2>
+                  <h2 className="text-lg font-semibold text-white">{isManual ? 'Edit Manual Entry' : 'Edit Payment'}</h2>
                   {payment && (
-                    <p className="text-sm text-slate-400">{payment.invoiceNumber}</p>
+                    <p className="text-sm text-slate-400">{isManual ? payment.reference : payment.invoiceNumber}</p>
                   )}
                 </div>
               </div>
@@ -185,8 +197,8 @@ export default function EditPaymentModal({
                     </motion.div>
                   )}
 
-                  {/* Current Info */}
-                  {payment && (
+                  {/* Current Info (invoice payments only) */}
+                  {payment && !isManual && (
                     <div className="p-4 bg-slate-700/30 rounded-lg border border-slate-600/50">
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
@@ -217,7 +229,7 @@ export default function EditPaymentModal({
                         type="number"
                         step="0.01"
                         min="0.01"
-                        max={getMaxAmount()}
+                        max={isManual ? undefined : getMaxAmount()}
                         value={formData.amount}
                         onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
                         placeholder="0.00"
