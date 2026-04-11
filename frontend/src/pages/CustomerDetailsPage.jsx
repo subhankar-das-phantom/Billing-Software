@@ -29,7 +29,7 @@ import {
 import { customerService } from '../services/customerService';
 import { ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import { getPaymentsByCustomer, getPaymentStatusColor, deletePayment } from '../services/creditService';
-import { manualEntryService } from '../services/manualEntryService';
+import { manualEntryService, deleteManualEntry, updateManualEntry } from '../services/manualEntryService';
 import { formatCurrency, formatDate, formatPhone } from '../utils/formatters';
 import { CUSTOMER_THEMES, getCustomerTheme } from '../utils/customerTheme';
 import { PageLoader } from '../components/Common/Loader';
@@ -1087,7 +1087,49 @@ export default function CustomerDetailsPage() {
                                       </motion.button>
                                     </div>
                                   ) : (
-                                    <span className="text-slate-600 text-center block">—</span>
+                                    <div className="flex items-center justify-center gap-1">
+                                      <motion.button
+                                        onClick={() => {
+                                          setEditingPayment({ ...payment, isManual: true });
+                                          setShowEditPaymentModal(true);
+                                        }}
+                                        className="p-1.5 rounded-lg hover:bg-blue-500/20 text-slate-400 hover:text-blue-400 transition-colors"
+                                        whileHover={{ scale: 1.1 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        title="Edit Manual Entry"
+                                      >
+                                        <Edit3 className="w-4 h-4" />
+                                      </motion.button>
+                                      <motion.button
+                                        onClick={async () => {
+                                          if (!window.confirm(`Delete manual entry of ${formatCurrency(payment.amount)}? This will be reversed.`)) return;
+                                          setDeletingPaymentId(payment._id);
+                                          try {
+                                            await deleteManualEntry(payment._id);
+                                            success('Manual entry deleted and reversed');
+                                            invalidateCachePattern('customers');
+                                            invalidateCachePattern('manual');
+                                            invalidateCachePattern('dashboard');
+                                            await loadCustomer(true);
+                                          } catch (err) {
+                                            error(err.response?.data?.message || 'Failed to delete manual entry');
+                                          } finally {
+                                            setDeletingPaymentId(null);
+                                          }
+                                        }}
+                                        disabled={deletingPaymentId === payment._id}
+                                        className="p-1.5 rounded-lg hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-colors disabled:opacity-50"
+                                        whileHover={{ scale: 1.1 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        title="Delete Manual Entry"
+                                      >
+                                        {deletingPaymentId === payment._id ? (
+                                          <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                                        ) : (
+                                          <Trash2 className="w-4 h-4" />
+                                        )}
+                                      </motion.button>
+                                    </div>
                                   )}
                                 </td>
                               )}
