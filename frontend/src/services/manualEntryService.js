@@ -71,6 +71,14 @@ export const deleteManualEntry = async (id) => {
 };
 
 /**
+ * Update a manual entry (admin only)
+ */
+export const updateManualEntry = async (id, data) => {
+  const response = await api.put(`/manual-entries/${id}`, data);
+  return response.data;
+};
+
+/**
  * Get entry type display info
  */
 export const getEntryTypeInfo = (entryType) => {
@@ -127,6 +135,7 @@ export const manualEntryService = {
   getUnpaidOpeningBalances,
   recordPaymentAgainstEntry,
   deleteManualEntry,
+  updateManualEntry,
   getEntryTypeInfo,
   calculateImpact,
   ENTRY_TYPES,
