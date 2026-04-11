@@ -348,7 +348,7 @@ export default function RegisterPage() {
                   name: 'firmPhone', 
                   label: 'Phone', 
                   icon: Phone, 
-                  placeholder: '+91 9876543210' 
+                  placeholder: '+91 0000000000' 
                 })}
                 
                 {renderInput({ 

@@ -14,7 +14,7 @@ const testUser = {
   email: `test_${Date.now()}@example.com`,
   password: 'Test123!',
   firmName: 'Test Enterprise',
-  firmPhone: '9876543210',
+  firmPhone: '0000000000',
   firmAddress: 'Test Address, City',
   firmGSTIN: '22AAAAA0000A1Z5'
 };
