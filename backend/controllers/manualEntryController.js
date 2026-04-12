@@ -338,6 +338,112 @@ exports.recordPaymentAgainstEntry = async (req, res, next) => {
 };
 
 /**
+ * @desc    Update a manual entry (amount, date, description, notes, paymentMethod)
+ * @route   PUT /api/manual-entries/:id
+ * @access  Private/Admin
+ */
+exports.updateManualEntry = async (req, res, next) => {
+  try {
+    const manualEntry = await ManualEntry.findById(req.params.id);
+
+    if (!manualEntry) {
+      return res.status(404).json({
+        success: false,
+        message: 'Manual entry not found'
+      });
+    }
+
+    const { amount, entryDate, description, notes, paymentMethod, referenceNumber } = req.body;
+
+    // Calculate reverse of OLD financial impact
+    let oldOutstandingChange = 0;
+    let oldTotalPurchasesChange = 0;
+    switch (manualEntry.entryType) {
+      case 'opening_balance':
+      case 'manual_bill':
+        oldTotalPurchasesChange = manualEntry.amount;
+        if (manualEntry.paymentType === 'Credit') {
+          oldOutstandingChange = manualEntry.amount;
+        }
+        break;
+      case 'payment_adjustment':
+        oldOutstandingChange = -manualEntry.amount;
+        break;
+      case 'credit_adjustment':
+        oldOutstandingChange = -manualEntry.amount;
+        break;
+    }
+
+    // Update fields
+    if (amount !== undefined && amount > 0) manualEntry.amount = amount;
+    if (entryDate !== undefined) manualEntry.entryDate = entryDate;
+    if (description !== undefined) manualEntry.description = description;
+    if (notes !== undefined) manualEntry.notes = notes;
+    if (paymentMethod !== undefined) manualEntry.paymentMethod = paymentMethod;
+    if (referenceNumber !== undefined) manualEntry.referenceNumber = referenceNumber;
+
+    // Calculate NEW financial impact
+    let newOutstandingChange = 0;
+    let newTotalPurchasesChange = 0;
+    switch (manualEntry.entryType) {
+      case 'opening_balance':
+      case 'manual_bill':
+        newTotalPurchasesChange = manualEntry.amount;
+        if (manualEntry.paymentType === 'Credit') {
+          newOutstandingChange = manualEntry.amount;
+        }
+        break;
+      case 'payment_adjustment':
+        newOutstandingChange = -manualEntry.amount;
+        break;
+      case 'credit_adjustment':
+        newOutstandingChange = -manualEntry.amount;
+        break;
+    }
+
+    // Compute deltas (new impact - old impact)
+    const outstandingDelta = newOutstandingChange - oldOutstandingChange;
+    const totalPurchasesDelta = newTotalPurchasesChange - oldTotalPurchasesChange;
+
+    await manualEntry.save();
+
+    // If this is a payment_adjustment linked to a parent (opening_balance/manual_bill),
+    // update the parent's paidAmount by the amount delta
+    if (manualEntry.parentEntry && manualEntry.entryType === 'payment_adjustment' && amount !== undefined) {
+      // For payment_adjustment: oldOutstanding = -oldAmount, newOutstanding = -newAmount
+      // paymentDelta = newAmount - oldAmount
+      const paymentDelta = (-newOutstandingChange) - (-oldOutstandingChange);
+      if (paymentDelta !== 0) {
+        await ManualEntry.findByIdAndUpdate(
+          manualEntry.parentEntry,
+          { $inc: { paidAmount: paymentDelta } }
+        );
+      }
+    }
+
+    // Update customer balances by delta
+    const incrementFields = {};
+    if (outstandingDelta !== 0) incrementFields.outstandingBalance = outstandingDelta;
+    if (totalPurchasesDelta !== 0) incrementFields.totalPurchases = totalPurchasesDelta;
+
+    if (Object.keys(incrementFields).length > 0) {
+      await Customer.findByIdAndUpdate(
+        manualEntry.customer,
+        { $inc: incrementFields }
+      );
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Manual entry updated successfully',
+      manualEntry
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * @desc    Delete manual entry (admin only)
  * @route   DELETE /api/manual-entries/:id
  * @access  Private/Admin
@@ -389,6 +495,14 @@ exports.deleteManualEntry = async (req, res, next) => {
       await Customer.findByIdAndUpdate(
         manualEntry.customer,
         { $inc: incrementFields }
+      );
+    }
+
+    // If this is a payment_adjustment linked to a parent, reduce the parent's paidAmount
+    if (manualEntry.parentEntry && manualEntry.entryType === 'payment_adjustment') {
+      await ManualEntry.findByIdAndUpdate(
+        manualEntry.parentEntry,
+        { $inc: { paidAmount: -manualEntry.amount } }
       );
     }
 

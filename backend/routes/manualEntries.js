@@ -8,6 +8,7 @@ const {
   getManualEntriesByCustomer,
   getUnpaidOpeningBalances,
   recordPaymentAgainstEntry,
+  updateManualEntry,
   deleteManualEntry
 } = require('../controllers/manualEntryController');
 
@@ -26,6 +27,7 @@ router.get('/customer/:customerId/unpaid', getUnpaidOpeningBalances);
 // Single entry routes
 router.route('/:id')
   .get(getManualEntry)
+  .put(adminOnly, updateManualEntry)
   .delete(adminOnly, deleteManualEntry);
 
 // Record payment against an entry

@@ -7,6 +7,7 @@ const {
   getPayment,
   getPaymentsByCustomer,
   getPaymentsByInvoice,
+  updatePayment,
   deletePayment
 } = require('../controllers/paymentController');
 const { protect } = require('../middleware/auth');
@@ -24,6 +25,7 @@ router.route('/')
 
 router.route('/:id')
   .get(getPayment)
+  .put(updatePayment)
   .delete(deletePayment);
 
 router.get('/customer/:customerId', getPaymentsByCustomer);

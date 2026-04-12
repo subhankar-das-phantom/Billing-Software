@@ -63,6 +63,16 @@ export const getPaymentsByInvoice = async (invoiceId) => {
 };
 
 /**
+ * Update a payment
+ * @param {string} paymentId - Payment ID
+ * @param {Object} data - Updated payment data
+ */
+export const updatePayment = async (paymentId, data) => {
+  const response = await api.put(`/payments/${paymentId}`, data);
+  return response.data;
+};
+
+/**
  * Delete/reverse a payment
  * @param {string} paymentId - Payment ID
  */
@@ -142,6 +152,7 @@ export default {
   getPayment,
   getPaymentsByCustomer,
   getPaymentsByInvoice,
+  updatePayment,
   deletePayment,
   getOutstandingReport,
   getAgeingReport,
