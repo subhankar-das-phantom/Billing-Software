@@ -35,7 +35,7 @@ const navItems = [
 // Admin-only nav items
 const adminNavItems = [
   { path: '/employees', label: 'Employees', icon: UsersRound, adminOnly: true },
-  { path: '/analytics', label: 'Analytics', icon: BarChart3, adminOnly: true },
+  { path: '/employee-analytics', label: 'Employee Analytics', icon: BarChart3, adminOnly: true },
   { path: '/activity-log', label: 'Activity Log', icon: Clock, adminOnly: true },
   { path: '/manual-entries', label: 'Manual Entries', icon: FileText, adminOnly: true },
 ];
@@ -176,7 +176,7 @@ export default function Navbar() {
                 <motion.button
                   onClick={() => setAdminMenuOpen(!adminMenuOpen)}
                   className={`relative flex items-center gap-2 px-4 py-2.5 rounded-xl transition-colors ${
-                    location.pathname.includes('/employees') || location.pathname.includes('/analytics')
+                    location.pathname.includes('/employees') || location.pathname.includes('/employee-analytics')
                       ? 'text-blue-400 bg-blue-500/10'
                       : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                   }`}
