@@ -148,7 +148,7 @@ function AppRoutes() {
             } 
           />
           <Route 
-            path="/analytics" 
+            path="/employee-analytics" 
             element={
               <AdminRoute>
                 <EmployeeAnalyticsPage />

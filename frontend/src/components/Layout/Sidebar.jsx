@@ -45,7 +45,7 @@ const getQuickActions = (isAdmin) => {
     actions.push(
       { path: '/profile', label: 'Profile', icon: User },
       { path: '/employees', label: 'Employees', icon: UsersRound, badge: 'Admin', badgeColor: 'bg-purple-500' },
-      { path: '/analytics', label: 'Analytics', icon: BarChart3 },
+      { path: '/employee-analytics', label: 'Employee Analytics', icon: BarChart3 },
       { path: '/manual-entries', label: 'Manual Entries', icon: Shield, badge: 'Admin', badgeColor: 'bg-purple-500' }
     );
   }
