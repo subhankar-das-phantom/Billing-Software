@@ -500,10 +500,9 @@ export default function InvoicesPage() {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.3 }}
-            className="glass-card overflow-hidden"
+            className="glass-card overflow-x-auto"
           >
-            <div className="table-container">
-              <table className="table">
+            <table className="table min-w-[800px]">
                 <thead>
                   <tr>
                     <th>Invoice #</th>
@@ -610,8 +609,7 @@ export default function InvoicesPage() {
                       );
                     })}
                 </tbody>
-              </table>
-            </div>
+            </table>
 
             {/* Infinite Scroll Loader */}
             {(hasMore || isValidating) && (
