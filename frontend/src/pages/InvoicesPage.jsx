@@ -522,7 +522,7 @@ export default function InvoicesPage() {
                   </motion.tr>
                 </thead>
                 <tbody>
-                  <AnimatePresence mode="popLayout">
+                  <AnimatePresence>
                     {invoices.map((invoice, index) => {
                       const StatusIcon = statusConfig[invoice.status]?.icon || FileText;
                       const PaymentIcon = paymentConfig[invoice.paymentType]?.icon || CreditCard;
@@ -537,7 +537,6 @@ export default function InvoicesPage() {
                           initial="hidden"
                           animate="visible"
                           exit={{ opacity: 0, x: -20 }}
-                          layout
                           className={`transition-colors ${isCancelled ? 'bg-red-500/10 hover:bg-red-500/20' : 'hover:bg-slate-700/50'}`}
                           whileHover={{ x: 4 }}
                           transition={{ type: 'spring', stiffness: 400, damping: 25 }}
@@ -599,17 +598,17 @@ export default function InvoicesPage() {
                             </motion.span>
                           </td>
                           <td className="text-center">
-                            <label className="inline-flex items-center justify-center cursor-pointer">
+                            <label className={`inline-flex items-center justify-center ${isCancelled || statusUpdating[invoice._id] ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
                               <input
                                 type="checkbox"
                                 aria-label={`Mark invoice ${invoice.invoiceNumber} as printed`}
-                                className="sr-only peer"
+                                className="sr-only"
                                 checked={invoice.status === 'Printed'}
                                 disabled={isCancelled || statusUpdating[invoice._id]}
                                 onChange={(e) => handlePrintedToggle(invoice._id, e.target.checked)}
                               />
-                              <div className="relative w-10 h-5 rounded-full bg-slate-700 peer-checked:bg-emerald-500 transition-colors shadow-inner peer-disabled:opacity-50 peer-disabled:cursor-not-allowed">
-                                <span className="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5" />
+                              <div className={`relative w-10 h-5 rounded-full transition-colors shadow-inner ${invoice.status === 'Printed' ? 'bg-emerald-500' : 'bg-slate-700'}`}>
+                                <span className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${invoice.status === 'Printed' ? 'translate-x-5' : 'translate-x-0'}`} />
                               </div>
                             </label>
                           </td>
