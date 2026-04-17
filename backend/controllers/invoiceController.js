@@ -820,84 +820,136 @@ exports.updateInvoice = async (req, res, next) => {
 // @route   PUT /api/invoices/:id/status
 // @access  Private
 exports.updateInvoiceStatus = async (req, res, next) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
     const { status } = req.body;
 
-    const invoice = await Invoice.findById(req.params.id).session(session);
+    const invoice = await Invoice.findById(req.params.id);
 
     if (!invoice) {
-      await session.abortTransaction();
       return res.status(404).json({
         success: false,
         message: 'Invoice not found'
       });
     }
 
-    // If cancelling, restore stock and reverse customer stats
+    // Cancellation requires multi-document changes (stock + customer stats),
+    // so use a transaction only when available (replica set / Atlas).
+    // Simple Created↔Printed toggles are single-document and need no transaction.
     if (status === 'Cancelled' && invoice.status !== 'Cancelled') {
-      // Restore stock for each item
-      for (const item of invoice.items) {
-        const totalQty = item.quantitySold + (item.freeQuantity || 0);
+      let session;
+      try {
+        session = await mongoose.startSession();
+        session.startTransaction();
 
-        await Product.findByIdAndUpdate(
-          item.product._id,
-          {
-            $inc: { currentStockQty: totalQty },
-            $push: {
-              stockHistory: {
-                type: 'invoice_cancelled',
-                invoiceId: invoice._id,
-                changeQty: totalQty,
-                reference: `${invoice.invoiceNumber} - Cancelled`,
-                timestamp: new Date()
+        // Restore stock for each item
+        for (const item of invoice.items) {
+          const totalQty = item.quantitySold + (item.freeQuantity || 0);
+
+          await Product.findByIdAndUpdate(
+            item.product._id,
+            {
+              $inc: { currentStockQty: totalQty },
+              $push: {
+                stockHistory: {
+                  type: 'invoice_cancelled',
+                  invoiceId: invoice._id,
+                  changeQty: totalQty,
+                  reference: `${invoice.invoiceNumber} - Cancelled`,
+                  timestamp: new Date()
+                }
               }
-            }
-          },
+            },
+            { session }
+          );
+        }
+
+        // Reverse customer stats
+        const customerUpdate = {
+          $inc: {
+            totalPurchases: -invoice.totals.netTotal,
+            invoiceCount: -1
+          }
+        };
+
+        // If it was a Credit invoice, reverse outstanding balance
+        if (invoice.paymentType === 'Credit') {
+          const unpaidAmount = (invoice.totals.netTotal || 0) - (invoice.paidAmount || 0);
+          if (unpaidAmount > 0) {
+            customerUpdate.$inc.outstandingBalance = -unpaidAmount;
+          }
+        }
+
+        await Customer.findByIdAndUpdate(
+          invoice.customer._id,
+          customerUpdate,
           { session }
         );
-      }
 
-      // Reverse customer stats
-      const customerUpdate = {
-        $inc: {
-          totalPurchases: -invoice.totals.netTotal,
-          invoiceCount: -1
+        invoice.status = status;
+        await invoice.save({ session });
+
+        await session.commitTransaction();
+      } catch (txError) {
+        if (session?.inTransaction()) {
+          await session.abortTransaction();
         }
-      };
 
-      // If it was a Credit invoice, reverse outstanding balance
-      if (invoice.paymentType === 'Credit') {
-        const unpaidAmount = (invoice.totals.netTotal || 0) - (invoice.paidAmount || 0);
-        if (unpaidAmount > 0) {
-          customerUpdate.$inc.outstandingBalance = -unpaidAmount;
+        // Fallback: if transactions aren't supported (standalone MongoDB),
+        // perform the operations without a session
+        if (txError.code === 20 || txError.codeName === 'IllegalOperation') {
+          for (const item of invoice.items) {
+            const totalQty = item.quantitySold + (item.freeQuantity || 0);
+            await Product.findByIdAndUpdate(
+              item.product._id,
+              {
+                $inc: { currentStockQty: totalQty },
+                $push: {
+                  stockHistory: {
+                    type: 'invoice_cancelled',
+                    invoiceId: invoice._id,
+                    changeQty: totalQty,
+                    reference: `${invoice.invoiceNumber} - Cancelled`,
+                    timestamp: new Date()
+                  }
+                }
+              }
+            );
+          }
+
+          const customerUpdate = {
+            $inc: {
+              totalPurchases: -invoice.totals.netTotal,
+              invoiceCount: -1
+            }
+          };
+          if (invoice.paymentType === 'Credit') {
+            const unpaidAmount = (invoice.totals.netTotal || 0) - (invoice.paidAmount || 0);
+            if (unpaidAmount > 0) {
+              customerUpdate.$inc.outstandingBalance = -unpaidAmount;
+            }
+          }
+          await Customer.findByIdAndUpdate(invoice.customer._id, customerUpdate);
+
+          invoice.status = status;
+          await invoice.save();
+        } else {
+          throw txError;
         }
+      } finally {
+        if (session) session.endSession();
       }
-
-      await Customer.findByIdAndUpdate(
-        invoice.customer._id,
-        customerUpdate,
-        { session }
-      );
+    } else {
+      // Simple status toggle (Created ↔ Printed) — single document, no transaction needed
+      invoice.status = status;
+      await invoice.save();
     }
-
-    // Update the status
-    invoice.status = status;
-    await invoice.save({ session });
-
-    await session.commitTransaction();
 
     res.status(200).json({
       success: true,
       invoice
     });
   } catch (error) {
-    await session.abortTransaction();
     next(error);
-  } finally {
-    session.endSession();
   }
 };
 
