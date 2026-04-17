@@ -505,11 +505,7 @@ export default function InvoicesPage() {
             <div className="table-container">
               <table className="table">
                 <thead>
-                  <motion.tr
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                  >
+                  <tr>
                     <th>Invoice #</th>
                     <th>Date</th>
                     <th>Customer</th>
@@ -519,10 +515,9 @@ export default function InvoicesPage() {
                     <th>Status</th>
                     <th className="text-center w-20">Printed</th>
                     <th>Action</th>
-                  </motion.tr>
+                  </tr>
                 </thead>
                 <tbody>
-                  <AnimatePresence>
                     {invoices.map((invoice, index) => {
                       const StatusIcon = statusConfig[invoice.status]?.icon || FileText;
                       const PaymentIcon = paymentConfig[invoice.paymentType]?.icon || CreditCard;
@@ -530,16 +525,9 @@ export default function InvoicesPage() {
                       const isCancelled = invoice.status === 'Cancelled';
 
                       return (
-                        <motion.tr
+                        <tr
                           key={invoice._id}
-                          custom={index}
-                          variants={tableRowVariants}
-                          initial="hidden"
-                          animate="visible"
-                          exit={{ opacity: 0, x: -20 }}
                           className={`transition-colors ${isCancelled ? 'bg-red-500/10 hover:bg-red-500/20' : 'hover:bg-slate-700/50'}`}
-                          whileHover={{ x: 4 }}
-                          transition={{ type: 'spring', stiffness: 400, damping: 25 }}
                         >
                           <td className={`font-medium ${isCancelled ? 'text-red-400' : 'text-white'}`}>
                             <div className="flex items-center gap-2">
@@ -555,12 +543,11 @@ export default function InvoicesPage() {
                           </td>
                           <td>
                             <div className="flex items-center gap-2">
-                              <motion.div
+                              <div
                                 className={`w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-lg ${isCancelled ? 'bg-red-500/20 text-red-400 shadow-red-500/20' : 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/30'}`}
-                                whileHover={{ scale: 1.1, rotate: 5 }}
                               >
                                 {invoice.customer?.customerName?.charAt(0)}
-                              </motion.div>
+                              </div>
                               <div>
                                 <p className={`font-medium ${isCancelled ? 'text-red-400' : 'text-white'}`}>{invoice.customer?.customerName}</p>
                                 <p className={`text-xs flex items-center gap-1 ${isCancelled ? 'text-red-400 opacity-80' : 'text-slate-400'}`}>
@@ -580,22 +567,20 @@ export default function InvoicesPage() {
                             {formatCurrency(invoice.totals?.netTotal)}
                           </td>
                           <td>
-                            <motion.span
+                            <span
                               className={`badge ${paymentConfig[invoice.paymentType]?.class || 'badge-info'} inline-flex items-center gap-1.5`}
-                              whileHover={{ scale: 1.05 }}
                             >
                               <PaymentIcon className="w-3 h-3" />
                               {invoice.paymentType}
-                            </motion.span>
+                            </span>
                           </td>
                           <td>
-                            <motion.span
+                            <span
                               className={`badge ${statusConfig[invoice.status]?.class || 'badge-info'} inline-flex items-center gap-1.5`}
-                              whileHover={{ scale: 1.05 }}
                             >
                               <StatusIcon className="w-3 h-3" />
                               {invoice.status}
-                            </motion.span>
+                            </span>
                           </td>
                           <td className="text-center">
                             <label className={`inline-flex items-center justify-center ${isCancelled || statusUpdating[invoice._id] ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
@@ -613,20 +598,17 @@ export default function InvoicesPage() {
                             </label>
                           </td>
                           <td>
-                            <motion.div whileHover={{ x: 4 }}>
-                              <Link
-                                to={`/invoices/${invoice._id}`}
-                                className="btn btn-secondary py-1.5 px-3 text-sm inline-flex items-center gap-2 group"
-                              >
-                                <Eye className="w-4 h-4" />
-                                View
-                              </Link>
-                            </motion.div>
+                            <Link
+                              to={`/invoices/${invoice._id}`}
+                              className="btn btn-secondary py-1.5 px-3 text-sm inline-flex items-center gap-2 group"
+                            >
+                              <Eye className="w-4 h-4" />
+                              View
+                            </Link>
                           </td>
-                        </motion.tr>
+                        </tr>
                       );
                     })}
-                  </AnimatePresence>
                 </tbody>
               </table>
             </div>
