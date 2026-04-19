@@ -34,6 +34,9 @@ const ProductDetailsPage = lazy(() => import('./pages/ProductDetailsPage'));
 const CreditNoteCreatePage = lazy(() => import('./pages/CreditNoteCreatePage'));
 const CreditNoteViewPage = lazy(() => import('./pages/CreditNoteViewPage'));
 
+// Landing page
+const LandingPage = lazy(() => import('./pages/LandingPage'));
+
 // Page loading spinner
 function PageLoader() {
   return (
@@ -59,7 +62,7 @@ function ProtectedRoute({ children }) {
   }
   
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/landing" replace />;
   }
   
   return children;
@@ -88,6 +91,9 @@ function AppRoutes() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
+        {/* Landing Page - Public */}
+        <Route path="/landing" element={<LandingPage />} />
+
         {/* Public Routes */}
         <Route
           path="/login"
