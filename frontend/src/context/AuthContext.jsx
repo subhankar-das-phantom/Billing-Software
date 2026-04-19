@@ -103,11 +103,14 @@ const AuthLoadingScreen = () => {
 };
 
 export const AuthProvider = ({ children }) => {
+  // Check if there's a token to verify — if not, skip auth entirely
+  const hasToken = !!localStorage.getItem('token');
+
   // Support for both admin and employee users
   const [user, setUser] = useState(null); // Current user (admin or employee)
   const [userRole, setUserRole] = useState(null); // 'admin' or 'employee'
   const [admin, setAdmin] = useState(null); // For backward compatibility
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(hasToken); // Only loading if we have a token to verify
   const [toast, setToast] = useState(null);
   const [authTransition, setAuthTransition] = useState(null); // 'login' | 'logout'
 
@@ -124,6 +127,12 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
+    // No token = no session to verify, skip auth check entirely
+    if (!hasToken) {
+      setLoading(false);
+      return;
+    }
+
     const checkAuth = async () => {
       try {
         const data = await authService.getMe();
