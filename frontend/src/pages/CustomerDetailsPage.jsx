@@ -204,7 +204,7 @@ function PrintLedgerContent({ admin, customer, ledgerData, formatDate }) {
 function MobilePrintPreview({ ledgerPrintRef, admin, customer, ledgerData, formatDate }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="sm:hidden no-print-hide mt-4 px-1">
+    <div className="lg:hidden no-print-hide mt-4 px-1">
       <button
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center justify-between gap-2 px-4 py-3 rounded-xl bg-slate-800/80 border border-slate-700/50 text-slate-200 text-sm font-medium active:scale-95 transition-transform"
@@ -1375,8 +1375,8 @@ export default function CustomerDetailsPage() {
                       </div>
                     )}
 
-                    {/* Ledger Table – desktop */}
-                    <div className="hidden sm:block table-container bg-slate-800/50 rounded-xl overflow-hidden">
+                    {/* Ledger Table – desktop (1024px+) */}
+                    <div className="hidden lg:block table-container bg-slate-800/50 rounded-xl overflow-hidden">
                       <table className="table">
                         <thead>
                           <tr className="border-b border-slate-700">
@@ -1465,8 +1465,8 @@ export default function CustomerDetailsPage() {
                       </table>
                     </div>
 
-                    {/* Ledger Card List – mobile only */}
-                    <div className="sm:hidden space-y-2">
+                    {/* Ledger Card List – below lg (< 1024px) */}
+                    <div className="lg:hidden space-y-2">
                       {ledgerData.ledger.map((entry, index) => {
                         const config = ledgerTypeConfig[entry.type] || { color: 'bg-slate-500/20 text-slate-400 border-slate-500/30', icon: FileText };
                         const TypeIcon = config.icon;
@@ -1633,8 +1633,8 @@ export default function CustomerDetailsPage() {
       {/* Printable Ledger Preview (visible on screen + used for print) */}
       {ledgerData.ledger.length > 0 && customer && activeTab === 'ledger' && (
         <>
-          {/* Desktop: full A4 preview — hidden on mobile */}
-          <div className="hidden sm:flex justify-center no-print-hide">
+          {/* Desktop: full A4 preview — hidden below lg */}
+          <div className="hidden lg:flex justify-center no-print-hide">
             <motion.div
               ref={ledgerPrintRef}
               initial={{ opacity: 0, y: 20 }}
