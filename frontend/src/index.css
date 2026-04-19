@@ -230,6 +230,44 @@
     text-wrap: balance;
   }
 
+  /* Hide scrollbar but keep scrollability (for mobile tab bars, etc.) */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Landing page animations */
+  @keyframes gradient-shift {
+
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  @keyframes float {
+
+    0%,
+    100% {
+      transform: translateY(0px);
+    }
+
+    50% {
+      transform: translateY(-20px);
+    }
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
   /* Ensure minimum contrast */
   .bg-dark {
     @apply bg-slate-950;
@@ -360,13 +398,16 @@
     page-break-inside: auto;
     width: 100%;
   }
+
   .print-table tr {
     page-break-inside: avoid;
     page-break-after: auto;
   }
+
   .print-table thead {
     display: table-header-group;
   }
+
   .print-table tfoot {
     display: table-footer-group;
   }
