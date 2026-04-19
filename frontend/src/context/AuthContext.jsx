@@ -88,9 +88,9 @@ const AuthLoadingScreen = () => {
 
         {/* Loading text - simple fade in, no infinite animations */}
         <motion.div
-          initial={{ opacity: 0 }}
+          initial={{ opacity: 1 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.1, duration: 0.3 }}
+          transition={{ duration: 0.3 }}
         >
           <h2 className="text-xl font-semibold text-white mb-2">
             Authenticating
@@ -346,8 +346,8 @@ export const AuthProvider = ({ children }) => {
         )}
       </AnimatePresence>
 
-      {/* Main content - render immediately without animation to prevent blank screen */}
-      {!loading && children}
+      {/* Main content - always render so routes like /landing paint immediately for FCP */}
+      {children}
     </AuthContext.Provider>
   );
 };
