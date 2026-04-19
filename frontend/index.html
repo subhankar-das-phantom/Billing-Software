@@ -4,14 +4,25 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Bharat Enterprise - Billing & Inventory Management System" />
-    <title>Bharat Enterprise - Billing System</title>
+    <meta name="description" content="Bharat Enterprise — The modern, free billing & inventory platform for Indian pharmaceutical distributors. GST-compliant invoicing, real-time stock tracking, and customer credit management." />
+    <meta name="theme-color" content="#020617" />
+    <meta property="og:title" content="Bharat Enterprise — Free Billing & Inventory Platform" />
+    <meta property="og:description" content="GST-compliant invoicing, real-time inventory, and customer credit tracking — all in one place. Completely free, forever." />
+    <meta property="og:type" content="website" />
+    <title>Bharat Enterprise — Free Billing & Inventory Platform</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Pre-render placeholder for FCP — replaced by React on mount -->
+      <div id="prerender" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#020617;flex-direction:column;gap:16px;">
+        <div style="width:48px;height:48px;border:3px solid #334155;border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite;"></div>
+        <p style="color:#94a3b8;font-family:Inter,system-ui,sans-serif;font-size:14px;margin:0;">Loading Bharat Enterprise...</p>
+      </div>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

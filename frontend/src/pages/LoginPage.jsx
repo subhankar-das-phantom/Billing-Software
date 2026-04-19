@@ -364,6 +364,19 @@ export default function LoginPage() {
             <Shield size={14} className="text-emerald-400" />
             <span>Secured with end-to-end encryption</span>
           </motion.div>
+
+          {/* Back to Landing */}
+          <motion.div
+            variants={itemVariants}
+            className="mt-4 text-center"
+          >
+            <Link 
+              to="/landing" 
+              className="text-slate-500 hover:text-slate-300 text-xs font-medium transition-colors"
+            >
+              ← Back to Home
+            </Link>
+          </motion.div>
         </motion.div>
 
         {/* Floating Particles - Only on desktop */}
