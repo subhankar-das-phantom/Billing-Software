@@ -7,6 +7,7 @@ import { ToastProvider } from './context/ToastContext';
 import DashboardLayout from './components/Layout/DashboardLayout';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import LandingPage from './pages/LandingPage';
 
 // Lazy load - loaded on-demand for better initial performance
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
@@ -34,8 +35,7 @@ const ProductDetailsPage = lazy(() => import('./pages/ProductDetailsPage'));
 const CreditNoteCreatePage = lazy(() => import('./pages/CreditNoteCreatePage'));
 const CreditNoteViewPage = lazy(() => import('./pages/CreditNoteViewPage'));
 
-// Landing page
-const LandingPage = lazy(() => import('./pages/LandingPage'));
+// Landing page (eagerly loaded — it's the entry point for new users)
 
 // Page loading spinner
 function PageLoader() {
