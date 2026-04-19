@@ -1632,133 +1632,36 @@ export default function CustomerDetailsPage() {
 
       {/* Printable Ledger Preview (visible on screen + used for print) */}
       {ledgerData.ledger.length > 0 && customer && activeTab === 'ledger' && (
-        <div className="flex justify-center no-print-hide">
-          <motion.div
-            ref={ledgerPrintRef}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="invoice-print bg-white border-2 border-slate-300 shadow-lg"
-            style={{
-              width: '210mm',
-              maxWidth: '100%',
-              fontSize: '11px',
-              color: '#000000',
-              margin: '0 auto',
-              padding: '2mm'
-            }}
-          >
-          <div className="invoice-copy" style={{ padding: '8mm', fontFamily: 'Arial, sans-serif', fontSize: '11px', color: '#000' }}>
-            {/* Firm Header */}
-            <div style={{ borderBottom: '2px solid #000', paddingBottom: '8px', marginBottom: '8px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <h1 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0 }}>
-                    {admin?.firmName || 'BHARAT ENTERPRISES'}
-                  </h1>
-                  <p style={{ fontSize: '10px', margin: '2px 0' }}>
-                    {admin?.firmAddress || ''}
-                  </p>
-                </div>
-                <div style={{ textAlign: 'right', fontSize: '10px' }}>
-                  {admin?.firmPhone && <p style={{ margin: '1px 0' }}>Phone: {admin.firmPhone}</p>}
-                  {admin?.firmGSTIN && <p style={{ margin: '1px 0' }}>GSTIN: {admin.firmGSTIN}</p>}
-                </div>
-              </div>
-              <div style={{ textAlign: 'center', margin: '8px 0 4px' }}>
-                <span style={{ fontSize: '14px', fontWeight: 'bold', border: '1px solid #000', padding: '2px 16px' }}>
-                  CUSTOMER LEDGER
-                </span>
-              </div>
-              <p style={{ textAlign: 'center', fontSize: '11px', fontStyle: 'italic', margin: '6px 0 0' }}>
-                From the Books of <strong>{admin?.firmName || 'BHARAT ENTERPRISES'}</strong>
-              </p>
-            </div>
-
-            {/* Customer Info */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '10px' }}>
-              <div>
-                <p style={{ margin: '2px 0' }}><strong>Customer:</strong> M/s {customer.customerName}</p>
-                {customer.address && <p style={{ margin: '2px 0' }}><strong>Address:</strong> {customer.address}</p>}
-                {customer.phone && <p style={{ margin: '2px 0' }}><strong>Phone:</strong> {customer.phone}</p>}
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                {customer.gstin && <p style={{ margin: '2px 0' }}><strong>GSTIN:</strong> {customer.gstin}</p>}
-                {customer.dlNo && <p style={{ margin: '2px 0' }}><strong>DL No:</strong> {customer.dlNo}</p>}
-                <p style={{ margin: '2px 0' }}><strong>Date:</strong> {formatDate(new Date())}</p>
-              </div>
-            </div>
-
-            {/* Ledger Table */}
-            <table className="print-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '9px', border: '1px solid #000' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid #000', background: '#f0f0f0' }}>
-                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'left', width: '10%' }}>Date</th>
-                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'left', width: '12%' }}>Type</th>
-                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'left', width: '12%' }}>Ref #</th>
-                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'left', width: '10%' }}>Mode</th>
-                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'left', width: '26%' }}>Description</th>
-                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'right', width: '10%' }}>Debit (₹)</th>
-                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'right', width: '10%' }}>Credit (₹)</th>
-                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'right', width: '10%' }}>Balance (₹)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ledgerData.ledger.map((entry, idx) => (
-                  <tr key={idx} style={{ borderBottom: '0.5px solid #ccc' }}>
-                    <td style={{ border: '1px solid #000', padding: '3px' }}>{formatDate(entry.date)}</td>
-                    <td style={{ border: '1px solid #000', padding: '3px', fontWeight: entry.debit > 0 ? 'bold' : 'normal' }}>{entry.type}</td>
-                    <td style={{ border: '1px solid #000', padding: '3px' }}>{entry.ref}</td>
-                    <td style={{ border: '1px solid #000', padding: '3px' }}>{entry.mode && entry.mode !== '-' ? entry.mode : ''}</td>
-                    <td style={{ border: '1px solid #000', padding: '3px', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{entry.description}</td>
-                    <td style={{ border: '1px solid #000', padding: '3px', textAlign: 'right' }}>
-                      {entry.debit > 0 ? entry.debit.toFixed(2) : ''}
-                    </td>
-                    <td style={{ border: '1px solid #000', padding: '3px', textAlign: 'right' }}>
-                      {entry.credit > 0 ? entry.credit.toFixed(2) : ''}
-                    </td>
-                    <td style={{ border: '1px solid #000', padding: '3px', textAlign: 'right', fontWeight: 'bold' }}>
-                      {Math.abs(entry.balance).toFixed(2)} {entry.balance > 0 ? '(Dr)' : entry.balance < 0 ? '(Cr)' : ''}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr style={{ fontWeight: 'bold', background: '#fafafa', borderTop: '2px solid #000', borderBottom: '1px solid #ccc' }}>
-                  <td colSpan="5" style={{ border: '1px solid #000', padding: '4px', textAlign: 'right' }}>TOTAL TRANSACTIONS</td>
-                  <td style={{ border: '1px solid #000', padding: '4px', textAlign: 'right', opacity: 0.7 }}>
-                    {ledgerData.summary?.totalDebit?.toFixed(2)}
-                  </td>
-                  <td style={{ border: '1px solid #000', padding: '4px', textAlign: 'right', opacity: 0.7 }}>
-                    {ledgerData.summary?.totalCredit?.toFixed(2)}
-                  </td>
-                  <td style={{ border: '1px solid #000', padding: '4px', textAlign: 'right', opacity: 0.7 }}>
-                    -
-                  </td>
-                </tr>
-                <tr style={{ borderTop: '2px solid #000', fontWeight: 'bold', background: '#f0f0f0', fontSize: '10px' }}>
-                  <td colSpan="7" style={{ border: '1px solid #000', padding: '6px', textAlign: 'right' }}>CLOSING BALANCE:</td>
-                  <td style={{ border: '1px solid #000', padding: '6px', textAlign: 'right' }}>
-                    {Math.abs(ledgerData.summary?.closingBalance || 0).toFixed(2)} {(ledgerData.summary?.closingBalance || 0) > 0 ? '(Dr)' : (ledgerData.summary?.closingBalance || 0) < 0 ? '(Cr)' : ''}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-
-            {/* Footer */}
-            <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
-              <div>
-                <p>E & O E</p>
-                <p style={{ marginTop: '4px', fontStyle: 'italic' }}>This is a computer-generated ledger statement.</p>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ height: '30px' }}></div>
-                <p style={{ borderTop: '1px solid #000', paddingTop: '4px' }}>Authorized Signatory</p>
-              </div>
-            </div>
+        <>
+          {/* Desktop: full A4 preview — hidden on mobile */}
+          <div className="hidden sm:flex justify-center no-print-hide">
+            <motion.div
+              ref={ledgerPrintRef}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="invoice-print bg-white border-2 border-slate-300 shadow-lg"
+              style={{ width: '210mm', maxWidth: '100%', fontSize: '11px', color: '#000000', margin: '0 auto', padding: '2mm' }}
+            >
+              <PrintLedgerContent
+                admin={admin}
+                customer={customer}
+                ledgerData={ledgerData}
+                formatDate={formatDate}
+              />
+            </motion.div>
           </div>
-          </motion.div>
-        </div>
+
+          {/* Mobile: collapsible print preview */}
+          <MobilePrintPreview
+            ledgerPrintRef={ledgerPrintRef}
+            admin={admin}
+            customer={customer}
+            ledgerData={ledgerData}
+            formatDate={formatDate}
+          />
+        </>
       )}
+
 
       {/* Manual Entry Modal */}
       <ManualEntryModal
