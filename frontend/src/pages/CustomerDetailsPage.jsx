@@ -80,6 +80,164 @@ const AnimatedCounter = ({ value, prefix = '', suffix = '' }) => {
   return <span ref={ref}>{prefix}{Math.round(value).toLocaleString()}{suffix}</span>;
 };
 
+/* ─────────────────────────────────────────────────────────────
+   Shared content for the printable A4 ledger (used by both
+   desktop inline preview and the mobile collapsible preview)
+───────────────────────────────────────────────────────────── */
+function PrintLedgerContent({ admin, customer, ledgerData, formatDate }) {
+  return (
+    <div className="invoice-copy" style={{ padding: '8mm', fontFamily: 'Arial, sans-serif', fontSize: '11px', color: '#000' }}>
+      {/* Firm Header */}
+      <div style={{ borderBottom: '2px solid #000', paddingBottom: '8px', marginBottom: '8px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <h1 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0 }}>
+              {admin?.firmName || 'BHARAT ENTERPRISES'}
+            </h1>
+            <p style={{ fontSize: '10px', margin: '2px 0' }}>{admin?.firmAddress || ''}</p>
+          </div>
+          <div style={{ textAlign: 'right', fontSize: '10px' }}>
+            {admin?.firmPhone && <p style={{ margin: '1px 0' }}>Phone: {admin.firmPhone}</p>}
+            {admin?.firmGSTIN && <p style={{ margin: '1px 0' }}>GSTIN: {admin.firmGSTIN}</p>}
+          </div>
+        </div>
+        <div style={{ textAlign: 'center', margin: '8px 0 4px' }}>
+          <span style={{ fontSize: '14px', fontWeight: 'bold', border: '1px solid #000', padding: '2px 16px' }}>
+            CUSTOMER LEDGER
+          </span>
+        </div>
+        <p style={{ textAlign: 'center', fontSize: '11px', fontStyle: 'italic', margin: '6px 0 0' }}>
+          From the Books of <strong>{admin?.firmName || 'BHARAT ENTERPRISES'}</strong>
+        </p>
+      </div>
+
+      {/* Customer Info */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '10px' }}>
+        <div>
+          <p style={{ margin: '2px 0' }}><strong>Customer:</strong> M/s {customer.customerName}</p>
+          {customer.address && <p style={{ margin: '2px 0' }}><strong>Address:</strong> {customer.address}</p>}
+          {customer.phone && <p style={{ margin: '2px 0' }}><strong>Phone:</strong> {customer.phone}</p>}
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          {customer.gstin && <p style={{ margin: '2px 0' }}><strong>GSTIN:</strong> {customer.gstin}</p>}
+          {customer.dlNo && <p style={{ margin: '2px 0' }}><strong>DL No:</strong> {customer.dlNo}</p>}
+          <p style={{ margin: '2px 0' }}><strong>Date:</strong> {formatDate(new Date())}</p>
+        </div>
+      </div>
+
+      {/* Ledger Table */}
+      <table className="print-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '9px', border: '1px solid #000' }}>
+        <thead>
+          <tr style={{ borderBottom: '1px solid #000', background: '#f0f0f0' }}>
+            <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'left', width: '10%' }}>Date</th>
+            <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'left', width: '12%' }}>Type</th>
+            <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'left', width: '12%' }}>Ref #</th>
+            <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'left', width: '10%' }}>Mode</th>
+            <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'left', width: '26%' }}>Description</th>
+            <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'right', width: '10%' }}>Debit (₹)</th>
+            <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'right', width: '10%' }}>Credit (₹)</th>
+            <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'right', width: '10%' }}>Balance (₹)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {ledgerData.ledger.map((entry, idx) => (
+            <tr key={idx} style={{ borderBottom: '0.5px solid #ccc' }}>
+              <td style={{ border: '1px solid #000', padding: '3px' }}>{formatDate(entry.date)}</td>
+              <td style={{ border: '1px solid #000', padding: '3px', fontWeight: entry.debit > 0 ? 'bold' : 'normal' }}>{entry.type}</td>
+              <td style={{ border: '1px solid #000', padding: '3px' }}>{entry.ref}</td>
+              <td style={{ border: '1px solid #000', padding: '3px' }}>{entry.mode && entry.mode !== '-' ? entry.mode : ''}</td>
+              <td style={{ border: '1px solid #000', padding: '3px', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{entry.description}</td>
+              <td style={{ border: '1px solid #000', padding: '3px', textAlign: 'right' }}>
+                {entry.debit > 0 ? entry.debit.toFixed(2) : ''}
+              </td>
+              <td style={{ border: '1px solid #000', padding: '3px', textAlign: 'right' }}>
+                {entry.credit > 0 ? entry.credit.toFixed(2) : ''}
+              </td>
+              <td style={{ border: '1px solid #000', padding: '3px', textAlign: 'right', fontWeight: 'bold' }}>
+                {Math.abs(entry.balance).toFixed(2)} {entry.balance > 0 ? '(Dr)' : entry.balance < 0 ? '(Cr)' : ''}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr style={{ fontWeight: 'bold', background: '#fafafa', borderTop: '2px solid #000', borderBottom: '1px solid #ccc' }}>
+            <td colSpan="5" style={{ border: '1px solid #000', padding: '4px', textAlign: 'right' }}>TOTAL TRANSACTIONS</td>
+            <td style={{ border: '1px solid #000', padding: '4px', textAlign: 'right', opacity: 0.7 }}>
+              {ledgerData.summary?.totalDebit?.toFixed(2)}
+            </td>
+            <td style={{ border: '1px solid #000', padding: '4px', textAlign: 'right', opacity: 0.7 }}>
+              {ledgerData.summary?.totalCredit?.toFixed(2)}
+            </td>
+            <td style={{ border: '1px solid #000', padding: '4px', textAlign: 'right', opacity: 0.7 }}>-</td>
+          </tr>
+          <tr style={{ borderTop: '2px solid #000', fontWeight: 'bold', background: '#f0f0f0', fontSize: '10px' }}>
+            <td colSpan="7" style={{ border: '1px solid #000', padding: '6px', textAlign: 'right' }}>CLOSING BALANCE:</td>
+            <td style={{ border: '1px solid #000', padding: '6px', textAlign: 'right' }}>
+              {Math.abs(ledgerData.summary?.closingBalance || 0).toFixed(2)}{' '}
+              {(ledgerData.summary?.closingBalance || 0) > 0 ? '(Dr)' : (ledgerData.summary?.closingBalance || 0) < 0 ? '(Cr)' : ''}
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+
+      {/* Footer */}
+      <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
+        <div>
+          <p>E &amp; O E</p>
+          <p style={{ marginTop: '4px', fontStyle: 'italic' }}>This is a computer-generated ledger statement.</p>
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ height: '30px' }}></div>
+          <p style={{ borderTop: '1px solid #000', paddingTop: '4px' }}>Authorized Signatory</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Mobile-only collapsible wrapper for the ledger print preview.
+   Shows a compact toggle button; when expanded, renders the
+   A4 preview inside a horizontally-scrollable container so the
+   wide table doesn't break out of the viewport.
+───────────────────────────────────────────────────────────── */
+function MobilePrintPreview({ ledgerPrintRef, admin, customer, ledgerData, formatDate }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="sm:hidden no-print-hide mt-4 px-1">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between gap-2 px-4 py-3 rounded-xl bg-slate-800/80 border border-slate-700/50 text-slate-200 text-sm font-medium active:scale-95 transition-transform"
+      >
+        <span className="flex items-center gap-2">
+          <Printer className="w-4 h-4 text-blue-400" />
+          Print Preview
+        </span>
+        <span className="text-xs text-slate-400">{open ? '▲ Hide' : '▼ Show'}</span>
+      </button>
+
+      {open && (
+        <div className="mt-3 rounded-xl border border-slate-700/50 overflow-x-auto bg-white shadow-lg" style={{ WebkitOverflowScrolling: 'touch' }}>
+          {/* The actual A4 content — ref is applied here so printing still works */}
+          <div
+            ref={ledgerPrintRef}
+            className="invoice-print"
+            style={{ width: '210mm', fontSize: '11px', color: '#000', padding: '2mm' }}
+          >
+            <PrintLedgerContent
+              admin={admin}
+              customer={customer}
+              ledgerData={ledgerData}
+              formatDate={formatDate}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 export default function CustomerDetailsPage() {
   const { id } = useParams();
   const { isAdmin, admin } = useAuth();
@@ -679,107 +837,112 @@ export default function CustomerDetailsPage() {
       {/* Tabbed Content */}
       <motion.div variants={itemVariants} className="glass-card overflow-hidden">
         {/* Tab Header */}
-        <div className="p-5 border-b border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          {/* Tabs */}
-          <div className="flex gap-2">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-                    activeTab === tab.id
-                      ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-                  }`}
+        <div className="border-b border-slate-700">
+          {/* Top row: tabs + non-ledger actions */}
+          <div className="p-3 sm:p-5 flex items-center justify-between gap-3">
+            {/* Tabs – scrollable pill bar on mobile */}
+            <div className="flex gap-1.5 overflow-x-auto no-scrollbar flex-1 min-w-0">
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all text-sm ${
+                      activeTab === tab.id
+                        ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    <span className="font-medium whitespace-nowrap">{tab.label}</span>
+                    {tab.count > 0 && (
+                      <span className={`text-xs px-1.5 py-0.5 rounded ${
+                        activeTab === tab.id ? 'bg-blue-500/30' : 'bg-slate-700'
+                      }`}>
+                        {tab.count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Actions (non-ledger) */}
+            <div className="flex gap-2 flex-shrink-0 items-center">
+              {isAdmin && activeTab !== 'ledger' && (
+                <motion.button
+                  onClick={() => setShowManualEntryModal(true)}
+                  className="btn btn-secondary btn-sm flex items-center gap-1.5"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
-                  <Icon className="w-4 h-4" />
-                  <span className="font-medium">{tab.label}</span>
-                  {tab.count > 0 && (
-                    <span className={`text-xs px-1.5 py-0.5 rounded ${
-                      activeTab === tab.id ? 'bg-blue-500/30' : 'bg-slate-700'
-                    }`}>
-                      {tab.count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+                  <Shield className="w-4 h-4" />
+                  <span className="hidden sm:inline">Manual Entry</span>
+                </motion.button>
+              )}
+              {activeTab !== 'ledger' && (calculatedOutstanding > 0 || unpaidInvoices.length > 0) && (
+                <motion.button
+                  onClick={() => handleRecordPayment()}
+                  className="btn btn-secondary btn-sm flex items-center gap-1.5"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <CreditCard className="w-4 h-4" />
+                  <span className="hidden sm:inline">Record Payment</span>
+                </motion.button>
+              )}
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Link
+                  to={`/invoices/create?customer=${customer._id}`}
+                  className="btn btn-primary btn-sm flex items-center gap-1.5"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="hidden sm:inline">New Invoice</span>
+                </Link>
+              </motion.div>
+            </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex gap-2 flex-wrap items-center">
-            {activeTab === 'ledger' && (
-              <>
-                <div className="flex bg-slate-800/50 rounded-lg p-1 border border-slate-700">
-                  <input 
-                    type="date" 
-                    className="bg-transparent text-sm text-slate-300 border-none outline-none px-2 [color-scheme:dark]"
-                    value={ledgerFilters.startDate}
-                    onChange={(e) => setLedgerFilters(f => ({ ...f, startDate: e.target.value, offset: 0 }))}
-                  />
-                  <span className="text-slate-500 self-center px-1">to</span>
-                  <input 
-                    type="date" 
-                    className="bg-transparent text-sm text-slate-300 border-none outline-none px-2 [color-scheme:dark]"
-                    value={ledgerFilters.endDate}
-                    onChange={(e) => setLedgerFilters(f => ({ ...f, endDate: e.target.value, offset: 0 }))}
-                  />
-                </div>
+          {/* Ledger filter bar – stacks vertically on mobile */}
+          {activeTab === 'ledger' && (
+            <div className="px-3 sm:px-5 pb-3 sm:pb-4 flex flex-col sm:flex-row sm:items-center gap-2">
+              {/* Date range */}
+              <div className="flex flex-1 bg-slate-800/50 rounded-lg p-1 border border-slate-700 min-w-0">
+                <input
+                  type="date"
+                  className="flex-1 min-w-0 bg-transparent text-sm text-slate-300 border-none outline-none px-2 [color-scheme:dark]"
+                  value={ledgerFilters.startDate}
+                  onChange={(e) => setLedgerFilters(f => ({ ...f, startDate: e.target.value, offset: 0 }))}
+                />
+                <span className="text-slate-500 self-center px-1 flex-shrink-0">to</span>
+                <input
+                  type="date"
+                  className="flex-1 min-w-0 bg-transparent text-sm text-slate-300 border-none outline-none px-2 [color-scheme:dark]"
+                  value={ledgerFilters.endDate}
+                  onChange={(e) => setLedgerFilters(f => ({ ...f, endDate: e.target.value, offset: 0 }))}
+                />
+              </div>
+              {/* Sort + Print */}
+              <div className="flex gap-2">
                 <button
                   onClick={() => setLedgerFilters(f => ({ ...f, sortOrder: f.sortOrder === 'asc' ? 'desc' : 'asc', offset: 0 }))}
-                  className="btn btn-secondary btn-sm flex items-center gap-1"
+                  className="btn btn-secondary btn-sm flex items-center gap-1 flex-1 sm:flex-none justify-center"
                 >
                   {ledgerFilters.sortOrder === 'asc' ? 'Oldest First' : 'Newest First'}
                 </button>
-                <div className="w-px h-6 bg-slate-700 mx-1"></div>
-              </>
-            )}
-            
-            {isAdmin && activeTab !== 'ledger' && (
-              <motion.button
-                onClick={() => setShowManualEntryModal(true)}
-                className="btn btn-secondary flex items-center gap-2"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <Shield className="w-4 h-4" />
-                Manual Entry
-              </motion.button>
-            )}
-            {activeTab !== 'ledger' && (calculatedOutstanding > 0 || unpaidInvoices.length > 0) && (
-              <motion.button
-                onClick={() => handleRecordPayment()}
-                className="btn btn-secondary flex items-center gap-2"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <CreditCard className="w-4 h-4" />
-                Record Payment
-              </motion.button>
-            )}
-            {activeTab === 'ledger' && (
-              <motion.button
-                onClick={handlePrintLedger}
-                className="btn btn-secondary btn-sm flex items-center gap-2"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <Printer className="w-4 h-4" />
-                Print / Download
-              </motion.button>
-            )}
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Link
-                to={`/invoices/create?customer=${customer._id}`}
-                className="btn btn-primary btn-sm flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                New Invoice
-              </Link>
-            </motion.div>
-          </div>
+                <motion.button
+                  onClick={handlePrintLedger}
+                  className="btn btn-secondary btn-sm flex items-center gap-1.5 flex-1 sm:flex-none justify-center"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>Print</span>
+                </motion.button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="p-5">
@@ -1201,9 +1364,9 @@ export default function CustomerDetailsPage() {
 
                     {/* Descending Sort Banner */}
                     {ledgerFilters.sortOrder === 'desc' && ledgerData.summary && (
-                      <div className="bg-slate-800/80 p-4 rounded-xl border-l-4 border-l-blue-500 mb-4 flex justify-between items-center shadow-lg">
-                        <span className="text-slate-400 font-medium">Closing Balance (As of {formatDate(ledgerFilters.endDate || new Date())})</span>
-                        <span className={`text-xl font-bold ${ledgerData.summary.closingBalance > 0 ? 'text-red-400' : ledgerData.summary.closingBalance < 0 ? 'text-emerald-400' : 'text-slate-100'}`}>
+                      <div className="bg-slate-800/80 p-3 sm:p-4 rounded-xl border-l-4 border-l-blue-500 mb-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 shadow-lg">
+                        <span className="text-slate-400 font-medium text-sm">Closing Balance (As of {formatDate(ledgerFilters.endDate || new Date())})</span>
+                        <span className={`text-lg sm:text-xl font-bold ${ledgerData.summary.closingBalance > 0 ? 'text-red-400' : ledgerData.summary.closingBalance < 0 ? 'text-emerald-400' : 'text-slate-100'}`}>
                           {formatCurrency(Math.abs(ledgerData.summary.closingBalance))}
                           <span className="text-sm font-normal ml-1">
                             {ledgerData.summary.closingBalance > 0 ? 'Dr' : ledgerData.summary.closingBalance < 0 ? 'Cr' : ''}
@@ -1212,8 +1375,8 @@ export default function CustomerDetailsPage() {
                       </div>
                     )}
 
-                    {/* Ledger Table */}
-                    <div className="table-container bg-slate-800/50 rounded-xl overflow-hidden">
+                    {/* Ledger Table – desktop */}
+                    <div className="hidden sm:block table-container bg-slate-800/50 rounded-xl overflow-hidden">
                       <table className="table">
                         <thead>
                           <tr className="border-b border-slate-700">
@@ -1221,7 +1384,7 @@ export default function CustomerDetailsPage() {
                             <th className="w-32">Type</th>
                             <th className="w-28">Ref #</th>
                             <th className="w-24 text-right">Mode</th>
-                            <th className="hidden sm:table-cell">Description</th>
+                            <th>Description</th>
                             <th className="text-right w-28">Debit (₹)</th>
                             <th className="text-right w-28">Credit (₹)</th>
                             <th className="text-right w-32">Balance (₹)</th>
@@ -1231,8 +1394,6 @@ export default function CustomerDetailsPage() {
                           {ledgerData.ledger.map((entry, index) => {
                             const config = ledgerTypeConfig[entry.type] || { color: 'bg-slate-500/20 text-slate-400 border-slate-500/30', icon: FileText };
                             const TypeIcon = config.icon;
-
-                            // Build link for ref
                             let refLink = null;
                             if (entry.linkType === 'invoice') refLink = `/invoices/${entry.linkId}`;
                             else if (entry.linkType === 'creditNote') refLink = `/credit-notes/${entry.linkId}`;
@@ -1260,37 +1421,24 @@ export default function CustomerDetailsPage() {
                                 </td>
                                 <td className="font-medium text-white">
                                   {refLink ? (
-                                    <Link to={refLink} className="hover:text-blue-400 hover:underline transition-colors">
-                                      {entry.ref}
-                                    </Link>
+                                    <Link to={refLink} className="hover:text-blue-400 hover:underline transition-colors">{entry.ref}</Link>
                                   ) : (
                                     <span className="text-slate-300">{entry.ref}</span>
                                   )}
                                 </td>
                                 <td className="text-right">
-                                  {entry.mode && entry.mode !== '-' && (
-                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-700/50 text-slate-300 border border-slate-600">
-                                      {entry.mode}
-                                    </span>
-                                  )}
-                                  {(!entry.mode || entry.mode === '-') && <span className="text-slate-600">—</span>}
-                                </td>
-                                <td className="hidden sm:table-cell text-slate-400 text-sm max-w-[200px] truncate" title={entry.description}>
-                                  {entry.description}
-                                </td>
-                                <td className="text-right font-medium">
-                                  {entry.debit > 0 ? (
-                                    <span className="text-amber-400">{formatCurrency(entry.debit)}</span>
+                                  {entry.mode && entry.mode !== '-' ? (
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-700/50 text-slate-300 border border-slate-600">{entry.mode}</span>
                                   ) : (
                                     <span className="text-slate-600">—</span>
                                   )}
                                 </td>
+                                <td className="text-slate-400 text-sm max-w-[200px] truncate" title={entry.description}>{entry.description}</td>
                                 <td className="text-right font-medium">
-                                  {entry.credit > 0 ? (
-                                    <span className="text-emerald-400">{formatCurrency(entry.credit)}</span>
-                                  ) : (
-                                    <span className="text-slate-600">—</span>
-                                  )}
+                                  {entry.debit > 0 ? <span className="text-amber-400">{formatCurrency(entry.debit)}</span> : <span className="text-slate-600">—</span>}
+                                </td>
+                                <td className="text-right font-medium">
+                                  {entry.credit > 0 ? <span className="text-emerald-400">{formatCurrency(entry.credit)}</span> : <span className="text-slate-600">—</span>}
                                 </td>
                                 <td className={`text-right font-semibold ${entry.balance > 0 ? 'text-red-400' : entry.balance < 0 ? 'text-emerald-400' : 'text-slate-300'}`}>
                                   {formatCurrency(Math.abs(entry.balance))}
@@ -1300,13 +1448,13 @@ export default function CustomerDetailsPage() {
                               </motion.tr>
                             );
                           })}
-                          {/* Closing Balance row */}
+                          {/* Closing Balance row – desktop */}
                           {ledgerData.summary && (
                             <tr className="bg-slate-800/80 border-t border-slate-600">
-                              <td colSpan={5} className="text-right font-bold text-white uppercase text-xs sm:text-sm py-4">Closing Balance:</td>
+                              <td colSpan={5} className="text-right font-bold text-white uppercase text-sm py-4">Closing Balance:</td>
                               <td className="text-right font-bold text-amber-400 py-4 opacity-50">{formatCurrency(ledgerData.summary.totalDebit)}</td>
                               <td className="text-right font-bold text-emerald-400 py-4 opacity-50">{formatCurrency(ledgerData.summary.totalCredit)}</td>
-                              <td className={`text-right font-bold py-4 text-sm sm:text-base ${ledgerData.summary.closingBalance > 0 ? 'text-white' : ledgerData.summary.closingBalance < 0 ? 'text-white' : 'text-slate-300'}`}>
+                              <td className={`text-right font-bold py-4 text-base ${ledgerData.summary.closingBalance > 0 ? 'text-white' : ledgerData.summary.closingBalance < 0 ? 'text-white' : 'text-slate-300'}`}>
                                 {formatCurrency(Math.abs(ledgerData.summary.closingBalance))}
                                 {ledgerData.summary.closingBalance > 0 && <span className="text-xs ml-1.5 text-red-400">(Dr)</span>}
                                 {ledgerData.summary.closingBalance < 0 && <span className="text-xs ml-1.5 text-emerald-400">(Cr)</span>}
@@ -1317,26 +1465,125 @@ export default function CustomerDetailsPage() {
                       </table>
                     </div>
 
+                    {/* Ledger Card List – mobile only */}
+                    <div className="sm:hidden space-y-2">
+                      {ledgerData.ledger.map((entry, index) => {
+                        const config = ledgerTypeConfig[entry.type] || { color: 'bg-slate-500/20 text-slate-400 border-slate-500/30', icon: FileText };
+                        const TypeIcon = config.icon;
+                        let refLink = null;
+                        if (entry.linkType === 'invoice') refLink = `/invoices/${entry.linkId}`;
+                        else if (entry.linkType === 'creditNote') refLink = `/credit-notes/${entry.linkId}`;
+
+                        return (
+                          <motion.div
+                            key={`m-${entry.linkType}-${entry.linkId}-${index}`}
+                            custom={index}
+                            variants={tableRowVariants}
+                            initial="hidden"
+                            animate="visible"
+                            className="bg-slate-800/60 rounded-xl p-3 border border-slate-700/50"
+                          >
+                            {/* Row 1: date + type badge + balance */}
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                                <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                                {formatDate(entry.date)}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${config.color}`}>
+                                  <TypeIcon className="w-3 h-3" />
+                                  {entry.type}
+                                </span>
+                              </div>
+                            </div>
+                            {/* Row 2: ref + mode */}
+                            <div className="flex items-center justify-between gap-2 mb-2">
+                              <div className="font-medium text-sm">
+                                {refLink ? (
+                                  <Link to={refLink} className="text-blue-400 hover:underline">{entry.ref}</Link>
+                                ) : (
+                                  <span className="text-slate-300">{entry.ref}</span>
+                                )}
+                              </div>
+                              {entry.mode && entry.mode !== '-' && (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-700/50 text-slate-300 border border-slate-600">{entry.mode}</span>
+                              )}
+                            </div>
+                            {/* Row 3: description */}
+                            {entry.description && (
+                              <p className="text-xs text-slate-500 mb-2 truncate" title={entry.description}>{entry.description}</p>
+                            )}
+                            {/* Row 4: debit / credit / balance */}
+                            <div className="grid grid-cols-3 gap-1 text-center pt-2 border-t border-slate-700/50">
+                              <div>
+                                <p className="text-[10px] text-slate-500 uppercase mb-0.5">Debit</p>
+                                <p className="text-xs font-semibold">
+                                  {entry.debit > 0 ? <span className="text-amber-400">{formatCurrency(entry.debit)}</span> : <span className="text-slate-600">—</span>}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] text-slate-500 uppercase mb-0.5">Credit</p>
+                                <p className="text-xs font-semibold">
+                                  {entry.credit > 0 ? <span className="text-emerald-400">{formatCurrency(entry.credit)}</span> : <span className="text-slate-600">—</span>}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] text-slate-500 uppercase mb-0.5">Balance</p>
+                                <p className={`text-xs font-bold ${entry.balance > 0 ? 'text-red-400' : entry.balance < 0 ? 'text-emerald-400' : 'text-slate-300'}`}>
+                                  {formatCurrency(Math.abs(entry.balance))}
+                                  {entry.balance > 0 && <span className="text-[9px] ml-0.5">(Dr)</span>}
+                                  {entry.balance < 0 && <span className="text-[9px] ml-0.5">(Cr)</span>}
+                                </p>
+                              </div>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                      {/* Closing Balance card – mobile */}
+                      {ledgerData.summary && (
+                        <div className="bg-slate-800/90 rounded-xl p-3 border border-slate-600 border-t-2">
+                          <div className="grid grid-cols-3 gap-1 text-center">
+                            <div>
+                              <p className="text-[10px] text-slate-500 uppercase mb-0.5">Total Debit</p>
+                              <p className="text-xs font-bold text-amber-400 opacity-70">{formatCurrency(ledgerData.summary.totalDebit)}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-slate-500 uppercase mb-0.5">Total Credit</p>
+                              <p className="text-xs font-bold text-emerald-400 opacity-70">{formatCurrency(ledgerData.summary.totalCredit)}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-slate-500 uppercase mb-0.5">Closing Bal.</p>
+                              <p className={`text-xs font-bold ${ledgerData.summary.closingBalance > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                                {formatCurrency(Math.abs(ledgerData.summary.closingBalance))}
+                                {ledgerData.summary.closingBalance > 0 && <span className="text-[9px] ml-0.5">(Dr)</span>}
+                                {ledgerData.summary.closingBalance < 0 && <span className="text-[9px] ml-0.5">(Cr)</span>}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
                     {/* Pagination Controls */}
                     {(ledgerFilters.offset > 0 || ledgerMeta.hasMore) && (
-                      <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-xl mt-4 border border-slate-700">
-                        <span className="text-sm text-slate-400">
-                          Showing {ledgerFilters.offset + 1} to {Math.min(ledgerFilters.offset + ledgerFilters.limit, ledgerMeta.totalCount)} of {ledgerMeta.totalCount} transactions
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-slate-800/50 p-3 sm:p-4 rounded-xl mt-4 border border-slate-700 gap-2">
+                        <span className="text-xs sm:text-sm text-slate-400 text-center sm:text-left">
+                          Showing {ledgerFilters.offset + 1}–{Math.min(ledgerFilters.offset + ledgerFilters.limit, ledgerMeta.totalCount)} of {ledgerMeta.totalCount}
                         </span>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 justify-center">
                           <button
                             onClick={() => setLedgerFilters(f => ({ ...f, offset: Math.max(0, f.offset - f.limit) }))}
                             disabled={ledgerFilters.offset === 0}
-                            className={`btn btn-sm ${ledgerFilters.offset === 0 ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'btn-secondary'}`}
+                            className={`btn btn-sm flex-1 sm:flex-none ${ledgerFilters.offset === 0 ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'btn-secondary'}`}
                           >
-                            Previous
+                            ← Previous
                           </button>
                           <button
                             onClick={() => setLedgerFilters(f => ({ ...f, offset: f.offset + f.limit }))}
                             disabled={!ledgerMeta.hasMore}
-                            className={`btn btn-sm ${!ledgerMeta.hasMore ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'btn-secondary'}`}
+                            className={`btn btn-sm flex-1 sm:flex-none ${!ledgerMeta.hasMore ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'btn-secondary'}`}
                           >
-                            Next
+                            Next →
                           </button>
                         </div>
                       </div>
@@ -1385,133 +1632,36 @@ export default function CustomerDetailsPage() {
 
       {/* Printable Ledger Preview (visible on screen + used for print) */}
       {ledgerData.ledger.length > 0 && customer && activeTab === 'ledger' && (
-        <div className="flex justify-center no-print-hide">
-          <motion.div
-            ref={ledgerPrintRef}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="invoice-print bg-white border-2 border-slate-300 shadow-lg"
-            style={{
-              width: '210mm',
-              maxWidth: '100%',
-              fontSize: '11px',
-              color: '#000000',
-              margin: '0 auto',
-              padding: '2mm'
-            }}
-          >
-          <div className="invoice-copy" style={{ padding: '8mm', fontFamily: 'Arial, sans-serif', fontSize: '11px', color: '#000' }}>
-            {/* Firm Header */}
-            <div style={{ borderBottom: '2px solid #000', paddingBottom: '8px', marginBottom: '8px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <h1 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0 }}>
-                    {admin?.firmName || 'BHARAT ENTERPRISES'}
-                  </h1>
-                  <p style={{ fontSize: '10px', margin: '2px 0' }}>
-                    {admin?.firmAddress || ''}
-                  </p>
-                </div>
-                <div style={{ textAlign: 'right', fontSize: '10px' }}>
-                  {admin?.firmPhone && <p style={{ margin: '1px 0' }}>Phone: {admin.firmPhone}</p>}
-                  {admin?.firmGSTIN && <p style={{ margin: '1px 0' }}>GSTIN: {admin.firmGSTIN}</p>}
-                </div>
-              </div>
-              <div style={{ textAlign: 'center', margin: '8px 0 4px' }}>
-                <span style={{ fontSize: '14px', fontWeight: 'bold', border: '1px solid #000', padding: '2px 16px' }}>
-                  CUSTOMER LEDGER
-                </span>
-              </div>
-              <p style={{ textAlign: 'center', fontSize: '11px', fontStyle: 'italic', margin: '6px 0 0' }}>
-                From the Books of <strong>{admin?.firmName || 'BHARAT ENTERPRISES'}</strong>
-              </p>
-            </div>
-
-            {/* Customer Info */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '10px' }}>
-              <div>
-                <p style={{ margin: '2px 0' }}><strong>Customer:</strong> M/s {customer.customerName}</p>
-                {customer.address && <p style={{ margin: '2px 0' }}><strong>Address:</strong> {customer.address}</p>}
-                {customer.phone && <p style={{ margin: '2px 0' }}><strong>Phone:</strong> {customer.phone}</p>}
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                {customer.gstin && <p style={{ margin: '2px 0' }}><strong>GSTIN:</strong> {customer.gstin}</p>}
-                {customer.dlNo && <p style={{ margin: '2px 0' }}><strong>DL No:</strong> {customer.dlNo}</p>}
-                <p style={{ margin: '2px 0' }}><strong>Date:</strong> {formatDate(new Date())}</p>
-              </div>
-            </div>
-
-            {/* Ledger Table */}
-            <table className="print-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '9px', border: '1px solid #000' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid #000', background: '#f0f0f0' }}>
-                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'left', width: '10%' }}>Date</th>
-                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'left', width: '12%' }}>Type</th>
-                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'left', width: '12%' }}>Ref #</th>
-                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'left', width: '10%' }}>Mode</th>
-                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'left', width: '26%' }}>Description</th>
-                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'right', width: '10%' }}>Debit (₹)</th>
-                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'right', width: '10%' }}>Credit (₹)</th>
-                  <th style={{ border: '1px solid #000', padding: '4px', textAlign: 'right', width: '10%' }}>Balance (₹)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ledgerData.ledger.map((entry, idx) => (
-                  <tr key={idx} style={{ borderBottom: '0.5px solid #ccc' }}>
-                    <td style={{ border: '1px solid #000', padding: '3px' }}>{formatDate(entry.date)}</td>
-                    <td style={{ border: '1px solid #000', padding: '3px', fontWeight: entry.debit > 0 ? 'bold' : 'normal' }}>{entry.type}</td>
-                    <td style={{ border: '1px solid #000', padding: '3px' }}>{entry.ref}</td>
-                    <td style={{ border: '1px solid #000', padding: '3px' }}>{entry.mode && entry.mode !== '-' ? entry.mode : ''}</td>
-                    <td style={{ border: '1px solid #000', padding: '3px', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{entry.description}</td>
-                    <td style={{ border: '1px solid #000', padding: '3px', textAlign: 'right' }}>
-                      {entry.debit > 0 ? entry.debit.toFixed(2) : ''}
-                    </td>
-                    <td style={{ border: '1px solid #000', padding: '3px', textAlign: 'right' }}>
-                      {entry.credit > 0 ? entry.credit.toFixed(2) : ''}
-                    </td>
-                    <td style={{ border: '1px solid #000', padding: '3px', textAlign: 'right', fontWeight: 'bold' }}>
-                      {Math.abs(entry.balance).toFixed(2)} {entry.balance > 0 ? '(Dr)' : entry.balance < 0 ? '(Cr)' : ''}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr style={{ fontWeight: 'bold', background: '#fafafa', borderTop: '2px solid #000', borderBottom: '1px solid #ccc' }}>
-                  <td colSpan="5" style={{ border: '1px solid #000', padding: '4px', textAlign: 'right' }}>TOTAL TRANSACTIONS</td>
-                  <td style={{ border: '1px solid #000', padding: '4px', textAlign: 'right', opacity: 0.7 }}>
-                    {ledgerData.summary?.totalDebit?.toFixed(2)}
-                  </td>
-                  <td style={{ border: '1px solid #000', padding: '4px', textAlign: 'right', opacity: 0.7 }}>
-                    {ledgerData.summary?.totalCredit?.toFixed(2)}
-                  </td>
-                  <td style={{ border: '1px solid #000', padding: '4px', textAlign: 'right', opacity: 0.7 }}>
-                    -
-                  </td>
-                </tr>
-                <tr style={{ borderTop: '2px solid #000', fontWeight: 'bold', background: '#f0f0f0', fontSize: '10px' }}>
-                  <td colSpan="7" style={{ border: '1px solid #000', padding: '6px', textAlign: 'right' }}>CLOSING BALANCE:</td>
-                  <td style={{ border: '1px solid #000', padding: '6px', textAlign: 'right' }}>
-                    {Math.abs(ledgerData.summary?.closingBalance || 0).toFixed(2)} {(ledgerData.summary?.closingBalance || 0) > 0 ? '(Dr)' : (ledgerData.summary?.closingBalance || 0) < 0 ? '(Cr)' : ''}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-
-            {/* Footer */}
-            <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
-              <div>
-                <p>E & O E</p>
-                <p style={{ marginTop: '4px', fontStyle: 'italic' }}>This is a computer-generated ledger statement.</p>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ height: '30px' }}></div>
-                <p style={{ borderTop: '1px solid #000', paddingTop: '4px' }}>Authorized Signatory</p>
-              </div>
-            </div>
+        <>
+          {/* Desktop: full A4 preview — hidden on mobile */}
+          <div className="hidden sm:flex justify-center no-print-hide">
+            <motion.div
+              ref={ledgerPrintRef}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="invoice-print bg-white border-2 border-slate-300 shadow-lg"
+              style={{ width: '210mm', maxWidth: '100%', fontSize: '11px', color: '#000000', margin: '0 auto', padding: '2mm' }}
+            >
+              <PrintLedgerContent
+                admin={admin}
+                customer={customer}
+                ledgerData={ledgerData}
+                formatDate={formatDate}
+              />
+            </motion.div>
           </div>
-          </motion.div>
-        </div>
+
+          {/* Mobile: collapsible print preview */}
+          <MobilePrintPreview
+            ledgerPrintRef={ledgerPrintRef}
+            admin={admin}
+            customer={customer}
+            ledgerData={ledgerData}
+            formatDate={formatDate}
+          />
+        </>
       )}
+
 
       {/* Manual Entry Modal */}
       <ManualEntryModal
