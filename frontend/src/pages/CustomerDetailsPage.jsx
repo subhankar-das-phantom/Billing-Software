@@ -593,7 +593,7 @@ export default function CustomerDetailsPage() {
 
       {/* Customer Info Card */}
       <motion.div variants={itemVariants} className="glass-card p-6">
-        <div className="flex flex-col lg:flex-row lg:items-start gap-6">
+        <div className="flex flex-col xl:flex-row xl:items-start gap-6">
           {/* Avatar */}
           <motion.div
             className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${activeTheme.gradient} flex items-center justify-center flex-shrink-0 shadow-lg ${activeTheme.shadow} relative overflow-hidden`}
@@ -622,77 +622,77 @@ export default function CustomerDetailsPage() {
               {customer.customerName}
             </motion.h1>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {/* Phone */}
               <motion.div
-                className="flex items-center gap-2 text-sm group"
+                className="flex items-start gap-2 text-sm group min-w-0"
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4 }}
                 whileHover={{ x: 4 }}
               >
-                <Phone className="w-4 h-4 text-slate-500 group-hover:text-emerald-400 transition-colors" />
-                <span className="text-slate-500">Phone:</span>
-                <span className="text-slate-300">{formatPhone(customer.phone)}</span>
+                <Phone className="w-4 h-4 text-slate-500 group-hover:text-emerald-400 transition-colors flex-shrink-0 mt-0.5" />
+                <span className="text-slate-500 shrink-0">Phone:</span>
+                <span className="text-slate-300 min-w-0 break-all">{formatPhone(customer.phone)}</span>
               </motion.div>
 
               {/* Email */}
               {customer.email && (
                 <motion.div
-                  className="flex items-center gap-2 text-sm group"
+                  className="flex items-start gap-2 text-sm group min-w-0"
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.5 }}
                   whileHover={{ x: 4 }}
                 >
-                  <Mail className="w-4 h-4 text-slate-500 group-hover:text-blue-400 transition-colors" />
-                  <span className="text-slate-500">Email:</span>
-                  <span className="text-slate-300">{customer.email}</span>
+                  <Mail className="w-4 h-4 text-slate-500 group-hover:text-blue-400 transition-colors flex-shrink-0 mt-0.5" />
+                  <span className="text-slate-500 shrink-0">Email:</span>
+                  <span className="text-slate-300 min-w-0 break-all">{customer.email}</span>
                 </motion.div>
               )}
 
               {/* GSTIN */}
               {customer.gstin && (
                 <motion.div
-                  className="flex items-center gap-2 text-sm group"
+                  className="flex items-start gap-2 text-sm group min-w-0"
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.6 }}
                   whileHover={{ x: 4 }}
                 >
-                  <FileText className="w-4 h-4 text-slate-500 group-hover:text-purple-400 transition-colors" />
-                  <span className="text-slate-500">GSTIN:</span>
-                  <span className="text-slate-300">{customer.gstin}</span>
+                  <FileText className="w-4 h-4 text-slate-500 group-hover:text-purple-400 transition-colors flex-shrink-0 mt-0.5" />
+                  <span className="text-slate-500 shrink-0">GSTIN:</span>
+                  <span className="text-slate-300 min-w-0 break-all">{customer.gstin}</span>
                 </motion.div>
               )}
 
               {/* DL No */}
               {customer.dlNo && (
                 <motion.div
-                  className="flex items-center gap-2 text-sm group"
+                  className="flex items-start gap-2 text-sm group min-w-0"
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.7 }}
                   whileHover={{ x: 4 }}
                 >
-                  <FileText className="w-4 h-4 text-slate-500 group-hover:text-yellow-400 transition-colors" />
-                  <span className="text-slate-500">DL No:</span>
-                  <span className="text-slate-300">{customer.dlNo}</span>
+                  <FileText className="w-4 h-4 text-slate-500 group-hover:text-yellow-400 transition-colors flex-shrink-0 mt-0.5" />
+                  <span className="text-slate-500 shrink-0">DL No:</span>
+                  <span className="text-slate-300 min-w-0 break-all">{customer.dlNo}</span>
                 </motion.div>
               )}
 
               {/* Address */}
               {customer.address && (
                 <motion.div
-                  className="md:col-span-2 flex items-start gap-2 text-sm group"
+                  className="md:col-span-2 xl:col-span-3 flex items-start gap-2 text-sm group min-w-0"
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.8 }}
                   whileHover={{ x: 4 }}
                 >
                   <MapPin className="w-4 h-4 text-slate-500 group-hover:text-red-400 transition-colors flex-shrink-0 mt-0.5" />
-                  <span className="text-slate-500">Address:</span>
-                  <span className="text-slate-300">{customer.address}</span>
+                  <span className="text-slate-500 shrink-0">Address:</span>
+                  <span className="text-slate-300 min-w-0 break-words">{customer.address}</span>
                 </motion.div>
               )}
             </div>
