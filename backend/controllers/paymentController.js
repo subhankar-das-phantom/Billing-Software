@@ -8,6 +8,37 @@ const { trackActivity, ACTIVITY_TYPES } = require('../utils/activityTracker');
 // Round to 2 decimal places safely
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 
+const hasExplicitTime = (dateValue) => {
+  if (!dateValue) return false;
+  const d = new Date(dateValue);
+  if (Number.isNaN(d.getTime())) return false;
+  return (
+    d.getUTCHours() !== 0 ||
+    d.getUTCMinutes() !== 0 ||
+    d.getUTCSeconds() !== 0 ||
+    d.getUTCMilliseconds() !== 0
+  );
+};
+
+const getCollectionSortDate = (entry) => {
+  const paymentDate = entry?.paymentDate ? new Date(entry.paymentDate) : null;
+  const createdAt = entry?.createdAt ? new Date(entry.createdAt) : null;
+
+  if (hasExplicitTime(entry?.paymentDate) && paymentDate && !Number.isNaN(paymentDate.getTime())) {
+    return paymentDate;
+  }
+
+  if (createdAt && !Number.isNaN(createdAt.getTime())) {
+    return createdAt;
+  }
+
+  if (paymentDate && !Number.isNaN(paymentDate.getTime())) {
+    return paymentDate;
+  }
+
+  return new Date(0);
+};
+
 // @desc    Get daily collections summary + payment list
 // @route   GET /api/payments/collections
 // @access  Private
@@ -129,6 +160,7 @@ exports.getCollections = async (req, res, next) => {
     const normalizedME = manualEntries.map(me => ({
       _id: me._id,
       paymentDate: me.entryDate,
+      createdAt: me.createdAt,
       amount: me.amount,
       paymentMethod: me.paymentMethod || 'Cash',
       referenceNumber: me.referenceNumber || '',
@@ -141,9 +173,9 @@ exports.getCollections = async (req, res, next) => {
       description: me.description
     }));
 
-    // Merge and sort all payments by date descending
+    // Merge and sort all payments by effective event time descending
     const allPayments = [...payments, ...normalizedME]
-      .sort((a, b) => new Date(b.paymentDate) - new Date(a.paymentDate));
+      .sort((a, b) => getCollectionSortDate(b) - getCollectionSortDate(a));
 
     const total = allPayments.length;
     const paginatedPayments = allPayments.slice((page - 1) * limit, page * limit);

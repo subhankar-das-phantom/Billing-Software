@@ -40,11 +40,37 @@ const METHOD_COLORS = {
   'NEFT/RTGS': 'from-cyan-500/20 to-cyan-600/10 border-cyan-500/30 text-cyan-400'
 };
 
-// Format time from date
-const formatTime = (dateStr) => {
-  if (!dateStr) return '-';
-  const d = new Date(dateStr);
-  return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+// For date-only strings (e.g. "2026-04-09"), JS parses as UTC midnight,
+// which appears as 05:30 AM in IST. In that case, prefer createdAt for display time.
+const hasExplicitTime = (dateValue) => {
+  if (!dateValue) return false;
+  const d = new Date(dateValue);
+  if (Number.isNaN(d.getTime())) return false;
+  return (
+    d.getUTCHours() !== 0 ||
+    d.getUTCMinutes() !== 0 ||
+    d.getUTCSeconds() !== 0 ||
+    d.getUTCMilliseconds() !== 0
+  );
+};
+
+const formatTime = (payment) => {
+  if (!payment) return '-';
+
+  const paymentDate = payment.paymentDate ? new Date(payment.paymentDate) : null;
+  const createdAt = payment.createdAt ? new Date(payment.createdAt) : null;
+
+  const sourceDate = hasExplicitTime(payment.paymentDate)
+    ? paymentDate
+    : (createdAt || paymentDate);
+
+  if (!sourceDate || Number.isNaN(sourceDate.getTime())) return '-';
+
+  return sourceDate.toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  });
 };
 
 // Get today's date as YYYY-MM-DD
@@ -352,7 +378,7 @@ export default function CollectionsPage() {
                       <td className="text-slate-300 whitespace-nowrap">
                         <div className="flex items-center gap-1.5">
                           <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                          {formatTime(payment.paymentDate)}
+                          {formatTime(payment)}
                         </div>
                       </td>
                       <td className="font-medium text-white">
