@@ -194,6 +194,24 @@
     .table td:first-child {
       @apply sticky left-0 z-10 bg-slate-800;
     }
+
+    .customer-invoices-container {
+      padding-left: 0;
+      padding-right: 0;
+    }
+
+    /* Customer Details invoices table: prevent sticky-column overlap bleed */
+    .customer-invoices-table th:first-child,
+    .customer-invoices-table td:first-child {
+      left: 0;
+      background: rgb(30 41 59);
+      border-right: 1px solid rgba(51, 65, 85, 0.8);
+      box-shadow: 6px 0 10px -8px rgba(2, 6, 23, 0.95);
+    }
+
+    .customer-invoices-table th:first-child {
+      @apply z-20;
+    }
   }
 
   /* Labels */
