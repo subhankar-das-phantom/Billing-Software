@@ -80,6 +80,13 @@ export default function InvoiceViewPage() {
   const { id } = useParams();
   const [updating, setUpdating] = useState(false);
   const [showColumnSettings, setShowColumnSettings] = useState(false);
+  const [isSingleCopy, setIsSingleCopy] = useState(() => {
+    try {
+      return localStorage.getItem('invoiceCopyMode') === 'single';
+    } catch {
+      return false;
+    }
+  });
   const printRef = useRef();
   const { success, error } = useToast();
 
@@ -224,6 +231,14 @@ export default function InvoiceViewPage() {
     window.print();
   };
 
+  const toggleCopyMode = () => {
+    setIsSingleCopy((prev) => {
+      const next = !prev;
+      localStorage.setItem('invoiceCopyMode', next ? 'single' : 'double');
+      return next;
+    });
+  };
+
   const handleCancelInvoice = async () => {
     if (!window.confirm('Are you sure you want to cancel this invoice? This action cannot be undone.')) {
       return;
@@ -285,7 +300,7 @@ export default function InvoiceViewPage() {
   const StatusIcon = statusConfig[invoice.status]?.icon || FileText;
 
   // Reusable Invoice Copy Component
-  const InvoiceCopy = ({ copyType }) => (
+  const InvoiceCopy = () => (
     <div 
       className="invoice-copy bg-white flex flex-col"
       style={{ 
@@ -474,6 +489,17 @@ export default function InvoiceViewPage() {
           Print
         </motion.button>
 
+        <motion.button
+          onClick={toggleCopyMode}
+          className="btn btn-secondary flex items-center gap-2"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          title="Switch between single and double print copies"
+        >
+          <FileText className="w-5 h-5" />
+          {isSingleCopy ? 'Single Copy' : 'Double Copy'}
+        </motion.button>
+
         <AnimatePresence mode="wait">
           {invoice.status === 'Created' && (
             <motion.button
@@ -652,7 +678,29 @@ export default function InvoiceViewPage() {
         </motion.div>
       )}
 
-      {/* Invoice Print Area - Two Copies on A4 */}
+      {/* Copy Mode Control */}
+      <motion.div variants={cardVariants} className="glass-card p-4 no-print">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-white">Copy Mode</p>
+            <p className="text-xs text-slate-400">Choose whether to print one copy or both customer and business copies.</p>
+          </div>
+          <motion.button
+            onClick={toggleCopyMode}
+            className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+              isSingleCopy
+                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                : 'bg-blue-500/20 text-blue-300 border-blue-500/40'
+            }`}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+          >
+            {isSingleCopy ? 'Single Copy (1x)' : 'Double Copy (2x)'}
+          </motion.button>
+        </div>
+      </motion.div>
+
+      {/* Invoice Print Area */}
       <div className="flex justify-center">
         <motion.div
           ref={printRef}
@@ -666,18 +714,18 @@ export default function InvoiceViewPage() {
             padding: '2mm'
           }}
         >
-          {/* Customer Copy - Top Half */}
           <InvoiceCopy />
-          
-          {/* Cut Line */}
-          <div className="flex items-center my-2" style={{ borderTop: '1px dashed #000' }}>
-            <span className="text-[9px] text-gray-600 mx-auto bg-white px-2" style={{ marginTop: '-10px' }}>
-              ✂ Cut Here
-            </span>
-          </div>
-          
-          {/* Office Copy - Bottom Half */}
-          <InvoiceCopy  />
+
+          {!isSingleCopy && (
+            <>
+              <div className="flex items-center my-2" style={{ borderTop: '1px dashed #000' }}>
+                <span className="text-[9px] text-gray-600 mx-auto bg-white px-2" style={{ marginTop: '-10px' }}>
+                  Cut Here
+                </span>
+              </div>
+              <InvoiceCopy />
+            </>
+          )}
         </motion.div>
       </div>
     </motion.div>
