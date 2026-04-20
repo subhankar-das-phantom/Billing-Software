@@ -160,6 +160,7 @@ exports.getCollections = async (req, res, next) => {
     const normalizedME = manualEntries.map(me => ({
       _id: me._id,
       paymentDate: me.entryDate,
+      createdAt: me.createdAt,
       amount: me.amount,
       paymentMethod: me.paymentMethod || 'Cash',
       referenceNumber: me.referenceNumber || '',
