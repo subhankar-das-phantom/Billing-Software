@@ -988,15 +988,15 @@ export default function CustomerDetailsPage() {
                     </motion.div>
                   </div>
                 ) : (
-                  <div className="table-container">
-                    <table className="table">
+                  <div className="table-container customer-invoices-container">
+                    <table className="table customer-invoices-table">
                       <thead>
                         <motion.tr
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.2 }}
                         >
-                          <th>Invoice #</th>
+                          <th className="text-left">Invoice #</th>
                           <th>Date</th>
                           <th>Items</th>
                           <th>Amount</th>
