@@ -141,7 +141,7 @@ export default function LoginPage() {
       )}
 
       {/* Animated Grid Background - CSS only, no JS animation */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:50px_50px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]" />
+      <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:50px_50px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]" />
 
       {/* Login Card */}
       <motion.div
@@ -158,7 +158,7 @@ export default function LoginPage() {
           {/* Card Shimmer Effect - Only on desktop */}
           {!shouldReduceMotion && (
             <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent"
+              className="absolute inset-0 pointer-events-none bg-gradient-to-r from-transparent via-white/5 to-transparent"
               animate={{ x: ['-100%', '100%'], transition: { duration: 2, repeat: Infinity, ease: 'linear' } }}
             />
           )}
@@ -349,7 +349,7 @@ export default function LoginPage() {
               Don't have an account?{' '}
               <Link 
                 to="/register" 
-                className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                className="relative z-20 inline-flex items-center text-blue-400 hover:text-blue-300 font-medium transition-colors"
               >
                 Create one here
               </Link>
@@ -383,7 +383,7 @@ export default function LoginPage() {
         {!shouldReduceMotion && [...Array(5)].map((_, i) => (
           <motion.div
             key={i}
-            className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+            className="absolute w-1 h-1 bg-blue-400/30 rounded-full pointer-events-none"
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`
