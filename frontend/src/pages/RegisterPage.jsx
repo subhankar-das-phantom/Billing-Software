@@ -232,7 +232,7 @@ export default function RegisterPage() {
       )}
 
       {/* Animated Grid Background - CSS only, no JS animation */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:50px_50px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]" />
+      <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:50px_50px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]" />
 
       {/* Register Card */}
       <motion.div
@@ -249,7 +249,7 @@ export default function RegisterPage() {
           {/* Card Shimmer Effect - Only on desktop */}
           {!shouldReduceMotion && (
             <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent"
+              className="absolute inset-0 pointer-events-none bg-gradient-to-r from-transparent via-white/5 to-transparent"
               animate={{ x: ['-100%', '100%'], transition: { duration: 2, repeat: Infinity, ease: 'linear' } }}
             />
           )}
@@ -403,7 +403,7 @@ export default function RegisterPage() {
               Already have an account?{' '}
               <Link 
                 to="/login" 
-                className="text-emerald-400 hover:text-emerald-300 font-medium transition-colors"
+                className="relative z-20 inline-flex items-center text-emerald-400 hover:text-emerald-300 font-medium transition-colors"
               >
                 Sign in here
               </Link>
@@ -437,7 +437,7 @@ export default function RegisterPage() {
         {!shouldReduceMotion && [...Array(5)].map((_, i) => (
           <motion.div
             key={i}
-            className="absolute w-1 h-1 bg-emerald-400/30 rounded-full"
+            className="absolute w-1 h-1 bg-emerald-400/30 rounded-full pointer-events-none"
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`
