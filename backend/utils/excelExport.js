@@ -1,5 +1,17 @@
 const ExcelJS = require('exceljs');
 
+const formatISTDate = (dateValue) => {
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return '';
+
+  return new Intl.DateTimeFormat('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  }).format(date);
+};
+
 /**
  * Generate beautifully formatted Excel export for invoices
  * @param {Array} invoices - Array of invoice objects
@@ -51,7 +63,7 @@ const generateInvoiceExcel = async (invoices, options = {}) => {
   invoices.forEach((invoice, index) => {
     const row = sheet.addRow({
       invoiceNumber: invoice.invoiceNumber,
-      invoiceDate: new Date(invoice.invoiceDate),
+      invoiceDate: formatISTDate(invoice.invoiceDate),
       customerName: invoice.customer?.customerName || 'N/A',
       phone: invoice.customer?.phone || '',
       gstin: invoice.customer?.gstin || '',
@@ -73,9 +85,6 @@ const generateInvoiceExcel = async (invoices, options = {}) => {
       };
     }
 
-    // Format date
-    row.getCell('invoiceDate').numFmt = 'dd mmm yyyy';
-
     // Format currency cells
     ['subtotal', 'gst', 'discount', 'netTotal'].forEach(key => {
       const cell = row.getCell(key);
@@ -84,7 +93,7 @@ const generateInvoiceExcel = async (invoices, options = {}) => {
     });
 
     // Center align some columns
-    ['itemCount', 'paymentType', 'status'].forEach(key => {
+    ['invoiceDate', 'itemCount', 'paymentType', 'status'].forEach(key => {
       row.getCell(key).alignment = { horizontal: 'center' };
     });
 
@@ -213,7 +222,7 @@ const generateInvoiceCSV = (invoices) => {
 
   const rows = invoices.map(inv => [
     inv.invoiceNumber,
-    new Date(inv.invoiceDate).toLocaleDateString(),
+    formatISTDate(inv.invoiceDate),
     inv.customer?.customerName || 'N/A',
     inv.customer?.phone || '',
     inv.customer?.gstin || '',
