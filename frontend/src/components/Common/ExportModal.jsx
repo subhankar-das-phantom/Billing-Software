@@ -17,6 +17,22 @@ const ExportModal = ({ isOpen, onClose, data, onExport, stats, entityType = 'inv
     endDate: '',
     preset: 'all'
   });
+  const toLocalYMD = (date) => {
+    if (!date) return '';
+    const d = new Date(date);
+    if (Number.isNaN(d.getTime())) return '';
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  const parseLocalYMD = (dateStr) => {
+    if (!dateStr) return null;
+    const parts = dateStr.split('-').map(Number);
+    if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+    const [year, month, day] = parts;
+    return new Date(year, month - 1, day);
+  };
 
   const getPresetDates = (preset) => {
     const now = new Date();
@@ -28,8 +44,8 @@ const ExportModal = ({ isOpen, onClose, data, onExport, stats, entityType = 'inv
       case 'thisMonth': {
         const start = new Date(now.getFullYear(), now.getMonth(), 1);
         return {
-          startDate: start.toISOString().split('T')[0],
-          endDate: today.toISOString().split('T')[0],
+          startDate: toLocalYMD(start),
+          endDate: toLocalYMD(today),
           preset
         };
       }
@@ -37,16 +53,16 @@ const ExportModal = ({ isOpen, onClose, data, onExport, stats, entityType = 'inv
         const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         const end = new Date(now.getFullYear(), now.getMonth(), 0);
         return {
-          startDate: start.toISOString().split('T')[0],
-          endDate: end.toISOString().split('T')[0],
+          startDate: toLocalYMD(start),
+          endDate: toLocalYMD(end),
           preset
         };
       }
       case 'thisYear': {
         const start = new Date(now.getFullYear(), 0, 1);
         return {
-          startDate: start.toISOString().split('T')[0],
-          endDate: today.toISOString().split('T')[0],
+          startDate: toLocalYMD(start),
+          endDate: toLocalYMD(today),
           preset
         };
       }
@@ -54,8 +70,8 @@ const ExportModal = ({ isOpen, onClose, data, onExport, stats, entityType = 'inv
         const start = new Date(today);
         start.setDate(start.getDate() - 30);
         return {
-          startDate: start.toISOString().split('T')[0],
-          endDate: today.toISOString().split('T')[0],
+          startDate: toLocalYMD(start),
+          endDate: toLocalYMD(today),
           preset
         };
       }
@@ -63,8 +79,8 @@ const ExportModal = ({ isOpen, onClose, data, onExport, stats, entityType = 'inv
         const start = new Date(today);
         start.setDate(start.getDate() - 90);
         return {
-          startDate: start.toISOString().split('T')[0],
-          endDate: today.toISOString().split('T')[0],
+          startDate: toLocalYMD(start),
+          endDate: toLocalYMD(today),
           preset
         };
       }
@@ -291,17 +307,17 @@ const ExportModal = ({ isOpen, onClose, data, onExport, stats, entityType = 'inv
                     <Calendar className="w-5 h-5" />
                     <span className="font-medium text-sm">
                       Selected Period:{' '}
-                      {new Date(exportDateRange.startDate).toLocaleDateString('en-US', {
+                      {parseLocalYMD(exportDateRange.startDate)?.toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
                         year: 'numeric'
-                      })}{' '}
+                      }) || exportDateRange.startDate}{' '}
                       -{' '}
-                      {new Date(exportDateRange.endDate).toLocaleDateString('en-US', {
+                      {parseLocalYMD(exportDateRange.endDate)?.toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
                         year: 'numeric'
-                      })}
+                      }) || exportDateRange.endDate}
                     </span>
                   </div>
                 </motion.div>
