@@ -3,22 +3,50 @@ const Product = require('../models/Product');
 const Customer = require('../models/Customer');
 const { LOW_STOCK_THRESHOLD } = require('../config/constants');
 
+const IST_OFFSET_MS = (5 * 60 + 30) * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const getISTDateRanges = (referenceDate = new Date()) => {
+  const shiftedNowMs = referenceDate.getTime() + IST_OFFSET_MS;
+  const shiftedNow = new Date(shiftedNowMs);
+  const year = shiftedNow.getUTCFullYear();
+  const month = shiftedNow.getUTCMonth();
+  const day = shiftedNow.getUTCDate();
+
+  const todayStartMs = Date.UTC(year, month, day) - IST_OFFSET_MS;
+  const tomorrowStartMs = todayStartMs + DAY_MS;
+  const yesterdayStartMs = todayStartMs - DAY_MS;
+  const monthStartMs = Date.UTC(year, month, 1) - IST_OFFSET_MS;
+  const nextMonthStartMs = Date.UTC(year, month + 1, 1) - IST_OFFSET_MS;
+  const prevMonthStartMs = Date.UTC(year, month - 1, 1) - IST_OFFSET_MS;
+  const prevMonthEndMs = monthStartMs - 1;
+
+  return {
+    todayStart: new Date(todayStartMs),
+    tomorrowStart: new Date(tomorrowStartMs),
+    yesterdayStart: new Date(yesterdayStartMs),
+    monthStart: new Date(monthStartMs),
+    nextMonthStart: new Date(nextMonthStartMs),
+    prevMonthStart: new Date(prevMonthStartMs),
+    prevMonthEnd: new Date(prevMonthEndMs)
+  };
+};
+
 // @desc    Get dashboard stats
 // @route   GET /api/dashboard/stats
 // @access  Private
 exports.getStats = async (req, res, next) => {
   try {
-    // Get date ranges
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-    const prevMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-    const prevMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+    // Use fixed IST boundaries for business-day metrics regardless of server timezone.
+    const {
+      todayStart,
+      tomorrowStart,
+      yesterdayStart,
+      monthStart,
+      nextMonthStart,
+      prevMonthStart,
+      prevMonthEnd
+    } = getISTDateRanges();
     const nonCancelledInvoiceQuery = { status: { $ne: 'Cancelled' } };
 
     // Helper function to calculate percentage change
@@ -54,32 +82,32 @@ exports.getStats = async (req, res, next) => {
       ]),
       
       // Today's invoices
-      Invoice.countDocuments({ invoiceDate: { $gte: today, $lt: tomorrow }, ...nonCancelledInvoiceQuery }),
+      Invoice.countDocuments({ invoiceDate: { $gte: todayStart, $lt: tomorrowStart }, ...nonCancelledInvoiceQuery }),
       
       // Yesterday's invoices
-      Invoice.countDocuments({ invoiceDate: { $gte: yesterday, $lt: today }, ...nonCancelledInvoiceQuery }),
+      Invoice.countDocuments({ invoiceDate: { $gte: yesterdayStart, $lt: todayStart }, ...nonCancelledInvoiceQuery }),
       
       // Today's sales
       Invoice.aggregate([
-        { $match: { invoiceDate: { $gte: today, $lt: tomorrow }, ...nonCancelledInvoiceQuery } },
+        { $match: { invoiceDate: { $gte: todayStart, $lt: tomorrowStart }, ...nonCancelledInvoiceQuery } },
         { $group: { _id: null, total: { $sum: '$totals.netTotal' } } }
       ]),
       
       // Yesterday's sales
       Invoice.aggregate([
-        { $match: { invoiceDate: { $gte: yesterday, $lt: today }, ...nonCancelledInvoiceQuery } },
+        { $match: { invoiceDate: { $gte: yesterdayStart, $lt: todayStart }, ...nonCancelledInvoiceQuery } },
         { $group: { _id: null, total: { $sum: '$totals.netTotal' } } }
       ]),
       
       // This month's sales
       Invoice.aggregate([
-        { $match: { invoiceDate: { $gte: monthStart, $lte: monthEnd }, ...nonCancelledInvoiceQuery } },
+        { $match: { invoiceDate: { $gte: monthStart, $lt: nextMonthStart }, ...nonCancelledInvoiceQuery } },
         { $group: { _id: null, total: { $sum: '$totals.netTotal' } } }
       ]),
       
       // Previous month's sales
       Invoice.aggregate([
-        { $match: { invoiceDate: { $gte: prevMonthStart, $lte: prevMonthEnd }, ...nonCancelledInvoiceQuery } },
+        { $match: { invoiceDate: { $gte: prevMonthStart, $lt: monthStart }, ...nonCancelledInvoiceQuery } },
         { $group: { _id: null, total: { $sum: '$totals.netTotal' } } }
       ]),
       
