@@ -21,6 +21,22 @@ const buildFuzzyPattern = (str = '') => {
   return [...limited].map(ch => escapeRegex(ch)).join('.*');
 };
 
+const parseISTDateBoundary = (dateInput, endOfDay = false) => {
+  const raw = String(dateInput || '').trim();
+  if (!raw) return null;
+
+  const ymdMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (ymdMatch) {
+    const [, year, month, day] = ymdMatch;
+    const timePart = endOfDay ? '23:59:59.999' : '00:00:00.000';
+    const parsed = new Date(`${year}-${month}-${day}T${timePart}+05:30`);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
 const hasTransientTransactionLabel = (error) => {
   if (!error) return false;
 
@@ -64,17 +80,15 @@ exports.getInvoices = async (req, res, next) => {
       query.invoiceDate = {};
 
       if (req.query.startDate) {
-        const start = new Date(req.query.startDate);
-        start.setHours(0, 0, 0, 0);
-        if (!Number.isNaN(start.getTime())) {
+        const start = parseISTDateBoundary(req.query.startDate, false);
+        if (start) {
           query.invoiceDate.$gte = start;
         }
       }
 
       if (req.query.endDate) {
-        const end = new Date(req.query.endDate);
-        end.setHours(23, 59, 59, 999);
-        if (!Number.isNaN(end.getTime())) {
+        const end = parseISTDateBoundary(req.query.endDate, true);
+        if (end) {
           query.invoiceDate.$lte = end;
         }
       }
@@ -970,10 +984,20 @@ exports.exportInvoices = async (req, res, next) => {
     } else {
       // Date range filter
       if (startDate && endDate) {
-        query.invoiceDate = {
-          $gte: new Date(startDate),
-          $lte: new Date(endDate)
-        };
+        const start = parseISTDateBoundary(startDate, false);
+        const end = parseISTDateBoundary(endDate, true);
+
+        if (start && end) {
+          query.invoiceDate = {
+            $gte: start,
+            $lte: end
+          };
+        } else {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid date range for export'
+          });
+        }
       }
     }
 
