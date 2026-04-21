@@ -19,6 +19,7 @@ exports.getStats = async (req, res, next) => {
     const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
     const prevMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
     const prevMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+    const nonCancelledInvoiceQuery = { status: { $ne: 'Cancelled' } };
 
     // Helper function to calculate percentage change
     const calculateGrowth = (current, previous) => {
@@ -31,6 +32,7 @@ exports.getStats = async (req, res, next) => {
       totalProducts,
       totalCustomers,
       totalInvoices,
+      totalInvoiceAmountAgg,
       todayInvoices,
       yesterdayInvoices,
       todaySalesAgg,
@@ -45,35 +47,39 @@ exports.getStats = async (req, res, next) => {
       // Total counts
       Product.countDocuments({ isActive: true }),
       Customer.countDocuments({ isActive: true }),
-      Invoice.countDocuments(),
+      Invoice.countDocuments(nonCancelledInvoiceQuery),
+      Invoice.aggregate([
+        { $match: nonCancelledInvoiceQuery },
+        { $group: { _id: null, total: { $sum: '$totals.netTotal' } } }
+      ]),
       
       // Today's invoices
-      Invoice.countDocuments({ invoiceDate: { $gte: today, $lt: tomorrow }, status: { $ne: 'Cancelled' } }),
+      Invoice.countDocuments({ invoiceDate: { $gte: today, $lt: tomorrow }, ...nonCancelledInvoiceQuery }),
       
       // Yesterday's invoices
-      Invoice.countDocuments({ invoiceDate: { $gte: yesterday, $lt: today }, status: { $ne: 'Cancelled' } }),
+      Invoice.countDocuments({ invoiceDate: { $gte: yesterday, $lt: today }, ...nonCancelledInvoiceQuery }),
       
       // Today's sales
       Invoice.aggregate([
-        { $match: { invoiceDate: { $gte: today, $lt: tomorrow }, status: { $ne: 'Cancelled' } } },
+        { $match: { invoiceDate: { $gte: today, $lt: tomorrow }, ...nonCancelledInvoiceQuery } },
         { $group: { _id: null, total: { $sum: '$totals.netTotal' } } }
       ]),
       
       // Yesterday's sales
       Invoice.aggregate([
-        { $match: { invoiceDate: { $gte: yesterday, $lt: today }, status: { $ne: 'Cancelled' } } },
+        { $match: { invoiceDate: { $gte: yesterday, $lt: today }, ...nonCancelledInvoiceQuery } },
         { $group: { _id: null, total: { $sum: '$totals.netTotal' } } }
       ]),
       
       // This month's sales
       Invoice.aggregate([
-        { $match: { invoiceDate: { $gte: monthStart, $lte: monthEnd }, status: { $ne: 'Cancelled' } } },
+        { $match: { invoiceDate: { $gte: monthStart, $lte: monthEnd }, ...nonCancelledInvoiceQuery } },
         { $group: { _id: null, total: { $sum: '$totals.netTotal' } } }
       ]),
       
       // Previous month's sales
       Invoice.aggregate([
-        { $match: { invoiceDate: { $gte: prevMonthStart, $lte: prevMonthEnd }, status: { $ne: 'Cancelled' } } },
+        { $match: { invoiceDate: { $gte: prevMonthStart, $lte: prevMonthEnd }, ...nonCancelledInvoiceQuery } },
         { $group: { _id: null, total: { $sum: '$totals.netTotal' } } }
       ]),
       
@@ -85,13 +91,14 @@ exports.getStats = async (req, res, next) => {
       Product.countDocuments({ isActive: true, currentStockQty: { $lte: LOW_STOCK_THRESHOLD } }),
       
       // Recent invoices
-      Invoice.find({ status: { $ne: 'Cancelled' } })
+      Invoice.find(nonCancelledInvoiceQuery)
         .sort({ createdAt: -1 })
         .limit(5)
         .select('invoiceNumber invoiceDate customer.customerName totals.netTotal status')
     ]);
 
     // Extract aggregation results
+    const totalInvoiceAmount = totalInvoiceAmountAgg[0]?.total || 0;
     const todaySales = todaySalesAgg[0]?.total || 0;
     const yesterdaySales = yesterdaySalesAgg[0]?.total || 0;
     const monthSales = monthSalesAgg[0]?.total || 0;
@@ -112,6 +119,7 @@ exports.getStats = async (req, res, next) => {
         totalProducts,
         totalCustomers,
         totalInvoices,
+        totalInvoiceAmount,
         todayInvoices,
         todaySales,
         monthSales,
