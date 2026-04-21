@@ -176,17 +176,27 @@ export default function InvoicesPage() {
   const handleExport = async ({ format, dateRange }) => {
     try {
       let dataToExport = invoices;
+      const parseDateBoundary = (dateStr, endOfDay = false) => {
+        if (!dateStr) return null;
+        const parts = dateStr.split('-').map(Number);
+        if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+        const [year, month, day] = parts;
+        return endOfDay
+          ? new Date(year, month - 1, day, 23, 59, 59, 999)
+          : new Date(year, month - 1, day, 0, 0, 0, 0);
+      };
 
       // Filter by date range if specified
       if (dateRange.startDate && dateRange.endDate) {
-        const start = new Date(dateRange.startDate);
-        const end = new Date(dateRange.endDate);
-        end.setHours(23, 59, 59, 999); // Include full end date
+        const start = parseDateBoundary(dateRange.startDate, false);
+        const end = parseDateBoundary(dateRange.endDate, true);
 
-        dataToExport = dataToExport.filter(invoice => {
-          const invoiceDate = new Date(invoice.invoiceDate);
-          return invoiceDate >= start && invoiceDate <= end;
-        });
+        if (start && end) {
+          dataToExport = dataToExport.filter(invoice => {
+            const invoiceDate = new Date(invoice.invoiceDate);
+            return invoiceDate >= start && invoiceDate <= end;
+          });
+        }
       }
 
       if (dataToExport.length === 0) {
@@ -211,7 +221,11 @@ export default function InvoicesPage() {
       const extensionMap = { excel: 'xlsx', pdf: 'pdf', csv: 'csv' };
       const extension = extensionMap[format] || 'xlsx';
       
-      link.download = `invoices_export_${new Date().toISOString().split('T')[0]}.${extension}`;
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      link.download = `invoices_export_${y}-${m}-${d}.${extension}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
