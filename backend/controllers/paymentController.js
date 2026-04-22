@@ -7,6 +7,17 @@ const { trackActivity, ACTIVITY_TYPES } = require('../utils/activityTracker');
 
 // Round to 2 decimal places safely
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+const getRoundedNumber = (n) => round2(Number(n) || 0);
+
+const derivePaymentStatus = (totalAmount, paidAmount) => {
+  const roundedTotal = getRoundedNumber(totalAmount);
+  const roundedPaid = getRoundedNumber(paidAmount);
+  const remaining = round2(roundedTotal - roundedPaid);
+
+  if (remaining <= 0 && roundedPaid > 0) return 'Paid';
+  if (roundedPaid > 0) return 'Partial';
+  return 'Unpaid';
+};
 
 const hasExplicitTime = (dateValue) => {
   if (!dateValue) return false;
@@ -224,20 +235,21 @@ exports.createPayment = async (req, res, next) => {
 
     // Calculate remaining amount (handle undefined paidAmount for old invoices)
     // Use round2 to avoid floating-point precision drift (e.g. 0.01 vs 0.009999...)
-    const remainingAmount = round2(invoice.totals.netTotal - (invoice.paidAmount || 0));
+    const remainingAmount = round2(getRoundedNumber(invoice.totals.netTotal) - getRoundedNumber(invoice.paidAmount));
+    const normalizedAmount = getRoundedNumber(amount);
     
     // Validate payment amount
-    if (amount <= 0) {
+    if (normalizedAmount <= 0) {
       return res.status(400).json({
         success: false,
         message: 'Payment amount must be greater than 0'
       });
     }
 
-    if (round2(amount) > remainingAmount) {
+    if (normalizedAmount > remainingAmount) {
       return res.status(400).json({
         success: false,
-        message: `Payment amount (₹${amount}) exceeds remaining balance (₹${remainingAmount})`
+        message: `Payment amount (₹${normalizedAmount}) exceeds remaining balance (₹${remainingAmount})`
       });
     }
 
@@ -245,7 +257,7 @@ exports.createPayment = async (req, res, next) => {
     const payment = await Payment.create({
       invoice: invoiceId,
       customer: invoice.customer._id,
-      amount,
+      amount: normalizedAmount,
       paymentDate: paymentDate || new Date(),
       paymentMethod: paymentMethod || 'Cash',
       referenceNumber: referenceNumber || '',
@@ -259,8 +271,8 @@ exports.createPayment = async (req, res, next) => {
     });
 
     // Update invoice paid amount and status
-    const newPaidAmount = (invoice.paidAmount || 0) + amount;
-    const newPaymentStatus = newPaidAmount >= invoice.totals.netTotal ? 'Paid' : 'Partial';
+    const newPaidAmount = getRoundedNumber(getRoundedNumber(invoice.paidAmount) + normalizedAmount);
+    const newPaymentStatus = derivePaymentStatus(invoice.totals.netTotal, newPaidAmount);
 
     await Invoice.findByIdAndUpdate(invoiceId, {
       paidAmount: newPaidAmount,
@@ -269,14 +281,14 @@ exports.createPayment = async (req, res, next) => {
 
     // Update customer outstanding balance (decrease by payment amount, but don't go below 0)
     const customer = await Customer.findById(invoice.customer._id);
-    const currentBalance = customer?.outstandingBalance || 0;
-    const newBalance = Math.max(0, currentBalance - amount);
+    const currentBalance = getRoundedNumber(customer?.outstandingBalance);
+    const newBalance = Math.max(0, round2(currentBalance - normalizedAmount));
     await Customer.findByIdAndUpdate(invoice.customer._id, {
       outstandingBalance: newBalance
     });
 
     // Track employee activity
-    trackActivity(req, ACTIVITY_TYPES.PAYMENT_RECORDED, amount);
+    trackActivity(req, ACTIVITY_TYPES.PAYMENT_RECORDED, normalizedAmount);
 
     res.status(201).json({
       success: true,
@@ -284,7 +296,7 @@ exports.createPayment = async (req, res, next) => {
       invoiceUpdate: {
         paidAmount: newPaidAmount,
         paymentStatus: newPaymentStatus,
-        remainingAmount: invoice.totals.netTotal - newPaidAmount
+        remainingAmount: round2(getRoundedNumber(invoice.totals.netTotal) - newPaidAmount)
       }
     });
   } catch (error) {
@@ -475,8 +487,8 @@ exports.updatePayment = async (req, res, next) => {
       }
 
       // How much room is available?  remaining + old payment amount
-      const currentRemaining = round2(invoice.totals.netTotal - (invoice.paidAmount || 0));
-      const maxAllowed = round2(currentRemaining + payment.amount);
+      const currentRemaining = round2(getRoundedNumber(invoice.totals.netTotal) - getRoundedNumber(invoice.paidAmount));
+      const maxAllowed = round2(currentRemaining + getRoundedNumber(payment.amount));
 
       if (newAmount > maxAllowed) {
         return res.status(400).json({
@@ -486,15 +498,10 @@ exports.updatePayment = async (req, res, next) => {
       }
 
       // Update invoice paidAmount by the delta
-      const delta = round2(newAmount - payment.amount);
+      const delta = round2(newAmount - getRoundedNumber(payment.amount));
       if (delta !== 0) {
-        const newPaidAmount = round2((invoice.paidAmount || 0) + delta);
-        let newPaymentStatus = 'Unpaid';
-        if (newPaidAmount >= invoice.totals.netTotal) {
-          newPaymentStatus = 'Paid';
-        } else if (newPaidAmount > 0) {
-          newPaymentStatus = 'Partial';
-        }
+        const newPaidAmount = round2(getRoundedNumber(invoice.paidAmount) + delta);
+        const newPaymentStatus = derivePaymentStatus(invoice.totals.netTotal, newPaidAmount);
 
         await Invoice.findByIdAndUpdate(invoice._id, {
           paidAmount: newPaidAmount,
@@ -504,7 +511,7 @@ exports.updatePayment = async (req, res, next) => {
         // Update customer outstanding balance (for Credit invoices)
         if (invoice.paymentType === 'Credit') {
           const customer = await Customer.findById(payment.customer);
-          const currentBalance = customer?.outstandingBalance || 0;
+          const currentBalance = getRoundedNumber(customer?.outstandingBalance);
           // delta > 0 means more paid → reduce outstanding
           // delta < 0 means less paid → increase outstanding
           const newBalance = Math.max(0, round2(currentBalance - delta));
@@ -559,13 +566,8 @@ exports.deletePayment = async (req, res, next) => {
     }
 
     // Reverse the payment on invoice
-    const newPaidAmount = Math.max(0, invoice.paidAmount - payment.amount);
-    let newPaymentStatus = 'Unpaid';
-    if (newPaidAmount > 0 && newPaidAmount < invoice.totals.netTotal) {
-      newPaymentStatus = 'Partial';
-    } else if (newPaidAmount >= invoice.totals.netTotal) {
-      newPaymentStatus = 'Paid';
-    }
+    const newPaidAmount = Math.max(0, round2(getRoundedNumber(invoice.paidAmount) - getRoundedNumber(payment.amount)));
+    const newPaymentStatus = derivePaymentStatus(invoice.totals.netTotal, newPaidAmount);
 
     await Invoice.findByIdAndUpdate(payment.invoice, {
       paidAmount: newPaidAmount,
@@ -588,3 +590,4 @@ exports.deletePayment = async (req, res, next) => {
     next(error);
   }
 };
+
