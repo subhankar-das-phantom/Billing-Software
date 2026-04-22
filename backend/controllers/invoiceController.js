@@ -59,6 +59,19 @@ const isRetryableInvoiceTransactionError = (error) => {
   return code === 112 || hasTransientTransactionLabel(error);
 };
 
+const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+const getRoundedNumber = (n) => round2(Number(n) || 0);
+
+const derivePaymentStatus = (totalAmount, paidAmount) => {
+  const roundedTotal = getRoundedNumber(totalAmount);
+  const roundedPaid = getRoundedNumber(paidAmount);
+  const remaining = round2(roundedTotal - roundedPaid);
+
+  if (remaining <= 0 && roundedPaid > 0) return 'Paid';
+  if (roundedPaid > 0) return 'Partial';
+  return 'Unpaid';
+};
+
 // @desc    Get all invoices
 // @route   GET /api/invoices
 // @access  Private
@@ -744,15 +757,8 @@ exports.updateInvoice = async (req, res, next) => {
     }
 
     // Recalculate paymentStatus based on new total vs existing paidAmount
-    const existingPaidAmount = existingInvoice.paidAmount || 0;
-    let newPaymentStatus;
-    if (existingPaidAmount >= totals.netTotal && totals.netTotal > 0) {
-      newPaymentStatus = 'Paid';
-    } else if (existingPaidAmount > 0) {
-      newPaymentStatus = 'Partial';
-    } else {
-      newPaymentStatus = existingInvoice.paymentStatus || 'Unpaid';
-    }
+    const existingPaidAmount = getRoundedNumber(existingInvoice.paidAmount);
+    const newPaymentStatus = derivePaymentStatus(totals.netTotal, existingPaidAmount);
 
     // Outstanding balance delta for Credit invoices
     // Use actual unpaid amounts (not raw totalsDelta) to account for paidAmount
