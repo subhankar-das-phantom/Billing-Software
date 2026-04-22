@@ -41,6 +41,21 @@ import { useToast } from '../context/ToastContext';
 import { invalidateCachePattern, useMotionConfig } from '../hooks';
 
 const LARGE_ROW_THRESHOLD = 20;
+const round2 = (n) => Math.round((Number(n || 0) + Number.EPSILON) * 100) / 100;
+
+const getInvoiceRemaining = (invoice) => {
+  const remaining = round2((invoice.totals?.netTotal || 0) - (invoice.paidAmount || 0));
+  return remaining > 0 ? remaining : 0;
+};
+
+const getInvoicePaymentStatus = (invoice) => {
+  const remaining = getInvoiceRemaining(invoice);
+  const paidAmount = round2(invoice.paidAmount || 0);
+
+  if (remaining <= 0 && paidAmount > 0) return 'Paid';
+  if (paidAmount > 0) return 'Partial';
+  return 'Unpaid';
+};
 
 // Animated counter component
 const AnimatedCounter = ({ value, prefix = '', suffix = '' }) => {
@@ -371,16 +386,12 @@ export default function CustomerDetailsPage() {
 
   const unpaidInvoices = useMemo(() => invoices.filter(inv => {
     if (inv.status === 'Cancelled') return false;
-    if (inv.paymentStatus === 'Paid') return false;
-
-    const remaining = (inv.totals?.netTotal || 0) - (inv.paidAmount || 0);
-    return remaining > 0;
+    return getInvoiceRemaining(inv) > 0;
   }), [invoices]);
 
   const invoiceOutstanding = useMemo(() => invoices.reduce((sum, inv) => {
     if (inv.status === 'Cancelled') return sum;
-    const remaining = (inv.totals?.netTotal || 0) - (inv.paidAmount || 0);
-    return sum + (remaining > 0 ? remaining : 0);
+    return sum + getInvoiceRemaining(inv);
   }, 0), [invoices]);
 
   const manualEntryOutstanding = useMemo(() => manualEntries.reduce((sum, entry) => {
@@ -1008,9 +1019,9 @@ export default function CustomerDetailsPage() {
                       <tbody>
                         {invoices.map((invoice, index) => {
                           const StatusIcon = statusConfig[invoice.status]?.icon || FileText;
-                          const paymentStatus = invoice.paymentStatus || 'Unpaid';
+                          const paymentStatus = getInvoicePaymentStatus(invoice);
                           const PaymentIcon = paymentStatusConfig[paymentStatus]?.icon || AlertTriangle;
-                          const remaining = (invoice.totals?.netTotal || 0) - (invoice.paidAmount || 0);
+                          const remaining = getInvoiceRemaining(invoice);
                           const isCancelled = invoice.status === 'Cancelled';
                           
                           return (
