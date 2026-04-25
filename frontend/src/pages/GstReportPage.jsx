@@ -218,7 +218,7 @@ export default function GstReportPage() {
       </motion.div>
 
       {/* ─── FILTERS PANEL ─── */}
-      <motion.div variants={itemVariants} className="glass-card p-4 sm:p-6">
+      <motion.div variants={itemVariants} className="glass-card p-4 sm:p-6 relative z-10">
         <div className="flex items-center gap-3 mb-4 sm:mb-5">
           <div className="p-2 bg-blue-500/20 rounded-lg">
             <Filter className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
@@ -424,7 +424,7 @@ export default function GstReportPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="glass-card p-10 sm:p-16 flex flex-col items-center justify-center gap-4 text-center"
+            className="glass-card p-10 sm:p-16 flex flex-col items-center justify-center gap-4 text-center relative z-0"
           >
             <motion.div
               className="p-4 bg-indigo-500/10 rounded-2xl"
