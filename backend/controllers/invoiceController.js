@@ -8,6 +8,7 @@ const { numberToWords } = require('../utils/numberToWords');
 const { generateInvoiceExcel, generateInvoiceCSV } = require('../utils/excelExport');
 const { getAttribution } = require('../middleware/auth');
 const { trackActivity, ACTIVITY_TYPES } = require('../utils/activityTracker');
+const { invalidateGstReportCache } = require('./gstReportController');
 
 const UPDATE_INVOICE_TRANSACTION_RETRIES = 3;
 const UPDATE_INVOICE_RETRY_BASE_DELAY_MS = 150;
@@ -448,6 +449,9 @@ exports.createInvoice = async (req, res, next) => {
 
     await session.commitTransaction();
 
+    // Invalidate GST report cache
+    invalidateGstReportCache(invoice[0].invoiceDate);
+
     // Track employee activity
     trackActivity(req, ACTIVITY_TYPES.INVOICE_CREATED, { amount: totals.netTotal });
 
@@ -804,6 +808,9 @@ exports.updateInvoice = async (req, res, next) => {
     // ── STEP 11: Commit ────────────────────────────────────────────────
     await session.commitTransaction();
 
+      // Invalidate GST report cache
+      invalidateGstReportCache(updatedInvoice.invoiceDate);
+
       return res.status(200).json({
       success: true,
       message: 'Invoice updated successfully',
@@ -909,6 +916,7 @@ exports.updateInvoiceStatus = async (req, res, next) => {
         await invoice.save({ session });
 
         await session.commitTransaction();
+        invalidateGstReportCache(invoice.invoiceDate);
       } catch (txError) {
         if (session?.inTransaction()) {
           await session.abortTransaction();
@@ -952,6 +960,7 @@ exports.updateInvoiceStatus = async (req, res, next) => {
 
           invoice.status = status;
           await invoice.save();
+          invalidateGstReportCache(invoice.invoiceDate);
         } else {
           throw txError;
         }
