@@ -35,6 +35,9 @@ const ProductDetailsPage = lazy(() => import('./pages/ProductDetailsPage'));
 const CreditNoteCreatePage = lazy(() => import('./pages/CreditNoteCreatePage'));
 const CreditNoteViewPage = lazy(() => import('./pages/CreditNoteViewPage'));
 
+// Report pages
+const GstReportPage = lazy(() => import('./pages/GstReportPage'));
+
 // Landing page (eagerly loaded — it's the entry point for new users)
 
 // Page loading spinner
@@ -134,6 +137,7 @@ function AppRoutes() {
           <Route path="/notes" element={<NotesPage />} />
           <Route path="/credits" element={<CreditsPage />} />
           <Route path="/collections" element={<CollectionsPage />} />
+          <Route path="/reports/gst" element={<GstReportPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           
           {/* Admin-only routes */}

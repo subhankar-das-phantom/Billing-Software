@@ -17,7 +17,8 @@ import {
   UsersRound,
   BarChart3,
   Shield,
-  Clock
+  Clock,
+  FileBarChart
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -38,6 +39,7 @@ const adminNavItems = [
   { path: '/employee-analytics', label: 'Employee Analytics', icon: BarChart3, adminOnly: true },
   { path: '/activity-log', label: 'Activity Log', icon: Clock, adminOnly: true },
   { path: '/manual-entries', label: 'Manual Entries', icon: FileText, adminOnly: true },
+  { path: '/reports/gst', label: 'GST Report', icon: FileBarChart, adminOnly: true },
 ];
 
 export default function Navbar() {
@@ -176,7 +178,7 @@ export default function Navbar() {
                 <motion.button
                   onClick={() => setAdminMenuOpen(!adminMenuOpen)}
                   className={`relative flex items-center gap-2 px-4 py-2.5 rounded-xl transition-colors ${
-                    location.pathname.includes('/employees') || location.pathname.includes('/employee-analytics')
+                    location.pathname.includes('/employees') || location.pathname.includes('/employee-analytics') || location.pathname.includes('/reports/')
                       ? 'text-blue-400 bg-blue-500/10'
                       : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                   }`}
