@@ -613,6 +613,7 @@ exports.createCustomer = async (req, res, next) => {
     } = req.body;
 
     const customer = await Customer.create({
+      tenantId: getTenantId(req),
       customerName,
       address,
       phone,
