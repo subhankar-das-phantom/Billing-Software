@@ -262,6 +262,7 @@ exports.createInvoice = async (req, res, next) => {
   const createRequestId = typeof req.body?.createRequestId === 'string'
     ? req.body.createRequestId.trim()
     : '';
+  const tenantId = getTenantId(req);
 
   if (req.body?.createRequestId !== undefined && !createRequestId) {
     return res.status(400).json({
@@ -271,7 +272,7 @@ exports.createInvoice = async (req, res, next) => {
   }
 
   if (createRequestId) {
-    const existingInvoice = await Invoice.findOne({ createRequestId });
+    const existingInvoice = await Invoice.findOne({ createRequestId, tenantId });
     if (existingInvoice) {
       return res.status(200).json({
         success: true,
@@ -390,6 +391,7 @@ exports.createInvoice = async (req, res, next) => {
 
     // Create invoice
     const invoice = await Invoice.create([{
+      tenantId,
       invoiceNumber,
       invoiceDate: new Date(),
       customer: {
@@ -479,7 +481,7 @@ exports.createInvoice = async (req, res, next) => {
       && (error?.keyPattern?.createRequestId || String(error?.message || '').includes('createRequestId'));
 
     if (duplicateCreateRequest) {
-      const existingInvoice = await Invoice.findOne({ createRequestId });
+      const existingInvoice = await Invoice.findOne({ createRequestId, tenantId });
       if (existingInvoice) {
         return res.status(200).json({
           success: true,
@@ -525,9 +527,13 @@ exports.updateInvoice = async (req, res, next) => {
 
     try {
       const { customerId, items, paymentType, notes, lastKnownUpdatedAt } = req.body;
+      const tenantId = getTenantId(req);
 
     // ── STEP 1: Fetch existing invoice ─────────────────────────────────
-    const existingInvoice = await Invoice.findById(req.params.id).session(session);
+    const existingInvoice = await Invoice.findOne({
+      _id: req.params.id,
+      tenantId
+    }).session(session);
 
     if (!existingInvoice) {
       await session.abortTransaction();
@@ -858,8 +864,12 @@ exports.updateInvoice = async (req, res, next) => {
 exports.updateInvoiceStatus = async (req, res, next) => {
   try {
     const { status } = req.body;
+    const tenantId = getTenantId(req);
 
-    const invoice = await Invoice.findById(req.params.id);
+    const invoice = await Invoice.findOne({
+      _id: req.params.id,
+      tenantId
+    });
 
     if (!invoice) {
       return res.status(404).json({
