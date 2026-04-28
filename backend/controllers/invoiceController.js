@@ -9,6 +9,7 @@ const { generateInvoiceExcel, generateInvoiceCSV } = require('../utils/excelExpo
 const { getAttribution } = require('../middleware/auth');
 const { trackActivity, ACTIVITY_TYPES } = require('../utils/activityTracker');
 const { invalidateGstReportCache } = require('./gstReportController');
+const getTenantId = require('../utils/getTenantId');
 
 const UPDATE_INVOICE_TRANSACTION_RETRIES = 3;
 const UPDATE_INVOICE_RETRY_BASE_DELAY_MS = 150;
@@ -81,8 +82,9 @@ exports.getInvoices = async (req, res, next) => {
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
     const skip = (page - 1) * limit;
+    const tenantId = getTenantId(req);
 
-    const query = {};
+    const query = { tenantId };
 
     // Filter by status
     if (req.query.status && req.query.status !== 'all') {
@@ -168,6 +170,8 @@ exports.getInvoiceStats = async (req, res, next) => {
   try {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
+    const tenantId = getTenantId(req);
+    const baseQuery = { tenantId };
 
     const tomorrowStart = new Date(todayStart);
     tomorrowStart.setDate(tomorrowStart.getDate() + 1);
@@ -176,9 +180,9 @@ exports.getInvoiceStats = async (req, res, next) => {
     const nextMonthStart = new Date(todayStart.getFullYear(), todayStart.getMonth() + 1, 1);
 
     const [totalInvoices, todayInvoices, thisMonthInvoices] = await Promise.all([
-      Invoice.countDocuments(),
-      Invoice.countDocuments({ invoiceDate: { $gte: todayStart, $lt: tomorrowStart } }),
-      Invoice.countDocuments({ invoiceDate: { $gte: monthStart, $lt: nextMonthStart } })
+      Invoice.countDocuments(baseQuery),
+      Invoice.countDocuments({ ...baseQuery, invoiceDate: { $gte: todayStart, $lt: tomorrowStart } }),
+      Invoice.countDocuments({ ...baseQuery, invoiceDate: { $gte: monthStart, $lt: nextMonthStart } })
     ]);
 
     res.status(200).json({
@@ -199,7 +203,11 @@ exports.getInvoiceStats = async (req, res, next) => {
 // @access  Private
 exports.getInvoice = async (req, res, next) => {
   try {
-    const invoice = await Invoice.findById(req.params.id);
+    const tenantId = getTenantId(req);
+    const invoice = await Invoice.findOne({
+      _id: req.params.id,
+      tenantId
+    });
 
     if (!invoice) {
       return res.status(404).json({
@@ -225,13 +233,14 @@ exports.getCustomerInvoices = async (req, res, next) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
+    const tenantId = getTenantId(req);
 
-    const invoices = await Invoice.find({ 'customer._id': req.params.customerId })
+    const invoices = await Invoice.find({ tenantId, 'customer._id': req.params.customerId })
       .sort({ invoiceDate: -1 })
       .skip(skip)
       .limit(limit);
 
-    const total = await Invoice.countDocuments({ 'customer._id': req.params.customerId });
+    const total = await Invoice.countDocuments({ tenantId, 'customer._id': req.params.customerId });
 
     res.status(200).json({
       success: true,
@@ -988,9 +997,10 @@ exports.updateInvoiceStatus = async (req, res, next) => {
 exports.exportInvoices = async (req, res, next) => {
   try {
     const { format = 'excel', invoices: invoiceIds, startDate, endDate } = req.query;
+    const tenantId = getTenantId(req);
 
     // Build query
-    const query = {};
+    const query = { tenantId };
     
     if (invoiceIds) {
       // Specific invoices
