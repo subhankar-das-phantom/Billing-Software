@@ -102,6 +102,7 @@ exports.getCollections = async (req, res, next) => {
 
     // Build manual entry query (payment_adjustment and credit_adjustment)
     const meQuery = {
+      tenantId,
       entryType: { $in: ['payment_adjustment', 'credit_adjustment'] }
     };
     if (startOfDay || endOfDay) {
