@@ -178,11 +178,9 @@ const invoiceSchema = new mongoose.Schema({
 });
 
 // Indexes
-invoiceSchema.index({ tenantId: 1 });
 invoiceSchema.index({ tenantId: 1, invoiceDate: -1 });
 invoiceSchema.index({ tenantId: 1, customer: 1 });
 invoiceSchema.index({ invoiceDate: -1 });
-invoiceSchema.index({ invoiceNumber: 1 });
 invoiceSchema.index({ 'customer.customerName': 1 });
 invoiceSchema.index({ 'customer._id': 1 });
 invoiceSchema.index({ 'customer._id': 1, invoiceDate: 1 });
