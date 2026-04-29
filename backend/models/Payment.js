@@ -1,6 +1,12 @@
 const mongoose = require('mongoose');
 
 const paymentSchema = new mongoose.Schema({
+  tenantId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Admin',
+    required: true,
+    index: true
+  },
   // Reference to the invoice being paid
   invoice: {
     type: mongoose.Schema.Types.ObjectId,
@@ -65,6 +71,8 @@ const paymentSchema = new mongoose.Schema({
 });
 
 // Indexes for quick lookups
+paymentSchema.index({ tenantId: 1, customer: 1 });
+paymentSchema.index({ tenantId: 1, paymentDate: -1 });
 paymentSchema.index({ invoice: 1 });
 paymentSchema.index({ customer: 1 });
 paymentSchema.index({ customer: 1, paymentDate: 1 });

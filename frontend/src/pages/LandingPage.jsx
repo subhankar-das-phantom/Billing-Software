@@ -113,9 +113,9 @@ function FloatingNav({ reduceMotion, isLoggedIn }) {
       initial={{ y: 0 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled
-        ? 'bg-slate-950/80 backdrop-blur-2xl border-b border-white/[0.06] shadow-2xl shadow-black/30'
-        : 'bg-transparent'
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 border-b ${scrolled
+        ? 'bg-slate-950/80 backdrop-blur-2xl border-slate-800/50 shadow-2xl shadow-black/30'
+        : 'bg-transparent border-transparent'
         }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

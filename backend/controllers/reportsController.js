@@ -1,14 +1,17 @@
 const Invoice = require('../models/Invoice');
 const Payment = require('../models/Payment');
 const Customer = require('../models/Customer');
+const getTenantId = require('../utils/getTenantId');
 
 // @desc    Get outstanding report - customers with pending amounts
 // @route   GET /api/reports/outstanding
 // @access  Private
 exports.getOutstandingReport = async (req, res, next) => {
   try {
+    const tenantId = getTenantId(req);
     // Get all unpaid invoices - include those where paymentStatus is not set (old invoices)
     const unpaidInvoices = await Invoice.find({
+      tenantId,
       $or: [
         { paymentStatus: { $in: ['Unpaid', 'Partial'] } },
         { paymentStatus: { $exists: false } },
@@ -78,6 +81,7 @@ exports.getOutstandingReport = async (req, res, next) => {
 // @access  Private
 exports.getAgeingReport = async (req, res, next) => {
   try {
+    const tenantId = getTenantId(req);
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
@@ -86,6 +90,7 @@ exports.getAgeingReport = async (req, res, next) => {
     // Get all unpaid/partial invoices that are not cancelled
     // Include invoices where paymentStatus is not set (old invoices before credit feature)
     const invoices = await Invoice.find({
+      tenantId,
       $or: [
         { paymentStatus: { $in: ['Unpaid', 'Partial'] } },
         { paymentStatus: { $exists: false } },
@@ -158,8 +163,10 @@ exports.getAgeingReport = async (req, res, next) => {
 // @access  Private
 exports.getCreditStats = async (req, res, next) => {
   try {
+    const tenantId = getTenantId(req);
     // Calculate total outstanding from actual invoices (more reliable than customer.outstandingBalance)
     const unpaidInvoices = await Invoice.find({
+      tenantId,
       $or: [
         { paymentStatus: { $in: ['Unpaid', 'Partial'] } },
         { paymentStatus: { $exists: false } },
@@ -187,7 +194,7 @@ exports.getCreditStats = async (req, res, next) => {
     startOfMonth.setHours(0, 0, 0, 0);
 
     const paymentsThisMonth = await Payment.aggregate([
-      { $match: { paymentDate: { $gte: startOfMonth } } },
+      { $match: { tenantId, paymentDate: { $gte: startOfMonth } } },
       { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }
     ]);
 
@@ -197,6 +204,7 @@ exports.getCreditStats = async (req, res, next) => {
 
     // Include invoices where paymentStatus is not set (old invoices)
     const overdueInvoices = await Invoice.find({
+      tenantId,
       $or: [
         { paymentStatus: { $in: ['Unpaid', 'Partial'] } },
         { paymentStatus: { $exists: false } },
@@ -232,8 +240,9 @@ exports.getCreditStats = async (req, res, next) => {
 exports.getRecentPayments = async (req, res, next) => {
   try {
     const limit = parseInt(req.query.limit) || 20;
+    const tenantId = getTenantId(req);
 
-    const payments = await Payment.find()
+    const payments = await Payment.find({ tenantId })
       .populate('customer', 'customerName phone')
       .sort({ createdAt: -1 })
       .limit(limit);

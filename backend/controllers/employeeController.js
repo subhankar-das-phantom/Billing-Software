@@ -1,5 +1,6 @@
 const Employee = require('../models/Employee');
 const Session = require('../models/Session');
+const getTenantId = require('../utils/getTenantId');
 
 // Escape special regex characters in user input to prevent MongoDB $regex errors
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -9,11 +10,12 @@ const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 // @access  Private (Admin only)
 exports.getEmployees = async (req, res, next) => {
   try {
+    const tenantId = getTenantId(req);
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
     const skip = (page - 1) * limit;
 
-    const query = {};
+    const query = { createdByAdmin: tenantId };
 
     // Filter by active status
     if (req.query.status === 'active') {
@@ -75,7 +77,11 @@ exports.getEmployees = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.getEmployee = async (req, res, next) => {
   try {
-    const employee = await Employee.findById(req.params.id).select('-password');
+    const tenantId = getTenantId(req);
+    const employee = await Employee.findOne({
+      _id: req.params.id,
+      createdByAdmin: tenantId
+    }).select('-password');
 
     if (!employee) {
       return res.status(404).json({
@@ -113,6 +119,7 @@ exports.getEmployee = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.createEmployee = async (req, res, next) => {
   try {
+    const tenantId = getTenantId(req);
     const { email, password, name, phone } = req.body;
 
     // Validate required fields
@@ -138,7 +145,7 @@ exports.createEmployee = async (req, res, next) => {
       password,
       name,
       phone: phone || '',
-      createdByAdmin: req.user._id
+      createdByAdmin: tenantId
     });
 
     res.status(201).json({
@@ -156,9 +163,13 @@ exports.createEmployee = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.updateEmployee = async (req, res, next) => {
   try {
+    const tenantId = getTenantId(req);
     const { email, name, phone } = req.body;
 
-    const employee = await Employee.findById(req.params.id);
+    const employee = await Employee.findOne({
+      _id: req.params.id,
+      createdByAdmin: tenantId
+    });
 
     if (!employee) {
       return res.status(404).json({
@@ -203,6 +214,7 @@ exports.updateEmployee = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.resetPassword = async (req, res, next) => {
   try {
+    const tenantId = getTenantId(req);
     const { newPassword } = req.body;
 
     if (!newPassword || newPassword.length < 6) {
@@ -212,7 +224,10 @@ exports.resetPassword = async (req, res, next) => {
       });
     }
 
-    const employee = await Employee.findById(req.params.id);
+    const employee = await Employee.findOne({
+      _id: req.params.id,
+      createdByAdmin: tenantId
+    });
 
     if (!employee) {
       return res.status(404).json({
@@ -242,6 +257,7 @@ exports.resetPassword = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.toggleStatus = async (req, res, next) => {
   try {
+    const tenantId = getTenantId(req);
     const { isActive } = req.body;
 
     if (typeof isActive !== 'boolean') {
@@ -251,7 +267,10 @@ exports.toggleStatus = async (req, res, next) => {
       });
     }
 
-    const employee = await Employee.findById(req.params.id);
+    const employee = await Employee.findOne({
+      _id: req.params.id,
+      createdByAdmin: tenantId
+    });
 
     if (!employee) {
       return res.status(404).json({
@@ -283,7 +302,11 @@ exports.toggleStatus = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.deleteEmployee = async (req, res, next) => {
   try {
-    const employee = await Employee.findById(req.params.id);
+    const tenantId = getTenantId(req);
+    const employee = await Employee.findOne({
+      _id: req.params.id,
+      createdByAdmin: tenantId
+    });
 
     if (!employee) {
       return res.status(404).json({

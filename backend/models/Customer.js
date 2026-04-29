@@ -1,6 +1,12 @@
 const mongoose = require('mongoose');
 
 const customerSchema = new mongoose.Schema({
+  tenantId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Admin',
+    required: true,
+    index: true
+  },
   customerName: {
     type: String,
     required: [true, 'Please add customer name'],
@@ -91,5 +97,7 @@ const customerSchema = new mongoose.Schema({
 // Index for search
 customerSchema.index({ customerName: 'text', phone: 'text', gstin: 'text' });
 customerSchema.index({ isActive: 1 });
+customerSchema.index({ tenantId: 1, isActive: 1 });
+customerSchema.index({ tenantId: 1, customerName: 1 });
 
 module.exports = mongoose.model('Customer', customerSchema);

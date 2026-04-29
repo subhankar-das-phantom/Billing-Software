@@ -2,6 +2,7 @@ const Invoice = require('../models/Invoice');
 const Product = require('../models/Product');
 const Customer = require('../models/Customer');
 const { LOW_STOCK_THRESHOLD } = require('../config/constants');
+const getTenantId = require('../utils/getTenantId');
 
 const IST_OFFSET_MS = (5 * 60 + 30) * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -37,6 +38,7 @@ const getISTDateRanges = (referenceDate = new Date()) => {
 // @access  Private
 exports.getStats = async (req, res, next) => {
   try {
+    const tenantId = getTenantId(req);
     // Use fixed IST boundaries for business-day metrics regardless of server timezone.
     const {
       todayStart,
@@ -47,7 +49,7 @@ exports.getStats = async (req, res, next) => {
       prevMonthStart,
       prevMonthEnd
     } = getISTDateRanges();
-    const nonCancelledInvoiceQuery = { status: { $ne: 'Cancelled' } };
+    const nonCancelledInvoiceQuery = { tenantId, status: { $ne: 'Cancelled' } };
 
     // Helper function to calculate percentage change
     const calculateGrowth = (current, previous) => {
@@ -73,8 +75,8 @@ exports.getStats = async (req, res, next) => {
       recentInvoices
     ] = await Promise.all([
       // Total counts
-      Product.countDocuments({ isActive: true }),
-      Customer.countDocuments({ isActive: true }),
+      Product.countDocuments({ tenantId, isActive: true }),
+      Customer.countDocuments({ tenantId, isActive: true }),
       Invoice.countDocuments(nonCancelledInvoiceQuery),
       Invoice.aggregate([
         { $match: nonCancelledInvoiceQuery },
@@ -112,11 +114,11 @@ exports.getStats = async (req, res, next) => {
       ]),
       
       // Previous month's counts
-      Product.countDocuments({ isActive: true, createdAt: { $lte: prevMonthEnd } }),
-      Customer.countDocuments({ isActive: true, createdAt: { $lte: prevMonthEnd } }),
+      Product.countDocuments({ tenantId, isActive: true, createdAt: { $lte: prevMonthEnd } }),
+      Customer.countDocuments({ tenantId, isActive: true, createdAt: { $lte: prevMonthEnd } }),
       
       // Low stock count
-      Product.countDocuments({ isActive: true, currentStockQty: { $lte: LOW_STOCK_THRESHOLD } }),
+      Product.countDocuments({ tenantId, isActive: true, currentStockQty: { $lte: LOW_STOCK_THRESHOLD } }),
       
       // Recent invoices
       Invoice.find(nonCancelledInvoiceQuery)
@@ -167,8 +169,10 @@ exports.getStats = async (req, res, next) => {
 exports.getLowStock = async (req, res, next) => {
   try {
     const threshold = parseInt(req.query.threshold) || LOW_STOCK_THRESHOLD;
+    const tenantId = getTenantId(req);
 
     const products = await Product.find({
+      tenantId,
       isActive: true,
       currentStockQty: { $lte: threshold }
     })
@@ -192,8 +196,9 @@ exports.getLowStock = async (req, res, next) => {
 exports.getInvoiceCount = async (req, res, next) => {
   try {
     const { startDate, endDate } = req.query;
+    const tenantId = getTenantId(req);
     
-    const query = {};
+    const query = { tenantId };
     
     
     if (startDate && endDate) {

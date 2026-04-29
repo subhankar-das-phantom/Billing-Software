@@ -1,6 +1,7 @@
 const ManualEntry = require('../models/ManualEntry');
 const Customer = require('../models/Customer');
 const { getAttribution } = require('../middleware/auth');
+const getTenantId = require('../utils/getTenantId');
 
 /**
  * @desc    Create a new manual entry
@@ -10,9 +11,10 @@ const { getAttribution } = require('../middleware/auth');
 exports.createManualEntry = async (req, res, next) => {
   try {
     const { customerId, entryType, paymentType, amount, entryDate, description, notes } = req.body;
+    const tenantId = getTenantId(req);
 
     // Validate customer exists
-    const customer = await Customer.findById(customerId);
+    const customer = await Customer.findOne({ _id: customerId, tenantId });
     if (!customer) {
       return res.status(404).json({
         success: false,
@@ -53,6 +55,7 @@ exports.createManualEntry = async (req, res, next) => {
 
     // Create the manual entry
     const manualEntry = await ManualEntry.create({
+      tenantId,
       customer: customerId,
       entryType,
       paymentType,
@@ -113,8 +116,9 @@ exports.getManualEntries = async (req, res, next) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
     const skip = (page - 1) * limit;
+    const tenantId = getTenantId(req);
 
-    const query = {};
+    const query = { tenantId };
 
     // Search by customer name or phone
     if (req.query.search) {
@@ -173,7 +177,11 @@ exports.getManualEntries = async (req, res, next) => {
  */
 exports.getManualEntry = async (req, res, next) => {
   try {
-    const manualEntry = await ManualEntry.findById(req.params.id)
+    const tenantId = getTenantId(req);
+    const manualEntry = await ManualEntry.findOne({
+      _id: req.params.id,
+      tenantId
+    })
       .populate('customer', 'customerName phone outstandingBalance');
 
     if (!manualEntry) {
@@ -199,7 +207,8 @@ exports.getManualEntry = async (req, res, next) => {
  */
 exports.getManualEntriesByCustomer = async (req, res, next) => {
   try {
-    const manualEntries = await ManualEntry.find({ customer: req.params.customerId })
+    const tenantId = getTenantId(req);
+    const manualEntries = await ManualEntry.find({ tenantId, customer: req.params.customerId })
       .sort({ entryDate: -1, createdAt: -1 });
 
     res.status(200).json({
@@ -218,7 +227,9 @@ exports.getManualEntriesByCustomer = async (req, res, next) => {
  */
 exports.getUnpaidOpeningBalances = async (req, res, next) => {
   try {
+    const tenantId = getTenantId(req);
     const manualEntries = await ManualEntry.find({
+      tenantId,
       customer: req.params.customerId,
       entryType: 'opening_balance',
       paymentType: 'Credit'
@@ -246,7 +257,11 @@ exports.getUnpaidOpeningBalances = async (req, res, next) => {
  */
 exports.recordPaymentAgainstEntry = async (req, res, next) => {
   try {
-    const manualEntry = await ManualEntry.findById(req.params.id);
+    const tenantId = getTenantId(req);
+    const manualEntry = await ManualEntry.findOne({
+      _id: req.params.id,
+      tenantId
+    });
 
     if (!manualEntry) {
       return res.status(404).json({
@@ -299,6 +314,7 @@ exports.recordPaymentAgainstEntry = async (req, res, next) => {
     const customer = await Customer.findById(manualEntry.customer);
 
     const paymentEntry = await ManualEntry.create({
+      tenantId,
       customer: manualEntry.customer,
       entryType: 'payment_adjustment',
       paymentType: 'Cash',
@@ -344,7 +360,11 @@ exports.recordPaymentAgainstEntry = async (req, res, next) => {
  */
 exports.updateManualEntry = async (req, res, next) => {
   try {
-    const manualEntry = await ManualEntry.findById(req.params.id);
+    const tenantId = getTenantId(req);
+    const manualEntry = await ManualEntry.findOne({
+      _id: req.params.id,
+      tenantId
+    });
 
     if (!manualEntry) {
       return res.status(404).json({
@@ -414,8 +434,8 @@ exports.updateManualEntry = async (req, res, next) => {
       // paymentDelta = newAmount - oldAmount
       const paymentDelta = (-newOutstandingChange) - (-oldOutstandingChange);
       if (paymentDelta !== 0) {
-        await ManualEntry.findByIdAndUpdate(
-          manualEntry.parentEntry,
+        await ManualEntry.findOneAndUpdate(
+          { _id: manualEntry.parentEntry, tenantId },
           { $inc: { paidAmount: paymentDelta } }
         );
       }
@@ -450,7 +470,11 @@ exports.updateManualEntry = async (req, res, next) => {
  */
 exports.deleteManualEntry = async (req, res, next) => {
   try {
-    const manualEntry = await ManualEntry.findById(req.params.id);
+    const tenantId = getTenantId(req);
+    const manualEntry = await ManualEntry.findOne({
+      _id: req.params.id,
+      tenantId
+    });
 
     if (!manualEntry) {
       return res.status(404).json({
@@ -500,8 +524,8 @@ exports.deleteManualEntry = async (req, res, next) => {
 
     // If this is a payment_adjustment linked to a parent, reduce the parent's paidAmount
     if (manualEntry.parentEntry && manualEntry.entryType === 'payment_adjustment') {
-      await ManualEntry.findByIdAndUpdate(
-        manualEntry.parentEntry,
+      await ManualEntry.findOneAndUpdate(
+        { _id: manualEntry.parentEntry, tenantId },
         { $inc: { paidAmount: -manualEntry.amount } }
       );
     }
