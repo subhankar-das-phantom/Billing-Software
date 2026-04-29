@@ -126,6 +126,17 @@ export const AuthProvider = ({ children }) => {
     setToast({ message, type });
   };
 
+  const clearSWRCache = () => {
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith('swr_cache_')) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach((key) => localStorage.removeItem(key));
+  };
+
   useEffect(() => {
     // No token = no session to verify, skip auth check entirely
     if (!hasToken) {
@@ -236,6 +247,7 @@ export const AuthProvider = ({ children }) => {
     try {
       setAuthTransition('logout');
       await authService.logout();
+      clearSWRCache();
       
       localStorage.removeItem('token');
       localStorage.removeItem('admin');
