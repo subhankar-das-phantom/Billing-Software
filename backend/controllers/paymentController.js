@@ -4,6 +4,7 @@ const Customer = require('../models/Customer');
 const ManualEntry = require('../models/ManualEntry');
 const { getAttribution } = require('../middleware/auth');
 const { trackActivity, ACTIVITY_TYPES } = require('../utils/activityTracker');
+const getTenantId = require('../utils/getTenantId');
 
 // Round to 2 decimal places safely
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
@@ -57,6 +58,7 @@ exports.getCollections = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
+    const tenantId = getTenantId(req);
 
     // Build date range
     let startOfDay, endOfDay;
@@ -80,8 +82,8 @@ exports.getCollections = async (req, res, next) => {
     }
 
     // Build payment query
-    const paymentQuery = {};
-    const paymentMatch = {};
+    const paymentQuery = { tenantId };
+    const paymentMatch = { tenantId };
     if (startOfDay || endOfDay) {
       paymentQuery.paymentDate = {};
       paymentMatch.paymentDate = {};
@@ -215,9 +217,13 @@ exports.getCollections = async (req, res, next) => {
 exports.createPayment = async (req, res, next) => {
   try {
     const { invoiceId, amount, paymentDate, paymentMethod, referenceNumber, notes } = req.body;
+    const tenantId = getTenantId(req);
 
     // Validate invoice exists
-    const invoice = await Invoice.findById(invoiceId);
+    const invoice = await Invoice.findOne({
+      _id: invoiceId,
+      tenantId
+    });
     if (!invoice) {
       return res.status(404).json({
         success: false,
@@ -255,6 +261,7 @@ exports.createPayment = async (req, res, next) => {
 
     // Create payment record
     const payment = await Payment.create({
+      tenantId,
       invoice: invoiceId,
       customer: invoice.customer._id,
       amount: normalizedAmount,
@@ -312,8 +319,9 @@ exports.getPayments = async (req, res, next) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
     const skip = (page - 1) * limit;
+    const tenantId = getTenantId(req);
 
-    const query = {};
+    const query = { tenantId };
 
     // Filter by customer
     if (req.query.customerId) {
@@ -370,7 +378,11 @@ exports.getPayments = async (req, res, next) => {
 // @access  Private
 exports.getPayment = async (req, res, next) => {
   try {
-    const payment = await Payment.findById(req.params.id)
+    const tenantId = getTenantId(req);
+    const payment = await Payment.findOne({
+      _id: req.params.id,
+      tenantId
+    })
       .populate('customer', 'customerName phone address')
       .populate('invoice', 'invoiceNumber invoiceDate totals');
 
@@ -395,7 +407,8 @@ exports.getPayment = async (req, res, next) => {
 // @access  Private
 exports.getPaymentsByCustomer = async (req, res, next) => {
   try {
-    const payments = await Payment.find({ customer: req.params.customerId })
+    const tenantId = getTenantId(req);
+    const payments = await Payment.find({ tenantId, customer: req.params.customerId })
       .populate('invoice', 'invoiceNumber invoiceDate totals.netTotal paidAmount paymentType')
       .sort({ paymentDate: -1 })
       .limit(100);
@@ -547,7 +560,11 @@ exports.updatePayment = async (req, res, next) => {
 // @access  Private
 exports.deletePayment = async (req, res, next) => {
   try {
-    const payment = await Payment.findById(req.params.id);
+    const tenantId = getTenantId(req);
+    const payment = await Payment.findOne({
+      _id: req.params.id,
+      tenantId
+    });
 
     if (!payment) {
       return res.status(404).json({
