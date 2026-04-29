@@ -128,7 +128,6 @@ const productSchema = new mongoose.Schema({
 
 // Index for search
 productSchema.index({ productName: 'text', hsnCode: 'text', manufacturer: 'text' });
-productSchema.index({ tenantId: 1 });
 productSchema.index({ tenantId: 1, productName: 1 });
 productSchema.index({ tenantId: 1, isActive: 1 });
 productSchema.index({ isActive: 1 });
