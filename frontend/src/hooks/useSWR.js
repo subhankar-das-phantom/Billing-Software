@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useAuth } from '../context/AuthContext';
 
 /**
  * Stale-While-Revalidate (SWR) Hook
@@ -149,34 +150,41 @@ export const invalidateCachePattern = (pattern) => {
  * Main SWR Hook
  */
 export function useSWR(key, fetcher, options = {}) {
+  const { user } = useAuth();
   const {
     ttl = DEFAULT_TTL,
     revalidateOnFocus = false,
     fallbackData = null
   } = options;
 
+  const userId = user?._id || user?.id;
+  const baseKey = key
+    ? (typeof key === 'string' ? key : JSON.stringify(key))
+    : null;
+  const scopedKey = userId && baseKey ? `${baseKey}|${userId}` : null;
+
   const [data, setData] = useState(() => {
-    const cached = getCachedData(key);
+    if (!scopedKey) return fallbackData;
+    const cached = getCachedData(scopedKey);
     return cached.data || fallbackData;
   });
   const [error, setError] = useState(null);
-  const [isLoading, setIsLoading] = useState(() => !getCachedData(key).data);
+  const [isLoading, setIsLoading] = useState(() => (scopedKey ? !getCachedData(scopedKey).data : false));
   const [isValidating, setIsValidating] = useState(false);
-  const [isStale, setIsStale] = useState(() => getCachedData(key).isExpired);
+  const [isStale, setIsStale] = useState(() => (scopedKey ? getCachedData(scopedKey).isExpired : true));
 
   const mountedRef = useRef(true);
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
 
-  // Standalone revalidate for manual triggers (mutate, subscribers)
   const revalidate = useCallback(async () => {
-    if (!mountedRef.current || !key) return;
+    if (!mountedRef.current || !scopedKey) return;
     setIsValidating(true);
     setError(null);
     try {
       const freshData = await fetcherRef.current();
       if (!mountedRef.current) return;
-      setCachedData(key, freshData, ttl);
+      setCachedData(scopedKey, freshData, ttl);
       setData(freshData);
       setIsStale(false);
     } catch (err) {
@@ -188,49 +196,49 @@ export function useSWR(key, fetcher, options = {}) {
         setIsLoading(false);
       }
     }
-  }, [key, ttl]);
+  }, [scopedKey, ttl]);
 
   const mutate = useCallback((newData, shouldRevalidate = true) => {
-    if (!key) return;
+    if (!scopedKey) return;
     if (newData !== undefined) {
       setData(newData);
-      setCachedData(key, newData, ttl);
+      setCachedData(scopedKey, newData, ttl);
     }
     if (shouldRevalidate) {
       revalidate();
     }
-  }, [key, ttl, revalidate]);
+  }, [scopedKey, ttl, revalidate]);
 
-  // ─── Primary effect: fetch on mount & key change ───
-  // Uses a LOCAL `aborted` flag scoped to each effect invocation.
-  // When the key changes:
-  //   1. If there's cached data for the new key → show it immediately
-  //   2. If not → KEEP old data visible (don't reset to null!)
-  //   3. Fetch fresh data in background
-  //   4. When fetch completes → replace data
-  // This prevents PageLoader from hijacking the UI during search.
   useEffect(() => {
     mountedRef.current = true;
     let aborted = false;
 
-    // Swap to cached data for the new key if available
-    const cached = getCachedData(key);
+    if (!scopedKey) {
+      setData(fallbackData);
+      setError(null);
+      setIsLoading(false);
+      setIsValidating(false);
+      setIsStale(true);
+      return () => {
+        aborted = true;
+        mountedRef.current = false;
+      };
+    }
+
+    const cached = getCachedData(scopedKey);
     if (cached.data) {
       setData(cached.data);
       setIsStale(cached.isExpired);
       setIsLoading(false);
     }
-    // If no cache: DON'T reset data — keep showing stale data from previous key.
-    // The isValidating flag tells the UI that fresh data is incoming.
 
-    // Fetch fresh data in background
     const doFetch = async () => {
       setIsValidating(true);
       setError(null);
       try {
         const freshData = await fetcherRef.current();
         if (aborted) return;
-        setCachedData(key, freshData, ttl);
+        setCachedData(scopedKey, freshData, ttl);
         setData(freshData);
         setIsStale(false);
       } catch (err) {
@@ -250,18 +258,16 @@ export function useSWR(key, fetcher, options = {}) {
       aborted = true;
       mountedRef.current = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, ttl]);
+  }, [scopedKey, ttl, fallbackData]);
 
-  // ─── Cross-tab invalidation subscriber ───
   useEffect(() => {
-    if (!key) return undefined;
-    invalidationSubscribers.set(key, revalidate);
+    if (!scopedKey) return undefined;
+    invalidationSubscribers.set(scopedKey, revalidate);
 
     const handleStorageChange = (event) => {
       if (event.key?.startsWith(CACHE_PREFIX)) {
-        if (event.key === CACHE_PREFIX + key) {
-          const cached = getCachedData(key);
+        if (event.key === CACHE_PREFIX + scopedKey) {
+          const cached = getCachedData(scopedKey);
           if (cached.data) {
             setData(cached.data);
             setIsStale(cached.isExpired);
@@ -271,11 +277,11 @@ export function useSWR(key, fetcher, options = {}) {
           try {
             const signal = safeJSONParse(event.newValue);
             if (signal) {
-              if (signal.type === 'pattern' && key.includes(signal.value)) {
-                memoryCache.delete(key);
+              if (signal.type === 'pattern' && scopedKey.includes(signal.value)) {
+                memoryCache.delete(scopedKey);
                 revalidate();
-              } else if (signal.type === 'key' && signal.value === key) {
-                memoryCache.delete(key);
+              } else if (signal.type === 'key' && signal.value === scopedKey) {
+                memoryCache.delete(scopedKey);
                 revalidate();
               }
             }
@@ -286,12 +292,11 @@ export function useSWR(key, fetcher, options = {}) {
 
     window.addEventListener('storage', handleStorageChange);
     return () => {
-      invalidationSubscribers.delete(key);
+      invalidationSubscribers.delete(scopedKey);
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, [key, revalidate]);
+  }, [scopedKey, revalidate]);
 
-  // ─── Revalidate on window focus ───
   useEffect(() => {
     if (!revalidateOnFocus) return;
     const handleFocus = () => {
@@ -318,3 +323,4 @@ export function useSWR(key, fetcher, options = {}) {
 }
 
 export default useSWR;
+
