@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Invoice = require('../models/Invoice');
+const getTenantId = require('../utils/getTenantId');
 
 // ============================================================================
 // IN-MEMORY CACHE — Date-range-aware invalidation
@@ -11,9 +12,9 @@ const cache = new Map();
 /**
  * Build a deterministic cache key from query parameters.
  */
-const buildCacheKey = (startDate, endDate, excludedProductIds) => {
+const buildCacheKey = (tenantId, startDate, endDate, excludedProductIds) => {
   const sorted = [...excludedProductIds].sort().join(',');
-  return `${startDate}|${endDate}|${sorted}`;
+  return `${tenantId}|${startDate}|${endDate}|${sorted}`;
 };
 
 /**
@@ -22,7 +23,7 @@ const buildCacheKey = (startDate, endDate, excludedProductIds) => {
  *
  * @param {Date|string|null} invoiceDate — the date of the mutated invoice
  */
-const invalidateGstReportCache = (invoiceDate) => {
+const invalidateGstReportCache = (invoiceDate, tenantId = null) => {
   if (!invoiceDate) {
     // Fallback: brute-force clear when date is unavailable
     cache.clear();
@@ -37,8 +38,12 @@ const invalidateGstReportCache = (invoiceDate) => {
 
   // Walk cache entries and delete only those whose range overlaps
   for (const [key, entry] of cache) {
-    // key format: "YYYY-MM-DD|YYYY-MM-DD|excludedIds"
-    const [startRaw, endRaw] = key.split('|');
+    // key format: "tenantId|YYYY-MM-DD|YYYY-MM-DD|excludedIds"
+    const [keyTenantId, startRaw, endRaw] = key.split('|');
+
+    if (tenantId && keyTenantId !== String(tenantId)) {
+      continue;
+    }
 
     const start = parseISTDateBoundary(startRaw, false);
     const end = parseISTDateBoundary(endRaw, true);
@@ -90,6 +95,7 @@ const STANDARD_SLABS = [0, 5, 12, 18, 28];
 // @access  Private
 exports.getGstReport = async (req, res, next) => {
   try {
+    const tenantId = getTenantId(req);
     const { startDate: startRaw, endDate: endRaw, excludedProductIds: excludedRaw } = req.query;
 
     // --- Validate dates ---
@@ -129,7 +135,7 @@ exports.getGstReport = async (req, res, next) => {
     const excludedObjectIds = excludedProductIds.map(id => new mongoose.Types.ObjectId(id));
 
     // --- Check cache ---
-    const cacheKey = buildCacheKey(startRaw, endRaw, excludedProductIds);
+    const cacheKey = buildCacheKey(tenantId, startRaw, endRaw, excludedProductIds);
     const cached = cache.get(cacheKey);
     if (cached && (Date.now() - cached.timestamp) < CACHE_TTL_MS) {
       return res.status(200).json(cached.data);
@@ -139,7 +145,7 @@ exports.getGstReport = async (req, res, next) => {
     // Global $match + $project run ONCE, then $facet branches
     // over the already-filtered, lightweight doc set.
     const globalMatch = {
-      $match: { invoiceDate: { $gte: startDate, $lte: endDate } }
+      $match: { tenantId, invoiceDate: { $gte: startDate, $lte: endDate } }
     };
 
     const globalProject = {

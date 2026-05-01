@@ -3,12 +3,14 @@ const Session = require('../models/Session');
 const Invoice = require('../models/Invoice');
 const Payment = require('../models/Payment');
 const Product = require('../models/Product');
+const getTenantId = require('../utils/getTenantId');
 
 // @desc    Get detailed activity log with session and work attribution
 // @route   GET /api/analytics/activity-log
 // @access  Private (Admin only)
 exports.getActivityLog = async (req, res, next) => {
   try {
+    const tenantId = getTenantId(req);
     // Parse time range (default 24 hours, max 72 hours)
     let hours = parseInt(req.query.hours) || 24;
     hours = Math.min(hours, 72); // Cap at 72 hours
@@ -17,16 +19,19 @@ exports.getActivityLog = async (req, res, next) => {
     startTime.setHours(startTime.getHours() - hours);
     
     const employeeId = req.query.employeeId;
+    const tenantEmployeeQuery = { createdByAdmin: tenantId };
+    if (employeeId) {
+      tenantEmployeeQuery._id = employeeId;
+    }
+    const tenantEmployees = await Employee.find(tenantEmployeeQuery).select('_id name email');
+    const tenantEmployeeIds = tenantEmployees.map((e) => e._id);
 
     // Build session query
     const sessionQuery = {
+      user: { $in: tenantEmployeeIds },
       userModel: 'Employee',
       loginTime: { $gte: startTime }
     };
-    
-    if (employeeId) {
-      sessionQuery.user = employeeId;
-    }
 
     // Get all sessions in time range
     const sessions = await Session.find(sessionQuery)
@@ -41,6 +46,7 @@ exports.getActivityLog = async (req, res, next) => {
 
         // Get invoices created during this session
         const invoices = await Invoice.find({
+          tenantId,
           'createdBy.user': session.user._id,
           'createdBy.userModel': 'Employee',
           createdAt: { $gte: sessionStart, $lte: sessionEnd }
@@ -48,6 +54,7 @@ exports.getActivityLog = async (req, res, next) => {
 
         // Get payments recorded during this session
         const payments = await Payment.find({
+          tenantId,
           'createdBy.user': session.user._id,
           'createdBy.userModel': 'Employee',
           createdAt: { $gte: sessionStart, $lte: sessionEnd }
@@ -55,12 +62,14 @@ exports.getActivityLog = async (req, res, next) => {
 
         // Get products added/updated during this session
         const productsAdded = await Product.find({
+          tenantId,
           'createdBy.user': session.user._id,
           'createdBy.userModel': 'Employee',
           createdAt: { $gte: sessionStart, $lte: sessionEnd }
         }).select('name createdAt');
 
         const productsUpdated = await Product.find({
+          tenantId,
           'lastUpdatedBy.user': session.user._id,
           'lastUpdatedBy.userModel': 'Employee',
           updatedAt: { $gte: sessionStart, $lte: sessionEnd },
@@ -120,7 +129,7 @@ exports.getActivityLog = async (req, res, next) => {
     );
 
     // Get distinct employees for filter dropdown
-    const employees = await Employee.find({}).select('name email');
+    const employees = tenantEmployees;
 
     res.status(200).json({
       success: true,
@@ -143,7 +152,8 @@ exports.getActivityLog = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.getEmployeeAnalytics = async (req, res, next) => {
   try {
-    const employees = await Employee.find({}).select('-password').sort({ createdAt: -1 });
+    const tenantId = getTenantId(req);
+    const employees = await Employee.find({ createdByAdmin: tenantId }).select('-password').sort({ createdAt: -1 });
 
     // Get session stats for each employee
     const employeeAnalytics = await Promise.all(
@@ -205,7 +215,8 @@ exports.getEmployeeAnalytics = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.getEmployeeDetails = async (req, res, next) => {
   try {
-    const employee = await Employee.findById(req.params.id).select('-password');
+    const tenantId = getTenantId(req);
+    const employee = await Employee.findOne({ _id: req.params.id, createdByAdmin: tenantId }).select('-password');
 
     if (!employee) {
       return res.status(404).json({
@@ -233,6 +244,7 @@ exports.getEmployeeDetails = async (req, res, next) => {
 
     // Get ALL invoices created by this employee
     const invoicesCreated = await Invoice.find({
+      tenantId,
       'createdBy.user': employee._id,
       'createdBy.userModel': 'Employee'
     })
@@ -241,6 +253,7 @@ exports.getEmployeeDetails = async (req, res, next) => {
 
     // Get ALL payments recorded by this employee
     const paymentsRecorded = await Payment.find({
+      tenantId,
       'createdBy.user': employee._id,
       'createdBy.userModel': 'Employee'
     })
@@ -280,11 +293,12 @@ exports.getEmployeeDetails = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.getEmployeeSessions = async (req, res, next) => {
   try {
+    const tenantId = getTenantId(req);
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
 
-    const employee = await Employee.findById(req.params.id);
+    const employee = await Employee.findOne({ _id: req.params.id, createdByAdmin: tenantId });
 
     if (!employee) {
       return res.status(404).json({
@@ -339,12 +353,13 @@ exports.getEmployeeSessions = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.getEmployeeComparison = async (req, res, next) => {
   try {
+    const tenantId = getTenantId(req);
     // Get date range (default to last 30 days)
     const endDate = new Date();
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - (parseInt(req.query.days) || 30));
 
-    const employees = await Employee.find({ isActive: true }).select('-password');
+    const employees = await Employee.find({ isActive: true, createdByAdmin: tenantId }).select('-password');
 
     const comparison = await Promise.all(
       employees.map(async (emp) => {
@@ -355,6 +370,7 @@ exports.getEmployeeComparison = async (req, res, next) => {
 
         // Get invoices in period
         const invoices = await Invoice.find({
+          tenantId,
           'createdBy.user': emp._id,
           'createdBy.userModel': 'Employee',
           createdAt: { $gte: startDate, $lte: endDate }
@@ -365,6 +381,7 @@ exports.getEmployeeComparison = async (req, res, next) => {
 
         // Get payments in period
         const payments = await Payment.find({
+          tenantId,
           'createdBy.user': emp._id,
           'createdBy.userModel': 'Employee',
           createdAt: { $gte: startDate, $lte: endDate }
@@ -415,6 +432,7 @@ exports.getEmployeeComparison = async (req, res, next) => {
 // @access  Private (Admin only)
 exports.getSessionSummary = async (req, res, next) => {
   try {
+    const tenantId = getTenantId(req);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -423,21 +441,28 @@ exports.getSessionSummary = async (req, res, next) => {
 
     const thisMonth = new Date();
     thisMonth.setDate(thisMonth.getDate() - 30);
+    const tenantEmployees = await Employee.find({ createdByAdmin: tenantId }).select('_id');
+    const tenantEmployeeIds = tenantEmployees.map((e) => e._id);
+    const baseSessionQuery = {
+      userModel: 'Employee',
+      user: { $in: tenantEmployeeIds }
+    };
 
     // Get active sessions
-    const activeSessions = await Session.find({ isActive: true })
+    const activeSessions = await Session.find({ ...baseSessionQuery, isActive: true })
       .populate('user', 'name email userId')
       .sort({ loginTime: -1 });
 
     // Get session counts
     const [todayCount, weekCount, monthCount] = await Promise.all([
-      Session.countDocuments({ loginTime: { $gte: today } }),
-      Session.countDocuments({ loginTime: { $gte: thisWeek } }),
-      Session.countDocuments({ loginTime: { $gte: thisMonth } })
+      Session.countDocuments({ ...baseSessionQuery, loginTime: { $gte: today } }),
+      Session.countDocuments({ ...baseSessionQuery, loginTime: { $gte: thisWeek } }),
+      Session.countDocuments({ ...baseSessionQuery, loginTime: { $gte: thisMonth } })
     ]);
 
     // Get average session duration this month
     const monthSessions = await Session.find({
+      ...baseSessionQuery,
       loginTime: { $gte: thisMonth },
       sessionDuration: { $gt: 0 }
     });

@@ -1,6 +1,12 @@
 const mongoose = require('mongoose');
 
 const manualEntrySchema = new mongoose.Schema({
+  tenantId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Admin',
+    required: true,
+    index: true
+  },
   // Customer reference
   customer: {
     type: mongoose.Schema.Types.ObjectId,
@@ -131,6 +137,8 @@ manualEntrySchema.set('toJSON', { virtuals: true });
 manualEntrySchema.set('toObject', { virtuals: true });
 
 // Indexes
+manualEntrySchema.index({ tenantId: 1, customer: 1 });
+manualEntrySchema.index({ tenantId: 1, entryDate: -1 });
 manualEntrySchema.index({ customer: 1 });
 manualEntrySchema.index({ customer: 1, entryDate: 1 });
 manualEntrySchema.index({ customer: 1, entryDate: -1 });

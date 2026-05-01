@@ -2,6 +2,7 @@ const Product = require('../models/Product');
 const { LOW_STOCK_THRESHOLD } = require('../config/constants');
 const { getAttribution } = require('../middleware/auth');
 const { trackActivity, ACTIVITY_TYPES } = require('../utils/activityTracker');
+const getTenantId = require('../utils/getTenantId');
 
 // Escape special regex characters in user input to prevent MongoDB $regex errors
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -18,8 +19,9 @@ exports.getProducts = async (req, res, next) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
     const skip = (page - 1) * limit;
+    const tenantId = getTenantId(req);
 
-    const query = { isActive: true };
+    const query = { tenantId };
 
     // Search
     if (req.query.search) {
@@ -60,8 +62,9 @@ exports.getProductStats = async (req, res, next) => {
     const today = new Date();
     const threshold = new Date(today);
     threshold.setDate(threshold.getDate() + 30);
+    const tenantId = getTenantId(req);
 
-    const baseQuery = { isActive: true };
+    const baseQuery = { tenantId, isActive: true };
 
     if (req.query.search) {
       const usePrefix = req.query.prefix === 'true';
@@ -102,7 +105,11 @@ exports.getProductStats = async (req, res, next) => {
 // @access  Private
 exports.getProduct = async (req, res, next) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const tenantId = getTenantId(req);
+    const product = await Product.findOne({
+      _id: req.params.id,
+      tenantId
+    });
 
     if (!product) {
       return res.status(404).json({
@@ -138,6 +145,7 @@ exports.createProduct = async (req, res, next) => {
     } = req.body;
 
     const product = await Product.create({
+      tenantId: getTenantId(req),
       productName,
       hsnCode,
       manufacturer,

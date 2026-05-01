@@ -6,6 +6,7 @@ const ManualEntry = require('../models/ManualEntry');
 const { getAttribution } = require('../middleware/auth');
 const { trackActivity, ACTIVITY_TYPES } = require('../utils/activityTracker');
 const mongoose = require('mongoose');
+const getTenantId = require('../utils/getTenantId');
 
 // Escape special regex characters in user input to prevent MongoDB $regex errors
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -35,7 +36,11 @@ exports.getCustomerLedger = async (req, res, next) => {
     const parsedOffset = parseInt(offset, 10);
 
     // Verify customer exists
-    const customer = await Customer.findById(customerId);
+    const tenantId = getTenantId(req);
+    const customer = await Customer.findOne({
+      _id: customerId,
+      tenantId
+    });
     if (!customer) {
       return res.status(404).json({
         success: false,
@@ -62,6 +67,7 @@ exports.getCustomerLedger = async (req, res, next) => {
       const openingBalanceResult = await Invoice.aggregate([
         { 
           $match: { 
+            tenantId,
             'customer._id': objectId, 
             invoiceDate: { $lt: start }, 
             status: { $ne: 'Cancelled' } 
@@ -74,7 +80,7 @@ exports.getCustomerLedger = async (req, res, next) => {
           $unionWith: {
             coll: 'payments',
             pipeline: [
-              { $match: { customer: objectId, paymentDate: { $lt: start } } },
+              { $match: { tenantId, customer: objectId, paymentDate: { $lt: start } } },
               { $project: { _id: 0, debit: { $literal: 0 }, credit: '$amount' } }
             ]
           }
@@ -83,7 +89,7 @@ exports.getCustomerLedger = async (req, res, next) => {
           $unionWith: {
             coll: 'creditnotes',
             pipeline: [
-              { $match: { 'customer._id': objectId, createdAt: { $lt: start } } },
+              { $match: { tenantId, 'customer._id': objectId, createdAt: { $lt: start } } },
               { $project: { _id: 0, debit: { $literal: 0 }, credit: '$totals.netTotal' } }
             ]
           }
@@ -92,7 +98,7 @@ exports.getCustomerLedger = async (req, res, next) => {
           $unionWith: {
             coll: 'manualentries',
             pipeline: [
-              { $match: { customer: objectId, entryDate: { $lt: start } } },
+              { $match: { tenantId, customer: objectId, entryDate: { $lt: start } } },
               { 
                 $project: { 
                   _id: 0, 
@@ -135,7 +141,7 @@ exports.getCustomerLedger = async (req, res, next) => {
     const ledgerEntries = await Invoice.aggregate([
       // Invoices pipeline
       { 
-        $match: { 'customer._id': objectId, status: { $ne: 'Cancelled' }, ...dateMatchInvoice } 
+        $match: { tenantId, 'customer._id': objectId, status: { $ne: 'Cancelled' }, ...dateMatchInvoice } 
       },
       { 
         $project: { 
@@ -154,7 +160,7 @@ exports.getCustomerLedger = async (req, res, next) => {
         $unionWith: {
           coll: 'payments',
           pipeline: [
-            { $match: { customer: objectId, ...dateMatchPayment } },
+            { $match: { tenantId, customer: objectId, ...dateMatchPayment } },
             { 
               $lookup: {
                 from: 'invoices',
@@ -193,7 +199,7 @@ exports.getCustomerLedger = async (req, res, next) => {
         $unionWith: {
           coll: 'creditnotes',
           pipeline: [
-            { $match: { 'customer._id': objectId, ...dateMatchCreditNote } },
+            { $match: { tenantId, 'customer._id': objectId, ...dateMatchCreditNote } },
             { 
               $project: { 
                 date: '$createdAt', 
@@ -214,7 +220,7 @@ exports.getCustomerLedger = async (req, res, next) => {
         $unionWith: {
           coll: 'manualentries',
           pipeline: [
-            { $match: { customer: objectId, ...dateMatchManual } },
+            { $match: { tenantId, customer: objectId, ...dateMatchManual } },
             { 
               $project: { 
                 date: '$entryDate', 
@@ -421,7 +427,8 @@ exports.getCustomers = async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 50;
     const skip = (page - 1) * limit;
 
-    const query = {};
+    const tenantId = getTenantId(req);
+    const query = { tenantId };
     
     // Only filter by isActive if includeInactive is not set
     if (req.query.includeInactive !== 'true') {
@@ -539,7 +546,9 @@ exports.searchCustomers = async (req, res, next) => {
       }
     }
 
+    const tenantId = getTenantId(req);
     const customers = await Customer.find({
+      tenantId,
       isActive: true,
       $or: conditions
     }).limit(10);
@@ -559,7 +568,11 @@ exports.searchCustomers = async (req, res, next) => {
 // @access  Private
 exports.getCustomer = async (req, res, next) => {
   try {
-    const customer = await Customer.findById(req.params.id);
+    const tenantId = getTenantId(req);
+    const customer = await Customer.findOne({
+      _id: req.params.id,
+      tenantId
+    });
 
     if (!customer) {
       return res.status(404).json({
@@ -600,6 +613,7 @@ exports.createCustomer = async (req, res, next) => {
     } = req.body;
 
     const customer = await Customer.create({
+      tenantId: getTenantId(req),
       customerName,
       address,
       phone,

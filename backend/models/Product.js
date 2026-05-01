@@ -41,6 +41,12 @@ const stockHistorySchema = new mongoose.Schema({
 });
 
 const productSchema = new mongoose.Schema({
+  tenantId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Admin',
+    required: true,
+    index: true
+  },
   productName: {
     type: String,
     required: [true, 'Please add a product name'],
@@ -122,6 +128,8 @@ const productSchema = new mongoose.Schema({
 
 // Index for search
 productSchema.index({ productName: 'text', hsnCode: 'text', manufacturer: 'text' });
+productSchema.index({ tenantId: 1, productName: 1 });
+productSchema.index({ tenantId: 1, isActive: 1 });
 productSchema.index({ isActive: 1 });
 productSchema.index({ currentStockQty: 1 });
 

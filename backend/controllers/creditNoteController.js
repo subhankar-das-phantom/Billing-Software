@@ -5,6 +5,7 @@ const Product = require('../models/Product');
 const Customer = require('../models/Customer');
 const { calculateItemAmounts, round } = require('../utils/invoiceCalculator');
 const { getAttribution } = require('../middleware/auth');
+const getTenantId = require('../utils/getTenantId');
 
 // @desc    Create credit note (sales return)
 // @route   POST /api/credit-notes
@@ -15,9 +16,13 @@ exports.createCreditNote = async (req, res, next) => {
 
   try {
     const { invoiceId, items, reason } = req.body;
+    const tenantId = getTenantId(req);
 
     // 1. Validate invoice
-    const invoice = await Invoice.findById(invoiceId).session(session);
+    const invoice = await Invoice.findOne({
+      _id: invoiceId,
+      tenantId
+    }).session(session);
     if (!invoice) {
       await session.abortTransaction();
       return res.status(404).json({
@@ -35,7 +40,7 @@ exports.createCreditNote = async (req, res, next) => {
     }
 
     // 2. Get existing credit notes for this invoice to check already-returned quantities
-    const existingCreditNotes = await CreditNote.find({ invoiceId }).session(session);
+    const existingCreditNotes = await CreditNote.find({ invoiceId, tenantId }).session(session);
     const alreadyReturned = {};
     for (const cn of existingCreditNotes) {
       for (const item of cn.items) {
@@ -163,6 +168,7 @@ exports.createCreditNote = async (req, res, next) => {
 
     // 7. Create credit note
     const creditNote = await CreditNote.create([{
+      tenantId,
       creditNoteNumber,
       invoiceId: invoice._id,
       invoiceNumber: invoice.invoiceNumber,
@@ -207,13 +213,15 @@ exports.getCreditNotes = async (req, res, next) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
     const skip = (page - 1) * limit;
+    const tenantId = getTenantId(req);
+    const query = { tenantId };
 
-    const creditNotes = await CreditNote.find()
+    const creditNotes = await CreditNote.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
-    const total = await CreditNote.countDocuments();
+    const total = await CreditNote.countDocuments(query);
 
     res.status(200).json({
       success: true,
@@ -233,7 +241,9 @@ exports.getCreditNotes = async (req, res, next) => {
 // @access  Private
 exports.getCreditNotesByInvoice = async (req, res, next) => {
   try {
+    const tenantId = getTenantId(req);
     const creditNotes = await CreditNote.find({
+      tenantId,
       invoiceId: req.params.invoiceId
     }).sort({ createdAt: -1 });
 
@@ -268,7 +278,11 @@ exports.getCreditNotesByInvoice = async (req, res, next) => {
 // @access  Private
 exports.getCreditNote = async (req, res, next) => {
   try {
-    const creditNote = await CreditNote.findById(req.params.id);
+    const tenantId = getTenantId(req);
+    const creditNote = await CreditNote.findOne({
+      _id: req.params.id,
+      tenantId
+    });
     if (!creditNote) {
       return res.status(404).json({
         success: false,
