@@ -153,7 +153,7 @@ export default function EditPaymentModal({
 
           {/* Modal */}
           <motion.div
-            className="modal max-w-lg relative z-10 w-full"
+            className="bg-slate-800/95 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl max-w-lg relative z-10 w-full flex flex-col max-h-[90vh] overflow-hidden"
             initial={{ scale: 0.95, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 20 }}
@@ -161,7 +161,7 @@ export default function EditPaymentModal({
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="modal-header flex items-center justify-between">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-slate-700/50 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-500/20 rounded-lg">
                   <Edit3 className="w-5 h-5 text-blue-400" />
@@ -184,10 +184,10 @@ export default function EditPaymentModal({
             </div>
 
             {/* Body */}
-            <div className="modal-body">
+            <div className="flex flex-col flex-1 overflow-hidden">
               {success ? (
                 <motion.div
-                  className="text-center py-8"
+                  className="text-center py-8 p-4 sm:p-6 overflow-y-auto"
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                 >
@@ -200,7 +200,8 @@ export default function EditPaymentModal({
                   </p>
                 </motion.div>
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden w-full">
+                  <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 w-full">
                   {/* Error Message */}
                   {error && (
                     <motion.div
@@ -327,26 +328,30 @@ export default function EditPaymentModal({
                     />
                   </div>
 
-                  {/* Submit Button */}
-                  <motion.button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium rounded-lg transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    whileHover={{ scale: loading ? 1 : 1.01 }}
-                    whileTap={{ scale: loading ? 1 : 0.99 }}
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Updating Payment...
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle className="w-5 h-5" />
-                        Update Payment
-                      </>
-                    )}
-                  </motion.button>
+                  </div>
+
+                  {/* Submit Button Footer */}
+                  <div className="p-4 sm:p-6 border-t border-slate-700/50 bg-slate-800/95 shrink-0 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] w-full sticky bottom-0 z-10">
+                    <motion.button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium rounded-lg transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      whileHover={{ scale: loading ? 1 : 1.01 }}
+                      whileTap={{ scale: loading ? 1 : 0.99 }}
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          Updating Payment...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="w-5 h-5" />
+                          Update Payment
+                        </>
+                      )}
+                    </motion.button>
+                  </div>
                 </form>
               )}
             </div>
