@@ -23,7 +23,8 @@ export default function RecordPaymentModal({
   customer,
   invoices = [], // Unpaid/partial invoices for this customer
   manualEntries = [], // Unpaid opening balance entries
-  preSelectedInvoice = null
+  preSelectedInvoice = null,
+  creditNotes = [] // Credit notes for this customer
 }) {
   const [formData, setFormData] = useState({
     selectionId: '', // Can be invoiceId or entryId
@@ -44,6 +45,19 @@ export default function RecordPaymentModal({
     entry.paymentType === 'Credit' &&
     (entry.amount - (entry.paidAmount || 0)) > 0
   );
+
+  // Build per-invoice credit note totals map
+  const cnByInvoiceMap = useMemo(() => {
+    const map = new Map();
+    creditNotes.forEach(cn => {
+      const invId = cn.invoiceId?._id || cn.invoiceId;
+      if (invId) {
+        const key = invId.toString();
+        map.set(key, (map.get(key) || 0) + (cn.totals?.netTotal || 0));
+      }
+    });
+    return map;
+  }, [creditNotes]);
 
   // Derive selected item directly from selectionId to avoid state sync issues
   const selectedItem = useMemo(() => {
@@ -95,10 +109,21 @@ export default function RecordPaymentModal({
     }
   };
 
+  // Effective due = remaining - credit notes (display only)
+  const getEffectiveDue = () => {
+    if (!selectedItem) return 0;
+    const remaining = getRemainingAmount();
+    if (formData.selectionType === 'invoice') {
+      const cnDeduction = cnByInvoiceMap.get(selectedItem._id?.toString()) || 0;
+      return Math.max(0, remaining - cnDeduction);
+    }
+    return remaining;
+  };
+
   const handlePayFull = () => {
     setFormData(prev => ({
       ...prev,
-      amount: getRemainingAmount().toFixed(2)
+      amount: getEffectiveDue().toFixed(2)
     }));
   };
 
@@ -118,9 +143,9 @@ export default function RecordPaymentModal({
       return;
     }
 
-    const remaining = parseFloat(getRemainingAmount().toFixed(2));
-    if (parseFloat(amount.toFixed(2)) > remaining) {
-      setError(`Amount cannot exceed remaining balance (${formatCurrency(remaining)})`);
+    const effectiveDue = parseFloat(getEffectiveDue().toFixed(2));
+    if (parseFloat(amount.toFixed(2)) > effectiveDue) {
+      setError(`Amount cannot exceed effectively due balance (${formatCurrency(effectiveDue)})`);
       return;
     }
 
@@ -274,9 +299,11 @@ export default function RecordPaymentModal({
                           <optgroup label="📄 Invoices" className="bg-slate-800">
                             {invoices.map((inv) => {
                               const remaining = inv.totals.netTotal - (inv.paidAmount || 0);
+                              const cnDed = cnByInvoiceMap.get(inv._id?.toString()) || 0;
+                              const effectiveDue = Math.max(0, remaining - cnDed);
                               return (
                                 <option key={inv._id} value={inv._id} className="bg-slate-800 text-white py-2">
-                                  {inv.invoiceNumber} - {formatDate(inv.invoiceDate)} - Due: {formatCurrency(remaining)}
+                                  {inv.invoiceNumber} - {formatDate(inv.invoiceDate)} - Due: {formatCurrency(effectiveDue)}
                                 </option>
                               );
                             })}
@@ -329,20 +356,28 @@ export default function RecordPaymentModal({
                             {formatCurrency(selectedItem.paidAmount || 0)}
                           </span>
                         </div>
+                        {formData.selectionType === 'invoice' && (cnByInvoiceMap.get(selectedItem._id?.toString()) || 0) > 0 && (
+                          <div>
+                            <span className="text-slate-400">Credit Notes:</span>
+                            <span className="ml-2 text-amber-400 font-medium">
+                              -{formatCurrency(cnByInvoiceMap.get(selectedItem._id?.toString()) || 0)}
+                            </span>
+                          </div>
+                        )}
                         <div>
                           <span className="text-slate-400">Due Amount:</span>
                           <span className="ml-2 text-amber-400 font-semibold">
-                            {formatCurrency(getRemainingAmount())}
+                            {formatCurrency(getEffectiveDue())}
                           </span>
                         </div>
                         <div>
                           <span className="text-slate-400">After Payment:</span>
                           <span className={`ml-2 font-semibold ${
-                            getRemainingAmount() - (parseFloat(formData.amount) || 0) <= 0 
+                            getEffectiveDue() - (parseFloat(formData.amount) || 0) <= 0 
                               ? 'text-emerald-400' 
                               : 'text-amber-400'
                           }`}>
-                            {formatCurrency(Math.max(0, getRemainingAmount() - (parseFloat(formData.amount) || 0)))}
+                            {formatCurrency(Math.max(0, getEffectiveDue() - (parseFloat(formData.amount) || 0)))}
                           </span>
                         </div>
                       </div>
@@ -362,7 +397,7 @@ export default function RecordPaymentModal({
                           type="number"
                           step="0.01"
                           min="0.01"
-                          max={parseFloat(getRemainingAmount().toFixed(2))}
+                          max={parseFloat(getEffectiveDue().toFixed(2))}
                           value={formData.amount}
                           onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
                           placeholder="0.00"
