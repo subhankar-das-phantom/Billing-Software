@@ -146,13 +146,15 @@ export default function InvoiceViewPage() {
   const fetchCustomerBalance = async () => {
     if (!customerId) return 0;
     try {
-      const [customerData, entriesData] = await Promise.all([
+      const [customerData, entriesData, cnData] = await Promise.all([
         customerService.getCustomer(customerId),
-        manualEntryService.getManualEntriesByCustomer(customerId).catch(() => ({ manualEntries: [] }))
+        manualEntryService.getManualEntriesByCustomer(customerId).catch(() => ({ manualEntries: [] })),
+        creditNoteService.getCreditNotesByCustomer(customerId).catch(() => ({ creditNotes: [] }))
       ]);
       
       const customerInvoices = customerData?.invoices || [];
       const manualEntries = entriesData?.manualEntries || [];
+      const customerCreditNotes = cnData?.creditNotes || [];
       
       const invoiceOutstanding = customerInvoices.reduce((sum, inv) => {
         if (inv.status === 'Cancelled') return sum;
@@ -167,8 +169,13 @@ export default function InvoiceViewPage() {
         }
         return sum;
       }, 0);
+
+      // Subtract credit note totals
+      const creditNoteTotal = customerCreditNotes.reduce(
+        (sum, cn) => sum + (cn.totals?.netTotal || 0), 0
+      );
       
-      return invoiceOutstanding + manualEntryOutstanding;
+      return Math.max(0, invoiceOutstanding + manualEntryOutstanding - creditNoteTotal);
     } catch (e) {
       console.warn('Failed calculating outstanding', e);
       return 0;
@@ -674,6 +681,51 @@ export default function InvoiceViewPage() {
                 </motion.div>
               </Link>
             ))}
+          </div>
+        </motion.div>
+      )}
+      {/* Due Amount Summary Card */}
+      {invoice && (
+        <motion.div variants={cardVariants} className="glass-card p-5 no-print">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-blue-500/20 rounded-lg">
+              <DollarSign className="w-5 h-5 text-blue-400" />
+            </div>
+            <h2 className="text-white font-semibold">Payment Summary</h2>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="p-3 bg-slate-800/50 rounded-xl border border-slate-700/50">
+              <p className="text-xs text-slate-400 mb-1">Invoice Total</p>
+              <p className="text-lg font-bold text-white">{formatCurrency(invoice.totals?.netTotal)}</p>
+            </div>
+            <div className="p-3 bg-slate-800/50 rounded-xl border border-slate-700/50">
+              <p className="text-xs text-slate-400 mb-1">Paid Amount</p>
+              <p className="text-lg font-bold text-emerald-400">{formatCurrency(invoice.paidAmount || 0)}</p>
+            </div>
+            {(() => {
+              const totalCreditNoteAmount = creditNotes.reduce((sum, cn) => sum + (cn.totals?.netTotal || 0), 0);
+              const netDue = Math.max(0, (invoice.totals?.netTotal || 0) - (invoice.paidAmount || 0) - totalCreditNoteAmount);
+              return (
+                <>
+                  {totalCreditNoteAmount > 0 && (
+                    <div className="p-3 bg-slate-800/50 rounded-xl border border-amber-500/30">
+                      <p className="text-xs text-slate-400 mb-1">Credit Notes</p>
+                      <p className="text-lg font-bold text-amber-400">-{formatCurrency(totalCreditNoteAmount)}</p>
+                    </div>
+                  )}
+                  <div className={`p-3 rounded-xl border ${
+                    netDue > 0
+                      ? 'bg-red-500/10 border-red-500/30'
+                      : 'bg-emerald-500/10 border-emerald-500/30'
+                  }`}>
+                    <p className="text-xs text-slate-400 mb-1">Net Due</p>
+                    <p className={`text-lg font-bold ${
+                      netDue > 0 ? 'text-red-400' : 'text-emerald-400'
+                    }`}>{formatCurrency(netDue)}</p>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </motion.div>
       )}
