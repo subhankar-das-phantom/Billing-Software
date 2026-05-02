@@ -486,14 +486,21 @@ exports.getCustomers = async (req, res, next) => {
         { $group: { _id: '$customerId', total: { $sum: '$remaining' } } }
       ]);
 
+      // Credit note deductions per customer
+      const creditNoteDeductions = await CreditNote.aggregate([
+        { $match: { tenantId, 'customer._id': { $in: customerIds } } },
+        { $group: { _id: '$customer._id', total: { $sum: '$totals.netTotal' } } }
+      ]);
+
       const invoiceMap = new Map(invoiceOutstanding.map(row => [row._id.toString(), row.total || 0]));
       const manualMap = new Map(manualOutstanding.map(row => [row._id.toString(), row.total || 0]));
+      const creditNoteMap = new Map(creditNoteDeductions.map(row => [row._id.toString(), row.total || 0]));
 
       customersWithOutstanding = customers.map(c => {
         const base = c.toObject();
         const key = c._id.toString();
-        const total = (invoiceMap.get(key) || 0) + (manualMap.get(key) || 0);
-        return { ...base, calculatedOutstanding: round2(total) };
+        const total = (invoiceMap.get(key) || 0) + (manualMap.get(key) || 0) - (creditNoteMap.get(key) || 0);
+        return { ...base, calculatedOutstanding: round2(Math.max(0, total)) };
       });
     }
 
