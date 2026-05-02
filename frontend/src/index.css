@@ -182,7 +182,7 @@
   /* Mobile-optimized table */
   @media (max-width: 768px) {
     .table-container {
-      @apply -mx-2 px-2;
+      margin: 0; padding: 0;
     }
 
     .table th,
@@ -253,6 +253,7 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
