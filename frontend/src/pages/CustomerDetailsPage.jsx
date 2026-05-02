@@ -30,6 +30,7 @@ import { customerService } from '../services/customerService';
 import { ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import { getPaymentsByCustomer, getPaymentStatusColor, deletePayment } from '../services/creditService';
 import { manualEntryService, deleteManualEntry, updateManualEntry } from '../services/manualEntryService';
+import { creditNoteService } from '../services/creditNoteService';
 import { formatCurrency, formatDate, formatPhone } from '../utils/formatters';
 import { CUSTOMER_THEMES, getCustomerTheme } from '../utils/customerTheme';
 import { PageLoader } from '../components/Common/Loader';
@@ -48,12 +49,14 @@ const getInvoiceRemaining = (invoice) => {
   return remaining > 0 ? remaining : 0;
 };
 
-const getInvoicePaymentStatus = (invoice) => {
+const getInvoicePaymentStatus = (invoice, cnDeduction = 0) => {
   const remaining = getInvoiceRemaining(invoice);
+  const adjustedRemaining = Math.max(0, round2(remaining - cnDeduction));
   const paidAmount = round2(invoice.paidAmount || 0);
+  const hasCredits = cnDeduction > 0;
 
-  if (remaining <= 0 && paidAmount > 0) return 'Paid';
-  if (paidAmount > 0) return 'Partial';
+  if (adjustedRemaining <= 0 && (paidAmount > 0 || hasCredits)) return 'Paid';
+  if (paidAmount > 0 || hasCredits) return 'Partial';
   return 'Unpaid';
 };
 
@@ -270,6 +273,7 @@ export default function CustomerDetailsPage() {
   const [invoices, setInvoices] = useState([]);
   const [payments, setPayments] = useState([]);
   const [manualEntries, setManualEntries] = useState([]);
+  const [creditNotes, setCreditNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('invoices');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -326,15 +330,17 @@ export default function CustomerDetailsPage() {
   const loadCustomer = async (bypassCache = false) => {
     try {
       // When bypassCache=true, pass useCache=false to get fresh data
-      const [customerData, paymentsData, entriesData] = await Promise.all([
+      const [customerData, paymentsData, entriesData, cnData] = await Promise.all([
         customerService.getCustomer(id, !bypassCache),
         getPaymentsByCustomer(id).catch(() => ({ payments: [] })),
-        manualEntryService.getManualEntriesByCustomer(id).catch(() => ({ manualEntries: [] }))
+        manualEntryService.getManualEntriesByCustomer(id).catch(() => ({ manualEntries: [] })),
+        creditNoteService.getCreditNotesByCustomer(id).catch(() => ({ creditNotes: [] }))
       ]);
       setCustomer(customerData.customer);
       setInvoices(customerData.invoices || []);
       setPayments(paymentsData.payments || []);
       setManualEntries(entriesData.manualEntries || []);
+      setCreditNotes(cnData.creditNotes || []);
     } catch (error) {
       console.error('Failed to load customer:', error);
     } finally {
@@ -402,7 +408,25 @@ export default function CustomerDetailsPage() {
     return sum;
   }, 0), [manualEntries]);
 
-  const calculatedOutstanding = invoiceOutstanding + manualEntryOutstanding;
+  // Credit note deductions
+  const creditNoteTotal = useMemo(() => creditNotes.reduce(
+    (sum, cn) => sum + (cn.totals?.netTotal || 0), 0
+  ), [creditNotes]);
+
+  // Per-invoice credit note totals (for invoice tab due amount)
+  const creditNoteByInvoiceMap = useMemo(() => {
+    const map = new Map();
+    creditNotes.forEach(cn => {
+      const invId = cn.invoiceId?._id || cn.invoiceId;
+      if (invId) {
+        const key = invId.toString();
+        map.set(key, (map.get(key) || 0) + (cn.totals?.netTotal || 0));
+      }
+    });
+    return map;
+  }, [creditNotes]);
+
+  const calculatedOutstanding = Math.max(0, invoiceOutstanding + manualEntryOutstanding - creditNoteTotal);
 
   const rowCount = activeTab === 'invoices'
     ? invoices.length
@@ -1019,9 +1043,11 @@ export default function CustomerDetailsPage() {
                       <tbody>
                         {invoices.map((invoice, index) => {
                           const StatusIcon = statusConfig[invoice.status]?.icon || FileText;
-                          const paymentStatus = getInvoicePaymentStatus(invoice);
-                          const PaymentIcon = paymentStatusConfig[paymentStatus]?.icon || AlertTriangle;
                           const remaining = getInvoiceRemaining(invoice);
+                          const cnDeduction = creditNoteByInvoiceMap.get(invoice._id?.toString()) || 0;
+                          const adjustedRemaining = Math.max(0, round2(remaining - cnDeduction));
+                          const paymentStatus = getInvoicePaymentStatus(invoice, cnDeduction);
+                          const PaymentIcon = paymentStatusConfig[paymentStatus]?.icon || AlertTriangle;
                           const isCancelled = invoice.status === 'Cancelled';
                           
                           return (
@@ -1070,7 +1096,7 @@ export default function CustomerDetailsPage() {
                                     </span>
                                     {paymentStatus === 'Partial' && (
                                       <span className="text-xs w-max text-slate-500 mt-1">
-                                        Due: {formatCurrency(remaining)}
+                                        Due: {formatCurrency(adjustedRemaining)}
                                       </span>
                                     )}
                                   </div>
@@ -1621,6 +1647,7 @@ export default function CustomerDetailsPage() {
         invoices={unpaidInvoices}
         manualEntries={manualEntries}
         preSelectedInvoice={selectedInvoice}
+        creditNotes={creditNotes}
       />
 
       {/* Edit Payment Modal */}
@@ -1639,6 +1666,7 @@ export default function CustomerDetailsPage() {
           loadCustomer(true);
         }}
         payment={editingPayment}
+        creditNotes={creditNotes}
       />
 
       {/* Printable Ledger Preview (visible on screen + used for print) */}
