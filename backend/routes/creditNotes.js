@@ -4,6 +4,7 @@ const {
   createCreditNote,
   getCreditNotes,
   getCreditNotesByInvoice,
+  getCreditNotesByCustomer,
   getCreditNote
 } = require('../controllers/creditNoteController');
 const { protect } = require('../middleware/auth');
@@ -17,6 +18,7 @@ router.route('/')
   .post(createCreditNote);
 
 router.get('/invoice/:invoiceId', getCreditNotesByInvoice);
+router.get('/customer/:customerId', getCreditNotesByCustomer);
 router.get('/:id', getCreditNote);
 
 module.exports = router;
