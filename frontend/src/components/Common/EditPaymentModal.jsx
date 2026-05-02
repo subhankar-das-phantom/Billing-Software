@@ -19,7 +19,8 @@ export default function EditPaymentModal({
   isOpen,
   onClose,
   onSuccess,
-  payment // { _id, amount, date, method, reference, invoiceNumber, notes, invoiceTotal, invoicePaidAmount, isManual }
+  payment, // { _id, amount, date, method, reference, invoiceNumber, invoiceId, notes, invoiceTotal, invoicePaidAmount, isManual }
+  creditNotes = []
 }) {
   const isManual = payment?.isManual || false;
   const [formData, setFormData] = useState({
@@ -50,11 +51,26 @@ export default function EditPaymentModal({
     }
   }, [isOpen, payment]);
 
-  // Max allowed = remaining on invoice + this payment's current amount (invoice payments only)
+  // Max allowed = effectively remaining on invoice + this payment's current amount
   const getMaxAmount = () => {
     if (!payment || isManual) return Infinity;
+    
+    // Calculate credit note deduction for this specific invoice
+    const cnDeduction = creditNotes.reduce((sum, cn) => {
+      const invId = cn.invoiceId?._id?.toString() || cn.invoiceId?.toString();
+      const targetId = payment.invoiceId?.toString();
+      if (invId === targetId) {
+        return sum + (cn.totals?.netTotal || 0);
+      }
+      return sum;
+    }, 0);
+
     const remaining = (payment.invoiceTotal || 0) - (payment.invoicePaidAmount || 0);
-    return parseFloat((remaining + (payment.amount || 0)).toFixed(2));
+    const effectiveRemaining = Math.max(0, remaining - cnDeduction);
+    
+    // The max they can set this payment to is what's currently effectively remaining 
+    // PLUS the amount of this payment itself (since we are replacing it)
+    return parseFloat((effectiveRemaining + (payment.amount || 0)).toFixed(2));
   };
 
   const handleSubmit = async (e) => {
