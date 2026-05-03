@@ -238,7 +238,7 @@ export const AuthProvider = ({ children }) => {
       return data;
     } catch (error) {
       setAuthTransition(null);
-      showToast(error.message || 'An error occurred during login', 'error');
+      // Removed showToast here to prevent duplicate error toast in LoginPage
       throw error;
     }
   };
@@ -271,7 +271,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('admin', JSON.stringify(adminData));
     setAdmin(adminData);
     setUser(adminData);
-    showToast('Profile updated successfully', 'success');
+    // Removed showToast here to prevent duplicate success toast in ProfilePage and RegisterPage
   };
 
   // Check if current user is admin
