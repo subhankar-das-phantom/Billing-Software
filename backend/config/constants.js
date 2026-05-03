@@ -3,7 +3,7 @@ module.exports = {
   GST_RATES: [0, 5, 12, 18, 28],
   
   // Low stock threshold
-  LOW_STOCK_THRESHOLD: 10,
+  LOW_STOCK_THRESHOLD: 5,
   
   // Pagination defaults
   DEFAULT_PAGE_SIZE: 50,
