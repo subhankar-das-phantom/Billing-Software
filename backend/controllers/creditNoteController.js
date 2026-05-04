@@ -273,6 +273,27 @@ exports.getCreditNotesByInvoice = async (req, res, next) => {
   }
 };
 
+// @desc    Get credit notes for a customer
+// @route   GET /api/credit-notes/customer/:customerId
+// @access  Private
+exports.getCreditNotesByCustomer = async (req, res, next) => {
+  try {
+    const tenantId = getTenantId(req);
+    const creditNotes = await CreditNote.find({
+      tenantId,
+      'customer._id': req.params.customerId
+    }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: creditNotes.length,
+      creditNotes
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Get single credit note by ID
 // @route   GET /api/credit-notes/:id
 // @access  Private

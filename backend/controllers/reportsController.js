@@ -1,7 +1,11 @@
 const Invoice = require('../models/Invoice');
 const Payment = require('../models/Payment');
 const Customer = require('../models/Customer');
+const CreditNote = require('../models/CreditNote');
 const getTenantId = require('../utils/getTenantId');
+
+// Round to 2 decimal places safely (avoids JS floating point drift)
+const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 
 // @desc    Get outstanding report - customers with pending amounts
 // @route   GET /api/reports/outstanding
@@ -43,6 +47,19 @@ exports.getOutstandingReport = async (req, res, next) => {
       customer.outstandingBalance += remaining;
       customer.invoiceCount += 1;
     });
+
+    // Credit note deductions per customer
+    const creditNoteTotals = await CreditNote.aggregate([
+      { $match: { tenantId } },
+      { $group: { _id: '$customer._id', total: { $sum: '$totals.netTotal' } } }
+    ]);
+
+    for (const cn of creditNoteTotals) {
+      const customer = customerMap.get(cn._id.toString());
+      if (customer) {
+        customer.outstandingBalance = round2(Math.max(0, customer.outstandingBalance - cn.total));
+      }
+    }
 
     // Convert to array and sort
     const customers = Array.from(customerMap.values())
@@ -219,10 +236,18 @@ exports.getCreditStats = async (req, res, next) => {
       return sum + (remaining > 0 ? remaining : 0);
     }, 0);
 
+    // Credit note global deduction
+    const totalCreditNotes = await CreditNote.aggregate([
+      { $match: { tenantId } },
+      { $group: { _id: null, total: { $sum: '$totals.netTotal' } } }
+    ]);
+    const creditNoteDeduction = totalCreditNotes[0]?.total || 0;
+    const adjustedOutstanding = round2(Math.max(0, totalOutstanding - creditNoteDeduction));
+
     res.status(200).json({
       success: true,
       stats: {
-        totalOutstanding,
+        totalOutstanding: adjustedOutstanding,
         overdueAmount,
         customersWithDues,
         paymentsThisMonth: paymentsThisMonth[0]?.total || 0,

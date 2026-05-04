@@ -33,12 +33,39 @@ const getISTDateRanges = (referenceDate = new Date()) => {
   };
 };
 
+const getDateFilter = (range) => {
+  if (!range || range === 'all') return {};
+
+  const now = new Date();
+  let from;
+  const rangeMap = {
+    '1m': 1,
+    '3m': 3,
+    '6m': 6,
+  };
+
+  const months = rangeMap[range];
+  if (!months) return {};
+
+  from = new Date(now);
+  from.setMonth(from.getMonth() - months);
+
+  return { $gte: from };
+};
+
 // @desc    Get dashboard stats
 // @route   GET /api/dashboard/stats
 // @access  Private
 exports.getStats = async (req, res, next) => {
   try {
     const tenantId = getTenantId(req);
+    const dateFilter = getDateFilter(req.query.range);
+
+    const matchStage = {
+      tenantId,
+      ...(Object.keys(dateFilter).length > 0 && { createdAt: dateFilter })
+    };
+
     // Use fixed IST boundaries for business-day metrics regardless of server timezone.
     const {
       todayStart,
@@ -49,7 +76,8 @@ exports.getStats = async (req, res, next) => {
       prevMonthStart,
       prevMonthEnd
     } = getISTDateRanges();
-    const nonCancelledInvoiceQuery = { tenantId, status: { $ne: 'Cancelled' } };
+    
+    const nonCancelledInvoiceQuery = { ...matchStage, status: { $ne: 'Cancelled' } };
 
     // Helper function to calculate percentage change
     const calculateGrowth = (current, previous) => {
@@ -195,11 +223,16 @@ exports.getLowStock = async (req, res, next) => {
 // @access  Private
 exports.getInvoiceCount = async (req, res, next) => {
   try {
-    const { startDate, endDate } = req.query;
+    const { startDate, endDate, range } = req.query;
     const tenantId = getTenantId(req);
+    const dateFilter = getDateFilter(range);
+
+    const matchStage = {
+      tenantId,
+      ...(Object.keys(dateFilter).length > 0 && { createdAt: dateFilter })
+    };
     
-    const query = { tenantId };
-    
+    const query = { ...matchStage };
     
     if (startDate && endDate) {
       query.invoiceDate = {

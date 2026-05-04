@@ -347,13 +347,13 @@ export default function CreditNoteViewPage() {
           <table className="table">
             <thead>
               <tr>
-                <th>Product</th>
-                <th>Qty Returned</th>
-                <th>Rate</th>
-                <th>GST%</th>
-                <th>Taxable</th>
-                <th>GST</th>
-                <th>Total</th>
+                <th className="text-left">Product</th>
+                <th className="text-center">Qty Returned</th>
+                <th className="text-right">Rate</th>
+                <th className="text-center">GST%</th>
+                <th className="text-right">Taxable</th>
+                <th className="text-right">GST</th>
+                <th className="text-right">Total</th>
               </tr>
             </thead>
             <tbody>
@@ -365,13 +365,13 @@ export default function CreditNoteViewPage() {
                   transition={{ delay: idx * 0.05 }}
                   className="hover:bg-slate-700/50"
                 >
-                  <td className="font-medium text-white">{item.productName}</td>
-                  <td className="text-white font-semibold">{item.quantityReturned}</td>
-                  <td className="text-slate-300">{formatCurrency(item.rate)}</td>
-                  <td className="text-slate-300">{item.gstPercent}%</td>
-                  <td className="text-slate-300">{formatCurrency(item.taxableAmount)}</td>
-                  <td className="text-slate-300">{formatCurrency(item.gstAmount)}</td>
-                  <td className="text-emerald-400 font-medium">{formatCurrency(item.totalAmount)}</td>
+                  <td className="font-medium text-white text-left">{item.productName}</td>
+                  <td className="text-white font-semibold text-center">{item.quantityReturned}</td>
+                  <td className="text-slate-300 text-right">{formatCurrency(item.rate)}</td>
+                  <td className="text-slate-300 text-center">{item.gstPercent}%</td>
+                  <td className="text-slate-300 text-right">{formatCurrency(item.taxableAmount)}</td>
+                  <td className="text-slate-300 text-right">{formatCurrency(item.gstAmount)}</td>
+                  <td className="text-emerald-400 font-medium text-right">{formatCurrency(item.totalAmount)}</td>
                 </motion.tr>
               ))}
             </tbody>

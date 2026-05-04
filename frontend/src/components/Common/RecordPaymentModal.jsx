@@ -23,7 +23,8 @@ export default function RecordPaymentModal({
   customer,
   invoices = [], // Unpaid/partial invoices for this customer
   manualEntries = [], // Unpaid opening balance entries
-  preSelectedInvoice = null
+  preSelectedInvoice = null,
+  creditNotes = [] // Credit notes for this customer
 }) {
   const [formData, setFormData] = useState({
     selectionId: '', // Can be invoiceId or entryId
@@ -44,6 +45,19 @@ export default function RecordPaymentModal({
     entry.paymentType === 'Credit' &&
     (entry.amount - (entry.paidAmount || 0)) > 0
   );
+
+  // Build per-invoice credit note totals map
+  const cnByInvoiceMap = useMemo(() => {
+    const map = new Map();
+    creditNotes.forEach(cn => {
+      const invId = cn.invoiceId?._id || cn.invoiceId;
+      if (invId) {
+        const key = invId.toString();
+        map.set(key, (map.get(key) || 0) + (cn.totals?.netTotal || 0));
+      }
+    });
+    return map;
+  }, [creditNotes]);
 
   // Derive selected item directly from selectionId to avoid state sync issues
   const selectedItem = useMemo(() => {
@@ -95,10 +109,21 @@ export default function RecordPaymentModal({
     }
   };
 
+  // Effective due = remaining - credit notes (display only)
+  const getEffectiveDue = () => {
+    if (!selectedItem) return 0;
+    const remaining = getRemainingAmount();
+    if (formData.selectionType === 'invoice') {
+      const cnDeduction = cnByInvoiceMap.get(selectedItem._id?.toString()) || 0;
+      return Math.max(0, remaining - cnDeduction);
+    }
+    return remaining;
+  };
+
   const handlePayFull = () => {
     setFormData(prev => ({
       ...prev,
-      amount: getRemainingAmount().toFixed(2)
+      amount: getEffectiveDue().toFixed(2)
     }));
   };
 
@@ -118,9 +143,9 @@ export default function RecordPaymentModal({
       return;
     }
 
-    const remaining = parseFloat(getRemainingAmount().toFixed(2));
-    if (parseFloat(amount.toFixed(2)) > remaining) {
-      setError(`Amount cannot exceed remaining balance (${formatCurrency(remaining)})`);
+    const effectiveDue = parseFloat(getEffectiveDue().toFixed(2));
+    if (parseFloat(amount.toFixed(2)) > effectiveDue) {
+      setError(`Amount cannot exceed effectively due balance (${formatCurrency(effectiveDue)})`);
       return;
     }
 
@@ -193,7 +218,7 @@ export default function RecordPaymentModal({
 
           {/* Modal */}
           <motion.div
-            className="modal max-w-lg relative z-10 w-full"
+            className="bg-slate-800/95 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl max-w-lg relative z-10 w-full flex flex-col max-h-[90vh] overflow-hidden"
             initial={{ scale: 0.95, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 20 }}
@@ -201,7 +226,7 @@ export default function RecordPaymentModal({
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="modal-header flex items-center justify-between">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-slate-700/50 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-emerald-500/20 rounded-lg">
                   <CreditCard className="w-5 h-5 text-emerald-400" />
@@ -224,10 +249,10 @@ export default function RecordPaymentModal({
             </div>
 
             {/* Body */}
-            <div className="modal-body">
+            <div className="flex flex-col flex-1 overflow-hidden">
               {success ? (
                 <motion.div
-                  className="text-center py-8"
+                  className="text-center py-8 p-4 sm:p-6 overflow-y-auto"
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                 >
@@ -240,7 +265,8 @@ export default function RecordPaymentModal({
                   </p>
                 </motion.div>
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden w-full">
+                  <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 w-full">
                   {/* Error Message */}
                   {error && (
                     <motion.div
@@ -274,9 +300,11 @@ export default function RecordPaymentModal({
                           <optgroup label="📄 Invoices" className="bg-slate-800">
                             {invoices.map((inv) => {
                               const remaining = inv.totals.netTotal - (inv.paidAmount || 0);
+                              const cnDed = cnByInvoiceMap.get(inv._id?.toString()) || 0;
+                              const effectiveDue = Math.max(0, remaining - cnDed);
                               return (
                                 <option key={inv._id} value={inv._id} className="bg-slate-800 text-white py-2">
-                                  {inv.invoiceNumber} - {formatDate(inv.invoiceDate)} - Due: {formatCurrency(remaining)}
+                                  {inv.invoiceNumber} - {formatDate(inv.invoiceDate)} - Due: {formatCurrency(effectiveDue)}
                                 </option>
                               );
                             })}
@@ -329,20 +357,28 @@ export default function RecordPaymentModal({
                             {formatCurrency(selectedItem.paidAmount || 0)}
                           </span>
                         </div>
+                        {formData.selectionType === 'invoice' && (cnByInvoiceMap.get(selectedItem._id?.toString()) || 0) > 0 && (
+                          <div>
+                            <span className="text-slate-400">Credit Notes:</span>
+                            <span className="ml-2 text-amber-400 font-medium">
+                              -{formatCurrency(cnByInvoiceMap.get(selectedItem._id?.toString()) || 0)}
+                            </span>
+                          </div>
+                        )}
                         <div>
                           <span className="text-slate-400">Due Amount:</span>
                           <span className="ml-2 text-amber-400 font-semibold">
-                            {formatCurrency(getRemainingAmount())}
+                            {formatCurrency(getEffectiveDue())}
                           </span>
                         </div>
                         <div>
                           <span className="text-slate-400">After Payment:</span>
                           <span className={`ml-2 font-semibold ${
-                            getRemainingAmount() - (parseFloat(formData.amount) || 0) <= 0 
+                            getEffectiveDue() - (parseFloat(formData.amount) || 0) <= 0 
                               ? 'text-emerald-400' 
                               : 'text-amber-400'
                           }`}>
-                            {formatCurrency(Math.max(0, getRemainingAmount() - (parseFloat(formData.amount) || 0)))}
+                            {formatCurrency(Math.max(0, getEffectiveDue() - (parseFloat(formData.amount) || 0)))}
                           </span>
                         </div>
                       </div>
@@ -362,7 +398,7 @@ export default function RecordPaymentModal({
                           type="number"
                           step="0.01"
                           min="0.01"
-                          max={parseFloat(getRemainingAmount().toFixed(2))}
+                          max={parseFloat(getEffectiveDue().toFixed(2))}
                           value={formData.amount}
                           onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
                           placeholder="0.00"
@@ -456,26 +492,30 @@ export default function RecordPaymentModal({
                     />
                   </div>
 
-                  {/* Submit Button */}
-                  <motion.button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium rounded-lg transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    whileHover={{ scale: loading ? 1 : 1.01 }}
-                    whileTap={{ scale: loading ? 1 : 0.99 }}
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Recording Payment...
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle className="w-5 h-5" />
-                        Record Payment
-                      </>
-                    )}
-                  </motion.button>
+                  </div>
+
+                  {/* Submit Button Footer */}
+                  <div className="p-4 sm:p-6 border-t border-slate-700/50 bg-slate-800/95 shrink-0 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] w-full sticky bottom-0 z-10">
+                    <motion.button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium rounded-lg transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      whileHover={{ scale: loading ? 1 : 1.01 }}
+                      whileTap={{ scale: loading ? 1 : 0.99 }}
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          Recording Payment...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="w-5 h-5" />
+                          Record Payment
+                        </>
+                      )}
+                    </motion.button>
+                  </div>
                 </form>
               )}
             </div>

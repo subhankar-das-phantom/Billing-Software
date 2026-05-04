@@ -245,12 +245,12 @@ export default function CreditNoteCreatePage() {
           <table className="table">
             <thead>
               <tr>
-                <th>Product</th>
-                <th>Sold Qty</th>
-                <th>Already Returned</th>
-                <th>Max Returnable</th>
-                <th>Return Qty</th>
-                <th>Return Total</th>
+                <th className="text-left">Product</th>
+                <th className="text-center">Sold Qty</th>
+                <th className="text-center">Already Returned</th>
+                <th className="text-center">Max Returnable</th>
+                <th className="text-center">Return Qty</th>
+                <th className="text-right">Return Total</th>
               </tr>
             </thead>
             <tbody>
@@ -267,29 +267,29 @@ export default function CreditNoteCreatePage() {
                     transition={{ delay: index * 0.03 }}
                     className={`hover:bg-slate-700/50 transition-colors ${item.maxReturnable === 0 ? 'opacity-50' : ''}`}
                   >
-                    <td className="font-medium text-white">
+                    <td className="font-medium text-white text-left">
                         {item.productName}
                     </td>
-                    <td className="text-slate-300">{item.quantitySold}</td>
-                    <td>
+                    <td className="text-slate-300 text-center">{item.quantitySold}</td>
+                    <td className="text-center">
                       <span className={`text-sm ${item.alreadyReturned > 0 ? 'text-amber-400' : 'text-slate-500'}`}>
                         {item.alreadyReturned}
                       </span>
                     </td>
-                    <td className="text-slate-300">{item.maxReturnable}</td>
-                    <td>
+                    <td className="text-slate-300 text-center">{item.maxReturnable}</td>
+                    <td className="text-center">
                       <input
                         type="number"
                         value={item.quantityReturned || ''}
                         onChange={(e) => updateReturnQty(index, e.target.value)}
-                        className="input w-24 text-center"
+                        className="input w-24 text-center mx-auto"
                         placeholder="0"
                         min="0"
                         max={item.maxReturnable}
                         disabled={item.maxReturnable === 0}
                       />
                     </td>
-                    <td className="text-emerald-400 font-medium">
+                    <td className="text-emerald-400 font-medium text-right">
                       {itemTotal > 0 ? formatCurrency(itemTotal) : '—'}
                     </td>
                   </motion.tr>
