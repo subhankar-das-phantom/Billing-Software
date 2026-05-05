@@ -13,6 +13,9 @@ const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 exports.getOutstandingReport = async (req, res, next) => {
   try {
     const tenantId = getTenantId(req);
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+    const skip = (page - 1) * limit;
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -53,7 +56,7 @@ exports.getOutstandingReport = async (req, res, next) => {
     // Merge credit note deductions in JS (fast — only customer-level rows)
     const creditMap = new Map(creditNoteTotals.map(cn => [cn._id.toString(), cn.total]));
 
-    const customers = customerOutstanding.map(c => ({
+    const allCustomers = customerOutstanding.map(c => ({
       _id: c._id,
       customerName: c.customerName,
       phone: c.phone,
@@ -63,10 +66,13 @@ exports.getOutstandingReport = async (req, res, next) => {
     })).filter(c => c.outstandingBalance > 0)
       .sort((a, b) => b.outstandingBalance - a.outstandingBalance);
 
-    // Summary stats
-    const totalOutstanding = customers.reduce((sum, c) => sum + c.outstandingBalance, 0);
-    const customersWithDues = customers.length;
+    // Summary stats from ALL customers (not just current page)
+    const totalOutstanding = allCustomers.reduce((sum, c) => sum + c.outstandingBalance, 0);
+    const customersWithDues = allCustomers.length;
     const overdueAmount = customerOutstanding.reduce((sum, c) => sum + c.overdueAmount, 0);
+
+    // Paginate customers
+    const customers = allCustomers.slice(skip, skip + limit);
 
     res.status(200).json({
       success: true,
@@ -75,7 +81,10 @@ exports.getOutstandingReport = async (req, res, next) => {
         overdueAmount,
         customersWithDues
       },
-      customers
+      customers,
+      page,
+      total: customersWithDues,
+      hasMore: skip + limit < customersWithDues
     });
   } catch (error) {
     next(error);
