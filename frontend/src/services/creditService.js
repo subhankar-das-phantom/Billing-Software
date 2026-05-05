@@ -94,8 +94,12 @@ export const getOutstandingReport = async () => {
 /**
  * Get ageing report - breakdown by days overdue
  */
-export const getAgeingReport = async () => {
-  const response = await api.get('/reports/ageing');
+export const getAgeingReport = async (params = {}) => {
+  const query = new URLSearchParams();
+  if (params.page) query.append('page', params.page);
+  if (params.limit) query.append('limit', params.limit);
+  const queryStr = query.toString();
+  const response = await api.get(`/reports/ageing${queryStr ? `?${queryStr}` : ''}`);
   return response.data;
 };
 
