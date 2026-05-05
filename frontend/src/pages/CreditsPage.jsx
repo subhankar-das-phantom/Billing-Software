@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence, useInView, useMotionValue, useSpring, animate } from 'framer-motion';
 import {
@@ -12,7 +12,8 @@ import {
   CreditCard,
   FileText,
   RefreshCw,
-  Phone
+  Phone,
+  Loader2
 } from 'lucide-react';
 import {
   getCreditStats,
@@ -53,6 +54,11 @@ const AnimatedCounter = ({ value, prefix = '', suffix = '', decimals = 0 }) => {
 export default function CreditsPage() {
   const [activeTab, setActiveTab] = useState('outstanding');
 
+  // Ageing infinite scroll state
+  const [ageingPage, setAgeingPage] = useState(1);
+  const [ageingInvoices, setAgeingInvoices] = useState([]);
+  const ageingObserver = useRef(null);
+
   // SWR: Instant cached data + background revalidation
   const { data: statsData, isLoading: statsLoading, isValidating: statsValidating } = useSWR(
     'credits-stats',
@@ -67,8 +73,8 @@ export default function CreditsPage() {
   );
 
   const { data: ageingData, isLoading: ageingLoading, isValidating: ageingValidating } = useSWR(
-    'credits-ageing',
-    () => getAgeingReport(),
+    `credits-ageing-${ageingPage}`,
+    () => getAgeingReport({ page: ageingPage, limit: 20 }),
     { ttl: 2 * 60 * 1000 }
   );
 
@@ -83,7 +89,36 @@ export default function CreditsPage() {
   const outstanding = outstandingData || { customers: [], summary: {} };
   const ageing = ageingData || { buckets: {}, summary: {} };
   const recentPayments = paymentsData?.payments || [];
-  
+  const ageingHasMore = ageingData?.hasMore ?? false;
+
+  // Accumulate ageing invoices as pages arrive
+  useEffect(() => {
+    if (!ageingData?.invoices) return;
+    if (ageingPage === 1) {
+      setAgeingInvoices(ageingData.invoices);
+      return;
+    }
+    setAgeingInvoices(prev => {
+      const existingIds = new Set(prev.map(inv => inv._id));
+      const newInvoices = ageingData.invoices.filter(inv => !existingIds.has(inv._id));
+      return [...prev, ...newInvoices];
+    });
+  }, [ageingData, ageingPage]);
+
+  // Ageing infinite scroll observer
+  const ageingLastRef = useCallback((node) => {
+    if (ageingValidating) return;
+    if (ageingObserver.current) ageingObserver.current.disconnect();
+    if (node) {
+      ageingObserver.current = new IntersectionObserver(entries => {
+        if (entries[0].isIntersecting && !ageingValidating && ageingHasMore) {
+          setAgeingPage(prev => prev + 1);
+        }
+      }, { threshold: 0.1 });
+      ageingObserver.current.observe(node);
+    }
+  }, [ageingValidating, ageingHasMore]);
+
   // Loading states
   const loading = (statsLoading || outstandingLoading || ageingLoading || paymentsLoading) && !stats;
   const isValidating = statsValidating || outstandingValidating || ageingValidating || paymentsValidating;
@@ -362,33 +397,41 @@ export default function CreditsPage() {
                   })}
                 </div>
 
-                {/* Ageing Details */}
+                {/* Ageing Details — Paginated with infinite scroll */}
                 {ageing.summary?.totalCount > 0 && (
                   <div className="mt-6">
-                    <h3 className="text-sm font-medium text-slate-400 mb-3">Overdue Invoices</h3>
+                    <h3 className="text-sm font-medium text-slate-400 mb-3">
+                      Overdue Invoices
+                      <span className="text-slate-500 ml-2">({ageingInvoices.length} of {ageing.summary.totalCount})</span>
+                    </h3>
                     <div className="space-y-2 max-h-96 overflow-y-auto">
-                      {Object.entries(ageing.buckets || {}).map(([bucketKey, bucket]) =>
-                        bucket.invoices?.map((inv, idx) => (
-                          <Link
-                            key={`${bucketKey}-${idx}`}
-                            to={`/invoices/${inv.invoiceId || inv._id}`}
-                            className="block p-3 bg-slate-800/30 rounded-lg hover:bg-slate-700/50 transition-colors"
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <FileText className="w-4 h-4 text-slate-500" />
-                                <div>
-                                  <span className="text-white font-medium">{inv.invoiceNumber}</span>
-                                  <span className="text-slate-400 ml-2">{inv.customerName}</span>
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-amber-400 font-medium">{formatCurrency(inv.remainingAmount)}</p>
-                                <p className="text-xs text-slate-500">{formatDate(inv.invoiceDate)}</p>
+                      {ageingInvoices.map((inv) => (
+                        <Link
+                          key={inv._id}
+                          to={`/invoices/${inv._id}`}
+                          className="block p-3 bg-slate-800/30 rounded-lg hover:bg-slate-700/50 transition-colors"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <FileText className="w-4 h-4 text-slate-500" />
+                              <div>
+                                <span className="text-white font-medium">{inv.invoiceNumber}</span>
+                                <span className="text-slate-400 ml-2">{inv.customerName}</span>
                               </div>
                             </div>
-                          </Link>
-                        ))
+                            <div className="text-right">
+                              <p className="text-amber-400 font-medium">{formatCurrency(inv.remainingAmount)}</p>
+                              <p className="text-xs text-slate-500">{formatDate(inv.invoiceDate)}</p>
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                      {/* Infinite scroll sentinel */}
+                      {(ageingHasMore || (ageingValidating && ageingPage > 1)) && (
+                        <div ref={ageingLastRef} className="p-3 flex items-center justify-center gap-2 text-slate-400">
+                          <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                          <span className="text-sm">Loading more invoices...</span>
+                        </div>
                       )}
                     </div>
                   </div>
