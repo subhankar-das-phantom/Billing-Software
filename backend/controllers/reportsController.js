@@ -88,63 +88,101 @@ exports.getOutstandingReport = async (req, res, next) => {
 exports.getAgeingReport = async (req, res, next) => {
   try {
     const tenantId = getTenantId(req);
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+    const skip = (page - 1) * limit;
+
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
     const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
 
-    // Get all unpaid/partial invoices that are not cancelled
-    const invoices = await Invoice.find({
+    const unpaidFilter = {
       tenantId,
       paymentStatus: { $in: ['Unpaid', 'Partial'] },
       status: { $ne: 'Cancelled' }
-    }).select('invoiceNumber invoiceDate customer totals.netTotal paidAmount paymentStatus');
-
-    // Filter out fully paid invoices (in case paidAmount matches total but status wasn't updated)
-    const unpaidInvoices = invoices.filter(inv => {
-      const remaining = inv.totals.netTotal - (inv.paidAmount || 0);
-      return remaining > 0;
-    });
-
-    // Categorize by age
-    const buckets = {
-      current: { label: '0-30 Days', invoices: [], amount: 0, count: 0 },
-      overdue30: { label: '31-60 Days', invoices: [], amount: 0, count: 0 },
-      overdue60: { label: '61-90 Days', invoices: [], amount: 0, count: 0 },
-      overdue90: { label: '90+ Days', invoices: [], amount: 0, count: 0 }
     };
 
-    unpaidInvoices.forEach(inv => {
-      const remainingAmount = inv.totals.netTotal - (inv.paidAmount || 0);
-      const invDate = new Date(inv.invoiceDate);
+    // Same formula: remaining = totals.netTotal - (paidAmount || 0)
+    const remainingExpr = { $subtract: ['$totals.netTotal', { $ifNull: ['$paidAmount', 0] }] };
 
-      let bucket;
-      if (invDate >= thirtyDaysAgo) {
-        bucket = buckets.current;
-      } else if (invDate >= sixtyDaysAgo) {
-        bucket = buckets.overdue30;
-      } else if (invDate >= ninetyDaysAgo) {
-        bucket = buckets.overdue60;
-      } else {
-        bucket = buckets.overdue90;
-      }
+    // Two parallel aggregations
+    const [bucketSummaries, paginatedInvoices] = await Promise.all([
+      // 1. Bucket summaries — same thresholds as before (30/60/90 days)
+      Invoice.aggregate([
+        { $match: unpaidFilter },
+        { $addFields: { remaining: remainingExpr } },
+        { $match: { remaining: { $gt: 0 } } },
+        { $addFields: {
+          bucket: { $switch: {
+            branches: [
+              { case: { $gte: ['$invoiceDate', thirtyDaysAgo] }, then: 'current' },
+              { case: { $gte: ['$invoiceDate', sixtyDaysAgo] }, then: 'overdue30' },
+              { case: { $gte: ['$invoiceDate', ninetyDaysAgo] }, then: 'overdue60' }
+            ],
+            default: 'overdue90'
+          }}
+        }},
+        { $group: {
+          _id: '$bucket',
+          amount: { $sum: '$remaining' },
+          count: { $sum: 1 }
+        }}
+      ]),
 
-      bucket.invoices.push({
-        invoiceNumber: inv.invoiceNumber,
-        invoiceDate: inv.invoiceDate,
-        customerName: inv.customer.customerName,
-        customerId: inv.customer._id,
-        totalAmount: inv.totals.netTotal,
-        paidAmount: inv.paidAmount,
-        remainingAmount
-      });
-      bucket.amount += remainingAmount;
-      bucket.count += 1;
-    });
+      // 2. Paginated invoice list (oldest first = most overdue)
+      Invoice.aggregate([
+        { $match: unpaidFilter },
+        { $addFields: { remaining: remainingExpr } },
+        { $match: { remaining: { $gt: 0 } } },
+        { $project: {
+          invoiceNumber: 1,
+          invoiceDate: 1,
+          'customer.customerName': 1,
+          'customer._id': 1,
+          'totals.netTotal': 1,
+          paidAmount: 1,
+          remaining: 1
+        }},
+        { $sort: { invoiceDate: 1 } },
+        { $skip: skip },
+        { $limit: limit }
+      ])
+    ]);
 
-    // Calculate totals
+    // Build buckets — same keys and labels as before
+    const bucketLabels = {
+      current: '0-30 Days',
+      overdue30: '31-60 Days',
+      overdue60: '61-90 Days',
+      overdue90: '90+ Days'
+    };
+
+    const buckets = {};
+    for (const [key, label] of Object.entries(bucketLabels)) {
+      const summary = bucketSummaries.find(b => b._id === key);
+      buckets[key] = {
+        label,
+        amount: summary?.amount || 0,
+        count: summary?.count || 0
+      };
+    }
+
+    // Totals from bucket summaries — same calculation
     const totalAmount = Object.values(buckets).reduce((sum, b) => sum + b.amount, 0);
     const totalCount = Object.values(buckets).reduce((sum, b) => sum + b.count, 0);
+
+    // Map invoices to same shape the frontend expects
+    const invoices = paginatedInvoices.map(inv => ({
+      _id: inv._id,
+      invoiceNumber: inv.invoiceNumber,
+      invoiceDate: inv.invoiceDate,
+      customerName: inv.customer.customerName,
+      customerId: inv.customer._id,
+      totalAmount: inv.totals.netTotal,
+      paidAmount: inv.paidAmount,
+      remainingAmount: inv.remaining
+    }));
 
     res.status(200).json({
       success: true,
@@ -152,7 +190,11 @@ exports.getAgeingReport = async (req, res, next) => {
         totalAmount,
         totalCount
       },
-      buckets
+      buckets,
+      invoices,
+      page,
+      total: totalCount,
+      hasMore: page * limit < totalCount
     });
   } catch (error) {
     next(error);
