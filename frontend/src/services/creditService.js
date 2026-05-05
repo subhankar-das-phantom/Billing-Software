@@ -86,8 +86,12 @@ export const deletePayment = async (paymentId) => {
 /**
  * Get outstanding report - customers with pending amounts
  */
-export const getOutstandingReport = async () => {
-  const response = await api.get('/reports/outstanding');
+export const getOutstandingReport = async (params = {}) => {
+  const query = new URLSearchParams();
+  if (params.page) query.append('page', params.page);
+  if (params.limit) query.append('limit', params.limit);
+  const queryStr = query.toString();
+  const response = await api.get(`/reports/outstanding${queryStr ? `?${queryStr}` : ''}`);
   return response.data;
 };
 
