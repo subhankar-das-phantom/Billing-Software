@@ -13,71 +13,60 @@ const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 exports.getOutstandingReport = async (req, res, next) => {
   try {
     const tenantId = getTenantId(req);
-    // Get all unpaid invoices - include those where paymentStatus is not set (old invoices)
-    const unpaidInvoices = await Invoice.find({
-      tenantId,
-      $or: [
-        { paymentStatus: { $in: ['Unpaid', 'Partial'] } },
-        { paymentStatus: { $exists: false } },
-        { paymentStatus: null }
-      ],
-      status: { $ne: 'Cancelled' }
-    });
-
-    // Group by customer and calculate outstanding
-    const customerMap = new Map();
-    
-    unpaidInvoices.forEach(inv => {
-      const remaining = inv.totals.netTotal - (inv.paidAmount || 0);
-      if (remaining <= 0) return; // Skip fully paid invoices
-      
-      const customerId = inv.customer._id.toString();
-      if (!customerMap.has(customerId)) {
-        customerMap.set(customerId, {
-          _id: inv.customer._id,
-          customerName: inv.customer.customerName,
-          phone: inv.customer.phone,
-          address: inv.customer.address,
-          outstandingBalance: 0,
-          invoiceCount: 0
-        });
-      }
-      
-      const customer = customerMap.get(customerId);
-      customer.outstandingBalance += remaining;
-      customer.invoiceCount += 1;
-    });
-
-    // Credit note deductions per customer
-    const creditNoteTotals = await CreditNote.aggregate([
-      { $match: { tenantId } },
-      { $group: { _id: '$customer._id', total: { $sum: '$totals.netTotal' } } }
-    ]);
-
-    for (const cn of creditNoteTotals) {
-      const customer = customerMap.get(cn._id.toString());
-      if (customer) {
-        customer.outstandingBalance = round2(Math.max(0, customer.outstandingBalance - cn.total));
-      }
-    }
-
-    // Convert to array and sort
-    const customers = Array.from(customerMap.values())
-      .sort((a, b) => b.outstandingBalance - a.outstandingBalance);
-
-    // Get additional stats
-    const totalOutstanding = customers.reduce((sum, c) => sum + c.outstandingBalance, 0);
-    const customersWithDues = customers.length;
-
-    // Get overdue amount (invoices older than 30 days)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const overdueAmount = unpaidInvoices.reduce((sum, inv) => {
-      if (new Date(inv.invoiceDate) >= thirtyDaysAgo) return sum;
-      const remaining = inv.totals.netTotal - (inv.paidAmount || 0);
-      return sum + (remaining > 0 ? remaining : 0);
-    }, 0);
+    const unpaidFilter = {
+      tenantId,
+      paymentStatus: { $in: ['Unpaid', 'Partial'] },
+      status: { $ne: 'Cancelled' }
+    };
+
+    // Two separate aggregations + merge in JS (faster than $lookup)
+    const [customerOutstanding, creditNoteTotals] = await Promise.all([
+      // Aggregation 1: Group unpaid invoices by customer
+      Invoice.aggregate([
+        { $match: unpaidFilter },
+        { $addFields: { remaining: { $subtract: ['$totals.netTotal', { $ifNull: ['$paidAmount', 0] }] } } },
+        { $match: { remaining: { $gt: 0 } } },
+        { $group: {
+          _id: '$customer._id',
+          customerName: { $first: '$customer.customerName' },
+          phone: { $first: '$customer.phone' },
+          address: { $first: '$customer.address' },
+          outstandingBalance: { $sum: '$remaining' },
+          invoiceCount: { $sum: 1 },
+          overdueAmount: { $sum: {
+            $cond: [{ $lt: ['$invoiceDate', thirtyDaysAgo] }, '$remaining', 0]
+          }}
+        }},
+        { $sort: { outstandingBalance: -1 } }
+      ]),
+
+      // Aggregation 2: Credit note totals per customer
+      CreditNote.aggregate([
+        { $match: { tenantId } },
+        { $group: { _id: '$customer._id', total: { $sum: '$totals.netTotal' } } }
+      ])
+    ]);
+
+    // Merge credit note deductions in JS (fast — only customer-level rows)
+    const creditMap = new Map(creditNoteTotals.map(cn => [cn._id.toString(), cn.total]));
+
+    const customers = customerOutstanding.map(c => ({
+      _id: c._id,
+      customerName: c.customerName,
+      phone: c.phone,
+      address: c.address,
+      outstandingBalance: round2(Math.max(0, c.outstandingBalance - (creditMap.get(c._id.toString()) || 0))),
+      invoiceCount: c.invoiceCount
+    })).filter(c => c.outstandingBalance > 0)
+      .sort((a, b) => b.outstandingBalance - a.outstandingBalance);
+
+    // Summary stats
+    const totalOutstanding = customers.reduce((sum, c) => sum + c.outstandingBalance, 0);
+    const customersWithDues = customers.length;
+    const overdueAmount = customerOutstanding.reduce((sum, c) => sum + c.overdueAmount, 0);
 
     res.status(200).json({
       success: true,
@@ -105,14 +94,9 @@ exports.getAgeingReport = async (req, res, next) => {
     const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
 
     // Get all unpaid/partial invoices that are not cancelled
-    // Include invoices where paymentStatus is not set (old invoices before credit feature)
     const invoices = await Invoice.find({
       tenantId,
-      $or: [
-        { paymentStatus: { $in: ['Unpaid', 'Partial'] } },
-        { paymentStatus: { $exists: false } },
-        { paymentStatus: null }
-      ],
+      paymentStatus: { $in: ['Unpaid', 'Partial'] },
       status: { $ne: 'Cancelled' }
     }).select('invoiceNumber invoiceDate customer totals.netTotal paidAmount paymentStatus');
 
@@ -181,75 +165,63 @@ exports.getAgeingReport = async (req, res, next) => {
 exports.getCreditStats = async (req, res, next) => {
   try {
     const tenantId = getTenantId(req);
-    // Calculate total outstanding from actual invoices (more reliable than customer.outstandingBalance)
-    const unpaidInvoices = await Invoice.find({
-      tenantId,
-      $or: [
-        { paymentStatus: { $in: ['Unpaid', 'Partial'] } },
-        { paymentStatus: { $exists: false } },
-        { paymentStatus: null }
-      ],
-      status: { $ne: 'Cancelled' }
-    });
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    // Filter to only invoices with actual remaining balance and sum up
-    const totalOutstanding = unpaidInvoices.reduce((sum, inv) => {
-      const remaining = inv.totals.netTotal - (inv.paidAmount || 0);
-      return sum + (remaining > 0 ? remaining : 0);
-    }, 0);
-
-    // Count unique customers with unpaid invoices
-    const customersWithDues = new Set(
-      unpaidInvoices
-        .filter(inv => (inv.totals.netTotal - (inv.paidAmount || 0)) > 0)
-        .map(inv => inv.customer._id.toString())
-    ).size;
-
-    // Payments this month
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
 
-    const paymentsThisMonth = await Payment.aggregate([
-      { $match: { tenantId, paymentDate: { $gte: startOfMonth } } },
-      { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }
-    ]);
-
-    // Overdue amount (> 30 days)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    // Include invoices where paymentStatus is not set (old invoices)
-    const overdueInvoices = await Invoice.find({
+    const unpaidFilter = {
       tenantId,
-      $or: [
-        { paymentStatus: { $in: ['Unpaid', 'Partial'] } },
-        { paymentStatus: { $exists: false } },
-        { paymentStatus: null }
-      ],
-      invoiceDate: { $lt: thirtyDaysAgo },
+      paymentStatus: { $in: ['Unpaid', 'Partial'] },
       status: { $ne: 'Cancelled' }
-    });
+    };
 
-    const overdueAmount = overdueInvoices.reduce((sum, inv) => {
-      const remaining = inv.totals.netTotal - (inv.paidAmount || 0);
-      return sum + (remaining > 0 ? remaining : 0);
-    }, 0);
+    // 3 parallel aggregations — replaces 2x Invoice.find() + all JS processing
+    const [invoiceStats, paymentsThisMonth, totalCreditNotes] = await Promise.all([
+      // Single aggregation: outstanding + overdue + unique customers
+      Invoice.aggregate([
+        { $match: unpaidFilter },
+        { $project: {
+          remaining: { $subtract: ['$totals.netTotal', { $ifNull: ['$paidAmount', 0] }] },
+          invoiceDate: 1,
+          customerId: '$customer._id'
+        }},
+        { $match: { remaining: { $gt: 0 } } },
+        { $group: {
+          _id: null,
+          totalOutstanding: { $sum: '$remaining' },
+          overdueAmount: { $sum: {
+            $cond: [{ $lt: ['$invoiceDate', thirtyDaysAgo] }, '$remaining', 0]
+          }},
+          customerIds: { $addToSet: '$customerId' }
+        }}
+      ]),
 
-    // Credit note global deduction
-    const totalCreditNotes = await CreditNote.aggregate([
-      { $match: { tenantId } },
-      { $group: { _id: null, total: { $sum: '$totals.netTotal' } } }
+      // Payments this month (already an aggregation — unchanged)
+      Payment.aggregate([
+        { $match: { tenantId, paymentDate: { $gte: startOfMonth } } },
+        { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }
+      ]),
+
+      // Credit note total (already an aggregation — unchanged)
+      CreditNote.aggregate([
+        { $match: { tenantId } },
+        { $group: { _id: null, total: { $sum: '$totals.netTotal' } } }
+      ])
     ]);
+
+    const stats = invoiceStats[0] || { totalOutstanding: 0, overdueAmount: 0, customerIds: [] };
     const creditNoteDeduction = totalCreditNotes[0]?.total || 0;
-    const adjustedOutstanding = round2(Math.max(0, totalOutstanding - creditNoteDeduction));
+    const adjustedOutstanding = round2(Math.max(0, stats.totalOutstanding - creditNoteDeduction));
 
     res.status(200).json({
       success: true,
       stats: {
         totalOutstanding: adjustedOutstanding,
-        overdueAmount,
-        customersWithDues,
+        overdueAmount: stats.overdueAmount,
+        customersWithDues: stats.customerIds.length,
         paymentsThisMonth: paymentsThisMonth[0]?.total || 0,
         paymentsThisMonthCount: paymentsThisMonth[0]?.count || 0
       }
