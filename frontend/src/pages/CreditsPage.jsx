@@ -54,9 +54,18 @@ const AnimatedCounter = ({ value, prefix = '', suffix = '', decimals = 0 }) => {
 export default function CreditsPage() {
   const [activeTab, setActiveTab] = useState('outstanding');
 
+  // Outstanding infinite scroll state
+  const [outstandingPage, setOutstandingPage] = useState(1);
+  const [outstandingCustomers, setOutstandingCustomers] = useState([]);
+  const [outstandingSummary, setOutstandingSummary] = useState({ customers: [], summary: {} });
+  const [outstandingHasMore, setOutstandingHasMore] = useState(false);
+  const outstandingObserver = useRef(null);
+
   // Ageing infinite scroll state
   const [ageingPage, setAgeingPage] = useState(1);
   const [ageingInvoices, setAgeingInvoices] = useState([]);
+  const [ageingBuckets, setAgeingBuckets] = useState({ buckets: {}, summary: {} });
+  const [ageingHasMore, setAgeingHasMore] = useState(false);
   const ageingObserver = useRef(null);
 
   // SWR: Instant cached data + background revalidation
@@ -67,8 +76,8 @@ export default function CreditsPage() {
   );
 
   const { data: outstandingData, isLoading: outstandingLoading, isValidating: outstandingValidating } = useSWR(
-    'credits-outstanding',
-    () => getOutstandingReport(),
+    `credits-outstanding-${outstandingPage}`,
+    () => getOutstandingReport({ page: outstandingPage, limit: 20 }),
     { ttl: 2 * 60 * 1000 }
   );
 
@@ -86,23 +95,68 @@ export default function CreditsPage() {
 
   // Extract data from SWR responses
   const stats = statsData?.stats || null;
-  const outstanding = outstandingData || { customers: [], summary: {} };
-  const ageing = ageingData || { buckets: {}, summary: {} };
+  // Outstanding summary comes from stable state (not directly from SWR)
+  const outstanding = outstandingSummary;
+  // Ageing buckets/summary come from stable state (not directly from SWR)
+  const ageing = ageingBuckets;
   const recentPayments = paymentsData?.payments || [];
-  const ageingHasMore = ageingData?.hasMore ?? false;
 
-  // Accumulate ageing invoices as pages arrive
+  // Store outstanding summary in stable state + accumulate customers
   useEffect(() => {
-    if (!ageingData?.invoices) return;
+    if (!outstandingData) return;
+
+    if (outstandingData.summary) {
+      setOutstandingSummary({ customers: [], summary: outstandingData.summary });
+    }
+
+    setOutstandingHasMore(outstandingData.hasMore ?? false);
+
+    if (!outstandingData.customers) return;
+    if (outstandingPage === 1) {
+      setOutstandingCustomers(outstandingData.customers);
+    } else {
+      setOutstandingCustomers(prev => {
+        const existingIds = new Set(prev.map(c => c._id));
+        const newCustomers = outstandingData.customers.filter(c => !existingIds.has(c._id));
+        return [...prev, ...newCustomers];
+      });
+    }
+  }, [outstandingData, outstandingPage]);
+
+  // Outstanding infinite scroll observer
+  const outstandingLastRef = useCallback((node) => {
+    if (outstandingValidating) return;
+    if (outstandingObserver.current) outstandingObserver.current.disconnect();
+    if (node) {
+      outstandingObserver.current = new IntersectionObserver(entries => {
+        if (entries[0].isIntersecting && !outstandingValidating && outstandingHasMore) {
+          setOutstandingPage(prev => prev + 1);
+        }
+      }, { threshold: 0.1 });
+      outstandingObserver.current.observe(node);
+    }
+  }, [outstandingValidating, outstandingHasMore]);
+
+  // Store bucket summaries in stable state + accumulate invoices (like InvoicesPage)
+  useEffect(() => {
+    if (!ageingData) return;
+
+    if (ageingData.buckets) {
+      setAgeingBuckets({ buckets: ageingData.buckets, summary: ageingData.summary });
+    }
+
+    setAgeingHasMore(ageingData.hasMore ?? false);
+
+    if (!ageingData.invoices) return;
     if (ageingPage === 1) {
       setAgeingInvoices(ageingData.invoices);
-      return;
+    } else {
+      setAgeingInvoices(prev => {
+        const existingIds = new Set(prev.map(inv => inv._id));
+        const newInvoices = ageingData.invoices.filter(inv => !existingIds.has(inv._id));
+        return [...prev, ...newInvoices];
+      });
     }
-    setAgeingInvoices(prev => {
-      const existingIds = new Set(prev.map(inv => inv._id));
-      const newInvoices = ageingData.invoices.filter(inv => !existingIds.has(inv._id));
-      return [...prev, ...newInvoices];
-    });
   }, [ageingData, ageingPage]);
 
   // Ageing infinite scroll observer
@@ -300,7 +354,7 @@ export default function CreditsPage() {
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.1 }}
               >
-                {outstanding.customers?.length === 0 ? (
+                {outstandingCustomers.length === 0 && !outstandingValidating ? (
                   <div className="text-center py-12">
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/20 mb-4">
                       <Wallet className="w-8 h-8 text-emerald-400" />
@@ -309,12 +363,12 @@ export default function CreditsPage() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {outstanding.customers?.map((customer, index) => (
+                    {outstandingCustomers.map((customer, index) => (
                       <motion.div
                         key={customer._id}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        transition={{ delay: index * 0.02 }}
+                        transition={{ delay: Math.min(index, 20) * 0.02 }}
                       >
                         <Link
                           to={`/customers/${customer._id}`}
@@ -354,6 +408,13 @@ export default function CreditsPage() {
                         </Link>
                       </motion.div>
                     ))}
+                    {/* Infinite scroll sentinel */}
+                    {(outstandingHasMore || outstandingValidating) && (
+                      <div ref={outstandingLastRef} className="p-3 flex items-center justify-center gap-2 text-slate-400">
+                        <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                        <span className="text-sm">Loading more customers...</span>
+                      </div>
+                    )}
                   </div>
                 )}
               </motion.div>
@@ -404,7 +465,7 @@ export default function CreditsPage() {
                       Overdue Invoices
                       <span className="text-slate-500 ml-2">({ageingInvoices.length} of {ageing.summary.totalCount})</span>
                     </h3>
-                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                    <div className="space-y-2">
                       {ageingInvoices.map((inv) => (
                         <Link
                           key={inv._id}
@@ -427,7 +488,7 @@ export default function CreditsPage() {
                         </Link>
                       ))}
                       {/* Infinite scroll sentinel */}
-                      {(ageingHasMore || (ageingValidating && ageingPage > 1)) && (
+                      {(ageingHasMore || ageingValidating) && (
                         <div ref={ageingLastRef} className="p-3 flex items-center justify-center gap-2 text-slate-400">
                           <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
                           <span className="text-sm">Loading more invoices...</span>
