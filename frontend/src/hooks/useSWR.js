@@ -14,6 +14,8 @@ const BROADCAST_CHANNEL = 'swr_sync';
 const DEFAULT_TTL = 5 * 60 * 1000; // 5 minutes
 
 const memoryCache = new Map();
+const inFlightRequests = new Map();
+const recentFetchTimestamps = new Map();
 const invalidationSubscribers = new Map();
 
 let broadcastChannel = null;
@@ -60,24 +62,28 @@ const isPatternMatch = (cacheKey, pattern) =>
   && typeof pattern === 'string'
   && cacheKey.includes(pattern);
 
+const hasOwn = (obj, key) =>
+  obj != null && Object.prototype.hasOwnProperty.call(obj, key);
+
 const getCachedData = (key) => {
   if (memoryCache.has(key)) {
     const { data, timestamp, ttl } = memoryCache.get(key);
     if (Date.now() - timestamp < ttl) {
-      return { data, isExpired: false };
+      return { data, isExpired: false, hasData: true };
     }
-    return { data, isExpired: true };
+    return { data, isExpired: true, hasData: true };
   }
   try {
     const cached = localStorage.getItem(CACHE_PREFIX + key);
-    if (!cached) return { data: null, isExpired: true };
-    const { data, timestamp, ttl } = safeJSONParse(cached) || {};
-    if (!data) return { data: null, isExpired: true };
+    if (!cached) return { data: null, isExpired: true, hasData: false };
+    const parsed = safeJSONParse(cached);
+    if (!hasOwn(parsed, 'data')) return { data: null, isExpired: true, hasData: false };
+    const { data, timestamp, ttl } = parsed;
     const isExpired = Date.now() - timestamp > ttl;
     memoryCache.set(key, { data, timestamp, ttl });
-    return { data, isExpired };
+    return { data, isExpired, hasData: true };
   } catch {
-    return { data: null, isExpired: true };
+    return { data: null, isExpired: true, hasData: false };
   }
 };
 
@@ -125,6 +131,37 @@ const broadcastInvalidation = (type, keyOrPattern) => {
   } catch {}
 };
 
+const fetchWithDedupe = (key, fetcher) => {
+  if (!key || typeof fetcher !== 'function') {
+    return Promise.resolve(null);
+  }
+
+  const recentFetchAt = recentFetchTimestamps.get(key);
+  if (recentFetchAt && Date.now() - recentFetchAt < 1000) {
+    const cached = getCachedData(key);
+    if (cached?.hasData) {
+      return Promise.resolve(cached.data);
+    }
+  }
+
+  if (inFlightRequests.has(key)) {
+    return inFlightRequests.get(key);
+  }
+
+  const requestPromise = (async () => {
+    try {
+      const data = await fetcher();
+      recentFetchTimestamps.set(key, Date.now());
+      return data;
+    } finally {
+      inFlightRequests.delete(key);
+    }
+  })();
+
+  inFlightRequests.set(key, requestPromise);
+  return requestPromise;
+};
+
 export const invalidateCache = (key) => {
   memoryCache.delete(key);
   try { localStorage.removeItem(CACHE_PREFIX + key); } catch {}
@@ -166,10 +203,10 @@ export function useSWR(key, fetcher, options = {}) {
   const [data, setData] = useState(() => {
     if (!scopedKey) return fallbackData;
     const cached = getCachedData(scopedKey);
-    return cached.data || fallbackData;
+    return cached.hasData ? cached.data : fallbackData;
   });
   const [error, setError] = useState(null);
-  const [isLoading, setIsLoading] = useState(() => (scopedKey ? !getCachedData(scopedKey).data : false));
+  const [isLoading, setIsLoading] = useState(() => (scopedKey ? !getCachedData(scopedKey).hasData : false));
   const [isValidating, setIsValidating] = useState(false);
   const [isStale, setIsStale] = useState(() => (scopedKey ? getCachedData(scopedKey).isExpired : true));
 
@@ -182,7 +219,7 @@ export function useSWR(key, fetcher, options = {}) {
     setIsValidating(true);
     setError(null);
     try {
-      const freshData = await fetcherRef.current();
+      const freshData = await fetchWithDedupe(scopedKey, fetcherRef.current);
       if (!mountedRef.current) return;
       setCachedData(scopedKey, freshData, ttl);
       setData(freshData);
@@ -226,7 +263,7 @@ export function useSWR(key, fetcher, options = {}) {
     }
 
     const cached = getCachedData(scopedKey);
-    if (cached.data) {
+    if (cached.hasData) {
       setData(cached.data);
       setIsStale(cached.isExpired);
       setIsLoading(false);
@@ -236,7 +273,7 @@ export function useSWR(key, fetcher, options = {}) {
       setIsValidating(true);
       setError(null);
       try {
-        const freshData = await fetcherRef.current();
+        const freshData = await fetchWithDedupe(scopedKey, fetcherRef.current);
         if (aborted) return;
         setCachedData(scopedKey, freshData, ttl);
         setData(freshData);
@@ -268,7 +305,7 @@ export function useSWR(key, fetcher, options = {}) {
       if (event.key?.startsWith(CACHE_PREFIX)) {
         if (event.key === CACHE_PREFIX + scopedKey) {
           const cached = getCachedData(scopedKey);
-          if (cached.data) {
+          if (cached.hasData) {
             setData(cached.data);
             setIsStale(cached.isExpired);
           }
