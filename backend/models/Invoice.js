@@ -71,8 +71,7 @@ const invoiceSchema = new mongoose.Schema({
   },
   invoiceNumber: {
     type: String,
-    required: true,
-    unique: true
+    required: true
   },
   invoiceDate: {
     type: Date,
@@ -179,6 +178,8 @@ const invoiceSchema = new mongoose.Schema({
 
 // Indexes
 invoiceSchema.index({ tenantId: 1, invoiceDate: -1 });
+invoiceSchema.index({ tenantId: 1, invoiceNumber: 1 }, { unique: true });
+invoiceSchema.index({ tenantId: 1, createdAt: -1 });
 invoiceSchema.index({ tenantId: 1, customer: 1 });
 invoiceSchema.index({ invoiceDate: -1 });
 invoiceSchema.index({ 'customer.customerName': 1 });

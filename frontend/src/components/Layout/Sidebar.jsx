@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { invoiceService } from '../../services/invoiceService';
-import { useMotionConfig } from '../../hooks';
+import { useMotionConfig, useSWR } from '../../hooks';
 
 const getMenuItems = (invoiceCount) => [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard, badge: null },
@@ -126,7 +126,6 @@ export default function Sidebar({ isOpen, onClose }) {
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const shouldShow = isOpen || isDesktop;
   const [hoveredItem, setHoveredItem] = useState(null);
-  const [invoiceCount, setInvoiceCount] = useState(0);
   
   // Adaptive motion configuration
   const motionConfig = useMotionConfig();
@@ -145,18 +144,14 @@ export default function Sidebar({ isOpen, onClose }) {
     [motionConfig.isMobile]
   );
 
-  // Fetch invoice count on component mount
-  useEffect(() => {
-    const fetchInvoiceCount = async () => {
-      try {
-        const data = await invoiceService.getInvoices({ limit: 1 });
-        setInvoiceCount(data.total || 0);
-      } catch (err) {
-        console.error('Failed to fetch invoice count:', err);
-      }
-    };
-    fetchInvoiceCount();
-  }, []);
+  const { data: invoiceCount = 0 } = useSWR(
+    'invoices-count-sidebar',
+    async () => {
+      const data = await invoiceService.getInvoices({ limit: 1 });
+      return data.total || 0;
+    },
+    { ttl: 60 * 1000 }
+  );
 
   const menuItems = getMenuItems(invoiceCount);
   const quickActions = getQuickActions(isAdmin);

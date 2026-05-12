@@ -25,17 +25,20 @@ export const customerService = {
    * @param {boolean} useCache - Use cached data if available
    * @returns {Promise<{customer: object, invoices: array}>}
    */
-  getCustomer: async (id, useCache = true) => {
+  getCustomer: async (id, useCache = true, requestConfig = {}) => {
     try {
+      const params = requestConfig?.params;
+
       if (useCache) {
         const { data } = await cachedRequest({
           method: 'GET',
-          url: `/customers/${id}`
+          url: `/customers/${id}`,
+          params
         }, 2 * 60 * 1000); // 2 minute cache
         return data;
       }
       
-      const response = await api.get(`/customers/${id}`);
+      const response = await api.get(`/customers/${id}`, requestConfig);
       return response.data;
     } catch (error) {
       throw error;

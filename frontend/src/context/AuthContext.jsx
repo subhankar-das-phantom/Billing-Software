@@ -11,6 +11,7 @@ import {
   UserCircle
 } from 'lucide-react';
 import { authService } from '../services/authService';
+import { clearCache as clearApiCache } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -137,6 +138,11 @@ export const AuthProvider = ({ children }) => {
     keysToRemove.forEach((key) => localStorage.removeItem(key));
   };
 
+  const clearClientCaches = () => {
+    clearSWRCache();
+    clearApiCache();
+  };
+
   useEffect(() => {
     // No token = no session to verify, skip auth check entirely
     if (!hasToken) {
@@ -202,6 +208,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       setAuthTransition('login');
+      clearClientCaches();
       const data = await authService.login(email, password);
       
       if (data.success) {
@@ -246,8 +253,8 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       setAuthTransition('logout');
+      clearClientCaches();
       await authService.logout();
-      clearSWRCache();
       
       localStorage.removeItem('token');
       localStorage.removeItem('admin');
@@ -262,6 +269,7 @@ export const AuthProvider = ({ children }) => {
         setAuthTransition(null);
       }, 500);
     } catch (error) {
+      clearClientCaches();
       setAuthTransition(null);
       showToast('Logout failed. Please try again.', 'error');
     }

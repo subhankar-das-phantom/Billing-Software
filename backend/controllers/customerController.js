@@ -570,7 +570,7 @@ exports.searchCustomers = async (req, res, next) => {
   }
 };
 
-// @desc    Get single customer with invoices
+// @desc    Get single customer (optionally with recent invoices)
 // @route   GET /api/customers/:id
 // @access  Private
 exports.getCustomer = async (req, res, next) => {
@@ -588,10 +588,17 @@ exports.getCustomer = async (req, res, next) => {
       });
     }
 
-    // Get customer's invoices
-    const invoices = await Invoice.find({ 'customer._id': customer._id })
-      .sort({ invoiceDate: -1 })
-      .limit(20);
+    const includeInvoices = req.query.includeInvoices !== 'false';
+    let invoices = [];
+
+    if (includeInvoices) {
+      invoices = await Invoice.find({
+        tenantId,
+        'customer._id': customer._id
+      })
+        .sort({ invoiceDate: -1 })
+        .limit(20);
+    }
 
     res.status(200).json({
       success: true,

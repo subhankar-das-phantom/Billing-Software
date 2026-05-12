@@ -287,9 +287,13 @@ exports.createInvoice = async (req, res, next) => {
 
   try {
     const { customerId, items, paymentType, notes } = req.body;
+    const paymentTypeToUse = paymentType || 'Credit';
 
     // Validate customer
-    const customer = await Customer.findById(customerId).session(session);
+    const customer = await Customer.findOne({
+      _id: customerId,
+      tenantId
+    }).session(session);
     if (!customer) {
       await session.abortTransaction();
       return res.status(404).json({
@@ -298,16 +302,9 @@ exports.createInvoice = async (req, res, next) => {
       });
     }
 
-    // Get admin for distributor info (always use Admin model for firm settings)
-    // If user is employee, we need to fetch the admin for firm info
-    let adminInfo;
-    if (req.userRole === 'admin') {
-      adminInfo = await Admin.findById(req.user._id).session(session);
-    } else {
-      // For employees, get the first admin (firm owner)
-      adminInfo = await Admin.findOne().session(session);
-    }
-    
+    // Resolve firm info from the tenant admin.
+    const adminInfo = await Admin.findById(tenantId).session(session);
+
     if (!adminInfo) {
       await session.abortTransaction();
       return res.status(500).json({
@@ -317,47 +314,57 @@ exports.createInvoice = async (req, res, next) => {
     }
 
     // Generate invoice number
-    const lastInvoice = await Invoice.findOne().sort({ createdAt: -1 }).session(session);
+    const lastInvoice = await Invoice.findOne({ tenantId })
+      .sort({ createdAt: -1 })
+      .select('invoiceNumber')
+      .session(session);
     let invoiceNumber;
     if (lastInvoice) {
-      const lastNum = parseInt(lastInvoice.invoiceNumber.split('-').pop());
-      invoiceNumber = `INV-${new Date().getFullYear()}-${String(lastNum + 1).padStart(4, '0')}`;
+      const lastNum = parseInt(String(lastInvoice.invoiceNumber || '').split('-').pop(), 10);
+      const nextNum = Number.isFinite(lastNum) ? lastNum + 1 : 1;
+      invoiceNumber = `INV-${new Date().getFullYear()}-${String(nextNum).padStart(4, '0')}`;
     } else {
       invoiceNumber = `INV-${new Date().getFullYear()}-0001`;
     }
 
+    // Batch load products once to avoid N+1 queries during validation and pricing.
+    const uniqueProductIds = [...new Set(items.map((item) => String(item.productId)))];
+    const products = await Product.find({
+      _id: { $in: uniqueProductIds },
+      tenantId
+    }).session(session);
+    const productMap = new Map(products.map((product) => [product._id.toString(), product]));
+
+    if (productMap.size !== uniqueProductIds.length) {
+      const missingProductId = uniqueProductIds.find((id) => !productMap.has(id));
+      await session.abortTransaction();
+      return res.status(404).json({
+        success: false,
+        message: `Product not found: ${missingProductId}`
+      });
+    }
+
     // Process items and validate stock
     const processedItems = [];
-    const stockUpdates = [];
+    const stockDeductions = new Map();
 
     for (const item of items) {
-      const product = await Product.findById(item.productId).session(session);
-      
-      if (!product) {
-        await session.abortTransaction();
-        return res.status(404).json({
-          success: false,
-          message: `Product not found: ${item.productId}`
-        });
-      }
+      const productId = String(item.productId);
+      const product = productMap.get(productId);
 
       const totalQty = item.quantitySold + (item.freeQuantity || 0);
+      const alreadyReservedQty = stockDeductions.get(productId) || 0;
+      const nextReservedQty = alreadyReservedQty + totalQty;
 
-      // Check stock
-      if (product.currentStockQty < totalQty) {
+      // Check stock including repeated line-items of the same product.
+      if (product.currentStockQty < nextReservedQty) {
         await session.abortTransaction();
         return res.status(400).json({
           success: false,
-          message: `Insufficient stock for ${product.productName}. Available: ${product.currentStockQty}, Required: ${totalQty}`
+          message: `Insufficient stock for ${product.productName}. Available: ${product.currentStockQty}, Required: ${nextReservedQty}`
         });
       }
-
-      stockUpdates.push({
-        productId: product._id,
-        previousQty: product.currentStockQty,
-        changeQty: -totalQty,
-        newQty: product.currentStockQty - totalQty
-      });
+      stockDeductions.set(productId, nextReservedQty);
 
       // Calculate amounts and add standard item
       const rateToUse = item.ratePerUnit || product.rate || product.newMRP;
@@ -410,32 +417,44 @@ exports.createInvoice = async (req, res, next) => {
       },
       items: processedItems,
       totals,
-      paymentType: paymentType || 'Credit',
+      paymentType: paymentTypeToUse,
       notes,
       createRequestId: createRequestId || undefined,
       createdBy: getAttribution(req)
     }], { session });
 
-    // Update stock
-    for (const update of stockUpdates) {
-      await Product.findByIdAndUpdate(
-        update.productId,
-        {
-          $inc: { currentStockQty: update.changeQty },
-          $push: {
-            stockHistory: {
-              type: 'invoice',
-              invoiceId: invoice[0]._id,
-              changeQty: update.changeQty,
-              previousQty: update.previousQty,
-              newQty: update.newQty,
-              reference: invoiceNumber,
-              timestamp: new Date()
+    // Update stock in bulk to minimize round-trips within the transaction.
+    const stockTimestamp = new Date();
+    const stockUpdateOperations = [];
+
+    for (const [productId, deductedQty] of stockDeductions.entries()) {
+      const product = productMap.get(productId);
+      const previousQty = product.currentStockQty;
+      const newQty = previousQty - deductedQty;
+
+      stockUpdateOperations.push({
+        updateOne: {
+          filter: { _id: product._id, tenantId },
+          update: {
+            $inc: { currentStockQty: -deductedQty },
+            $push: {
+              stockHistory: {
+                type: 'invoice',
+                invoiceId: invoice[0]._id,
+                changeQty: -deductedQty,
+                previousQty,
+                newQty,
+                reference: invoiceNumber,
+                timestamp: stockTimestamp
+              }
             }
           }
-        },
-        { session }
-      );
+        }
+      });
+    }
+
+    if (stockUpdateOperations.length > 0) {
+      await Product.bulkWrite(stockUpdateOperations, { session });
     }
 
     // Update customer stats
@@ -448,7 +467,7 @@ exports.createInvoice = async (req, res, next) => {
     };
 
     // If Credit invoice, add to outstanding balance
-    if (paymentType === 'Credit' || !paymentType) {
+    if (paymentTypeToUse === 'Credit') {
       customerUpdate.$inc.outstandingBalance = totals.netTotal;
     }
 
