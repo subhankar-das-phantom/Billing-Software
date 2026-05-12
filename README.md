@@ -186,6 +186,7 @@ bharat-billing/
 ### Customers
 - `GET /api/customers` - List customers
 - `GET /api/customers/search?q=` - Search customers
+- `GET /api/customers/:id` - Get customer profile (supports `includeInvoices=false` to skip recent invoice history)
 - `GET /api/customers/:id/ledger` - Get unified financial ledger
 - `POST /api/customers` - Create customer
 - `PUT /api/customers/:id` - Update customer
