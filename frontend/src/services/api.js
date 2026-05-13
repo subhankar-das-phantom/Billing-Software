@@ -307,8 +307,11 @@ export const batchRequests = async (requests, options = {}) => {
 const cache = new Map();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
+const getRequestCacheKey = (config) =>
+  `${config.method}_${config.url}_${JSON.stringify(config.params || {})}`;
+
 export const cachedRequest = async (config, ttl = CACHE_TTL) => {
-  const cacheKey = `${config.method}_${config.url}_${JSON.stringify(config.params || {})}`;
+  const cacheKey = getRequestCacheKey(config);
   const now = Date.now();
 
   // Check cache
@@ -331,6 +334,31 @@ export const cachedRequest = async (config, ttl = CACHE_TTL) => {
   cache.set(cacheKey, { data: response.data, timestamp: now });
   
   return { data: response.data, fromCache: false };
+};
+
+/**
+ * Invalidate one cached request entry by exact request config
+ */
+export const invalidateCachedRequest = (config) => {
+  const cacheKey = getRequestCacheKey(config);
+  cache.delete(cacheKey);
+};
+
+/**
+ * Invalidate cached request entries by URL (and optional method)
+ */
+export const invalidateCachedRequestsByUrl = (url, method = null) => {
+  for (const key of cache.keys()) {
+    if (method) {
+      if (key.startsWith(`${method}_${url}_`)) cache.delete(key);
+      continue;
+    }
+
+    const firstUnderscore = key.indexOf('_');
+    if (firstUnderscore === -1) continue;
+    const withoutMethod = key.slice(firstUnderscore + 1);
+    if (withoutMethod.startsWith(`${url}_`)) cache.delete(key);
+  }
 };
 
 /**
