@@ -185,7 +185,11 @@ exports.createProduct = async (req, res, next) => {
 // @access  Private
 exports.updateProduct = async (req, res, next) => {
   try {
-    let product = await Product.findById(req.params.id);
+    const tenantId = getTenantId(req);
+    let product = await Product.findOne({
+      _id: req.params.id,
+      tenantId
+    });
 
     if (!product) {
       return res.status(404).json({
@@ -205,8 +209,8 @@ exports.updateProduct = async (req, res, next) => {
       unit
     } = req.body;
 
-    product = await Product.findByIdAndUpdate(
-      req.params.id,
+    product = await Product.findOneAndUpdate(
+      { _id: req.params.id, tenantId },
       {
         productName,
         hsnCode,
@@ -239,6 +243,7 @@ exports.updateProduct = async (req, res, next) => {
 exports.adjustStock = async (req, res, next) => {
   try {
     const { quantity, type, reason } = req.body;
+    const tenantId = getTenantId(req);
     
     // Validate required fields
     if (quantity === undefined || quantity === null || quantity <= 0) {
@@ -255,7 +260,10 @@ exports.adjustStock = async (req, res, next) => {
       });
     }
     
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findOne({
+      _id: req.params.id,
+      tenantId
+    });
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found' });
     }
@@ -306,7 +314,11 @@ exports.adjustStock = async (req, res, next) => {
 // @access  Private
 exports.deleteProduct = async (req, res, next) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const tenantId = getTenantId(req);
+    const product = await Product.findOne({
+      _id: req.params.id,
+      tenantId
+    });
 
     if (!product) {
       return res.status(404).json({
@@ -333,9 +345,10 @@ exports.deleteProduct = async (req, res, next) => {
 exports.getLowStock = async (req, res, next) => {
   try {
     const threshold = parseInt(req.query.threshold) || LOW_STOCK_THRESHOLD;
+    const tenantId = getTenantId(req);
 
     // Get all active products
-    const products = await Product.find({ isActive: true });
+    const products = await Product.find({ tenantId, isActive: true });
     
     // Filter for low stock
     const lowStockProducts = products

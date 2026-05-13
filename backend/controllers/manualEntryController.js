@@ -2,6 +2,7 @@ const ManualEntry = require('../models/ManualEntry');
 const Customer = require('../models/Customer');
 const { getAttribution } = require('../middleware/auth');
 const getTenantId = require('../utils/getTenantId');
+const escapeRegex = (str = '') => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
  * @desc    Create a new manual entry
@@ -83,15 +84,15 @@ exports.createManualEntry = async (req, res, next) => {
     }
 
     if (Object.keys(incrementFields).length > 0) {
-      await Customer.findByIdAndUpdate(
-        customerId, 
+      await Customer.findOneAndUpdate(
+        { _id: customerId, tenantId },
         { $inc: incrementFields },
         { new: true }
       );
     }
 
     // Fetch updated customer for response
-    const updatedCustomer = await Customer.findById(customerId);
+    const updatedCustomer = await Customer.findOne({ _id: customerId, tenantId });
 
     res.status(201).json({
       success: true,
@@ -122,7 +123,7 @@ exports.getManualEntries = async (req, res, next) => {
 
     // Search by customer name or phone
     if (req.query.search) {
-      const searchRegex = new RegExp(req.query.search, 'i');
+      const searchRegex = new RegExp(escapeRegex(req.query.search), 'i');
       query.$or = [
         { 'customerSnapshot.customerName': searchRegex },
         { 'customerSnapshot.phone': searchRegex }
@@ -311,7 +312,16 @@ exports.recordPaymentAgainstEntry = async (req, res, next) => {
     await manualEntry.save();
 
     // 2. Create a new "payment_adjustment" entry to track this payment
-    const customer = await Customer.findById(manualEntry.customer);
+    const customer = await Customer.findOne({
+      _id: manualEntry.customer,
+      tenantId
+    });
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: 'Associated customer not found'
+      });
+    }
 
     const paymentEntry = await ManualEntry.create({
       tenantId,
@@ -334,8 +344,8 @@ exports.recordPaymentAgainstEntry = async (req, res, next) => {
     });
 
     // 3. Update customer outstanding balance (decrease)
-    const updatedCustomer = await Customer.findByIdAndUpdate(
-      manualEntry.customer, 
+    const updatedCustomer = await Customer.findOneAndUpdate(
+      { _id: manualEntry.customer, tenantId },
       { $inc: { outstandingBalance: -amount } },
       { new: true }
     );
@@ -447,8 +457,8 @@ exports.updateManualEntry = async (req, res, next) => {
     if (totalPurchasesDelta !== 0) incrementFields.totalPurchases = totalPurchasesDelta;
 
     if (Object.keys(incrementFields).length > 0) {
-      await Customer.findByIdAndUpdate(
-        manualEntry.customer,
+      await Customer.findOneAndUpdate(
+        { _id: manualEntry.customer, tenantId },
         { $inc: incrementFields }
       );
     }
@@ -516,8 +526,8 @@ exports.deleteManualEntry = async (req, res, next) => {
     }
 
     if (Object.keys(incrementFields).length > 0) {
-      await Customer.findByIdAndUpdate(
-        manualEntry.customer,
+      await Customer.findOneAndUpdate(
+        { _id: manualEntry.customer, tenantId },
         { $inc: incrementFields }
       );
     }

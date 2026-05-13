@@ -1,4 +1,5 @@
 const Note = require('../models/Note');
+const getTenantId = require('../utils/getTenantId');
 
 // Escape special regex characters in user input to prevent MongoDB $regex errors
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -11,8 +12,9 @@ exports.getNotes = async (req, res, next) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
+    const tenantId = getTenantId(req);
 
-    const query = { isActive: true };
+    const query = { tenantId, isActive: true };
 
     // Search
     if (req.query.search) {
@@ -53,7 +55,10 @@ exports.getNotes = async (req, res, next) => {
 // @access  Private
 exports.getNote = async (req, res, next) => {
   try {
-    const note = await Note.findById(req.params.id);
+    const note = await Note.findOne({
+      _id: req.params.id,
+      tenantId: getTenantId(req)
+    });
 
     if (!note || !note.isActive) {
       return res.status(404).json({
@@ -79,6 +84,7 @@ exports.createNote = async (req, res, next) => {
     const { title, content, color, isPinned } = req.body;
 
     const note = await Note.create({
+      tenantId: getTenantId(req),
       title,
       content,
       color,
@@ -99,7 +105,11 @@ exports.createNote = async (req, res, next) => {
 // @access  Private
 exports.updateNote = async (req, res, next) => {
   try {
-    let note = await Note.findById(req.params.id);
+    const tenantId = getTenantId(req);
+    let note = await Note.findOne({
+      _id: req.params.id,
+      tenantId
+    });
 
     if (!note || !note.isActive) {
       return res.status(404).json({
@@ -110,8 +120,8 @@ exports.updateNote = async (req, res, next) => {
 
     const { title, content, color, isPinned } = req.body;
 
-    note = await Note.findByIdAndUpdate(
-      req.params.id,
+    note = await Note.findOneAndUpdate(
+      { _id: req.params.id, tenantId },
       {
         title,
         content,
@@ -135,7 +145,10 @@ exports.updateNote = async (req, res, next) => {
 // @access  Private
 exports.deleteNote = async (req, res, next) => {
   try {
-    const note = await Note.findById(req.params.id);
+    const note = await Note.findOne({
+      _id: req.params.id,
+      tenantId: getTenantId(req)
+    });
 
     if (!note || !note.isActive) {
       return res.status(404).json({
@@ -161,7 +174,10 @@ exports.deleteNote = async (req, res, next) => {
 // @access  Private
 exports.togglePin = async (req, res, next) => {
   try {
-    const note = await Note.findById(req.params.id);
+    const note = await Note.findOne({
+      _id: req.params.id,
+      tenantId: getTenantId(req)
+    });
 
     if (!note || !note.isActive) {
       return res.status(404).json({

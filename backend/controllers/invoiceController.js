@@ -471,8 +471,8 @@ exports.createInvoice = async (req, res, next) => {
       customerUpdate.$inc.outstandingBalance = totals.netTotal;
     }
 
-    await Customer.findByIdAndUpdate(
-      customerId,
+    await Customer.findOneAndUpdate(
+      { _id: customerId, tenantId },
       customerUpdate,
       { session }
     );
@@ -618,7 +618,10 @@ exports.updateInvoice = async (req, res, next) => {
     ].sort();
 
     // Batch-fetch all involved products (eliminates N+1 queries)
-    const allProducts = await Product.find({ _id: { $in: allProductIds } }).session(session);
+    const allProducts = await Product.find({
+      _id: { $in: allProductIds },
+      tenantId
+    }).session(session);
     const productMap = {};
     for (const p of allProducts) {
       productMap[p._id.toString()] = p;
@@ -645,7 +648,7 @@ exports.updateInvoice = async (req, res, next) => {
       if (delta > 0) {
         // DEDUCT — safe conditional update prevents negative stock & race conditions
         const updated = await Product.findOneAndUpdate(
-          { _id: pid, currentStockQty: { $gte: delta } },
+          { _id: pid, tenantId, currentStockQty: { $gte: delta } },
           {
             $inc: { currentStockQty: -delta },
             $push: {
@@ -670,8 +673,8 @@ exports.updateInvoice = async (req, res, next) => {
         }
       } else {
         // RESTORE — delta < 0, return stock to inventory
-        await Product.findByIdAndUpdate(
-          pid,
+        await Product.findOneAndUpdate(
+          { _id: pid, tenantId },
           {
             $inc: { currentStockQty: Math.abs(delta) },
             $push: {
@@ -761,7 +764,10 @@ exports.updateInvoice = async (req, res, next) => {
     // ── STEP 8: Resolve customer ───────────────────────────────────────
     let customer = existingInvoice.customer;
     if (customerId && customerId !== existingInvoice.customer._id.toString()) {
-      const newCustomer = await Customer.findById(customerId).session(session);
+      const newCustomer = await Customer.findOne({
+        _id: customerId,
+        tenantId
+      }).session(session);
       if (!newCustomer) {
         await session.abortTransaction();
         return res.status(404).json({ success: false, message: 'Customer not found' });
@@ -779,15 +785,15 @@ exports.updateInvoice = async (req, res, next) => {
     // ── STEP 9: Update customer stats (delta-based) ────────────────────
     const totalsDelta = totals.netTotal - existingInvoice.totals.netTotal;
     if (totalsDelta !== 0) {
-      const updatedCust = await Customer.findByIdAndUpdate(
-        customer._id,
+      const updatedCust = await Customer.findOneAndUpdate(
+        { _id: customer._id, tenantId },
         { $inc: { totalPurchases: totalsDelta }, lastInvoiceDate: new Date() },
         { session, new: true }
       );
       // Clamp — never allow negative totalPurchases
       if (updatedCust && updatedCust.totalPurchases < 0) {
-        await Customer.findByIdAndUpdate(
-          customer._id,
+        await Customer.findOneAndUpdate(
+          { _id: customer._id, tenantId },
           { $set: { totalPurchases: 0 } },
           { session }
         );
@@ -817,16 +823,16 @@ exports.updateInvoice = async (req, res, next) => {
       outstandingDelta = Math.max(0, totals.netTotal - existingPaidAmount);
     }
     if (outstandingDelta !== 0) {
-      await Customer.findByIdAndUpdate(
-        customer._id,
+      await Customer.findOneAndUpdate(
+        { _id: customer._id, tenantId },
         { $inc: { outstandingBalance: outstandingDelta } },
         { session }
       );
     }
 
     // ── STEP 10: Update invoice document ───────────────────────────────
-    const updatedInvoice = await Invoice.findByIdAndUpdate(
-      req.params.id,
+    const updatedInvoice = await Invoice.findOneAndUpdate(
+      { _id: req.params.id, tenantId },
       {
         customer,
         items: processedItems,
@@ -910,8 +916,8 @@ exports.updateInvoiceStatus = async (req, res, next) => {
         for (const item of invoice.items) {
           const totalQty = item.quantitySold + (item.freeQuantity || 0);
 
-          await Product.findByIdAndUpdate(
-            item.product._id,
+          await Product.findOneAndUpdate(
+            { _id: item.product._id, tenantId },
             {
               $inc: { currentStockQty: totalQty },
               $push: {
@@ -944,8 +950,8 @@ exports.updateInvoiceStatus = async (req, res, next) => {
           }
         }
 
-        await Customer.findByIdAndUpdate(
-          invoice.customer._id,
+        await Customer.findOneAndUpdate(
+          { _id: invoice.customer._id, tenantId },
           customerUpdate,
           { session }
         );
@@ -965,8 +971,8 @@ exports.updateInvoiceStatus = async (req, res, next) => {
         if (txError.code === 20 || txError.codeName === 'IllegalOperation') {
           for (const item of invoice.items) {
             const totalQty = item.quantitySold + (item.freeQuantity || 0);
-            await Product.findByIdAndUpdate(
-              item.product._id,
+            await Product.findOneAndUpdate(
+              { _id: item.product._id, tenantId },
               {
                 $inc: { currentStockQty: totalQty },
                 $push: {
@@ -994,7 +1000,10 @@ exports.updateInvoiceStatus = async (req, res, next) => {
               customerUpdate.$inc.outstandingBalance = -unpaidAmount;
             }
           }
-          await Customer.findByIdAndUpdate(invoice.customer._id, customerUpdate);
+          await Customer.findOneAndUpdate(
+            { _id: invoice.customer._id, tenantId },
+            customerUpdate
+          );
 
           invoice.status = status;
           await invoice.save();
