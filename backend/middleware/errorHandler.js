@@ -18,7 +18,9 @@ const errorHandler = (err, req, res, next) => {
     let message = 'Duplicate field value. Please use another value';
 
     if (duplicateFields.includes('phone')) {
-      message = 'Phone number already exists for another Customer';
+      message = 'Phone number already exists for another customer in this tenant';
+    } else if (duplicateFields.includes('creditNoteNumber')) {
+      message = 'Credit note number already exists in this tenant';
     } else if (duplicateFields.length > 0) {
       message = `Duplicate field value: ${duplicateFields.join(', ')}. Please use another value`;
     }
