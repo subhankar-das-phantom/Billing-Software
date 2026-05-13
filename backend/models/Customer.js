@@ -20,7 +20,6 @@ const customerSchema = new mongoose.Schema({
   phone: {
     type: String,
     required: [true, 'Please add phone number'],
-    unique: true,
     trim: true
   },
   email: {
@@ -99,5 +98,6 @@ customerSchema.index({ customerName: 'text', phone: 'text', gstin: 'text' });
 customerSchema.index({ isActive: 1 });
 customerSchema.index({ tenantId: 1, isActive: 1 });
 customerSchema.index({ tenantId: 1, customerName: 1 });
+customerSchema.index({ tenantId: 1, phone: 1 }, { unique: true });
 
 module.exports = mongoose.model('Customer', customerSchema);
