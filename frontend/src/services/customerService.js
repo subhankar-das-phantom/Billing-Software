@@ -1,10 +1,18 @@
-import api, { cachedRequest, clearCache } from './api';
+import api, { cachedRequest, clearCache, invalidateCachedRequestsByUrl } from './api';
 
 /**
  * Customer Service
  * Handles all customer-related API calls
  */
 export const customerService = {
+  /**
+   * Invalidate cached getCustomer response(s) for one customer
+   * @param {string} id - Customer ID
+   */
+  invalidateCustomerCache: (id) => {
+    invalidateCachedRequestsByUrl(`/customers/${id}`, 'GET');
+  },
+
   /**
    * Get list of customers with optional filters
    * @param {object} params - Query parameters (search, page, limit, sortBy, sortOrder)
