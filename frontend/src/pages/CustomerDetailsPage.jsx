@@ -327,11 +327,10 @@ export default function CustomerDetailsPage() {
     }
   };
 
-  const loadCustomer = async (bypassCache = false) => {
+  const loadCustomer = async (useCache = true) => {
     try {
-      // When bypassCache=true, pass useCache=false to get fresh data
       const [customerData, paymentsData, entriesData, cnData] = await Promise.all([
-        customerService.getCustomer(id, !bypassCache),
+        customerService.getCustomer(id, useCache),
         getPaymentsByCustomer(id).catch(() => ({ payments: [] })),
         manualEntryService.getManualEntriesByCustomer(id).catch(() => ({ manualEntries: [] })),
         creditNoteService.getCreditNotesByCustomer(id).catch(() => ({ creditNotes: [] }))
@@ -354,8 +353,9 @@ export default function CustomerDetailsPage() {
     invalidateCachePattern('invoices');
     invalidateCachePattern('dashboard');
     invalidateCachePattern('credits'); // Credit reports need refresh
-    // Bypass cache to get fresh data after payment
-    await loadCustomer(true);
+    // Targeted invalidation for this customer's cached payload (invoices included)
+    customerService.invalidateCustomerCache(id);
+    await loadCustomer();
   };
 
   const handleRecordPayment = (invoice = null) => {
@@ -1266,7 +1266,8 @@ export default function CustomerDetailsPage() {
                                             invalidateCachePattern('invoices');
                                             invalidateCachePattern('credits');
                                             invalidateCachePattern('dashboard');
-                                            await loadCustomer(true);
+                                            customerService.invalidateCustomerCache(id);
+                                            await loadCustomer();
                                           } catch (err) {
                                             error(err.response?.data?.message || 'Failed to delete payment');
                                           } finally {
@@ -1310,7 +1311,8 @@ export default function CustomerDetailsPage() {
                                             invalidateCachePattern('customers');
                                             invalidateCachePattern('manual');
                                             invalidateCachePattern('dashboard');
-                                            await loadCustomer(true);
+                                            customerService.invalidateCustomerCache(id);
+                                            await loadCustomer();
                                           } catch (err) {
                                             error(err.response?.data?.message || 'Failed to delete manual entry');
                                           } finally {
@@ -1663,7 +1665,8 @@ export default function CustomerDetailsPage() {
           invalidateCachePattern('invoices');
           invalidateCachePattern('credits');
           invalidateCachePattern('dashboard');
-          loadCustomer(true);
+          customerService.invalidateCustomerCache(id);
+          loadCustomer();
         }}
         payment={editingPayment}
         creditNotes={creditNotes}
@@ -1708,7 +1711,8 @@ export default function CustomerDetailsPage() {
         onClose={() => setShowManualEntryModal(false)}
         onSuccess={() => {
           setShowManualEntryModal(false);
-          loadCustomer(true);
+          customerService.invalidateCustomerCache(id);
+          loadCustomer();
         }}
         preSelectedCustomer={customer}
       />

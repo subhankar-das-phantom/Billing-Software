@@ -656,7 +656,11 @@ exports.createCustomer = async (req, res, next) => {
 // @access  Private
 exports.updateCustomer = async (req, res, next) => {
   try {
-    let customer = await Customer.findById(req.params.id);
+    const tenantId = getTenantId(req);
+    let customer = await Customer.findOne({
+      _id: req.params.id,
+      tenantId
+    });
 
     if (!customer) {
       return res.status(404).json({
@@ -686,8 +690,8 @@ exports.updateCustomer = async (req, res, next) => {
     if (customerCode !== undefined) updateFields.customerCode = customerCode;
     if (theme !== undefined) updateFields.theme = theme;
 
-    customer = await Customer.findByIdAndUpdate(
-      req.params.id,
+    customer = await Customer.findOneAndUpdate(
+      { _id: req.params.id, tenantId },
       updateFields,
       { new: true, runValidators: true }
     );
@@ -706,7 +710,11 @@ exports.updateCustomer = async (req, res, next) => {
 // @access  Private
 exports.deleteCustomer = async (req, res, next) => {
   try {
-    const customer = await Customer.findById(req.params.id);
+    const tenantId = getTenantId(req);
+    const customer = await Customer.findOne({
+      _id: req.params.id,
+      tenantId
+    });
 
     if (!customer) {
       return res.status(404).json({

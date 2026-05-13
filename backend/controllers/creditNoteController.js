@@ -107,8 +107,8 @@ exports.createCreditNote = async (req, res, next) => {
       });
 
       // 4. Restore stock to product's currentStockQty
-      await Product.findByIdAndUpdate(
-        invoiceItem.product._id,
+      await Product.findOneAndUpdate(
+        { _id: invoiceItem.product._id, tenantId },
         {
           $inc: { currentStockQty: returnItem.quantityReturned },
           $push: {
@@ -148,7 +148,7 @@ exports.createCreditNote = async (req, res, next) => {
     });
 
     // 6. Generate credit note number
-    const lastCN = await CreditNote.findOne().sort({ createdAt: -1 }).session(session);
+    const lastCN = await CreditNote.findOne({ tenantId }).sort({ createdAt: -1 }).session(session);
     let creditNoteNumber;
     if (lastCN) {
       const lastNum = parseInt(lastCN.creditNoteNumber.split('-').pop());
@@ -160,7 +160,7 @@ exports.createCreditNote = async (req, res, next) => {
     // Update reference in stock history now that we have the number
     for (const item of processedItems) {
         await Product.updateOne(
-            { _id: item.productId, 'stockHistory.reference': 'Sales Return: CN-NEW' },
+            { _id: item.productId, tenantId, 'stockHistory.reference': 'Sales Return: CN-NEW' },
             { $set: { 'stockHistory.$.reference': `Sales Return: ${creditNoteNumber}` } },
             { session }
         );
@@ -185,8 +185,8 @@ exports.createCreditNote = async (req, res, next) => {
     }], { session });
 
     // 8. Update customer credit balance
-    await Customer.findByIdAndUpdate(
-      invoice.customer._id,
+    await Customer.findOneAndUpdate(
+      { _id: invoice.customer._id, tenantId },
       { $inc: { creditBalance: totals.netTotal } },
       { session }
     );

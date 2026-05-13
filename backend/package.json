@@ -6,7 +6,10 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "seed:admin": "node scripts/seedAdmin.js"
+    "seed:admin": "node scripts/seedAdmin.js",
+    "migrate:customer-phone-index": "node scripts/migrateCustomerPhoneIndex.js",
+    "migrate:credit-note-number-index": "node scripts/migrateCreditNoteNumberIndex.js",
+    "migrate:invoice-number-index": "node scripts/migrateInvoiceNumberIndex.js"
   },
   "keywords": [
     "billing",

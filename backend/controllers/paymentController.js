@@ -96,6 +96,12 @@ exports.getCollections = async (req, res, next) => {
     }
     if (req.query.customerId) {
       const mongoose = require('mongoose');
+      if (!mongoose.Types.ObjectId.isValid(req.query.customerId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid customerId'
+        });
+      }
       paymentQuery.customer = new mongoose.Types.ObjectId(req.query.customerId);
       paymentMatch.customer = paymentQuery.customer;
     }
@@ -115,6 +121,12 @@ exports.getCollections = async (req, res, next) => {
     }
     if (req.query.customerId) {
       const mongoose = require('mongoose');
+      if (!mongoose.Types.ObjectId.isValid(req.query.customerId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid customerId'
+        });
+      }
       meQuery.customer = new mongoose.Types.ObjectId(req.query.customerId);
     }
 
@@ -253,6 +265,13 @@ exports.createPayment = async (req, res, next) => {
       });
     }
 
+    if (remainingAmount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invoice is already fully paid'
+      });
+    }
+
     if (normalizedAmount > remainingAmount) {
       return res.status(400).json({
         success: false,
@@ -261,6 +280,20 @@ exports.createPayment = async (req, res, next) => {
     }
 
     // Create payment record
+    let customer = null;
+    if (invoice.paymentType === 'Credit') {
+      customer = await Customer.findOne({
+        _id: invoice.customer._id,
+        tenantId
+      });
+      if (!customer) {
+        return res.status(404).json({
+          success: false,
+          message: 'Associated customer not found'
+        });
+      }
+    }
+
     const payment = await Payment.create({
       tenantId,
       invoice: invoiceId,
@@ -282,18 +315,25 @@ exports.createPayment = async (req, res, next) => {
     const newPaidAmount = getRoundedNumber(getRoundedNumber(invoice.paidAmount) + normalizedAmount);
     const newPaymentStatus = derivePaymentStatus(invoice.totals.netTotal, newPaidAmount);
 
-    await Invoice.findByIdAndUpdate(invoiceId, {
+    await Invoice.findOneAndUpdate({
+      _id: invoiceId,
+      tenantId
+    }, {
       paidAmount: newPaidAmount,
       paymentStatus: newPaymentStatus
     });
 
-    // Update customer outstanding balance (decrease by payment amount, but don't go below 0)
-    const customer = await Customer.findById(invoice.customer._id);
-    const currentBalance = getRoundedNumber(customer?.outstandingBalance);
-    const newBalance = Math.max(0, round2(currentBalance - normalizedAmount));
-    await Customer.findByIdAndUpdate(invoice.customer._id, {
-      outstandingBalance: newBalance
-    });
+    // Update customer outstanding balance only for Credit invoices
+    if (invoice.paymentType === 'Credit') {
+      const currentBalance = getRoundedNumber(customer?.outstandingBalance);
+      const newBalance = Math.max(0, round2(currentBalance - normalizedAmount));
+      await Customer.findOneAndUpdate({
+        _id: invoice.customer._id,
+        tenantId
+      }, {
+        outstandingBalance: newBalance
+      });
+    }
 
     // Track employee activity
     trackActivity(req, ACTIVITY_TYPES.PAYMENT_RECORDED, normalizedAmount);
@@ -432,7 +472,11 @@ exports.getPaymentsByCustomer = async (req, res, next) => {
 // @access  Private
 exports.getPaymentsByInvoice = async (req, res, next) => {
   try {
-    const invoice = await Invoice.findById(req.params.invoiceId);
+    const tenantId = getTenantId(req);
+    const invoice = await Invoice.findOne({
+      _id: req.params.invoiceId,
+      tenantId
+    });
     if (!invoice) {
       return res.status(404).json({
         success: false,
@@ -440,7 +484,7 @@ exports.getPaymentsByInvoice = async (req, res, next) => {
       });
     }
 
-    const payments = await Payment.find({ invoice: req.params.invoiceId })
+    const payments = await Payment.find({ invoice: req.params.invoiceId, tenantId })
       .sort({ paymentDate: -1 });
 
     const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
@@ -466,8 +510,12 @@ exports.getPaymentsByInvoice = async (req, res, next) => {
 exports.updatePayment = async (req, res, next) => {
   try {
     const { amount, paymentDate, paymentMethod, referenceNumber, notes } = req.body;
+    const tenantId = getTenantId(req);
 
-    const payment = await Payment.findById(req.params.id);
+    const payment = await Payment.findOne({
+      _id: req.params.id,
+      tenantId
+    });
     if (!payment) {
       return res.status(404).json({
         success: false,
@@ -475,7 +523,10 @@ exports.updatePayment = async (req, res, next) => {
       });
     }
 
-    const invoice = await Invoice.findById(payment.invoice);
+    const invoice = await Invoice.findOne({
+      _id: payment.invoice,
+      tenantId
+    });
     if (!invoice) {
       return res.status(404).json({
         success: false,
@@ -514,22 +565,41 @@ exports.updatePayment = async (req, res, next) => {
       // Update invoice paidAmount by the delta
       const delta = round2(newAmount - getRoundedNumber(payment.amount));
       if (delta !== 0) {
+        let newBalance = null;
+        if (invoice.paymentType === 'Credit') {
+          const customer = await Customer.findOne({
+            _id: payment.customer,
+            tenantId
+          });
+          if (!customer) {
+            return res.status(404).json({
+              success: false,
+              message: 'Associated customer not found'
+            });
+          }
+          const currentBalance = getRoundedNumber(customer?.outstandingBalance);
+          // delta > 0 means more paid → reduce outstanding
+          // delta < 0 means less paid → increase outstanding
+          newBalance = Math.max(0, round2(currentBalance - delta));
+        }
+
         const newPaidAmount = round2(getRoundedNumber(invoice.paidAmount) + delta);
         const newPaymentStatus = derivePaymentStatus(invoice.totals.netTotal, newPaidAmount);
 
-        await Invoice.findByIdAndUpdate(invoice._id, {
+        await Invoice.findOneAndUpdate({
+          _id: invoice._id,
+          tenantId
+        }, {
           paidAmount: newPaidAmount,
           paymentStatus: newPaymentStatus
         });
 
         // Update customer outstanding balance (for Credit invoices)
         if (invoice.paymentType === 'Credit') {
-          const customer = await Customer.findById(payment.customer);
-          const currentBalance = getRoundedNumber(customer?.outstandingBalance);
-          // delta > 0 means more paid → reduce outstanding
-          // delta < 0 means less paid → increase outstanding
-          const newBalance = Math.max(0, round2(currentBalance - delta));
-          await Customer.findByIdAndUpdate(payment.customer, {
+          await Customer.findOneAndUpdate({
+            _id: payment.customer,
+            tenantId
+          }, {
             outstandingBalance: newBalance
           });
         }
@@ -575,7 +645,10 @@ exports.deletePayment = async (req, res, next) => {
     }
 
     // Get the invoice
-    const invoice = await Invoice.findById(payment.invoice);
+    const invoice = await Invoice.findOne({
+      _id: payment.invoice,
+      tenantId
+    });
     if (!invoice) {
       return res.status(404).json({
         success: false,
@@ -587,18 +660,29 @@ exports.deletePayment = async (req, res, next) => {
     const newPaidAmount = Math.max(0, round2(getRoundedNumber(invoice.paidAmount) - getRoundedNumber(payment.amount)));
     const newPaymentStatus = derivePaymentStatus(invoice.totals.netTotal, newPaidAmount);
 
-    await Invoice.findByIdAndUpdate(payment.invoice, {
+    await Invoice.findOneAndUpdate({
+      _id: payment.invoice,
+      tenantId
+    }, {
       paidAmount: newPaidAmount,
       paymentStatus: newPaymentStatus
     });
 
-    // Increase customer outstanding balance
-    await Customer.findByIdAndUpdate(payment.customer, {
-      $inc: { outstandingBalance: payment.amount }
-    });
+    // Increase customer outstanding balance only for Credit invoices
+    if (invoice.paymentType === 'Credit') {
+      await Customer.findOneAndUpdate({
+        _id: payment.customer,
+        tenantId
+      }, {
+        $inc: { outstandingBalance: payment.amount }
+      });
+    }
 
     // Delete the payment
-    await Payment.findByIdAndDelete(req.params.id);
+    await Payment.findOneAndDelete({
+      _id: req.params.id,
+      tenantId
+    });
 
     res.status(200).json({
       success: true,

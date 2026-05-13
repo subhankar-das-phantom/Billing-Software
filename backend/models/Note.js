@@ -1,6 +1,12 @@
 const mongoose = require('mongoose');
 
 const noteSchema = new mongoose.Schema({
+  tenantId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Admin',
+    required: true,
+    index: true
+  },
   title: {
     type: String,
     required: [true, 'Please add a title'],
@@ -31,6 +37,7 @@ const noteSchema = new mongoose.Schema({
 });
 
 // Index for search
+noteSchema.index({ tenantId: 1, updatedAt: -1 });
 noteSchema.index({ title: 'text', content: 'text' });
 noteSchema.index({ createdAt: -1 });
 

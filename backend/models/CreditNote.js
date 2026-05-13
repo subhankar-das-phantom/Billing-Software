@@ -56,8 +56,7 @@ const creditNoteSchema = new mongoose.Schema({
   },
   creditNoteNumber: {
     type: String,
-    required: true,
-    unique: true
+    required: true
   },
   invoiceId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -122,6 +121,7 @@ const creditNoteSchema = new mongoose.Schema({
 
 // Indexes
 creditNoteSchema.index({ tenantId: 1, customer: 1 });
+creditNoteSchema.index({ tenantId: 1, creditNoteNumber: 1 }, { unique: true });
 creditNoteSchema.index({ tenantId: 1, createdAt: -1 });
 creditNoteSchema.index({ invoiceId: 1 });
 creditNoteSchema.index({ 'customer._id': 1 });

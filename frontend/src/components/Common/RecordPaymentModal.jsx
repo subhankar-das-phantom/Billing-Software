@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { recordPayment, PAYMENT_METHODS } from '../../services/creditService';
+import { invoiceService } from '../../services/invoiceService';
 import { manualEntryService } from '../../services/manualEntryService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 
@@ -153,6 +154,33 @@ export default function RecordPaymentModal({
 
     try {
       if (formData.selectionType === 'invoice') {
+        // Revalidate against latest server invoice state to avoid stale UI due mismatches.
+        const latestInvoiceRes = await invoiceService.getInvoice(formData.selectionId, false);
+        const latestInvoice = latestInvoiceRes?.invoice;
+        if (!latestInvoice) {
+          setError('Selected invoice not found. Please refresh and try again.');
+          return;
+        }
+
+        const latestRemaining = Math.max(
+          0,
+          (latestInvoice?.totals?.netTotal || 0) - (latestInvoice?.paidAmount || 0)
+        );
+        const roundedLatestRemaining = parseFloat(latestRemaining.toFixed(2));
+        const roundedAmount = parseFloat(amount.toFixed(2));
+
+        if (roundedAmount > roundedLatestRemaining) {
+          if (roundedLatestRemaining <= 0) {
+            setError('This invoice is already fully paid. Please refresh customer data.');
+          } else {
+            setError(`Amount exceeds latest due balance (${formatCurrency(roundedLatestRemaining)}). Please review and retry.`);
+          }
+          if (onSuccess) {
+            await onSuccess();
+          }
+          return;
+        }
+
         // Pay against invoice
         await recordPayment({
           invoiceId: formData.selectionId,
