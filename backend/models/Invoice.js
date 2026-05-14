@@ -188,6 +188,9 @@ invoiceSchema.index({ 'customer._id': 1, invoiceDate: 1 });
 invoiceSchema.index({ 'customer._id': 1, invoiceDate: -1 });
 invoiceSchema.index({ status: 1 });
 invoiceSchema.index({ tenantId: 1, status: 1, paymentStatus: 1, invoiceDate: -1 });
-invoiceSchema.index({ createRequestId: 1 }, { unique: true, sparse: true });
+invoiceSchema.index(
+  { tenantId: 1, createRequestId: 1 },
+  { unique: true, partialFilterExpression: { createRequestId: { $exists: true, $type: 'string' } } }
+);
 
 module.exports = mongoose.model('Invoice', invoiceSchema);
