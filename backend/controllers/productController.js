@@ -21,7 +21,7 @@ exports.getProducts = async (req, res, next) => {
     const skip = (page - 1) * limit;
     const tenantId = getTenantId(req);
 
-    const query = { tenantId };
+    const query = { tenantId, isActive: true };
 
     // Search
     if (req.query.search) {
