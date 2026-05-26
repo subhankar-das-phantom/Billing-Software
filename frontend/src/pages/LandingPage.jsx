@@ -780,6 +780,11 @@ function Footer() {
               <Link to="/login" className="block text-slate-500 hover:text-white transition-colors no-underline">Sign In</Link>
               <Link to="/register" className="block text-slate-500 hover:text-white transition-colors no-underline">Register</Link>
             </div>
+            <div className="space-y-3">
+              <p className="font-semibold text-slate-300">Legal</p>
+              <Link to="/privacy-policy" className="block text-slate-500 hover:text-white transition-colors no-underline">Privacy Policy</Link>
+              <Link to="/terms" className="block text-slate-500 hover:text-white transition-colors no-underline">Terms & Conditions</Link>
+            </div>
           </div>
         </div>
 
