@@ -37,6 +37,8 @@ const CreditNoteViewPage = lazy(() => import('./pages/CreditNoteViewPage'));
 
 // Report pages
 const GstReportPage = lazy(() => import('./pages/GstReportPage'));
+const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
+const TermsPage = lazy(() => import('./pages/TermsPage'));
 
 // Landing page (eagerly loaded — it's the entry point for new users)
 
@@ -96,6 +98,8 @@ function AppRoutes() {
       <Routes>
         {/* Landing Page - Public */}
         <Route path="/landing" element={<LandingPage />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
 
         {/* Public Routes */}
         <Route
