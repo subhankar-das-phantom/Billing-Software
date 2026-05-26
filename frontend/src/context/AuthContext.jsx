@@ -78,7 +78,7 @@ const AuthLoadingScreen = () => {
     >
       <div className="text-center">
         {/* Logo - static on mobile, subtle animation on desktop */}
-        <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-2xl shadow-blue-500/30">
+        <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-blue-500 to-accent-600 flex items-center justify-center shadow-2xl shadow-blue-500/30">
           <Shield className="w-10 h-10 text-white" strokeWidth={2.5} />
         </div>
 

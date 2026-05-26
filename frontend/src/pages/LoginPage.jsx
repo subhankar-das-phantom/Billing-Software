@@ -118,7 +118,7 @@ export default function LoginPage() {
               scale: [1, 1.2, 1],
               transition: { duration: 7, repeat: Infinity, ease: 'easeInOut', delay: 1 }
             }}
-            className="absolute -bottom-40 -left-40 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl"
+            className="absolute -bottom-40 -left-40 w-96 h-96 bg-accent-500/20 rounded-full blur-3xl"
           />
           <motion.div
             animate={{
@@ -136,7 +136,7 @@ export default function LoginPage() {
       {shouldReduceMotion && (
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl" />
-          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl" />
+          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-accent-500/20 rounded-full blur-3xl" />
         </div>
       )}
 
@@ -166,7 +166,7 @@ export default function LoginPage() {
           {/* Logo Section */}
           <motion.div variants={itemVariants} className="text-center mb-8">
             <motion.div
-              className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 mb-4 shadow-lg shadow-blue-500/50 relative overflow-hidden"
+              className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-accent-600 mb-4 shadow-lg shadow-blue-500/50 relative overflow-hidden"
               whileHover={shouldReduceMotion ? undefined : { 
                 scale: 1.1, 
                 rotate: 360,
@@ -177,7 +177,7 @@ export default function LoginPage() {
               {/* Pulsing gradient - Only on desktop */}
               {!shouldReduceMotion && (
                 <motion.div
-                  className="absolute inset-0 bg-gradient-to-br from-purple-600 to-blue-500"
+                  className="absolute inset-0 bg-gradient-to-br from-accent-600 to-blue-500"
                   animate={{ scale: [1, 1.2, 1], opacity: [0, 0.5, 0] }}
                   transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                 />
@@ -213,7 +213,7 @@ export default function LoginPage() {
           {/* Welcome Message */}
           <motion.div
             variants={itemVariants}
-            className="text-center mb-6 p-4 rounded-xl bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-blue-500/10 border border-blue-500/20"
+            className="text-center mb-6 p-4 rounded-xl bg-gradient-to-r from-blue-500/10 via-accent-500/10 to-blue-500/10 border border-blue-500/20"
           >
             <p className="text-slate-300 text-sm">
               👋 Welcome back! Please sign in to continue

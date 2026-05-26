@@ -56,7 +56,7 @@ const getDefaultDates = () => {
 const SLAB_COLORS = {
   0:  { bg: 'from-slate-500/20 to-slate-600/20',  bar: 'from-slate-400 to-slate-500',  text: 'text-slate-300',  border: 'border-slate-600/30' },
   5:  { bg: 'from-emerald-500/20 to-teal-500/20', bar: 'from-emerald-400 to-teal-500', text: 'text-emerald-300', border: 'border-emerald-500/30' },
-  12: { bg: 'from-blue-500/20 to-indigo-500/20',  bar: 'from-blue-400 to-indigo-500',  text: 'text-blue-300',   border: 'border-blue-500/30' },
+  12: { bg: 'from-blue-500/20 to-accent2-500/20',  bar: 'from-blue-400 to-accent2-500',  text: 'text-blue-300',   border: 'border-blue-500/30' },
   18: { bg: 'from-amber-500/20 to-orange-500/20', bar: 'from-amber-400 to-orange-500', text: 'text-amber-300',  border: 'border-amber-500/30' },
   28: { bg: 'from-rose-500/20 to-pink-500/20',    bar: 'from-rose-400 to-pink-500',    text: 'text-rose-300',   border: 'border-rose-500/30' }
 };
@@ -184,17 +184,17 @@ export default function GstReportPage() {
       {/* ─── HEADER ─── */}
       <motion.div
         variants={itemVariants}
-        className="glass-card p-5 sm:p-8 bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-transparent border-indigo-500/20 relative overflow-hidden"
+        className="glass-card p-5 sm:p-8 bg-gradient-to-br from-accent2-500/10 via-accent-500/10 to-transparent border-accent2-500/20 relative overflow-hidden"
       >
         <motion.div
-          className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 via-purple-500/5 to-transparent"
+          className="absolute inset-0 bg-gradient-to-r from-accent2-500/5 via-accent-500/5 to-transparent"
           animate={{ x: ['-100%', '100%'] }}
           transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
         />
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-3">
             <motion.div
-              className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/20"
+              className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-accent2-500 to-accent-600 shadow-lg shadow-accent2-500/20"
               whileHover={{ scale: 1.1, rotate: 5 }}
             >
               <FileBarChart className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
@@ -410,8 +410,8 @@ export default function GstReportPage() {
             className="glass-card p-12 sm:p-16 flex flex-col items-center justify-center gap-4"
           >
             <div className="relative">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 border-4 border-slate-700 border-t-indigo-500 rounded-full animate-spin" />
-              <div className="absolute inset-0 w-12 h-12 sm:w-14 sm:h-14 border-4 border-transparent border-b-purple-500/50 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }} />
+              <div className="w-12 h-12 sm:w-14 sm:h-14 border-4 border-slate-700 border-t-accent2-500 rounded-full animate-spin" />
+              <div className="absolute inset-0 w-12 h-12 sm:w-14 sm:h-14 border-4 border-transparent border-b-accent-500/50 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }} />
             </div>
             <p className="text-sm sm:text-base text-slate-400 font-medium">Crunching the numbers...</p>
           </motion.div>
@@ -427,11 +427,11 @@ export default function GstReportPage() {
             className="glass-card p-10 sm:p-16 flex flex-col items-center justify-center gap-4 text-center relative z-0"
           >
             <motion.div
-              className="p-4 bg-indigo-500/10 rounded-2xl"
+              className="p-4 bg-accent2-500/10 rounded-2xl"
               animate={{ y: [0, -6, 0] }}
               transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
             >
-              <FileBarChart className="w-8 h-8 sm:w-10 sm:h-10 text-indigo-400" />
+              <FileBarChart className="w-8 h-8 sm:w-10 sm:h-10 text-accent2-400" />
             </motion.div>
             <div>
               <p className="text-slate-300 font-medium text-sm sm:text-base">Select a date range and generate report</p>
@@ -496,11 +496,11 @@ export default function GstReportPage() {
 
               {/* Total Invoices */}
               <motion.div variants={itemVariants} className="glass-card p-4 sm:p-6 relative overflow-hidden group">
-                <motion.div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600 opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
+                <motion.div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-accent2-600 opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-2 sm:mb-3">
                     <p className="text-xs sm:text-sm text-slate-400 font-medium">Total Invoices</p>
-                    <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/20">
+                    <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-br from-blue-500 to-accent2-600 shadow-lg shadow-blue-500/20">
                       <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
                     </div>
                   </div>
@@ -529,11 +529,11 @@ export default function GstReportPage() {
 
               {/* Active */}
               <motion.div variants={itemVariants} className="glass-card p-4 sm:p-6 relative overflow-hidden group">
-                <motion.div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-violet-600 opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
+                <motion.div className="absolute inset-0 bg-gradient-to-br from-accent-500 to-accent-600 opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-2 sm:mb-3">
                     <p className="text-xs sm:text-sm text-slate-400 font-medium">Active</p>
-                    <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-br from-purple-500 to-violet-600 shadow-lg shadow-purple-500/20">
+                    <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-br from-accent-500 to-accent-600 shadow-lg shadow-accent-500/20">
                       <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
                     </div>
                   </div>
@@ -546,8 +546,8 @@ export default function GstReportPage() {
             <motion.div variants={itemVariants} className="glass-card overflow-hidden">
               <div className="p-4 sm:p-6 border-b border-slate-700/50 bg-slate-800/30 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-indigo-500/20 rounded-lg">
-                    <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400" />
+                  <div className="p-2 bg-accent2-500/20 rounded-lg">
+                    <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-accent2-400" />
                   </div>
                   <h2 className="text-base sm:text-lg font-semibold text-white">GST Slab Breakdown</h2>
                 </div>

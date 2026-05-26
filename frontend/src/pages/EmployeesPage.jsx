@@ -425,7 +425,7 @@ const EmployeeCard = ({ employee, onEdit, onResetPassword, onToggleStatus, isMob
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-accent-600 flex items-center justify-center text-white font-bold text-lg">
               {employee.name?.charAt(0)?.toUpperCase() || 'E'}
             </div>
             {/* Online indicator */}
@@ -596,7 +596,7 @@ export default function EmployeesPage() {
   const statCards = [
     { label: 'Total Employees', value: stats.total, icon: Users, color: 'blue' },
     { label: 'Active', value: stats.active, icon: Activity, color: 'emerald' },
-    { label: 'Total Sales', value: formatCurrency(stats.totalSales), icon: DollarSign, color: 'purple' }
+    { label: 'Total Sales', value: formatCurrency(stats.totalSales), icon: DollarSign, color: 'accent' }
   ];
 
   return (

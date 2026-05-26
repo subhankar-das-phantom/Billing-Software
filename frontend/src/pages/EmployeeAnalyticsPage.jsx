@@ -44,7 +44,7 @@ const StatCard = ({ icon: Icon, label, value, subValue, color = 'blue', delay = 
   const colors = {
     blue: 'from-blue-500 to-blue-600',
     green: 'from-green-500 to-green-600',
-    purple: 'from-purple-500 to-purple-600',
+    accent: 'from-accent-500 to-accent-600',
     orange: 'from-orange-500 to-orange-600',
     emerald: 'from-emerald-500 to-emerald-600',
     pink: 'from-pink-500 to-pink-600'
@@ -131,7 +131,7 @@ const ComparisonRow = ({ employee, maxSales }) => {
     >
       <div className="flex flex-col md:flex-row md:items-center gap-4">
         <div className="flex items-center gap-3 md:w-48">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-accent-600 flex items-center justify-center text-white font-bold">
             {employee.name?.charAt(0) || 'E'}
           </div>
           <div className="min-w-0">
@@ -152,7 +152,7 @@ const ComparisonRow = ({ employee, maxSales }) => {
               initial={{ width: 0 }}
               animate={{ width: `${salesPercent}%` }}
               transition={{ duration: 0.8, ease: 'easeOut' }}
-              className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
+              className="h-full bg-gradient-to-r from-blue-500 to-accent-500 rounded-full"
             />
           </div>
         </div>
@@ -234,7 +234,7 @@ export default function EmployeeAnalyticsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
-            <BarChart3 className="w-8 h-8 text-purple-500" />
+            <BarChart3 className="w-8 h-8 text-accent-500" />
             Employee Analytics
           </h1>
           <p className="text-slate-400">Performance metrics and insights for your team</p>
@@ -278,7 +278,7 @@ export default function EmployeeAnalyticsPage() {
           icon={FileText}
           label="Total Invoices"
           value={totalInvoices}
-          color="purple"
+          color="accent"
           delay={0.2}
           isMobile={isMobile}
         />
@@ -371,7 +371,7 @@ export default function EmployeeAnalyticsPage() {
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-purple-400" />
+            <BarChart3 className="w-5 h-5 text-accent-400" />
             Performance Comparison
           </h2>
           <div className="flex items-center gap-2">

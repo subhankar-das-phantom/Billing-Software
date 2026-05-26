@@ -45,9 +45,9 @@ const getQuickActions = (isAdmin) => {
   if (isAdmin) {
     actions.push(
       { path: '/profile', label: 'Profile', icon: User },
-      { path: '/employees', label: 'Employees', icon: UsersRound, badge: 'Admin', badgeColor: 'bg-purple-500' },
+      { path: '/employees', label: 'Employees', icon: UsersRound, badge: 'Admin', badgeColor: 'bg-accent-500' },
       { path: '/employee-analytics', label: 'Employee Analytics', icon: BarChart3 },
-      { path: '/manual-entries', label: 'Manual Entries', icon: Shield, badge: 'Admin', badgeColor: 'bg-purple-500' },
+      { path: '/manual-entries', label: 'Manual Entries', icon: Shield, badge: 'Admin', badgeColor: 'bg-accent-500' },
       { path: '/reports/gst', label: 'GST Report', icon: FileBarChart }
     );
   }
@@ -187,13 +187,13 @@ export default function Sidebar({ isOpen, onClose }) {
         >
           <Link to="/" className="flex items-center gap-3 group" onClick={onClose}>
             <motion.div 
-              className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20 relative overflow-hidden"
+              className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-accent-600 flex items-center justify-center shadow-lg shadow-blue-500/20 relative overflow-hidden"
               whileHover={{ scale: 1.05, rotate: 5 }}
               whileTap={{ scale: 0.95 }}
             >
               <span className="text-white font-bold text-lg relative z-10">B</span>
               <motion.div
-                className="absolute inset-0 bg-gradient-to-br from-purple-600 to-blue-500"
+                className="absolute inset-0 bg-gradient-to-br from-accent-600 to-blue-500"
                 initial={{ scale: 0, opacity: 0 }}
                 whileHover={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.3 }}
@@ -280,7 +280,7 @@ export default function Sidebar({ isOpen, onClose }) {
                       {isActive && (
                         <motion.div
                           layoutId="activeTab"
-                          className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-xl"
+                          className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-accent-600/20 border border-blue-500/30 rounded-xl"
                           initial={false}
                           transition={{ 
                             type: "spring", 
@@ -404,7 +404,7 @@ export default function Sidebar({ isOpen, onClose }) {
               className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg relative overflow-hidden ${
                 isAdmin 
                   ? 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/20'
-                  : 'bg-gradient-to-br from-blue-500 to-purple-600 shadow-blue-500/20'
+                  : 'bg-gradient-to-br from-blue-500 to-accent-600 shadow-blue-500/20'
               }`}
               whileHover={{ scale: 1.1 }}
             >
@@ -415,7 +415,7 @@ export default function Sidebar({ isOpen, onClose }) {
                 className={`absolute inset-0 ${
                   isAdmin 
                     ? 'bg-gradient-to-br from-teal-600 to-emerald-500'
-                    : 'bg-gradient-to-br from-purple-600 to-blue-500'
+                    : 'bg-gradient-to-br from-accent-600 to-blue-500'
                 }`}
                 initial={{ scale: 0, opacity: 0 }}
                 whileHover={{ scale: 1, opacity: 1 }}
@@ -442,7 +442,7 @@ export default function Sidebar({ isOpen, onClose }) {
                   {isAdmin ? (admin?.email || 'admin@bharat.com') : (user?.email || 'employee')}
                 </span>
                 {isAdmin && (
-                  <span className="text-[10px] px-1 py-0.5 bg-purple-500/20 text-purple-400 rounded flex-shrink-0">Admin</span>
+                  <span className="text-[10px] px-1 py-0.5 bg-accent-500/20 text-accent-400 rounded flex-shrink-0">Admin</span>
                 )}
               </motion.p>
             </div>

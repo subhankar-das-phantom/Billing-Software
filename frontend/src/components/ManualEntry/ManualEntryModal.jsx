@@ -189,8 +189,8 @@ export default function ManualEntryModal({
             {/* Header */}
             <div className="modal-header flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-500/20 rounded-lg">
-                  <Shield className="w-5 h-5 text-purple-400" />
+                <div className="p-2 bg-accent-500/20 rounded-lg">
+                  <Shield className="w-5 h-5 text-accent-400" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-white">Create Manual Entry</h2>
@@ -256,7 +256,7 @@ export default function ManualEntryModal({
                       }}
                       onFocus={() => setShowCustomerDropdown(true)}
                       placeholder="Search customer by name or phone..."
-                      className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-accent-500 focus:border-transparent"
                       disabled={!!preSelectedCustomer}
                     />
                     
@@ -294,7 +294,7 @@ export default function ManualEntryModal({
                           value={formData.amount}
                           onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
                           placeholder="0.00"
-                          className="w-full pl-8 pr-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          className="w-full pl-8 pr-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-accent-500 focus:border-transparent"
                           required
                         />
                       </div>
@@ -310,7 +310,7 @@ export default function ManualEntryModal({
                         type="date"
                         value={formData.entryDate}
                         onChange={(e) => setFormData(prev => ({ ...prev, entryDate: e.target.value }))}
-                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-accent-500 focus:border-transparent"
                       />
                     </div>
                   </div>
@@ -326,7 +326,7 @@ export default function ManualEntryModal({
                       value={formData.description}
                       onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                       placeholder="e.g., Pre-digital balance from ledger"
-                      className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-accent-500 focus:border-transparent"
                       required
                     />
                   </div>
@@ -341,7 +341,7 @@ export default function ManualEntryModal({
                       onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                       placeholder="Any additional notes..."
                       rows={2}
-                      className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                      className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-accent-500 focus:border-transparent resize-none"
                     />
                   </div>
 
@@ -366,7 +366,7 @@ export default function ManualEntryModal({
                   <motion.button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-medium rounded-lg transition-all shadow-lg shadow-purple-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full py-3.5 bg-gradient-to-r from-accent-600 to-accent2-600 hover:from-accent-500 hover:to-accent2-500 text-white font-medium rounded-lg transition-all shadow-lg shadow-accent-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     whileHover={{ scale: loading ? 1 : 1.01 }}
                     whileTap={{ scale: loading ? 1 : 0.99 }}
                   >

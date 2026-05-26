@@ -83,8 +83,8 @@ function HeroGeometric({
 
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-slate-950 pt-16">
-      {/* Subtle gradient wash — matches existing blue/purple palette */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/[0.06] via-transparent to-purple-500/[0.06] blur-3xl" />
+      {/* Subtle gradient wash — matches existing blue/teal palette */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/[0.06] via-transparent to-accent-500/[0.06] blur-3xl" />
 
       {/* Grid pattern — matches the rest of the landing page */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:60px_60px] [mask-image:radial-gradient(ellipse_80%_60%_at_50%_40%,black,transparent)]" />
@@ -100,23 +100,23 @@ function HeroGeometric({
           className="left-[-10%] md:left-[-5%] top-[15%] md:top-[20%]"
         />
 
-        {/* Purple — bottom-right (matches secondary accent) */}
+        {/* Teal — bottom-right (matches secondary accent) */}
         <ElegantShape
           delay={0.5}
           width={500}
           height={120}
           rotate={-15}
-          gradient="from-purple-500/[0.12]"
+          gradient="from-accent-500/[0.12]"
           className="right-[-5%] md:right-[0%] top-[70%] md:top-[75%]"
         />
 
-        {/* Indigo — bottom-left */}
+        {/* Cyan — bottom-left */}
         <ElegantShape
           delay={0.4}
           width={300}
           height={80}
           rotate={-8}
-          gradient="from-indigo-500/[0.10]"
+          gradient="from-accent2-500/[0.10]"
           className="left-[5%] md:left-[10%] bottom-[5%] md:bottom-[10%]"
         />
 
@@ -171,7 +171,7 @@ function HeroGeometric({
               <br />
               <span
                 className={cn(
-                  "bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-300 to-emerald-400"
+                  "bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-accent-400 to-emerald-400"
                 )}
               >
                 {title2}

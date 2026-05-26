@@ -317,9 +317,9 @@ export default function InvoicesPage() {
             label: 'This Month', 
             value: stats.thisMonth, 
             icon: TrendingUp,
-            color: 'from-purple-500 to-purple-600',
-            iconColor: 'text-purple-400',
-            bgColor: 'bg-purple-500/20'
+            color: 'from-accent-500 to-accent-600',
+            iconColor: 'text-accent-400',
+            bgColor: 'bg-accent-500/20'
           }
         ].map((stat, index) => (
           <motion.div

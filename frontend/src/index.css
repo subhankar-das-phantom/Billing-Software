@@ -1,5 +1,21 @@
 @import "tailwindcss";
 
+/* ═══════════════════════════════════════════
+   THEME: Accent Colors
+   Change these to retheme the entire app.
+   accent  = standalone accent (badges, icons, stats)
+   accent2 = gradient partner with blue (buttons, CTAs)
+   ═══════════════════════════════════════════ */
+@theme {
+  --color-accent-400: #2dd4bf;  /* teal-400 */
+  --color-accent-500: #14b8a6;  /* teal-500 */
+  --color-accent-600: #0d9488;  /* teal-600 */
+
+  --color-accent2-400: #22d3ee; /* cyan-400 */
+  --color-accent2-500: #06b6d4; /* cyan-500 */
+  --color-accent2-600: #0891b2; /* cyan-600 */
+}
+
 /* Base Styles & CSS Variables */
 @layer base {
   :root {
@@ -133,7 +149,7 @@
   }
 
   .btn-primary {
-    @apply bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-500 hover:to-indigo-500 shadow-lg shadow-blue-500/20;
+    @apply bg-gradient-to-r from-blue-600 to-accent2-600 text-white hover:from-blue-500 hover:to-accent2-500 shadow-lg shadow-blue-500/20;
   }
 
   .btn-secondary {
@@ -418,7 +434,7 @@
   left: -200px;
   width: 600px;
   height: 600px;
-  background: rgba(139, 92, 246, 0.05);
+  background: rgba(20, 184, 166, 0.05);
 }
 
 .pp-bg-grid {
@@ -769,8 +785,8 @@
 
 /* Summary Section */
 .pp-summary-section {
-  border-color: rgba(99, 102, 241, 0.3);
-  background: rgba(30, 27, 75, 0.15);
+  border-color: rgba(6, 182, 212, 0.3);
+  background: rgba(6, 78, 79, 0.15);
 }
 
 /* Footer */

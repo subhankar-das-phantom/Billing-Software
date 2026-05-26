@@ -34,7 +34,7 @@ const METHOD_ICONS = {
 
 const METHOD_COLORS = {
   'Cash': 'from-emerald-500/20 to-emerald-600/10 border-emerald-500/30 text-emerald-400',
-  'UPI': 'from-purple-500/20 to-purple-600/10 border-purple-500/30 text-purple-400',
+  'UPI': 'from-accent-500/20 to-accent-600/10 border-accent-500/30 text-accent-400',
   'Bank Transfer': 'from-blue-500/20 to-blue-600/10 border-blue-500/30 text-blue-400',
   'Cheque': 'from-amber-500/20 to-amber-600/10 border-amber-500/30 text-amber-400',
   'NEFT/RTGS': 'from-cyan-500/20 to-cyan-600/10 border-cyan-500/30 text-cyan-400'
@@ -397,7 +397,7 @@ export default function CollectionsPage() {
                             {payment.invoice.invoiceNumber || payment.invoiceSnapshot?.invoiceNumber || '-'}
                           </Link>
                         ) : payment.isManualEntry ? (
-                          <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                          <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-accent-500/20 text-accent-400 border border-accent-500/30">
                             Manual Entry
                           </span>
                         ) : (

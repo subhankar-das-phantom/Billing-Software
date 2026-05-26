@@ -224,9 +224,9 @@ export default function DashboardPage() {
       label: 'This Month', 
       value: stats?.monthSales || 0, 
       icon: Calendar,
-      color: 'from-purple-500 to-purple-600',
-      shadow: 'shadow-purple-500/20',
-      bgLight: 'bg-purple-500/10',
+      color: 'from-accent-500 to-accent-600',
+      shadow: 'shadow-accent-500/20',
+      bgLight: 'bg-accent-500/10',
       isCurrency: true
     },
   ];
@@ -241,12 +241,12 @@ export default function DashboardPage() {
       {/* Welcome Banner */}
       <motion.div
         variants={itemVariants}
-        className="glass-card p-8 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-transparent border-blue-500/20 relative overflow-hidden"
+        className="glass-card p-8 bg-gradient-to-br from-blue-500/10 via-accent-500/10 to-transparent border-blue-500/20 relative overflow-hidden"
       >
         {/* Animated shimmer - Desktop only */}
         {motionConfig.shouldInfiniteAnimate && (
           <motion.div
-            className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-transparent"
+            className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-accent-500/5 to-transparent"
             animate={{ x: ['-100%', '100%'] }}
             transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
           />
@@ -659,21 +659,21 @@ export default function DashboardPage() {
       <motion.div variants={itemVariants} className="glass-card p-8">
         <div className="flex items-center gap-4 mb-8">
           <motion.div
-            className="p-2 bg-purple-500/20 rounded-lg"
+            className="p-2 bg-accent-500/20 rounded-lg"
             whileHover={{ rotate: 360 }}
             transition={{ duration: 0.6 }}
           >
-            <Zap size={20} className="text-purple-400" />
+            <Zap size={20} className="text-accent-400" />
           </motion.div>
           <h2 className="text-lg font-semibold text-white">Quick Actions</h2>
         </div>
         
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           {[
-            { to: '/invoices/create', icon: FilePlus, label: 'New Invoice', color: 'from-blue-500/10 to-purple-500/10', borderColor: 'border-blue-500/20', hoverBorder: 'hover:border-blue-400/50', iconBg: 'bg-blue-500/20', iconColor: 'text-blue-400' },
+            { to: '/invoices/create', icon: FilePlus, label: 'New Invoice', color: 'from-blue-500/10 to-accent-500/10', borderColor: 'border-blue-500/20', hoverBorder: 'hover:border-blue-400/50', iconBg: 'bg-blue-500/20', iconColor: 'text-blue-400' },
             { to: '/products', icon: Package, label: 'Products', color: 'bg-slate-800/50', borderColor: 'border-slate-700/50', hoverBorder: 'hover:border-slate-600', iconBg: 'bg-emerald-500/20', iconColor: 'text-emerald-400' },
             { to: '/customers', icon: Users, label: 'Customers', color: 'bg-slate-800/50', borderColor: 'border-slate-700/50', hoverBorder: 'hover:border-slate-600', iconBg: 'bg-yellow-500/20', iconColor: 'text-yellow-400' },
-            { to: '/invoices', icon: FileText, label: 'Invoices', color: 'bg-slate-800/50', borderColor: 'border-slate-700/50', hoverBorder: 'hover:border-slate-600', iconBg: 'bg-purple-500/20', iconColor: 'text-purple-400' }
+            { to: '/invoices', icon: FileText, label: 'Invoices', color: 'bg-slate-800/50', borderColor: 'border-slate-700/50', hoverBorder: 'hover:border-slate-600', iconBg: 'bg-accent-500/20', iconColor: 'text-accent-400' }
           ].map((action, index) => (
             <motion.div
               key={index}

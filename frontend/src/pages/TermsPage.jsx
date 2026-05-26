@@ -13,7 +13,7 @@ const sections = [
     num: '1',
     title: 'Introduction',
     icon: ScrollText,
-    color: 'from-blue-500 to-indigo-500',
+    color: 'from-blue-500 to-accent2-500',
     content: (
       <>
         <p>Welcome to <strong>Bharat Enterprise Billing System</strong> ("Platform", "Service", "we", "us", or "our"). These Terms & Conditions ("Terms") govern your access to and use of our cloud-based billing, invoicing, and inventory management platform.</p>
@@ -44,7 +44,7 @@ const sections = [
     num: '3',
     title: 'Eligibility & Business Usage',
     icon: Globe,
-    color: 'from-purple-500 to-violet-500',
+    color: 'from-accent-500 to-accent-500',
     content: (
       <>
         <ul>
@@ -133,7 +133,7 @@ const sections = [
     num: '8',
     title: 'GST & Legal Compliance Disclaimer',
     icon: Scale,
-    color: 'from-indigo-500 to-purple-500',
+    color: 'from-accent2-500 to-accent-500',
     content: (
       <>
         <ul>
@@ -233,7 +233,7 @@ const sections = [
     num: '13',
     title: 'Intellectual Property',
     icon: BookOpen,
-    color: 'from-violet-500 to-purple-500',
+    color: 'from-accent-500 to-accent-500',
     content: (
       <>
         <ul>
@@ -351,7 +351,7 @@ const sections = [
     num: '19',
     title: 'Governing Law',
     icon: Gavel,
-    color: 'from-indigo-500 to-blue-500',
+    color: 'from-accent2-500 to-blue-500',
     content: (
       <>
         <ul>
@@ -460,7 +460,7 @@ export default function TermsPage() {
           {/* Summary Table */}
           <section className="pp-section pp-summary-section">
             <div className="pp-section-header">
-              <div className="pp-section-icon bg-gradient-to-br from-blue-500 to-purple-500">
+              <div className="pp-section-icon bg-gradient-to-br from-blue-500 to-accent-500">
                 <FileText className="w-5 h-5 text-white" />
               </div>
               <h2 className="pp-section-title">Quick Summary</h2>

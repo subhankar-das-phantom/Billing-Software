@@ -87,7 +87,7 @@ export default function NotFoundPage() {
         <motion.div
           animate={{ y: [0, 20, 0], opacity: [0.3, 0.6, 0.3], scale: [1, 1.3, 1] }}
           transition={{ duration: 7, repeat: Infinity, delay: 1, ease: "easeInOut" }}
-          className="absolute -bottom-40 -left-40 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl"
+          className="absolute -bottom-40 -left-40 w-96 h-96 bg-accent-500/20 rounded-full blur-3xl"
         />
       </div>
 
@@ -109,7 +109,7 @@ export default function NotFoundPage() {
             variants={glowAnimation}
             animate="animate"
             className="absolute inset-0 bg-gradient-to-r 
-            from-blue-500/20 via-purple-500/20 to-blue-500/20 
+            from-blue-500/20 via-accent-500/20 to-blue-500/20 
             rounded-full blur-3xl"
           />
 

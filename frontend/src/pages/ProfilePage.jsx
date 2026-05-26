@@ -123,7 +123,7 @@ export default function ProfilePage() {
         animate={{ opacity: 1, y: 0 }}
         className="flex items-center gap-3"
       >
-        <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/30">
+        <div className="p-3 bg-gradient-to-br from-blue-500 to-accent2-600 rounded-xl shadow-lg shadow-blue-500/30">
           <User className="w-6 h-6 text-white" />
         </div>
         <div>
