@@ -367,6 +367,25 @@ export default function RegisterPage() {
               </div>
             </motion.div>
 
+            {/* Privacy Policy & Terms Consent */}
+            <motion.p variants={itemVariants} className="text-xs text-slate-500 text-center mt-2">
+              By creating an account, you agree to our{' '}
+              <Link 
+                to="/privacy-policy" 
+                className="relative z-20 text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                target="_blank"
+              >
+                Privacy Policy
+              </Link>{' '}and{' '}
+              <Link 
+                to="/terms" 
+                className="relative z-20 text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                target="_blank"
+              >
+                Terms & Conditions
+              </Link>.
+            </motion.p>
+
             {/* Submit Button */}
             <motion.button
               variants={itemVariants}
