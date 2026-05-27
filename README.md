@@ -1,5 +1,6 @@
 # Bharat Enterprise - Billing System MVP
 
+[![GitHub Tag](https://img.shields.io/github/v/tag/subhankar-das-phantom/Billing-Software?sort=semver&color=emerald&label=version)](https://github.com/subhankar-das-phantom/Billing-Software/releases)
 [![CI](https://github.com/subhankar-das-phantom/Billing-Software/actions/workflows/ci.yml/badge.svg)](https://github.com/subhankar-das-phantom/Billing-Software/actions/workflows/ci.yml)
 
 A Billing System optimized for both desktop workflows and mobile accessibility without compromising usability, zero-cost billing and inventory system built for small pharmaceutical distributors who cannot afford expensive software like Marg or Tally.
