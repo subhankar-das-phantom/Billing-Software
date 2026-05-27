@@ -23,10 +23,11 @@ import EnhancedButton from '../components/Common/EnhancedButton';
 import { useToast } from '../context/ToastContext';
 import { useMotionConfig, useSWR, invalidateCachePattern } from '../hooks';
 import RefreshIndicator from '../components/Common/RefreshIndicator';
+import { THEME } from '../utils/themeColors';
 
 const COLORS = [
   { id: 'blue', value: '#3B82F6', label: 'Blue' },
-  { id: 'purple', value: '#8B5CF6', label: 'Purple' },
+  { id: 'teal', value: THEME.accent.hex, label: 'Teal' },
   { id: 'emerald', value: '#10B981', label: 'Emerald' },
   { id: 'amber', value: '#F59E0B', label: 'Amber' },
   { id: 'rose', value: '#F43F5E', label: 'Rose' },

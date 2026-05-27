@@ -65,13 +65,13 @@ export default function Navbar() {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 group">
             <motion.div 
-              className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20 relative overflow-hidden"
+              className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-accent-600 flex items-center justify-center shadow-lg shadow-blue-500/20 relative overflow-hidden"
               whileHover={{ scale: 1.05, rotate: 5 }}
               whileTap={{ scale: 0.95 }}
             >
               <span className="text-white font-bold text-lg relative z-10">B</span>
               <motion.div
-                className="absolute inset-0 bg-gradient-to-br from-purple-600 to-blue-500"
+                className="absolute inset-0 bg-gradient-to-br from-accent-600 to-blue-500"
                 initial={{ scale: 0, opacity: 0 }}
                 whileHover={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.3 }}
@@ -117,7 +117,7 @@ export default function Navbar() {
                   {isActive && (
                     <motion.div
                       layoutId="navActiveTab"
-                      className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-xl"
+                      className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-accent-600/20 border border-blue-500/30 rounded-xl"
                       initial={false}
                       transition={{ 
                         type: "spring", 
@@ -165,7 +165,7 @@ export default function Navbar() {
                       </motion.div>
                     )}
                     {item.adminOnly && (
-                      <span className="text-[10px] px-1.5 py-0.5 bg-purple-500/20 text-purple-400 rounded font-semibold hidden 2xl:inline-block">Admin</span>
+                      <span className="text-[10px] px-1.5 py-0.5 bg-accent-500/20 text-accent-400 rounded font-semibold hidden 2xl:inline-block">Admin</span>
                     )}
                   </motion.div>
                 </Link>
@@ -278,7 +278,7 @@ export default function Navbar() {
                           {isAdmin ? (admin?.firmName || 'Admin') : (user?.name || 'Employee')}
                         </p>
                         {isAdmin && (
-                          <span className="text-[10px] px-1.5 py-0.5 bg-purple-500/20 text-purple-400 rounded">Admin</span>
+                          <span className="text-[10px] px-1.5 py-0.5 bg-accent-500/20 text-accent-400 rounded">Admin</span>
                         )}
                       </div>
                       <p className="text-xs text-slate-400 mt-1">

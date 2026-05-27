@@ -145,7 +145,7 @@ export default function ProductDetailsPage() {
           {[
             { label: 'MRP', value: formatCurrency(product.newMRP), icon: DollarSign, color: 'emerald' },
             { label: 'GST', value: `${product.gstPercentage}%`, icon: Percent, color: 'blue' },
-            { label: 'Unit', value: product.unit || 'Pieces', icon: Ruler, color: 'purple' },
+            { label: 'Unit', value: product.unit || 'Pieces', icon: Ruler, color: 'accent' },
             { label: 'Current Stock', value: `${product.currentStockQty}`, icon: Layers, color: product.currentStockQty > 0 ? 'amber' : 'red' }
           ].map(stat => (
             <div key={stat.label} className={`p-4 rounded-xl bg-${stat.color}-500/10 border border-${stat.color}-500/20`}>

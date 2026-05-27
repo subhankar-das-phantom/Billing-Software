@@ -2,8 +2,8 @@ export const CUSTOMER_THEMES = [
   {
     id: 'blue',
     label: 'Blue',
-    gradient: 'from-blue-500 to-indigo-600',
-    hoverGradient: 'from-indigo-600 to-blue-500',
+    gradient: 'from-blue-500 to-accent2-600',
+    hoverGradient: 'from-accent2-600 to-blue-500',
     shadow: 'shadow-blue-500/30'
   },
   {
@@ -14,11 +14,11 @@ export const CUSTOMER_THEMES = [
     shadow: 'shadow-emerald-500/30'
   },
   {
-    id: 'purple',
-    label: 'Purple',
-    gradient: 'from-purple-500 to-fuchsia-600',
-    hoverGradient: 'from-fuchsia-600 to-purple-500',
-    shadow: 'shadow-purple-500/30'
+    id: 'teal',
+    label: 'Teal',
+    gradient: 'from-accent-500 to-accent2-600',
+    hoverGradient: 'from-accent2-600 to-accent-500',
+    shadow: 'shadow-accent-500/30'
   },
   {
     id: 'amber',

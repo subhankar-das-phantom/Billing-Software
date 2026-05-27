@@ -75,7 +75,7 @@ export default function Header({ onMenuClick, title }) {
                 className={`w-8 h-8 rounded-full flex items-center justify-center ${
                   isAdmin 
                     ? 'bg-gradient-to-br from-emerald-500 to-teal-600' 
-                    : 'bg-gradient-to-br from-blue-500 to-purple-600'
+                    : 'bg-gradient-to-br from-blue-500 to-accent-600'
                 }`}
                 whileHover={{ rotate: 360 }}
                 transition={{ duration: 0.6 }}

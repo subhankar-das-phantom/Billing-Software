@@ -105,7 +105,7 @@ export default function DashboardLayout() {
               animate={{
                 background: [
                   'radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 50%)',
-                  'radial-gradient(circle at 80% 50%, rgba(139, 92, 246, 0.1) 0%, transparent 50%)',
+                  'radial-gradient(circle at 80% 50%, rgba(20, 184, 166, 0.1) 0%, transparent 50%)',
                   'radial-gradient(circle at 50% 80%, rgba(59, 130, 246, 0.1) 0%, transparent 50%)',
                   'radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 50%)'
                 ]
@@ -123,7 +123,7 @@ export default function DashboardLayout() {
         {/* Loading indicator bar */}
         <AnimatePresence>
           <motion.div
-            className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 origin-left z-50"
+            className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-accent-500 to-blue-500 origin-left z-50"
             initial={{ scaleX: 0 }}
             animate={{ scaleX: 0 }}
             exit={{ scaleX: 1 }}

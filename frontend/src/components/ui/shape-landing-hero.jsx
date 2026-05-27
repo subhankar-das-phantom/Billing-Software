@@ -9,7 +9,28 @@ function ElegantShape({
   height = 100,
   rotate = 0,
   gradient = "from-white/[0.08]",
+  reduceMotion = false,
 }) {
+  // On mobile: render a static, lightweight element — no motion, no blur, no pseudo-elements
+  if (reduceMotion) {
+    return (
+      <div
+        className={cn("absolute", className)}
+        style={{ width, height, transform: `rotate(${rotate}deg)`, opacity: 0.7 }}
+      >
+        <div
+          style={{ width, height }}
+          className={cn(
+            "relative rounded-full",
+            "bg-gradient-to-r to-transparent",
+            gradient,
+            "border border-white/[0.05]"
+          )}
+        />
+      </div>
+    );
+  }
+
   return (
     <motion.div
       initial={{
@@ -67,24 +88,30 @@ function HeroGeometric({
   title2 = "Crafting Exceptional Websites",
   description,
   children,
+  reduceMotion = false,
 }) {
-  const fadeUpVariants = {
-    hidden: { opacity: 1, y: 0 },
-    visible: (i) => ({
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 1,
-        delay: 0.5 + i * 0.2,
-        ease: [0.25, 0.4, 0.25, 1],
-      },
-    }),
-  };
+  const fadeUpVariants = reduceMotion
+    ? {
+        hidden: { opacity: 1, y: 0 },
+        visible: () => ({ opacity: 1, y: 0 }),
+      }
+    : {
+        hidden: { opacity: 0, y: 30 },
+        visible: (i) => ({
+          opacity: 1,
+          y: 0,
+          transition: {
+            duration: 1,
+            delay: 0.5 + i * 0.2,
+            ease: [0.25, 0.4, 0.25, 1],
+          },
+        }),
+      };
 
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-slate-950 pt-16">
-      {/* Subtle gradient wash — matches existing blue/purple palette */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/[0.06] via-transparent to-purple-500/[0.06] blur-3xl" />
+      {/* Subtle gradient wash — matches existing blue/teal palette */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/[0.06] via-transparent to-accent-500/[0.06] blur-3xl" />
 
       {/* Grid pattern — matches the rest of the landing page */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:60px_60px] [mask-image:radial-gradient(ellipse_80%_60%_at_50%_40%,black,transparent)]" />
@@ -98,26 +125,29 @@ function HeroGeometric({
           rotate={12}
           gradient="from-blue-500/[0.12]"
           className="left-[-10%] md:left-[-5%] top-[15%] md:top-[20%]"
+          reduceMotion={reduceMotion}
         />
 
-        {/* Purple — bottom-right (matches secondary accent) */}
+        {/* Teal — bottom-right (matches secondary accent) */}
         <ElegantShape
           delay={0.5}
           width={500}
           height={120}
           rotate={-15}
-          gradient="from-purple-500/[0.12]"
+          gradient="from-accent-500/[0.12]"
           className="right-[-5%] md:right-[0%] top-[70%] md:top-[75%]"
+          reduceMotion={reduceMotion}
         />
 
-        {/* Indigo — bottom-left */}
+        {/* Cyan — bottom-left */}
         <ElegantShape
           delay={0.4}
           width={300}
           height={80}
           rotate={-8}
-          gradient="from-indigo-500/[0.10]"
+          gradient="from-accent2-500/[0.10]"
           className="left-[5%] md:left-[10%] bottom-[5%] md:bottom-[10%]"
+          reduceMotion={reduceMotion}
         />
 
         {/* Emerald — top-right (matches success/accent color) */}
@@ -128,6 +158,7 @@ function HeroGeometric({
           rotate={20}
           gradient="from-emerald-500/[0.10]"
           className="right-[15%] md:right-[20%] top-[10%] md:top-[15%]"
+          reduceMotion={reduceMotion}
         />
 
         {/* Cyan — small accent, top-left area */}
@@ -138,6 +169,7 @@ function HeroGeometric({
           rotate={-25}
           gradient="from-cyan-500/[0.08]"
           className="left-[20%] md:left-[25%] top-[5%] md:top-[10%]"
+          reduceMotion={reduceMotion}
         />
       </div>
 
@@ -171,7 +203,7 @@ function HeroGeometric({
               <br />
               <span
                 className={cn(
-                  "bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-300 to-emerald-400"
+                  "bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-accent-400 to-emerald-400"
                 )}
               >
                 {title2}

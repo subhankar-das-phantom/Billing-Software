@@ -581,7 +581,7 @@ export default function CustomerDetailsPage() {
   const ledgerTypeConfig = {
     'Invoice': { color: 'bg-blue-500/20 text-blue-400 border-blue-500/30', icon: ArrowUpRight },
     'Payment': { color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30', icon: ArrowDownLeft },
-    'Credit Note': { color: 'bg-purple-500/20 text-purple-400 border-purple-500/30', icon: ArrowDownLeft },
+    'Credit Note': { color: 'bg-accent-500/20 text-accent-400 border-accent-500/30', icon: ArrowDownLeft },
     'Opening Balance': { color: 'bg-amber-500/20 text-amber-400 border-amber-500/30', icon: ArrowUpRight },
     'Manual Bill': { color: 'bg-orange-500/20 text-orange-400 border-orange-500/30', icon: ArrowUpRight },
     'Payment Adjustment': { color: 'bg-teal-500/20 text-teal-400 border-teal-500/30', icon: ArrowDownLeft },
@@ -695,7 +695,7 @@ export default function CustomerDetailsPage() {
                   transition={{ delay: 0.6 }}
                   whileHover={{ x: 4 }}
                 >
-                  <FileText className="w-4 h-4 text-slate-500 group-hover:text-purple-400 transition-colors flex-shrink-0 mt-0.5" />
+                  <FileText className="w-4 h-4 text-slate-500 group-hover:text-accent-400 transition-colors flex-shrink-0 mt-0.5" />
                   <span className="text-slate-500 shrink-0">GSTIN:</span>
                   <span className="text-slate-300 min-w-0 break-all">{customer.gstin}</span>
                 </motion.div>
@@ -1232,7 +1232,7 @@ export default function CustomerDetailsPage() {
                               <td className="py-4">
                                 <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border ${
                                   payment.isManual 
-                                    ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' 
+                                    ? 'bg-accent-500/20 text-accent-400 border-accent-500/30' 
                                     : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
                                 }`}>
                                   {payment.isManual ? <BookOpen className="w-3 h-3" /> : <FileText className="w-3 h-3" />}

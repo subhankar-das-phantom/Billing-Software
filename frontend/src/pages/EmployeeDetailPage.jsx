@@ -127,7 +127,7 @@ export default function EmployeeDetailPage() {
       label: 'Payments Recorded', 
       value: employee.metrics?.paymentsRecordedCount || 0, 
       icon: Wallet, 
-      color: 'purple' 
+      color: 'accent' 
     },
     { 
       label: 'Today\'s Session', 
@@ -151,7 +151,7 @@ export default function EmployeeDetailPage() {
         </motion.button>
         
         <div className="flex items-center gap-4 flex-1">
-          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-500/20">
+          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-accent-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-500/20">
             {employee.name?.charAt(0)?.toUpperCase() || 'E'}
           </div>
           <div>

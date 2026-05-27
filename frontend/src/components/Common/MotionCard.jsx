@@ -89,7 +89,7 @@ const MotionCard = ({
       {/* Animated background gradient on hover */}
       {variant === 'glow' && (
         <motion.div
-          className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-purple-500/10 opacity-0"
+          className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-accent-500/10 opacity-0"
           animate={{ opacity: isHovered ? 1 : 0 }}
           transition={{ duration: 0.3 }}
           style={{ pointerEvents: 'none' }}

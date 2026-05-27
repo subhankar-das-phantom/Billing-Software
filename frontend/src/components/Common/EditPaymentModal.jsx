@@ -335,7 +335,7 @@ export default function EditPaymentModal({
                     <motion.button
                       type="submit"
                       disabled={loading}
-                      className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium rounded-lg transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-accent2-600 hover:from-blue-500 hover:to-accent2-500 text-white font-medium rounded-lg transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       whileHover={{ scale: loading ? 1 : 1.01 }}
                       whileTap={{ scale: loading ? 1 : 0.99 }}
                     >

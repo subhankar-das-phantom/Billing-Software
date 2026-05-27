@@ -1,4 +1,5 @@
 import api, { cachedRequest, clearCache } from './api';
+import { THEME } from '../utils/themeColors';
 
 /**
  * Dashboard Service
@@ -584,12 +585,12 @@ export const dashboardUtils = {
       '#10b981', // emerald
       '#f59e0b', // amber
       '#ef4444', // red
-      '#8b5cf6', // violet
+      THEME.accent.hex, // teal
       '#ec4899', // pink
       '#06b6d4', // cyan
       '#84cc16', // lime
       '#f97316', // orange
-      '#6366f1'  // indigo
+      THEME.accent2.hex  // cyan
     ];
 
     if (count <= baseColors.length) {

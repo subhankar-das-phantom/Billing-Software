@@ -956,11 +956,11 @@ export default function InvoiceCreatePage() {
       <motion.div variants={cardVariants} className="glass-card p-6 relative z-40">
         <div className="flex items-center gap-3 mb-6">
           <motion.div
-            className="p-2 bg-purple-500/20 rounded-lg"
+            className="p-2 bg-accent-500/20 rounded-lg"
             whileHover={{ rotate: 360 }}
             transition={{ duration: 0.6 }}
           >
-            <ShoppingCart className="w-5 h-5 text-purple-400" />
+            <ShoppingCart className="w-5 h-5 text-accent-400" />
           </motion.div>
           <h2 className="text-lg font-semibold text-white">Add Products</h2>
           {invoiceItems.length > 0 && (
@@ -1038,7 +1038,7 @@ export default function InvoiceCreatePage() {
                     <div className="flex justify-between gap-4">
                       <div className="flex-1">
                         <p className="font-medium text-white flex items-center gap-2">
-                          <Package className="w-4 h-4 text-purple-400" />
+                          <Package className="w-4 h-4 text-accent-400" />
                           {product.productName}
                         </p>
                         <p className="text-sm text-slate-400 mt-1">

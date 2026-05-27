@@ -321,7 +321,7 @@ export const cachedRequest = async (config, ttl = CACHE_TTL) => {
       if (isDevelopment) {
         console.log(
           `%c⚡ Cache Hit: ${config.method.toUpperCase()} ${config.url}`,
-          'color: #8b5cf6; font-weight: bold'
+          'color: #14b8a6; font-weight: bold'
         );
       }
       return { data, fromCache: true };
@@ -367,7 +367,7 @@ export const invalidateCachedRequestsByUrl = (url, method = null) => {
 export const clearCache = () => {
   cache.clear();
   if (isDevelopment) {
-    console.log('%c🗑️ Cache cleared', 'color: #8b5cf6; font-weight: bold');
+    console.log('%c🗑️ Cache cleared', 'color: #14b8a6; font-weight: bold');
   }
 };
 
