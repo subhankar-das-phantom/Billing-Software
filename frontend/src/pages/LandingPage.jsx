@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
 import {
@@ -12,24 +12,38 @@ import { useAuth } from '../context/AuthContext';
 import { HeroGeometric } from '@/components/ui/shape-landing-hero';
 
 // ─── Helpers ───────────────────────────────────────
-const getReducedMotion = () => {
+const getIsMobile = () => {
   if (typeof window === 'undefined') return false;
-  return window.matchMedia('(max-width: 768px)').matches ||
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  return window.matchMedia('(max-width: 768px)').matches;
 };
+
+const getPrefersReducedMotion = () => {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+};
+
+const getReducedMotion = () => getIsMobile() || getPrefersReducedMotion();
 
 const scrollToSection = (id) => {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
 };
 
 // ─── Animated Counter ──────────────────────────────
-function AnimatedStat({ value, suffix = '', prefix = '' }) {
+function AnimatedStat({ value, suffix = '', prefix = '', reduceMotion = false }) {
   const ref = useRef(null);
   const numRef = useRef(null);
   const isInView = useInView(ref, { once: true, amount: 0.5 });
 
   useEffect(() => {
     if (!isInView || !numRef.current) return;
+
+    // On mobile / reduced-motion: show final value immediately
+    if (reduceMotion) {
+      numRef.current.textContent = `${prefix}${value.toLocaleString()}${suffix}`;
+      return;
+    }
+
+    let rafId;
     const dur = 2000;
     const start = performance.now();
     function tick(now) {
@@ -37,18 +51,25 @@ function AnimatedStat({ value, suffix = '', prefix = '' }) {
       const eased = 1 - Math.pow(1 - p, 3);
       const cur = Math.round(value * eased);
       if (numRef.current) numRef.current.textContent = `${prefix}${cur.toLocaleString()}${suffix}`;
-      if (p < 1) requestAnimationFrame(tick);
+      if (p < 1) rafId = requestAnimationFrame(tick);
     }
-    requestAnimationFrame(tick);
-  }, [isInView, value, prefix, suffix]);
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [isInView, value, prefix, suffix, reduceMotion]);
 
   return <span ref={ref}><span ref={numRef}>{prefix}0{suffix}</span></span>;
 }
 
 // ─── Reveal Wrapper ────────────────────────────────
-function Reveal({ children, className = '', id, delay = 0 }) {
+function Reveal({ children, className = '', id, delay = 0, reduceMotion = false }) {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, amount: 0.12 });
+
+  // On mobile: render a plain section, skip IntersectionObserver-driven animation
+  if (reduceMotion) {
+    return <section id={id} className={className}>{children}</section>;
+  }
+
   return (
     <motion.section
       ref={ref}
@@ -64,9 +85,15 @@ function Reveal({ children, className = '', id, delay = 0 }) {
 }
 
 // Staggered card reveal
-function StaggerCard({ children, className = '', index = 0 }) {
+function StaggerCard({ children, className = '', index = 0, reduceMotion = false }) {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, amount: 0.15 });
+
+  // On mobile: render a plain div, no animation, no observer overhead
+  if (reduceMotion) {
+    return <div className={className}>{children}</div>;
+  }
+
   return (
     <motion.div
       ref={ref}
@@ -240,6 +267,7 @@ function HeroSection({ reduceMotion, isLoggedIn }) {
         title1="Bill Fast. Stay Accurate."
         title2="Run Your Business with Confidence"
         description="Create invoices in seconds, track stock automatically, and know exactly what every customer owes you — all from your phone or desktop. No complicated setup."
+        reduceMotion={reduceMotion}
       >
         {/* CTAs */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
@@ -340,10 +368,10 @@ const features = [
 
 function FeaturesSection({ reduceMotion }) {
   return (
-    <Reveal id="features" className="py-20 lg:py-32 relative">
-      {/* Subtle bg accent */}
+    <Reveal id="features" className="py-20 lg:py-32 relative" reduceMotion={reduceMotion}>
+      {/* Subtle bg accent — use radial-gradient instead of blur filter for perf */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-blue-500/[0.03] rounded-full blur-[120px]" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] rounded-full" style={{ background: 'radial-gradient(ellipse at center, rgba(59,130,246,0.03) 0%, transparent 70%)' }} />
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -368,11 +396,11 @@ function FeaturesSection({ reduceMotion }) {
         {/* Cards grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
           {features.map((f, i) => (
-            <StaggerCard key={f.title} index={i}>
+            <StaggerCard key={f.title} index={i} reduceMotion={reduceMotion}>
               <motion.div
                 whileHover={reduceMotion ? undefined : { y: -8, scale: 1.02 }}
                 transition={{ duration: 0.3 }}
-                className={`group relative bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-8 hover:border-slate-600/80 transition-all duration-300 cursor-pointer h-full shadow-lg hover:shadow-2xl ${f.glow}`}
+                className={`group relative bg-slate-800/60 border border-slate-700/50 rounded-2xl p-8 hover:border-slate-600/80 transition-all duration-300 cursor-pointer h-full shadow-lg hover:shadow-2xl ${f.glow}`}
               >
                 {/* Gradient overlay on hover */}
                 <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${f.color} opacity-0 group-hover:opacity-[0.04] transition-opacity duration-300`} />
@@ -422,7 +450,7 @@ const steps = [
 
 function HowItWorksSection({ reduceMotion }) {
   return (
-    <Reveal id="how-it-works" className="py-20 lg:py-32 relative">
+    <Reveal id="how-it-works" className="py-20 lg:py-32 relative" reduceMotion={reduceMotion}>
       {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-slate-900/50 to-transparent pointer-events-none" />
 
@@ -450,11 +478,10 @@ function HowItWorksSection({ reduceMotion }) {
           {/* Connecting line (desktop) */}
           <div className="hidden lg:block absolute top-[72px] left-[16.6%] right-[16.6%] h-px">
             <div className="w-full h-full bg-gradient-to-r from-blue-500/40 via-accent-500/40 to-emerald-500/40" />
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/40 via-accent-500/40 to-emerald-500/40 blur-sm" />
           </div>
 
           {steps.map((s, i) => (
-            <StaggerCard key={s.num} index={i}>
+            <StaggerCard key={s.num} index={i} reduceMotion={reduceMotion}>
               <div className="relative text-center lg:text-left">
                 {/* Number badge */}
                 <div className="flex justify-center lg:justify-start mb-8">
@@ -489,9 +516,9 @@ const stats = [
   { value: 0, suffix: ' ₹', label: 'Upfront Cost', sub: 'Free to start' },
 ];
 
-function StatsSection() {
+function StatsSection({ reduceMotion }) {
   return (
-    <Reveal className="py-20 lg:py-28 relative">
+    <Reveal className="py-20 lg:py-28 relative" reduceMotion={reduceMotion}>
       {/* Gradient bg */}
       <div className="absolute inset-0 bg-gradient-to-r from-blue-500/[0.04] via-accent-500/[0.06] to-blue-500/[0.04] pointer-events-none" />
 
@@ -514,10 +541,10 @@ function StatsSection() {
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
           {stats.map((s, i) => (
-            <StaggerCard key={s.label} index={i}>
-              <div className="text-center p-6 lg:p-8 rounded-2xl bg-slate-800/40 backdrop-blur-sm border border-slate-700/40 hover:border-slate-600/60 transition-colors">
+            <StaggerCard key={s.label} index={i} reduceMotion={reduceMotion}>
+              <div className="text-center p-6 lg:p-8 rounded-2xl bg-slate-800/50 border border-slate-700/40 hover:border-slate-600/60 transition-colors">
                 <p className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-2 tracking-tight">
-                  <AnimatedStat value={s.value} suffix={s.suffix} prefix={s.prefix || ''} />
+                  <AnimatedStat value={s.value} suffix={s.suffix} prefix={s.prefix || ''} reduceMotion={reduceMotion} />
                 </p>
                 <p className="text-sm font-semibold text-slate-300 mb-1">{s.label}</p>
                 <p className="text-xs text-slate-400">{s.sub}</p>
@@ -544,9 +571,9 @@ const reasons = [
 
 function WhyChooseSection({ reduceMotion }) {
   return (
-    <Reveal className="py-20 lg:py-32 relative">
+    <Reveal className="py-20 lg:py-32 relative" reduceMotion={reduceMotion}>
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-accent-500/[0.03] rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-0 w-[600px] h-[600px] rounded-full" style={{ background: 'radial-gradient(ellipse at center, rgba(20,184,166,0.03) 0%, transparent 70%)' }} />
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -569,7 +596,7 @@ function WhyChooseSection({ reduceMotion }) {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {reasons.map((r, i) => (
-            <StaggerCard key={r.title} index={i}>
+            <StaggerCard key={r.title} index={i} reduceMotion={reduceMotion}>
               <motion.div
                 whileHover={reduceMotion ? undefined : { y: -4 }}
                 className="flex items-start gap-4 p-6 rounded-2xl bg-slate-800/30 border border-slate-700/30 hover:border-slate-600/50 hover:bg-slate-800/50 transition-all cursor-default"
@@ -610,9 +637,9 @@ const pricingFeatures = [
 
 function PricingSection({ reduceMotion, isLoggedIn }) {
   return (
-    <Reveal id="pricing" className="py-20 lg:py-32 relative">
+    <Reveal id="pricing" className="py-20 lg:py-32 relative" reduceMotion={reduceMotion}>
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-blue-500/[0.03] rounded-full blur-[150px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] rounded-full" style={{ background: 'radial-gradient(ellipse at center, rgba(59,130,246,0.03) 0%, transparent 70%)' }} />
       </div>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -636,7 +663,7 @@ function PricingSection({ reduceMotion, isLoggedIn }) {
         <motion.div
           whileHover={reduceMotion ? undefined : { y: -6 }}
           transition={{ duration: 0.3 }}
-          className="relative bg-slate-800/60 backdrop-blur-xl border border-slate-700/50 rounded-3xl overflow-hidden shadow-2xl max-w-lg mx-auto"
+          className="relative bg-slate-800/80 border border-slate-700/50 rounded-3xl overflow-hidden shadow-2xl max-w-lg mx-auto"
         >
           {/* Top gradient bar */}
           <div className="h-1.5 bg-gradient-to-r from-blue-500 via-accent-500 to-emerald-500" />
@@ -699,7 +726,7 @@ function PricingSection({ reduceMotion, isLoggedIn }) {
 // ════════════════════════════════════════════════════
 function CTASection({ reduceMotion, isLoggedIn }) {
   return (
-    <Reveal className="py-20 lg:py-28 relative overflow-hidden">
+    <Reveal className="py-20 lg:py-28 relative overflow-hidden" reduceMotion={reduceMotion}>
       {/* Gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-accent-500/10 to-accent2-500/10 pointer-events-none" />
       <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.04)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
@@ -710,12 +737,14 @@ function CTASection({ reduceMotion, isLoggedIn }) {
           <motion.div
             animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.5, 0.3] }}
             transition={{ duration: 6, repeat: Infinity }}
-            className="absolute -top-20 -left-20 w-[300px] h-[300px] bg-blue-500/15 rounded-full blur-[80px] pointer-events-none"
+            className="absolute -top-20 -left-20 w-[300px] h-[300px] rounded-full pointer-events-none"
+            style={{ background: 'radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%)' }}
           />
           <motion.div
             animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
             transition={{ duration: 8, repeat: Infinity, delay: 2 }}
-            className="absolute -bottom-20 -right-20 w-[300px] h-[300px] bg-accent-500/15 rounded-full blur-[80px] pointer-events-none"
+            className="absolute -bottom-20 -right-20 w-[300px] h-[300px] rounded-full pointer-events-none"
+            style={{ background: 'radial-gradient(circle, rgba(20,184,166,0.15) 0%, transparent 70%)' }}
           />
         </>
       )}
@@ -724,7 +753,7 @@ function CTASection({ reduceMotion, isLoggedIn }) {
         <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight mb-6">
           Your billing,{' '}
           <br className="hidden sm:block" />
-          <span className="bg-gradient-to-r from-blue-400 via-accent-400 to-blue-400 bg-clip-text text-transparent bg-[length:200%_auto] animate-[gradient-shift_4s_ease_infinite]">
+          <span className={`bg-gradient-to-r from-blue-400 via-accent-400 to-blue-400 bg-clip-text text-transparent ${reduceMotion ? '' : 'bg-[length:200%_auto] animate-[gradient-shift_4s_ease_infinite]'}`}>
             done right.
           </span>
         </h2>
@@ -830,7 +859,7 @@ export default function LandingPage() {
 
       <HowItWorksSection reduceMotion={reduceMotion} />
 
-      <StatsSection />
+      <StatsSection reduceMotion={reduceMotion} />
 
       <div className="h-px bg-gradient-to-r from-transparent via-slate-800 to-transparent" />
 
