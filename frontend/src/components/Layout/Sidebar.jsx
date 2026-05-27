@@ -21,8 +21,8 @@ import {
   Shield,
   FileBarChart
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import { invoiceService } from '../../services/invoiceService';
+import { useAuth } from '../../contexts/AuthContext';
+import { invoiceService } from '../../services/invoices/invoiceService';
 import { useMotionConfig, useSWR } from '../../hooks';
 
 const getMenuItems = (invoiceCount) => [
