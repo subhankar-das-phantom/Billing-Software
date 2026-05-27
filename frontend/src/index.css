@@ -411,7 +411,7 @@
   min-height: 100vh;
   background: rgb(2, 6, 23);
   position: relative;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 .pp-bg-gradient {
