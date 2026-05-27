@@ -7,7 +7,7 @@ import {
   LogOut, 
   ChevronDown
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function Header({ onMenuClick, title }) {
   const { admin, user, isAdmin, logout } = useAuth();

@@ -11,8 +11,8 @@ import {
   Info
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { manualEntryService, calculateImpact } from '../../services/manualEntryService';
-import { customerService } from '../../services/customerService';
+import { manualEntryService, calculateImpact } from '../../services/entries/manualEntryService';
+import { customerService } from '../../services/customers/customerService';
 import { clearCache } from '../../services/api';
 
 export default function ManualEntryModal({

@@ -5,7 +5,7 @@ import { ChevronRight } from 'lucide-react';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 import Header from './Header';
-import PageTransition from '../Common/PageTransition';
+import PageTransition from '../Common/Motion/PageTransition';
 import { useMotionConfig } from '../../hooks';
 
 export default function DashboardLayout() {

@@ -1,44 +1,44 @@
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
-import { AuthProvider, useAuth, AdminRoute } from './context/AuthContext';
-import { ToastProvider } from './context/ToastContext';
+import { AuthProvider, useAuth, AdminRoute } from './contexts/AuthContext';
+import { ToastProvider } from './contexts/ToastContext';
 
 // Eager load - needed immediately
 import DashboardLayout from './components/Layout/DashboardLayout';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import LandingPage from './pages/LandingPage';
+import LoginPage from './pages/Auth/LoginPage';
+import RegisterPage from './pages/Auth/RegisterPage';
+import LandingPage from './pages/Landing/LandingPage';
 
 // Lazy load - loaded on-demand for better initial performance
-const DashboardPage = lazy(() => import('./pages/DashboardPage'));
-const ProductsPage = lazy(() => import('./pages/ProductsPage'));
-const CustomersPage = lazy(() => import('./pages/CustomersPage'));
-const CustomerDetailsPage = lazy(() => import('./pages/CustomerDetailsPage'));
-const InvoicesPage = lazy(() => import('./pages/InvoicesPage'));
-const InvoiceCreatePage = lazy(() => import('./pages/InvoiceCreatePage'));
-const InvoiceViewPage = lazy(() => import('./pages/InvoiceViewPage'));
-const NotesPage = lazy(() => import('./pages/NotesPage'));
-const CreditsPage = lazy(() => import('./pages/CreditsPage'));
-const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const DashboardPage = lazy(() => import('./pages/Dashboard/DashboardPage'));
+const ProductsPage = lazy(() => import('./pages/Products/ProductsPage'));
+const CustomersPage = lazy(() => import('./pages/Customers/CustomersPage'));
+const CustomerDetailsPage = lazy(() => import('./pages/Customers/CustomerDetailsPage'));
+const InvoicesPage = lazy(() => import('./pages/Invoices/InvoicesPage'));
+const InvoiceCreatePage = lazy(() => import('./pages/Invoices/InvoiceCreatePage'));
+const InvoiceViewPage = lazy(() => import('./pages/Invoices/InvoiceViewPage'));
+const NotesPage = lazy(() => import('./pages/Notes/NotesPage'));
+const CreditsPage = lazy(() => import('./pages/CreditNotes/CreditsPage'));
+const ProfilePage = lazy(() => import('./pages/Profile/ProfilePage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
-const CollectionsPage = lazy(() => import('./pages/CollectionsPage'));
+const CollectionsPage = lazy(() => import('./pages/Collections/CollectionsPage'));
 
 // Admin-only pages
-const EmployeesPage = lazy(() => import('./pages/EmployeesPage'));
-const EmployeeDetailPage = lazy(() => import('./pages/EmployeeDetailPage'));
-const EmployeeAnalyticsPage = lazy(() => import('./pages/EmployeeAnalyticsPage'));
-const ActivityLogPage = lazy(() => import('./pages/ActivityLogPage'));
-const ManualEntriesPage = lazy(() => import('./pages/ManualEntriesPage'));
+const EmployeesPage = lazy(() => import('./pages/Employees/EmployeesPage'));
+const EmployeeDetailPage = lazy(() => import('./pages/Employees/EmployeeDetailPage'));
+const EmployeeAnalyticsPage = lazy(() => import('./pages/Employees/EmployeeAnalyticsPage'));
+const ActivityLogPage = lazy(() => import('./pages/Admin/ActivityLogPage'));
+const ManualEntriesPage = lazy(() => import('./pages/Admin/ManualEntriesPage'));
 
 // Batch & Credit Note pages
-const ProductDetailsPage = lazy(() => import('./pages/ProductDetailsPage'));
-const CreditNoteCreatePage = lazy(() => import('./pages/CreditNoteCreatePage'));
-const CreditNoteViewPage = lazy(() => import('./pages/CreditNoteViewPage'));
+const ProductDetailsPage = lazy(() => import('./pages/Products/ProductDetailsPage'));
+const CreditNoteCreatePage = lazy(() => import('./pages/CreditNotes/CreditNoteCreatePage'));
+const CreditNoteViewPage = lazy(() => import('./pages/CreditNotes/CreditNoteViewPage'));
 
 // Report pages
-const GstReportPage = lazy(() => import('./pages/GstReportPage'));
-const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
-const TermsPage = lazy(() => import('./pages/TermsPage'));
+const GstReportPage = lazy(() => import('./pages/Reports/GstReportPage'));
+const PrivacyPolicyPage = lazy(() => import('./pages/Legal/PrivacyPolicyPage'));
+const TermsPage = lazy(() => import('./pages/Legal/TermsPage'));
 
 // Landing page (eagerly loaded — it's the entry point for new users)
 
