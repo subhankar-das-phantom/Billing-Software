@@ -1,15 +1,14 @@
 const mongoose = require('mongoose');
-const Invoice = require('../models/Invoice');
-const Product = require('../models/Product');
-const Customer = require('../models/Customer');
-const Admin = require('../models/Admin');
-const { calculateItemAmounts, calculateInvoiceTotals } = require('../utils/invoiceCalculator');
-const { numberToWords } = require('../utils/numberToWords');
-const { generateInvoiceExcel, generateInvoiceCSV } = require('../utils/excelExport');
-const { getAttribution } = require('../middleware/auth');
-const { trackActivity, ACTIVITY_TYPES } = require('../utils/activityTracker');
-const { invalidateGstReportCache } = require('./gstReportController');
-const getTenantId = require('../utils/getTenantId');
+const Invoice = require('../../models/Invoice');
+const Product = require('../../models/Product');
+const Customer = require('../../models/Customer');
+const Admin = require('../../models/Admin');
+const { calculateItemAmounts, calculateInvoiceTotals } = require('../../utils/invoiceCalculator');
+const { numberToWords } = require('../../utils/numberToWords');
+const { getAttribution } = require('../../middleware/auth');
+const { trackActivity, ACTIVITY_TYPES } = require('../../utils/activityTracker');
+const { invalidateGstReportCache } = require('../gstReportController');
+const getTenantId = require('../../utils/getTenantId');
 
 const UPDATE_INVOICE_TRANSACTION_RETRIES = 3;
 const UPDATE_INVOICE_RETRY_BASE_DELAY_MS = 150;
@@ -1029,78 +1028,3 @@ exports.updateInvoiceStatus = async (req, res, next) => {
   }
 };
 
-// @desc    Export invoices
-// @route   GET /api/invoices/export
-// @access  Private
-exports.exportInvoices = async (req, res, next) => {
-  try {
-    const { format = 'excel', invoices: invoiceIds, startDate, endDate } = req.query;
-    const tenantId = getTenantId(req);
-
-    // Build query
-    const query = { tenantId };
-    
-    if (invoiceIds) {
-      // Specific invoices
-      const ids = invoiceIds.split(',');
-      query._id = { $in: ids };
-    } else {
-      // Date range filter
-      if (startDate && endDate) {
-        const start = parseISTDateBoundary(startDate, false);
-        const end = parseISTDateBoundary(endDate, true);
-
-        if (start && end) {
-          query.invoiceDate = {
-            $gte: start,
-            $lte: end
-          };
-        } else {
-          return res.status(400).json({
-            success: false,
-            message: 'Invalid date range for export'
-          });
-        }
-      }
-    }
-
-    // Fetch invoices with populated data
-    const invoices = await Invoice.find(query).sort({ invoiceDate: -1 });
-
-    if (invoices.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'No invoices found for export'
-      });
-    }
-
-    // Generate export based on format
-    if (format === 'excel') {
-      const buffer = await generateInvoiceExcel(invoices);
-      
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', `attachment; filename=invoices_${Date.now()}.xlsx`);
-      res.send(buffer);
-    } else if (format === 'csv') {
-      const csvContent = generateInvoiceCSV(invoices);
-      
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', `attachment; filename=invoices_${Date.now()}.csv`);
-      res.send(csvContent);
-    } else if (format === 'pdf') {
-      // PDF export - for now return a message
-      // You can implement PDF generation later using puppeteer or pdfkit
-      res.status(501).json({
-        success: false,
-        message: 'PDF export is not yet implemented'
-      });
-    } else {
-      res.status(400).json({
-        success: false,
-        message: 'Invalid export format. Supported: excel, csv, pdf'
-      });
-    }
-  } catch (error) {
-    next(error);
-  }
-};

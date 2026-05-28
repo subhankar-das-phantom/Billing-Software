@@ -6,11 +6,12 @@ import {
   FileText,
   File,
   Calendar,
-  CheckCircle
+  CheckCircle,
+  Loader2
 } from 'lucide-react';
 import { formatCurrency } from '../../../utils/formatters';
 
-const ExportModal = ({ isOpen, onClose, data, onExport, stats, entityType = 'invoices' }) => {
+const ExportModal = ({ isOpen, onClose, data, onExport, stats, entityType = 'invoices', isExporting = false }) => {
   const [exportFormat, setExportFormat] = useState('excel');
   const [exportDateRange, setExportDateRange] = useState({
     startDate: '',
@@ -90,11 +91,11 @@ const ExportModal = ({ isOpen, onClose, data, onExport, stats, entityType = 'inv
   };
 
   const handleExport = () => {
+    if (isExporting) return;
     onExport({
       format: exportFormat,
       dateRange: exportDateRange
     });
-    onClose();
   };
 
   const formatTypes = [
@@ -138,7 +139,9 @@ const ExportModal = ({ isOpen, onClose, data, onExport, stats, entityType = 'inv
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          onClick={onClose}
+          onClick={() => {
+            if (!isExporting) onClose();
+          }}
         >
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
@@ -165,6 +168,7 @@ const ExportModal = ({ isOpen, onClose, data, onExport, stats, entityType = 'inv
                 </div>
                 <motion.button
                   onClick={onClose}
+                  disabled={isExporting}
                   className="p-2 hover:bg-white/20 rounded-lg transition-colors"
                   whileHover={{ scale: 1.1, rotate: 90 }}
                   whileTap={{ scale: 0.9 }}
@@ -328,7 +332,8 @@ const ExportModal = ({ isOpen, onClose, data, onExport, stats, entityType = 'inv
             <div className="bg-slate-800/50 px-6 py-4 flex items-center justify-between border-t border-slate-700">
               <motion.button
                 onClick={onClose}
-                className="btn btn-secondary"
+                disabled={isExporting}
+                className="btn btn-secondary disabled:opacity-60 disabled:cursor-not-allowed"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -336,12 +341,22 @@ const ExportModal = ({ isOpen, onClose, data, onExport, stats, entityType = 'inv
               </motion.button>
               <motion.button
                 onClick={handleExport}
-                className="btn btn-primary bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 flex items-center gap-2 px-6 py-3"
+                disabled={isExporting}
+                className="btn btn-primary bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 flex items-center gap-2 px-6 py-3 disabled:opacity-70 disabled:cursor-not-allowed"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <Download className="w-4 h-4" />
-                Export as {exportFormat.toUpperCase()}
+                {isExporting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Exporting...
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4" />
+                    Export as {exportFormat.toUpperCase()}
+                  </>
+                )}
               </motion.button>
             </div>
           </motion.div>
