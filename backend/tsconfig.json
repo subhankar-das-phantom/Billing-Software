@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "allowJs": true,
+    "checkJs": false,
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "types": ["node", "express"]
+  },
+  "include": ["server.js", "controllers/**/*.js", "controllers/**/*.ts", "routes/**/*.js", "models/**/*.js", "utils/**/*.js"]
+}

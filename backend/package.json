@@ -4,8 +4,8 @@
   "description": "Bharat Enterprise Billing System Backend",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js",
+    "start": "tsx server.js",
+    "dev": "tsx watch server.js",
     "seed:admin": "node scripts/seedAdmin.js",
     "migrate:customer-phone-index": "node scripts/migrateCustomerPhoneIndex.js",
     "migrate:credit-note-number-index": "node scripts/migrateCreditNoteNumberIndex.js",
@@ -31,9 +31,15 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.0.1",
-    "morgan": "^1.10.1"
+    "morgan": "^1.10.1",
+    "pdfkit": "^0.18.0"
   },
   "devDependencies": {
-    "axios": "^1.13.2"
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "@types/pdfkit": "^0.17.6",
+    "axios": "^1.13.2",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0"
   }
 }

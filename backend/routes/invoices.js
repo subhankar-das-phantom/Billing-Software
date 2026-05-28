@@ -8,8 +8,9 @@ const {
   updateInvoice,
   getCustomerInvoices,
   updateInvoiceStatus,
-  exportInvoices
-} = require('../controllers/invoiceController');
+  exportInvoices,
+  generateSingleInvoicePDF
+} = require('../controllers/invoice');
 const { protect } = require('../middleware/auth');
 const { 
   createInvoiceValidator, 
@@ -29,6 +30,8 @@ router.route('/')
   .post(createInvoiceValidator, createInvoice);
 
 router.get('/customer/:customerId', getCustomerInvoices);
+
+router.get('/:id/pdf', mongoIdParam, generateSingleInvoicePDF);
 
 router.route('/:id')
   .get(mongoIdParam, getInvoice)

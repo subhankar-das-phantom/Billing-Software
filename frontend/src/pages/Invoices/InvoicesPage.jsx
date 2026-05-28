@@ -75,6 +75,7 @@ export default function InvoicesPage() {
   const [accumulatedInvoices, setAccumulatedInvoices] = useState([]);
   const observer = useRef(null);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState({});
   const { success, error } = useToast();
   
@@ -174,43 +175,16 @@ export default function InvoicesPage() {
   };
 
   const handleExport = async ({ format, dateRange }) => {
+    if (isExporting) return;
+    setIsExporting(true);
+
     try {
-      let dataToExport = invoices;
-      const parseDateBoundary = (dateStr, endOfDay = false) => {
-        if (!dateStr) return null;
-        const parts = dateStr.split('-').map(Number);
-        if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
-        const [year, month, day] = parts;
-        return endOfDay
-          ? new Date(year, month - 1, day, 23, 59, 59, 999)
-          : new Date(year, month - 1, day, 0, 0, 0, 0);
-      };
-
-      // Filter by date range if specified
-      if (dateRange.startDate && dateRange.endDate) {
-        const start = parseDateBoundary(dateRange.startDate, false);
-        const end = parseDateBoundary(dateRange.endDate, true);
-
-        if (start && end) {
-          dataToExport = dataToExport.filter(invoice => {
-            const invoiceDate = new Date(invoice.invoiceDate);
-            return invoiceDate >= start && invoiceDate <= end;
-          });
-        }
-      }
-
-      if (dataToExport.length === 0) {
-        error('No invoices found for the selected date range');
-        return;
-      }
+      const params = { format };
+      if (dateRange.startDate) params.startDate = dateRange.startDate;
+      if (dateRange.endDate) params.endDate = dateRange.endDate;
 
       // Call export service (returns blob)
-      const blob = await invoiceService.exportInvoices({ 
-        format,
-        invoices: dataToExport.map(inv => inv._id),
-        startDate: dateRange.startDate,
-        endDate: dateRange.endDate
-      });
+      const blob = await invoiceService.exportInvoices(params);
 
       // Create download link
       const url = window.URL.createObjectURL(blob);
@@ -231,9 +205,12 @@ export default function InvoicesPage() {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
-      success(`Successfully exported ${dataToExport.length} invoices as ${format.toUpperCase()}`);
+      setShowExportModal(false);
+      success(`Successfully exported invoices as ${format.toUpperCase()}`);
     } catch (err) {
       error(err.response?.data?.message || 'Failed to export invoices');
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -639,10 +616,13 @@ export default function InvoicesPage() {
       {/* Export Modal */}
         <ExportModal
           isOpen={showExportModal}
-          onClose={() => setShowExportModal(false)}
+          onClose={() => {
+            if (!isExporting) setShowExportModal(false);
+          }}
           data={invoices}
           stats={exportStats}
           onExport={handleExport}
+          isExporting={isExporting}
           entityType="Invoices"
       />
     </motion.div>
