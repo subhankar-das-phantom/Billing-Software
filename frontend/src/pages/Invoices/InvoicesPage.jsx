@@ -214,12 +214,14 @@ export default function InvoicesPage() {
     }
   };
 
-  // Calculate export stats
+  // Calculate export stats — exclude cancelled invoices from financial figures
+  const activeForExport = invoices.filter(inv => inv.status !== 'Cancelled');
   const exportStats = {
     total: invoices.length,
-    totalAmount: invoices.reduce((sum, inv) => sum + (inv.totals?.netTotal || 0), 0),
-    cash: invoices.filter(inv => inv.paymentType === 'Cash').length,
-    credit: invoices.filter(inv => inv.paymentType === 'Credit').length
+    totalAmount: activeForExport.reduce((sum, inv) => sum + (inv.totals?.netTotal || 0), 0),
+    cash: activeForExport.filter(inv => inv.paymentType === 'Cash').length,
+    credit: activeForExport.filter(inv => inv.paymentType === 'Credit').length,
+    cancelled: invoices.length - activeForExport.length
   };
 
 
