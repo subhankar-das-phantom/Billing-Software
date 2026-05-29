@@ -54,7 +54,7 @@ const createCardVariants = (isMobile) => ({
   visible: {
     opacity: 1,
     y: 0,
-    transition: isMobile 
+    transition: isMobile
       ? { type: 'tween', duration: 0.15, ease: 'easeOut' }  // Faster
       : { type: 'spring', stiffness: 300, damping: 24 }
   }
@@ -286,11 +286,10 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatDate, formatC
                     </td>
                     <td className="text-center">
                       <motion.span
-                        className={`badge inline-flex items-center gap-1.5 ${
-                          outOfStock ? 'badge-danger' :
-                          lowStock ? 'badge-warning' :
-                          'badge-success'
-                        }`}
+                        className={`badge inline-flex items-center gap-1.5 ${outOfStock ? 'badge-danger' :
+                            lowStock ? 'badge-warning' :
+                              'badge-success'
+                          }`}
                         whileHover={{ scale: 1.05 }}
                         animate={outOfStock ? {
                           scale: [1, 1.05, 1],
@@ -386,7 +385,7 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatDate, formatC
                   <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Price Details</p>
                   <div className="flex flex-col gap-1">
                     <div className="flex flex-wrap items-baseline gap-2">
-                       <span className="text-emerald-400 font-semibold text-sm">
+                      <span className="text-emerald-400 font-semibold text-sm">
                         {formatCurrency(product.newMRP)}
                       </span>
                       {product.oldMRP > 0 && product.oldMRP !== product.newMRP && (
@@ -402,15 +401,14 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatDate, formatC
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="space-y-1.5 flex flex-col items-end">
                   <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Stock Status</p>
                   <motion.span
-                    className={`badge inline-flex items-center gap-1.5 px-2 py-1 text-xs ${
-                      outOfStock ? 'badge-danger' :
-                      lowStock ? 'badge-warning' :
-                      'badge-success'
-                    }`}
+                    className={`badge inline-flex items-center gap-1.5 px-2 py-1 text-xs ${outOfStock ? 'badge-danger' :
+                        lowStock ? 'badge-warning' :
+                          'badge-success'
+                      }`}
                     animate={outOfStock ? {
                       scale: [1, 1.05, 1],
                       transition: { duration: 2, repeat: Infinity }
@@ -489,20 +487,26 @@ export default function ProductsPage() {
 
   const hasMore = data?.pages ? page < data.pages : false;
 
-  // Accumulate products as new pages are loaded
-  useEffect(() => {
-    if (data?.products) {
-      if (page === 1) {
-        setAccumulatedProducts(data.products);
-      } else {
-        setAccumulatedProducts(prev => {
-          const existingIds = new Set(prev.map(p => p._id));
-          const newProducts = data.products.filter(p => !existingIds.has(p._id));
-          return [...prev, ...newProducts];
-        });
-      }
+  // Synchronous product accumulation — eliminates the one-render lag between
+  // SWR's `data` and `accumulatedProducts` that caused the search counter/table desync.
+  // Calling setState during render is an officially supported React pattern (like
+  // getDerivedStateFromProps): React discards the current render and immediately
+  // re-renders with the updated state, so the stale frame is never painted.
+  const accDataTracker = useRef({ dataRef: null, search: '' });
+  if (data?.products && data !== accDataTracker.current.dataRef) {
+    const searchChanged = search !== accDataTracker.current.search;
+    accDataTracker.current = { dataRef: data, search };
+
+    if (page === 1 || searchChanged) {
+      setAccumulatedProducts(data.products);
+    } else {
+      setAccumulatedProducts(prev => {
+        const existingIds = new Set(prev.map(p => p._id));
+        const newProducts = data.products.filter(p => !existingIds.has(p._id));
+        return [...prev, ...newProducts];
+      });
     }
-  }, [data, page]);
+  }
 
   // Reset pagination when search changes
   useEffect(() => {
@@ -513,12 +517,12 @@ export default function ProductsPage() {
   const lastElementRef = useCallback(node => {
     if (isValidating) return;
     if (observer.current) observer.current.disconnect();
-    
+
     if (node) {
       observer.current = new IntersectionObserver(
         entries => {
           if (entries[0].isIntersecting && !isValidating && hasMore) {
-             setPage(p => p + 1);
+            setPage(p => p + 1);
           }
         },
         { threshold: 0.1 }
@@ -571,7 +575,7 @@ export default function ProductsPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log('Submitting form:', formData);
-        // In edit mode, only require catalog fields
+    // In edit mode, only require catalog fields
     if (editingProduct) {
       if (!formData.productName || !formData.hsnCode) {
         error('Please fill all required fields');
@@ -609,13 +613,13 @@ export default function ProductsPage() {
           expiryDate: formData.expiryDate || null
         };
         await productService.updateProduct(editingProduct._id, editPayload);
-        
+
         success('Product updated successfully');
       } else {
         await productService.createProduct(payload);
         success('Product created successfully');
       }
-      
+
       setModalOpen(false);
       // Invalidate products cache and revalidate
       invalidateCachePattern('products');
@@ -682,30 +686,30 @@ export default function ProductsPage() {
       {/* Stats Cards - simplified for mobile performance */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { 
-            label: 'Total Products', 
-            value: stats.total, 
+          {
+            label: 'Total Products',
+            value: stats.total,
             icon: Package,
             color: 'text-blue-400',
             bg: 'bg-blue-500/20'
           },
-          { 
-            label: 'Low Stock', 
-            value: stats.lowStock, 
+          {
+            label: 'Low Stock',
+            value: stats.lowStock,
             icon: AlertTriangle,
             color: 'text-yellow-400',
             bg: 'bg-yellow-500/20'
           },
-          { 
-            label: 'Out of Stock', 
-            value: stats.outOfStock, 
+          {
+            label: 'Out of Stock',
+            value: stats.outOfStock,
             icon: X,
             color: 'text-red-400',
             bg: 'bg-red-500/20'
           },
-          { 
-            label: 'Expiring Soon', 
-            value: stats.expiringSoon, 
+          {
+            label: 'Expiring Soon',
+            value: stats.expiringSoon,
             icon: Clock,
             color: 'text-orange-400',
             bg: 'bg-orange-500/20'
@@ -761,8 +765,8 @@ export default function ProductsPage() {
           {/* Search */}
           <form onSubmit={handleSearch} className="flex gap-2">
             <motion.div
-              className="relative flex-1"
-              animate={searchFocused ? { scale: 1.02 } : { scale: 1 }}
+              className="relative flex-1 rounded-lg"
+              animate={searchFocused ? { boxShadow: '0 0 0 2px rgba(59,130,246,0.5)' } : { boxShadow: '0 0 0 0px rgba(59,130,246,0)' }}
               transition={{ type: 'spring', stiffness: 400 }}
             >
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
@@ -811,11 +815,10 @@ export default function ProductsPage() {
               <motion.button
                 key={value}
                 onClick={() => setFilterStock(value)}
-                className={`flex-1 px-3 py-2 rounded-lg font-medium text-sm transition-all ${
-                  filterStock === value
+                className={`flex-1 px-3 py-2 rounded-lg font-medium text-sm transition-all ${filterStock === value
                     ? 'bg-blue-500 text-white'
                     : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
-                }`}
+                  }`}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -978,7 +981,7 @@ export default function ProductsPage() {
 
           {/* Stock Management Link - only in edit mode */}
           {editingProduct && (
-            <motion.div 
+            <motion.div
               className="pt-6 mt-4 border-t border-slate-700"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
