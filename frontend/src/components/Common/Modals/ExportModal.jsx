@@ -180,19 +180,6 @@ const ExportModal = ({ isOpen, onClose, data, onExport, stats, entityType = 'inv
 
             {/* Body */}
             <div className="p-6 space-y-6">
-              {/* Stats */}
-              {stats && (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-gradient-to-r from-slate-800 to-slate-700 rounded-xl border border-slate-600">
-                  {Object.entries(stats).map(([key, value]) => (
-                    <div key={key} className="text-center">
-                      <p className="text-xs text-slate-400 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
-                      <p className="text-lg font-bold text-white">
-                        {typeof value === 'number' && key.includes('total') ? formatCurrency(value) : value}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
 
               {/* Format Selection */}
               <div>
