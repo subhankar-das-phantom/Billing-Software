@@ -15,7 +15,7 @@ const formatISTDate = (dateValue) => {
 /**
  * Generate beautifully formatted Excel export for invoices
  * @param {Array} invoices - Array of invoice objects
- * @param {Object} options - Export options (title, filters, etc.)
+ * @param {Object} options - Export options (firmName, dateRange, etc.)
  * @returns {Promise<Buffer>} Excel file buffer
  */
 const generateInvoiceExcel = async (invoices, options = {}) => {
@@ -28,28 +28,60 @@ const generateInvoiceExcel = async (invoices, options = {}) => {
   
   // Create main sheet
   const sheet = workbook.addWorksheet('Invoices', {
-    properties: { tabColor: { argb: 'FF10B981' } },
-    views: [{ state: 'frozen', xSplit: 0, ySplit: 1 }]
+    properties: { tabColor: { argb: 'FF10B981' } }
   });
 
-  // Define columns with proper widths
+  // --- Firm name & date range header rows ---
+  let headerRowsCount = 0;
+
+  if (options.firmName) {
+    sheet.mergeCells('A1:L1');
+    const firmCell = sheet.getCell('A1');
+    firmCell.value = options.firmName;
+    firmCell.font = { bold: true, size: 16, color: { argb: 'FF0F172A' } };
+    firmCell.alignment = { vertical: 'middle', horizontal: 'center' };
+    sheet.getRow(1).height = 30;
+    headerRowsCount = 1;
+  }
+
+  if (options.dateRange) {
+    const dateRowNum = headerRowsCount + 1;
+    sheet.mergeCells(`A${dateRowNum}:L${dateRowNum}`);
+    const dateCell = sheet.getCell(`A${dateRowNum}`);
+    dateCell.value = `Period: ${options.dateRange}`;
+    dateCell.font = { size: 10, color: { argb: 'FF475569' }, italic: true };
+    dateCell.alignment = { vertical: 'middle', horizontal: 'center' };
+    sheet.getRow(dateRowNum).height = 20;
+    headerRowsCount = dateRowNum;
+  }
+
+  // Add an empty spacer row if we have header rows
+  if (headerRowsCount > 0) {
+    headerRowsCount += 1;
+    sheet.getRow(headerRowsCount).height = 8;
+  }
+
+  // Column definitions (set widths; headers will be added manually)
   sheet.columns = [
-    { header: 'Invoice #', key: 'invoiceNumber', width: 15 },
-    { header: 'Date', key: 'invoiceDate', width: 12 },
-    { header: 'Customer', key: 'customerName', width: 25 },
-    { header: 'Phone', key: 'phone', width: 15 },
-    { header: 'GSTIN', key: 'gstin', width: 18 },
-    { header: 'Items', key: 'itemCount', width: 10 },
-    { header: 'Subtotal', key: 'subtotal', width: 15 },
-    { header: 'GST', key: 'gst', width: 12 },
-    { header: 'Discount', key: 'discount', width: 12 },
-    { header: 'Net Total', key: 'netTotal', width: 15 },
-    { header: 'Payment', key: 'paymentType', width: 12 },
-    { header: 'Status', key: 'status', width: 12 }
+    { key: 'invoiceNumber', width: 15 },
+    { key: 'invoiceDate', width: 12 },
+    { key: 'customerName', width: 25 },
+    { key: 'phone', width: 15 },
+    { key: 'gstin', width: 18 },
+    { key: 'itemCount', width: 10 },
+    { key: 'subtotal', width: 15 },
+    { key: 'gst', width: 12 },
+    { key: 'discount', width: 12 },
+    { key: 'netTotal', width: 15 },
+    { key: 'paymentType', width: 12 },
+    { key: 'status', width: 12 }
   ];
 
-  // Style the header row
-  const headerRow = sheet.getRow(1);
+  // Data column header row (after firm/date rows)
+  const columnHeaderRowNum = headerRowsCount + 1;
+  const columnHeaders = ['Invoice #', 'Date', 'Customer', 'Phone', 'GSTIN', 'Items', 'Subtotal', 'GST', 'Discount', 'Net Total', 'Payment', 'Status'];
+  const headerRow = sheet.getRow(columnHeaderRowNum);
+  columnHeaders.forEach((h, i) => { headerRow.getCell(i + 1).value = h; });
   headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
   headerRow.fill = {
     type: 'pattern',
@@ -59,8 +91,13 @@ const generateInvoiceExcel = async (invoices, options = {}) => {
   headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
   headerRow.height = 25;
 
+  // Freeze pane below the column header row
+  sheet.views = [{ state: 'frozen', xSplit: 0, ySplit: columnHeaderRowNum }];
+
   // Add data rows
   invoices.forEach((invoice, index) => {
+    const isCancelled = invoice.status === 'Cancelled';
+
     const row = sheet.addRow({
       invoiceNumber: invoice.invoiceNumber,
       invoiceDate: formatISTDate(invoice.invoiceDate),
@@ -76,8 +113,16 @@ const generateInvoiceExcel = async (invoices, options = {}) => {
       status: invoice.status || 'Created'
     });
 
-    // Alternate row colors
-    if (index % 2 === 0) {
+    // Cancelled rows: red background + red text for entire row
+    if (isCancelled) {
+      row.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFFEE2E2' } // Red-100
+      };
+      row.font = { color: { argb: 'FFDC2626' }, bold: false }; // Red-600
+    } else if (index % 2 === 0) {
+      // Alternate row colors for non-cancelled
       row.fill = {
         type: 'pattern',
         pattern: 'solid',
@@ -111,16 +156,19 @@ const generateInvoiceExcel = async (invoices, options = {}) => {
         break;
     }
 
-    // Color code payment type
-    const paymentCell = row.getCell('paymentType');
-    paymentCell.font = {
-      color: { argb: invoice.paymentType === 'Cash' ? 'FF059669' : 'FF2563EB' },
-      bold: true
-    };
+    // Color code payment type (cancelled rows stay red)
+    if (!isCancelled) {
+      const paymentCell = row.getCell('paymentType');
+      paymentCell.font = {
+        color: { argb: invoice.paymentType === 'Cash' ? 'FF059669' : 'FF2563EB' },
+        bold: true
+      };
+    }
   });
 
-  // Add borders to all cells
+  // Add borders to all data cells (skip firm/date header rows)
   sheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+    if (rowNumber < columnHeaderRowNum) return; // Skip firm/date rows
     row.eachCell({ includeEmpty: false }, (cell) => {
       cell.border = {
         top: { style: 'thin', color: { argb: 'FFD1D5DB' } },
@@ -136,19 +184,21 @@ const generateInvoiceExcel = async (invoices, options = {}) => {
     properties: { tabColor: { argb: 'FF3B82F6' } }
   });
 
-  // Calculate totals
+  // Calculate totals — exclude cancelled invoices from financial figures
+  const activeInvoices = invoices.filter(inv => inv.status !== 'Cancelled');
+  const cancelledCount = invoices.length - activeInvoices.length;
   const totalInvoices = invoices.length;
-  const totalAmount = invoices.reduce((sum, inv) => sum + (inv.totals?.netTotal || 0), 0);
-  const totalCash = invoices.filter(inv => inv.paymentType === 'Cash').length;
-  const totalCredit = invoices.filter(inv => inv.paymentType === 'Credit').length;
-  const totalGST = invoices.reduce((sum, inv) => 
+  const totalAmount = activeInvoices.reduce((sum, inv) => sum + (inv.totals?.netTotal || 0), 0);
+  const totalCash = activeInvoices.filter(inv => inv.paymentType === 'Cash').length;
+  const totalCredit = activeInvoices.filter(inv => inv.paymentType === 'Credit').length;
+  const totalGST = activeInvoices.reduce((sum, inv) => 
     sum + (inv.totals?.totalCGST || 0) + (inv.totals?.totalSGST || 0), 0
   );
 
   // Add summary title
   summarySheet.mergeCells('A1:B1');
   const titleCell = summarySheet.getCell('A1');
-  titleCell.value = '📊 Invoice Summary';
+  titleCell.value = options.firmName ? `📊 ${options.firmName} — Invoice Summary` : '📊 Invoice Summary';
   titleCell.font = { bold: true, size: 16, color: { argb: 'FF1F2937' } };
   titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
   summarySheet.getRow(1).height = 30;
@@ -156,9 +206,13 @@ const generateInvoiceExcel = async (invoices, options = {}) => {
   // Add summary data
   const summaryData = [
     ['', ''], // Empty row
+    ...(options.dateRange ? [['Period', options.dateRange]] : []),
     ['Total Invoices', totalInvoices],
-    ['Total Amount', totalAmount],
-    ['Total GST Collected', totalGST],
+    ['Active Invoices', activeInvoices.length],
+    ['Cancelled Invoices', cancelledCount],
+    ['', ''],
+    ['Total Amount (excl. cancelled)', totalAmount],
+    ['Total GST Collected (excl. cancelled)', totalGST],
     ['Cash Payments', totalCash],
     ['Credit Payments', totalCredit],
     ['', ''],
@@ -177,7 +231,10 @@ const generateInvoiceExcel = async (invoices, options = {}) => {
       };
     }
 
-    if (typeof value === 'number') {
+    // Cancelled row: red styling in summary
+    if (label === 'Cancelled Invoices' && value > 0) {
+      row.getCell(2).font = { bold: true, color: { argb: 'FFDC2626' }, size: 12 };
+    } else if (typeof value === 'number') {
       row.getCell(2).numFmt = label.includes('Amount') || label.includes('GST') 
         ? '₹#,##0.00' 
         : '#,##0';
@@ -190,7 +247,7 @@ const generateInvoiceExcel = async (invoices, options = {}) => {
   });
 
   summarySheet.columns = [
-    { width: 25 },
+    { width: 35 },
     { width: 20 }
   ];
 
