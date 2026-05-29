@@ -145,6 +145,17 @@ function ensureSpace(doc: PDFKit.PDFDocument, neededHeight: number, header?: () 
   if (header) header();
 }
 
+function formatDateRange(startDate?: string, endDate?: string) {
+  if (!startDate && !endDate) return 'All Time';
+  const start = startDate ? formatDate(startDate) : '';
+  const end = endDate ? formatDate(endDate) : '';
+  if (start && end) {
+    return start === end ? start : `${start} — ${end}`;
+  }
+  if (start) return `From ${start}`;
+  return `Up to ${end}`;
+}
+
 function drawReportHeader(doc: PDFKit.PDFDocument, title: string, subtitle?: string) {
   doc
     .font('Helvetica-Bold')
@@ -164,12 +175,34 @@ function drawReportHeader(doc: PDFKit.PDFDocument, title: string, subtitle?: str
   doc.moveDown(1);
 }
 
-function drawBulkInvoicePDF(doc: PDFKit.PDFDocument, invoices: IInvoice[]) {
-  drawReportHeader(doc, 'Invoice Export Report', `Generated on ${formatDateTime()}`);
+interface BulkExportOptions {
+  firmName?: string;
+  dateRange?: string;
+}
 
-  const totalAmount = invoices.reduce((sum, invoice) => sum + (invoice.totals?.netTotal || 0), 0);
-  const totalTaxable = invoices.reduce((sum, invoice) => sum + (invoice.totals?.totalTaxable || 0), 0);
-  const totalGST = invoices.reduce((sum, invoice) => sum + (invoice.totals?.totalGST || 0), 0);
+function drawBulkInvoicePDF(doc: PDFKit.PDFDocument, invoices: IInvoice[], options: BulkExportOptions = {}) {
+  // Firm name banner
+  if (options.firmName) {
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(16)
+      .fillColor('#0f172a')
+      .text(options.firmName, { align: 'center' });
+    doc.moveDown(0.3);
+  }
+
+  const subtitleParts = [];
+  if (options.dateRange) subtitleParts.push(`Period: ${options.dateRange}`);
+  subtitleParts.push(`Generated on ${formatDateTime()}`);
+
+  drawReportHeader(doc, 'Invoice Export Report', subtitleParts.join('  |  '));
+
+  // Exclude cancelled invoices from financial summary
+  const activeInvoices = invoices.filter((inv) => inv.status !== 'Cancelled');
+  const cancelledCount = invoices.length - activeInvoices.length;
+  const totalAmount = activeInvoices.reduce((sum, invoice) => sum + (invoice.totals?.netTotal || 0), 0);
+  const totalTaxable = activeInvoices.reduce((sum, invoice) => sum + (invoice.totals?.totalTaxable || 0), 0);
+  const totalGST = activeInvoices.reduce((sum, invoice) => sum + (invoice.totals?.totalGST || 0), 0);
 
   doc
     .roundedRect(doc.page.margins.left, doc.y, doc.page.width - doc.page.margins.left - doc.page.margins.right, 62, 6)
@@ -177,8 +210,11 @@ function drawBulkInvoicePDF(doc: PDFKit.PDFDocument, invoices: IInvoice[]) {
 
   const summaryY = doc.y + 12;
   const summaryWidth = (doc.page.width - doc.page.margins.left - doc.page.margins.right) / 4;
+  const invoiceCountLabel = cancelledCount > 0
+    ? `${invoices.length} (${activeInvoices.length} active)`
+    : String(invoices.length);
   const summary = [
-    ['Invoices', String(invoices.length)],
+    ['Invoices', invoiceCountLabel],
     ['Taxable', formatCurrency(totalTaxable)],
     ['GST', formatCurrency(totalGST)],
     ['Net Total', formatCurrency(totalAmount)]
@@ -224,12 +260,19 @@ function drawBulkInvoicePDF(doc: PDFKit.PDFDocument, invoices: IInvoice[]) {
 
   drawHeader();
   invoices.forEach((invoice, index) => {
+    const isCancelled = invoice.status === 'Cancelled';
     ensureSpace(doc, 24, drawHeader);
     const y = doc.y;
-    if (index % 2 === 0) {
+
+    // Cancelled rows: light red background; otherwise alternate
+    if (isCancelled) {
+      doc.rect(startX, y, tableWidth, 24).fill('#fef2f2');
+    } else if (index % 2 === 0) {
       doc.rect(startX, y, tableWidth, 24).fill('#f8fafc');
     }
-    doc.font('Helvetica').fontSize(8).fillColor('#0f172a');
+
+    // Cancelled rows use red text
+    doc.font('Helvetica').fontSize(8).fillColor(isCancelled ? '#dc2626' : '#0f172a');
     let x = startX;
     const row = [
       safeText(invoice.invoiceNumber),
@@ -251,6 +294,7 @@ function drawBulkInvoicePDF(doc: PDFKit.PDFDocument, invoices: IInvoice[]) {
 function drawSingleInvoicePDF(doc: PDFKit.PDFDocument, invoice: IInvoice, distributor: IDistributorSnapshot) {
   const pageLeft = doc.page.margins.left;
   const contentWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+  const isCancelled = invoice.status === 'Cancelled';
 
   doc.roundedRect(pageLeft, doc.y, contentWidth, 64, 6).fillAndStroke('#f8fafc', '#94a3b8');
   doc
@@ -271,6 +315,21 @@ function drawSingleInvoicePDF(doc: PDFKit.PDFDocument, invoice: IInvoice, distri
   );
 
   doc.y = 104;
+
+  // Cancelled invoice: prominent red banner
+  if (isCancelled) {
+    doc.roundedRect(pageLeft, doc.y, contentWidth, 28, 4).fillAndStroke('#fef2f2', '#dc2626');
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(12)
+      .fillColor('#dc2626')
+      .text('CANCELLED — This invoice has been cancelled and is excluded from financial totals', pageLeft + 10, doc.y + 8, {
+        width: contentWidth - 20,
+        align: 'center'
+      });
+    doc.y += 36;
+  }
+
   doc.font('Helvetica-Bold').fontSize(16).fillColor('#0f172a').text('TAX INVOICE', { align: 'center' });
   doc.moveDown(0.7);
 
@@ -445,8 +504,20 @@ exports.exportInvoices = async (req: AuthenticatedRequest, res: Response, next: 
       });
     }
 
+    // Fetch firm info for export headers
+    const tenantId = getTenantId(req);
+    const admin = await Admin.findById(tenantId).lean();
+    const firmName = admin?.firmName || '';
+
+    // Build date range label
+    const startDateStr = singleQueryValue(req.query.startDate as QueryValue);
+    const endDateStr = singleQueryValue(req.query.endDate as QueryValue);
+    const dateRange = formatDateRange(startDateStr || undefined, endDateStr || undefined);
+
+    const exportOptions = { firmName, dateRange };
+
     if (format === 'excel') {
-      const buffer = await generateInvoiceExcel(invoices);
+      const buffer = await generateInvoiceExcel(invoices, exportOptions);
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', `attachment; filename=invoices_${Date.now()}.xlsx`);
       return res.send(buffer);
@@ -466,7 +537,7 @@ exports.exportInvoices = async (req: AuthenticatedRequest, res: Response, next: 
       const doc = new PDFDocument({ size: 'A4', margin: 36, bufferPages: false });
       doc.on('error', next);
       doc.pipe(res);
-      drawBulkInvoicePDF(doc, invoices);
+      drawBulkInvoicePDF(doc, invoices, exportOptions);
       return doc.end();
     }
 
