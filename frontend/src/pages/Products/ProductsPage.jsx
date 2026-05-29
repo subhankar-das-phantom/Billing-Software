@@ -98,7 +98,7 @@ const initialProductState = {
   oldMRP: '',
   newMRP: '',
   rate: '',
-  gstPercentage: 12,
+  gstPercentage: '',
   openingStockQty: '',
   unit: 'Pieces'
 };
@@ -556,7 +556,7 @@ export default function ProductsPage() {
       oldMRP: product.oldMRP || '',
       newMRP: product.newMRP || '',
       rate: product.rate || '',
-      gstPercentage: product.gstPercentage || 12,
+      gstPercentage: product.gstPercentage ?? 12,
       openingStockQty: product.openingStockQty || '',
       unit: product.unit || 'Pieces'
     });
@@ -578,7 +578,7 @@ export default function ProductsPage() {
         return;
       }
     } else {
-      if (!formData.productName || !formData.hsnCode || !formData.newMRP) {
+      if (!formData.productName || !formData.hsnCode || !formData.newMRP || formData.gstPercentage === '') {
         error('Please fill all required fields');
         return;
       }
@@ -931,7 +931,9 @@ export default function ProductsPage() {
                 value={formData.gstPercentage}
                 onChange={handleInputChange}
                 className="select"
+                required
               >
+                <option value="" disabled>Select GST %</option>
                 {GST_RATES.map(rate => (
                   <option key={rate} value={rate}>{rate}%</option>
                 ))}
