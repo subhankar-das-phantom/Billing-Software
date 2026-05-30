@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { reportService } from '../../services/reports/reportService';
 import { formatCurrency } from '../../utils/formatters';
+import { useDebounce } from '../../hooks';
 
 // ─── Animation variants ───────────────────────────────────────────────
 const containerVariants = {
@@ -84,32 +85,38 @@ export default function GstReportPage() {
   const [hasGenerated, setHasGenerated] = useState(false);
 
   const searchRef = useRef(null);
-  const searchTimerRef = useRef(null);
 
-  // ── Product search with debounce ──
+  // Debounced product search
+  const [debouncedProductSearch] = useDebounce(productSearch, 300);
+
+  // ── Product search effect ──
   useEffect(() => {
-    if (!productSearch.trim()) {
+    const query = debouncedProductSearch.trim();
+    if (!query) {
       setSearchResults([]);
       setShowSearchDropdown(false);
       return;
     }
 
-    clearTimeout(searchTimerRef.current);
-    searchTimerRef.current = setTimeout(async () => {
-      setSearchLoading(true);
-      try {
-        const data = await reportService.searchProducts(productSearch.trim());
-        setSearchResults(data.products || []);
-        setShowSearchDropdown(true);
-      } catch {
-        setSearchResults([]);
-      } finally {
-        setSearchLoading(false);
-      }
-    }, 300);
+    let cancelled = false;
+    setSearchLoading(true);
 
-    return () => clearTimeout(searchTimerRef.current);
-  }, [productSearch]);
+    (async () => {
+      try {
+        const data = await reportService.searchProducts(query);
+        if (!cancelled) {
+          setSearchResults(data.products || []);
+          setShowSearchDropdown(true);
+        }
+      } catch {
+        if (!cancelled) setSearchResults([]);
+      } finally {
+        if (!cancelled) setSearchLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [debouncedProductSearch]);
 
   // Close dropdown on outside click
   useEffect(() => {
