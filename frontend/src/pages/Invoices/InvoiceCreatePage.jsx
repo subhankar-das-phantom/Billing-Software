@@ -29,7 +29,7 @@ import { calculateItemAmounts, calculateInvoiceTotals, GST_RATES, removeGST, rou
 import { PageLoader } from '../../components/Common/Feedback/Loader';
 import Modal from '../../components/Common/Modals/Modal';
 import { useToast } from '../../contexts/ToastContext';
-import { invalidateCachePattern } from '../../hooks';
+import { invalidateCachePattern, useDebounce } from '../../hooks';
 
 const pageVariants = {
   hidden: { opacity: 0 },
@@ -156,6 +156,8 @@ export default function InvoiceCreatePage() {
   
   const [customerSearch, setCustomerSearch] = useState('');
   const [productSearch, setProductSearch] = useState('');
+  const [debouncedCustomerSearch] = useDebounce(customerSearch, 300);
+  const [debouncedProductSearch] = useDebounce(productSearch, 300);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [showProductDropdown, setShowProductDropdown] = useState(false);
   
@@ -226,7 +228,7 @@ export default function InvoiceCreatePage() {
   }, [editInvoiceId]);
 
   useEffect(() => {
-    const query = customerSearch.trim();
+    const query = debouncedCustomerSearch.trim();
     const abortController = new AbortController();
 
     if (!showCustomerDropdown) return;
@@ -241,7 +243,7 @@ export default function InvoiceCreatePage() {
     latestCustomerSearchRequest.current = requestId;
     setIsCustomerSearchLoading(true);
 
-    const debounceTimer = setTimeout(async () => {
+    (async () => {
       try {
         const data = await customerService.getCustomers({
           search: query,
@@ -263,16 +265,15 @@ export default function InvoiceCreatePage() {
           setIsCustomerSearchLoading(false);
         }
       }
-    }, 300);
+    })();
 
     return () => {
-      clearTimeout(debounceTimer);
       abortController.abort();
     };
-  }, [customerSearch, showCustomerDropdown]);
+  }, [debouncedCustomerSearch, showCustomerDropdown]);
 
   useEffect(() => {
-    const query = productSearch.trim();
+    const query = debouncedProductSearch.trim();
     const abortController = new AbortController();
 
     if (!showProductDropdown) return;
@@ -287,7 +288,7 @@ export default function InvoiceCreatePage() {
     latestProductSearchRequest.current = requestId;
     setIsProductSearchLoading(true);
 
-    const debounceTimer = setTimeout(async () => {
+    (async () => {
       try {
         const data = await productService.getProducts({
           search: query,
@@ -308,13 +309,12 @@ export default function InvoiceCreatePage() {
           setIsProductSearchLoading(false);
         }
       }
-    }, 300);
+    })();
 
     return () => {
-      clearTimeout(debounceTimer);
       abortController.abort();
     };
-  }, [productSearch, showProductDropdown]);
+  }, [debouncedProductSearch, showProductDropdown]);
 
   const loadInitialData = async () => {
     try {

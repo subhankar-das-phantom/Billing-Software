@@ -24,7 +24,7 @@ import { formatCurrency, formatDate } from '../../utils/formatters';
 import { PageLoader } from '../../components/Common/Feedback/Loader';
 import ExportModal from '../../components/Common/Modals/ExportModal';
 import { useToast } from '../../contexts/ToastContext';
-import { invalidateCachePattern, useMotionConfig, useSWR } from '../../hooks';
+import { invalidateCachePattern, useDebounce, useMotionConfig, useSWR } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 
 // Factory functions for adaptive variants
@@ -68,7 +68,7 @@ const createTableRowVariants = (isMobile, shouldStagger) => ({
 export default function InvoicesPage() {
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
+  const [search] = useDebounce(searchInput);
   const [statusFilter, setStatusFilter] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -116,15 +116,6 @@ export default function InvoicesPage() {
   const invoices = accumulatedInvoices;
   const totalMatched = data?.total || 0;
   const hasMore = data?.hasMore ?? (data?.pages ? page < data.pages : false);
-
-  // Debounced search to avoid API spam
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearch(searchInput.trim());
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [searchInput]);
 
   // Reset infinite list when filters/search change
   useEffect(() => {
@@ -381,7 +372,6 @@ export default function InvoicesPage() {
                   exit={{ opacity: 0, scale: 0 }}
                   onClick={() => {
                     setSearchInput('');
-                    setSearch('');
                   }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
                   whileHover={{ rotate: 90 }}

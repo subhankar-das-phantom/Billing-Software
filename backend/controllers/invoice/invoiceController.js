@@ -14,13 +14,7 @@ const UPDATE_INVOICE_TRANSACTION_RETRIES = 3;
 const UPDATE_INVOICE_RETRY_BASE_DELAY_MS = 150;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-const escapeRegex = (str = '') => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const buildFuzzyPattern = (str = '') => {
-  const normalized = str.trim().replace(/\s+/g, '');
-  if (!normalized) return '';
-  const limited = normalized.slice(0, 32);
-  return [...limited].map(ch => escapeRegex(ch)).join('.*');
-};
+const { escapeRegex, buildFuzzyPattern } = require('../../utils/searchUtils');
 
 const parseISTDateBoundary = (dateInput, endOfDay = false) => {
   const raw = String(dateInput || '').trim();

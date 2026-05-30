@@ -8,18 +8,7 @@ const { trackActivity, ACTIVITY_TYPES } = require('../utils/activityTracker');
 const mongoose = require('mongoose');
 const getTenantId = require('../utils/getTenantId');
 
-// Escape special regex characters in user input to prevent MongoDB $regex errors
-const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const getSearchPattern = (search, usePrefix = false) => {
-  const escaped = escapeRegex(search);
-  return usePrefix ? `^${escaped}` : escaped;
-};
-const buildFuzzyPattern = (str = '') => {
-  const normalized = str.trim().replace(/\s+/g, '');
-  if (!normalized) return '';
-  const limited = normalized.slice(0, 32);
-  return [...limited].map(ch => escapeRegex(ch)).join('.*');
-};
+const { escapeRegex, getSearchPattern, buildFuzzyPattern } = require('../utils/searchUtils');
 
 // Round to 2 decimal places safely (avoids JS floating point drift)
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;

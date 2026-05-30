@@ -34,7 +34,7 @@ import Modal from '../../components/Common/Modals/Modal';
 import ConfirmDialog from '../../components/Common/Dialogs/ConfirmDialog';
 import EnhancedButton from '../../components/Common/Buttons/EnhancedButton';
 import { useToast } from '../../contexts/ToastContext';
-import { useMotionConfig, useSWR, invalidateCachePattern } from '../../hooks';
+import { useDebounce, useMotionConfig, useSWR, invalidateCachePattern } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 
 // Helper to create adaptive variants - faster on mobile
@@ -455,7 +455,8 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatDate, formatC
 );
 
 export default function ProductsPage() {
-  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [search, flushSearch] = useDebounce(searchInput);
   const [searchFocused, setSearchFocused] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
@@ -508,7 +509,7 @@ export default function ProductsPage() {
     }
   }
 
-  // Reset pagination when search changes
+  // Reset pagination when debounced search changes
   useEffect(() => {
     setPage(1);
   }, [search]);
@@ -537,9 +538,13 @@ export default function ProductsPage() {
 
   const handleSearch = (e) => {
     e.preventDefault();
+    flushSearch();
     setPage(1);
-    mutate(); // Trigger revalidation
-    mutateStats();
+  };
+
+  const handleClearSearch = () => {
+    setSearchInput('');
+    setPage(1);
   };
 
   const openCreateModal = () => {
@@ -772,18 +777,18 @@ export default function ProductsPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
               <input
                 type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 onFocus={() => setSearchFocused(true)}
                 onBlur={() => setSearchFocused(false)}
                 placeholder="Search products..."
                 className="input pl-10 w-full"
               />
               <AnimatePresence>
-                {search && (
+                {searchInput && (
                   <motion.button
                     type="button"
-                    onClick={() => setSearch('')}
+                    onClick={handleClearSearch}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
                     initial={{ opacity: 0, scale: 0 }}
                     animate={{ opacity: 1, scale: 1 }}
