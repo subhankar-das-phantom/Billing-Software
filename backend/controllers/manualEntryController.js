@@ -2,7 +2,7 @@ const ManualEntry = require('../models/ManualEntry');
 const Customer = require('../models/Customer');
 const { getAttribution } = require('../middleware/auth');
 const getTenantId = require('../utils/getTenantId');
-const escapeRegex = (str = '') => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const { escapeRegex } = require('../utils/searchUtils');
 
 /**
  * @desc    Create a new manual entry

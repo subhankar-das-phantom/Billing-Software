@@ -4,12 +4,7 @@ const { getAttribution } = require('../middleware/auth');
 const { trackActivity, ACTIVITY_TYPES } = require('../utils/activityTracker');
 const getTenantId = require('../utils/getTenantId');
 
-// Escape special regex characters in user input to prevent MongoDB $regex errors
-const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const getSearchPattern = (search, usePrefix = false) => {
-  const escaped = escapeRegex(search);
-  return usePrefix ? `^${escaped}` : escaped;
-};
+const { escapeRegex, getSearchPattern } = require('../utils/searchUtils');
 
 // @desc    Get all products
 // @route   GET /api/products

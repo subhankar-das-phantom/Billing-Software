@@ -1,8 +1,7 @@
 const Note = require('../models/Note');
 const getTenantId = require('../utils/getTenantId');
 
-// Escape special regex characters in user input to prevent MongoDB $regex errors
-const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const { escapeRegex } = require('../utils/searchUtils');
 
 // @desc    Get all notes
 // @route   GET /api/notes
