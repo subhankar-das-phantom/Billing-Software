@@ -26,7 +26,7 @@ import Modal from '../../components/Common/Modals/Modal';
 import ConfirmDialog from '../../components/Common/Dialogs/ConfirmDialog';
 import EnhancedButton from '../../components/Common/Buttons/EnhancedButton';
 import { useToast } from '../../contexts/ToastContext';
-import { useMotionConfig, useSWR, invalidateCachePattern } from '../../hooks';
+import { useDebounce, useMotionConfig, useSWR, invalidateCachePattern } from '../../hooks';
 
 const initialCustomerState = {
   customerName: '',
@@ -166,7 +166,7 @@ const CustomerCard = memo(function CustomerCard({
 
 export default function CustomersPage() {
   const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
+  const [search, flushSearch] = useDebounce(searchInput);
   const [page, setPage] = useState(1);
   const [searchFocused, setSearchFocused] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -175,7 +175,6 @@ export default function CustomersPage() {
   const [saving, setSaving] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, customer: null });
   const { success, error } = useToast();
-  const searchTimeoutRef = useRef(null);
   const observer = useRef(null);
   
   // Track which SWR key the latest accumulated data belongs to,
@@ -270,38 +269,16 @@ export default function CustomersPage() {
   // (PageLoader replaces the entire UI including the search input, eating keystrokes)
   const loading = isLoading && customers.length === 0 && page === 1 && !search && !searchInput;
 
-  // Debounced search key update
-  useEffect(() => {
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-
-    searchTimeoutRef.current = setTimeout(() => {
-      setSearch(searchInput);
-    }, 300);
-
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-    };
-  }, [searchInput]);
 
   const handleSearch = (e) => {
     e.preventDefault();
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
+    flushSearch();
     setPage(1);
-    setSearch(searchInput);
+    mutate();
   };
 
   const handleClearSearch = () => {
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
     setSearchInput('');
-    setSearch('');
     setPage(1);
   };
 
