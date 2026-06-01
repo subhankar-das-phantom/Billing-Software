@@ -953,3 +953,15 @@
 .invoice-print th {
   color: #000000 !important;
 }
+
+/* Hero shape entrance — pure CSS, GPU-composited, zero jitter */
+@keyframes heroShapeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-150px) rotate(var(--start-rotate, 0deg));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotate(var(--end-rotate, 0deg));
+  }
+}
