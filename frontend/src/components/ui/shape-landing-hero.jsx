@@ -11,26 +11,32 @@ function ElegantShape({
   gradient = "from-white/[0.08]",
   reduceMotion = false,
 }) {
-  // On mobile: render a static, lightweight element — no motion, no blur, no pseudo-elements
+  // Mobile: pure CSS animation — runs on GPU compositor, zero jitter
   if (reduceMotion) {
     return (
       <div
         className={cn("absolute", className)}
-        style={{ width, height, transform: `rotate(${rotate}deg)`, opacity: 0.7 }}
+        style={{
+          "--start-rotate": `${rotate - 15}deg`,
+          "--end-rotate": `${rotate}deg`,
+          animation: `heroShapeIn 1.4s ${delay}s both cubic-bezier(0.23, 0.86, 0.39, 0.96)`,
+        }}
       >
-        <div
-          style={{ width, height }}
-          className={cn(
-            "relative rounded-full",
-            "bg-gradient-to-r to-transparent",
-            gradient,
-            "border border-white/[0.05]"
-          )}
-        />
+        <div style={{ width, height }} className="relative">
+          <div
+            className={cn(
+              "absolute inset-0 rounded-full",
+              "bg-gradient-to-r to-transparent",
+              gradient,
+              "border-2 border-white/[0.15] shadow-[inset_0_0_30px_rgba(255,255,255,0.06),0_4px_20px_rgba(255,255,255,0.03)]"
+            )}
+          />
+        </div>
       </div>
     );
   }
 
+  // Desktop: full framer-motion experience
   return (
     <motion.div
       initial={{
@@ -44,17 +50,15 @@ function ElegantShape({
         rotate: rotate,
       }}
       transition={{
-        duration: 2.4,
+        duration: 1.4,
         delay,
         ease: [0.23, 0.86, 0.39, 0.96],
-        opacity: { duration: 1.2 },
+        opacity: { duration: 0.7 },
       }}
       className={cn("absolute", className)}
     >
       <motion.div
-        animate={{
-          y: [0, 15, 0],
-        }}
+        animate={{ y: [0, 15, 0] }}
         transition={{
           duration: 12,
           repeat: Number.POSITIVE_INFINITY,
@@ -90,23 +94,18 @@ function HeroGeometric({
   children,
   reduceMotion = false,
 }) {
-  const fadeUpVariants = reduceMotion
-    ? {
-        hidden: { opacity: 1, y: 0 },
-        visible: () => ({ opacity: 1, y: 0 }),
-      }
-    : {
-        hidden: { opacity: 0, y: 30 },
-        visible: (i) => ({
-          opacity: 1,
-          y: 0,
-          transition: {
-            duration: 1,
-            delay: 0.5 + i * 0.2,
-            ease: [0.25, 0.4, 0.25, 1],
-          },
-        }),
-      };
+  const fadeUpVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: (i) => ({
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 1,
+        delay: 0.5 + i * 0.2,
+        ease: [0.25, 0.4, 0.25, 1],
+      },
+    }),
+  };
 
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-slate-950 pt-16">
@@ -123,7 +122,7 @@ function HeroGeometric({
           width={600}
           height={140}
           rotate={12}
-          gradient="from-blue-500/[0.12]"
+          gradient="from-blue-500/[0.22]"
           className="left-[-10%] md:left-[-5%] top-[15%] md:top-[20%]"
           reduceMotion={reduceMotion}
         />
@@ -134,7 +133,7 @@ function HeroGeometric({
           width={500}
           height={120}
           rotate={-15}
-          gradient="from-accent-500/[0.12]"
+          gradient="from-accent-500/[0.22]"
           className="right-[-5%] md:right-[0%] top-[70%] md:top-[75%]"
           reduceMotion={reduceMotion}
         />
@@ -145,7 +144,7 @@ function HeroGeometric({
           width={300}
           height={80}
           rotate={-8}
-          gradient="from-accent2-500/[0.10]"
+          gradient="from-accent2-500/[0.18]"
           className="left-[5%] md:left-[10%] bottom-[5%] md:bottom-[10%]"
           reduceMotion={reduceMotion}
         />
@@ -156,7 +155,7 @@ function HeroGeometric({
           width={200}
           height={60}
           rotate={20}
-          gradient="from-emerald-500/[0.10]"
+          gradient="from-emerald-500/[0.18]"
           className="right-[15%] md:right-[20%] top-[10%] md:top-[15%]"
           reduceMotion={reduceMotion}
         />
@@ -167,7 +166,7 @@ function HeroGeometric({
           width={150}
           height={40}
           rotate={-25}
-          gradient="from-cyan-500/[0.08]"
+          gradient="from-cyan-500/[0.15]"
           className="left-[20%] md:left-[25%] top-[5%] md:top-[10%]"
           reduceMotion={reduceMotion}
         />
