@@ -848,28 +848,28 @@ export default function LandingPage() {
 
       <main>
 
-      <HeroSection reduceMotion={reduceMotion} isLoggedIn={isLoggedIn} />
+        <HeroSection reduceMotion={reduceMotion} isLoggedIn={isLoggedIn} />
 
-      {/* Section divider */}
-      <div className="h-px bg-gradient-to-r from-transparent via-slate-800 to-transparent" />
+        {/* Section divider */}
+        <div className="h-px bg-gradient-to-r from-transparent via-slate-800 to-transparent" />
 
-      <FeaturesSection reduceMotion={reduceMotion} />
+        <FeaturesSection reduceMotion={reduceMotion} />
 
-      <div className="h-px bg-gradient-to-r from-transparent via-slate-800 to-transparent" />
+        <div className="h-px bg-gradient-to-r from-transparent via-slate-800 to-transparent" />
 
-      <HowItWorksSection reduceMotion={reduceMotion} />
+        <HowItWorksSection reduceMotion={reduceMotion} />
 
-      <StatsSection reduceMotion={reduceMotion} />
+        <StatsSection reduceMotion={reduceMotion} />
 
-      <div className="h-px bg-gradient-to-r from-transparent via-slate-800 to-transparent" />
+        <div className="h-px bg-gradient-to-r from-transparent via-slate-800 to-transparent" />
 
-      <WhyChooseSection reduceMotion={reduceMotion} />
+        <WhyChooseSection reduceMotion={reduceMotion} />
 
-      <div className="h-px bg-gradient-to-r from-transparent via-slate-800 to-transparent" />
+        <div className="h-px bg-gradient-to-r from-transparent via-slate-800 to-transparent" />
 
-      <PricingSection reduceMotion={reduceMotion} isLoggedIn={isLoggedIn} />
+        <PricingSection reduceMotion={reduceMotion} isLoggedIn={isLoggedIn} />
 
-      <CTASection reduceMotion={reduceMotion} isLoggedIn={isLoggedIn} />
+        <CTASection reduceMotion={reduceMotion} isLoggedIn={isLoggedIn} />
       </main>
 
       <Footer />
