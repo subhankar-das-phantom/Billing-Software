@@ -277,8 +277,10 @@ export const AuthProvider = ({ children }) => {
 
   const updateAdmin = (adminData) => {
     localStorage.setItem('admin', JSON.stringify(adminData));
+    localStorage.setItem('userRole', 'admin');
     setAdmin(adminData);
     setUser(adminData);
+    setUserRole('admin');
     // Removed showToast here to prevent duplicate success toast in ProfilePage and RegisterPage
   };
 
