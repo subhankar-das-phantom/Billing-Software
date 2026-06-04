@@ -39,7 +39,7 @@ import EditPaymentModal from '../../components/Common/Modals/EditPaymentModal';
 import ManualEntryModal from '../../components/ManualEntry/ManualEntryModal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { invalidateCachePattern, useMotionConfig } from '../../hooks';
+import { invalidateCachePattern, useMotionConfig, useFirstVisit } from '../../hooks';
 
 const LARGE_ROW_THRESHOLD = 20;
 const round2 = (n) => Math.round((Number(n || 0) + Number.EPSILON) * 100) / 100;
@@ -269,6 +269,7 @@ export default function CustomerDetailsPage() {
   };
 
   const motionConfig = useMotionConfig();
+  const isFirstVisit = useFirstVisit('customer-details');
   const [customer, setCustomer] = useState(null);
   const [invoices, setInvoices] = useState([]);
   const [payments, setPayments] = useState([]);
@@ -606,7 +607,7 @@ export default function CustomerDetailsPage() {
     <>
       <motion.div
         variants={containerVariants}
-        initial="hidden"
+        initial={isFirstVisit ? "hidden" : false}
         animate="visible"
         className="space-y-6 no-print"
       >

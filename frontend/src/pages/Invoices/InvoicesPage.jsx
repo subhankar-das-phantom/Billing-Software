@@ -24,7 +24,7 @@ import { formatCurrency, formatDate } from '../../utils/formatters';
 import { PageLoader } from '../../components/Common/Feedback/Loader';
 import ExportModal from '../../components/Common/Modals/ExportModal';
 import { useToast } from '../../contexts/ToastContext';
-import { invalidateCachePattern, useDebounce, useMotionConfig, useSWR } from '../../hooks';
+import { invalidateCachePattern, useDebounce, useFirstVisit, useMotionConfig, useSWR } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 
 // Factory functions for adaptive variants
@@ -44,7 +44,7 @@ const createCardVariants = (isMobile) => ({
   visible: {
     opacity: 1,
     y: 0,
-    transition: isMobile 
+    transition: isMobile
       ? { type: 'tween', duration: 0.25, ease: 'easeOut' }
       : { type: 'spring', stiffness: 300, damping: 24 }
   }
@@ -78,9 +78,10 @@ export default function InvoicesPage() {
   const [isExporting, setIsExporting] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState({});
   const { success, error } = useToast();
-  
+
   // Adaptive motion configuration
   const motionConfig = useMotionConfig();
+  const isFirstVisit = useFirstVisit('invoices');
   const pageVariants = useMemo(() => createPageVariants(motionConfig.isMobile, motionConfig.shouldStagger), [motionConfig.isMobile, motionConfig.shouldStagger]);
   const cardVariants = useMemo(() => createCardVariants(motionConfig.isMobile), [motionConfig.isMobile]);
   const tableRowVariants = useMemo(() => createTableRowVariants(motionConfig.isMobile, motionConfig.shouldStagger), [motionConfig.isMobile, motionConfig.shouldStagger]);
@@ -181,11 +182,11 @@ export default function InvoicesPage() {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      
+
       // Map format to proper file extension
       const extensionMap = { excel: 'xlsx', pdf: 'pdf', csv: 'csv' };
       const extension = extensionMap[format] || 'xlsx';
-      
+
       const now = new Date();
       const y = now.getFullYear();
       const m = String(now.getMonth() + 1).padStart(2, '0');
@@ -260,32 +261,32 @@ export default function InvoicesPage() {
   return (
     <motion.div
       variants={pageVariants}
-      initial="hidden"
+      initial={isFirstVisit ? "hidden" : false}
       animate="visible"
       className="space-y-12"
     >
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { 
-            label: 'Total Invoices', 
-            value: stats.total, 
+          {
+            label: 'Total Invoices',
+            value: stats.total,
             icon: FileText,
             color: 'from-blue-500 to-blue-600',
             iconColor: 'text-blue-400',
             bgColor: 'bg-blue-500/20'
           },
-          { 
-            label: "Today's Invoices", 
-            value: stats.today, 
+          {
+            label: "Today's Invoices",
+            value: stats.today,
             icon: Clock,
             color: 'from-emerald-500 to-emerald-600',
             iconColor: 'text-emerald-400',
             bgColor: 'bg-emerald-500/20'
           },
-          { 
-            label: 'This Month', 
-            value: stats.thisMonth, 
+          {
+            label: 'This Month',
+            value: stats.thisMonth,
             icon: TrendingUp,
             color: 'from-accent-500 to-accent-600',
             iconColor: 'text-accent-400',
@@ -301,7 +302,7 @@ export default function InvoicesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-400 mb-1">{stat.label}</p>
-                <motion.p 
+                <motion.p
                   className="text-3xl font-bold text-white"
                   initial={{ opacity: 0, scale: 0.5 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -339,9 +340,9 @@ export default function InvoicesPage() {
                 <RefreshIndicator isRefreshing={isValidating} size="sm" />
               </div>
               <p className="text-sm text-slate-400 mt-1">
-                  Showing {invoices.length} of {totalMatched || invoices.length} invoices
-                </p>
-              </div>
+                Showing {invoices.length} of {totalMatched || invoices.length} invoices
+              </p>
+            </div>
           </div>
 
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -458,8 +459,8 @@ export default function InvoicesPage() {
               transition={{ delay: 0.2 }}
             >
               {search || searchInput || startDate || endDate
-                ? 'No invoices found matching your search' 
-                : statusFilter !== 'all' 
+                ? 'No invoices found matching your search'
+                : statusFilter !== 'all'
                   ? `No ${statusFilter} invoices found`
                   : 'No invoices found. Create your first invoice!'}
             </motion.p>
@@ -486,112 +487,112 @@ export default function InvoicesPage() {
             className="glass-card overflow-x-auto"
           >
             <table className="table min-w-[800px]">
-                <thead>
-                  <tr>
-                    <th>Invoice #</th>
-                    <th>Date</th>
-                    <th>Customer</th>
-                    <th>Items</th>
-                    <th>Amount</th>
-                    <th>Payment</th>
-                    <th>Status</th>
-                    <th className="text-center w-20">Printed</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                    {invoices.map((invoice, index) => {
-                      const StatusIcon = statusConfig[invoice.status]?.icon || FileText;
-                      const PaymentIcon = paymentConfig[invoice.paymentType]?.icon || CreditCard;
+              <thead>
+                <tr>
+                  <th>Invoice #</th>
+                  <th>Date</th>
+                  <th>Customer</th>
+                  <th>Items</th>
+                  <th>Amount</th>
+                  <th>Payment</th>
+                  <th>Status</th>
+                  <th className="text-center w-20">Printed</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invoices.map((invoice, index) => {
+                  const StatusIcon = statusConfig[invoice.status]?.icon || FileText;
+                  const PaymentIcon = paymentConfig[invoice.paymentType]?.icon || CreditCard;
 
-                      const isCancelled = invoice.status === 'Cancelled';
+                  const isCancelled = invoice.status === 'Cancelled';
 
-                      return (
-                        <tr
-                          key={invoice._id}
-                          className={`transition-colors ${isCancelled ? 'bg-red-500/10 hover:bg-red-500/20' : 'hover:bg-slate-700/50'}`}
+                  return (
+                    <tr
+                      key={invoice._id}
+                      className={`transition-colors ${isCancelled ? 'bg-red-500/10 hover:bg-red-500/20' : 'hover:bg-slate-700/50'}`}
+                    >
+                      <td className={`font-medium ${isCancelled ? 'text-red-400' : 'text-white'}`}>
+                        <div className="flex items-center gap-2">
+                          <FileText className={`w-4 h-4 ${isCancelled ? 'text-red-400' : 'text-blue-400'}`} />
+                          {invoice.invoiceNumber}
+                        </div>
+                      </td>
+                      <td className={isCancelled ? 'text-red-400' : 'text-slate-300'}>
+                        <div className="flex items-center gap-2">
+                          <Calendar className={`w-4 h-4 ${isCancelled ? 'text-red-400' : 'text-slate-500'}`} />
+                          {formatDate(invoice.invoiceDate)}
+                        </div>
+                      </td>
+                      <td>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-lg ${isCancelled ? 'bg-red-500/20 text-red-400 shadow-red-500/20' : 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/30'}`}
+                          >
+                            {invoice.customer?.customerName?.charAt(0)}
+                          </div>
+                          <div>
+                            <p className={`font-medium ${isCancelled ? 'text-red-400' : 'text-white'}`}>{invoice.customer?.customerName}</p>
+                            <p className={`text-xs flex items-center gap-1 ${isCancelled ? 'text-red-400 opacity-80' : 'text-slate-400'}`}>
+                              <User className="w-3 h-3" />
+                              {invoice.customer?.phone}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className={isCancelled ? 'text-red-400' : 'text-slate-300'}>
+                        <div className="flex items-center gap-2">
+                          <Package className={`w-4 h-4 ${isCancelled ? 'text-red-400' : 'text-slate-500'}`} />
+                          {invoice.items?.length || 0} items
+                        </div>
+                      </td>
+                      <td className={`font-medium ${isCancelled ? 'text-red-400 font-bold' : 'text-emerald-400'}`}>
+                        {formatCurrency(invoice.totals?.netTotal)}
+                      </td>
+                      <td>
+                        <span
+                          className={`badge ${paymentConfig[invoice.paymentType]?.class || 'badge-info'} inline-flex items-center gap-1.5`}
                         >
-                          <td className={`font-medium ${isCancelled ? 'text-red-400' : 'text-white'}`}>
-                            <div className="flex items-center gap-2">
-                              <FileText className={`w-4 h-4 ${isCancelled ? 'text-red-400' : 'text-blue-400'}`} />
-                              {invoice.invoiceNumber}
-                            </div>
-                          </td>
-                          <td className={isCancelled ? 'text-red-400' : 'text-slate-300'}>
-                            <div className="flex items-center gap-2">
-                              <Calendar className={`w-4 h-4 ${isCancelled ? 'text-red-400' : 'text-slate-500'}`} />
-                              {formatDate(invoice.invoiceDate)}
-                            </div>
-                          </td>
-                          <td>
-                            <div className="flex items-center gap-2">
-                              <div
-                                className={`w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-lg ${isCancelled ? 'bg-red-500/20 text-red-400 shadow-red-500/20' : 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/30'}`}
-                              >
-                                {invoice.customer?.customerName?.charAt(0)}
-                              </div>
-                              <div>
-                                <p className={`font-medium ${isCancelled ? 'text-red-400' : 'text-white'}`}>{invoice.customer?.customerName}</p>
-                                <p className={`text-xs flex items-center gap-1 ${isCancelled ? 'text-red-400 opacity-80' : 'text-slate-400'}`}>
-                                  <User className="w-3 h-3" />
-                                  {invoice.customer?.phone}
-                                </p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className={isCancelled ? 'text-red-400' : 'text-slate-300'}>
-                            <div className="flex items-center gap-2">
-                              <Package className={`w-4 h-4 ${isCancelled ? 'text-red-400' : 'text-slate-500'}`} />
-                              {invoice.items?.length || 0} items
-                            </div>
-                          </td>
-                          <td className={`font-medium ${isCancelled ? 'text-red-400 font-bold' : 'text-emerald-400'}`}>
-                            {formatCurrency(invoice.totals?.netTotal)}
-                          </td>
-                          <td>
-                            <span
-                              className={`badge ${paymentConfig[invoice.paymentType]?.class || 'badge-info'} inline-flex items-center gap-1.5`}
-                            >
-                              <PaymentIcon className="w-3 h-3" />
-                              {invoice.paymentType}
-                            </span>
-                          </td>
-                          <td>
-                            <span
-                              className={`badge ${statusConfig[invoice.status]?.class || 'badge-info'} inline-flex items-center gap-1.5`}
-                            >
-                              <StatusIcon className="w-3 h-3" />
-                              {invoice.status}
-                            </span>
-                          </td>
-                          <td className="text-center">
-                            <label className={`inline-flex items-center justify-center ${isCancelled || statusUpdating[invoice._id] ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
-                              <input
-                                type="checkbox"
-                                aria-label={`Mark invoice ${invoice.invoiceNumber} as printed`}
-                                className="sr-only"
-                                checked={invoice.status === 'Printed'}
-                                disabled={isCancelled || statusUpdating[invoice._id]}
-                                onChange={(e) => handlePrintedToggle(invoice._id, e.target.checked)}
-                              />
-                              <div className={`relative w-10 h-5 rounded-full transition-colors shadow-inner ${invoice.status === 'Printed' ? 'bg-emerald-500' : 'bg-slate-700'}`}>
-                                <span className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${invoice.status === 'Printed' ? 'translate-x-5' : 'translate-x-0'}`} />
-                              </div>
-                            </label>
-                          </td>
-                          <td>
-                            <Link
-                              to={`/invoices/${invoice._id}`}
-                              className="btn btn-secondary py-1.5 px-3 text-sm inline-flex items-center gap-2 group"
-                            >
-                              <Eye className="w-4 h-4" />
-                              View
-                            </Link>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                </tbody>
+                          <PaymentIcon className="w-3 h-3" />
+                          {invoice.paymentType}
+                        </span>
+                      </td>
+                      <td>
+                        <span
+                          className={`badge ${statusConfig[invoice.status]?.class || 'badge-info'} inline-flex items-center gap-1.5`}
+                        >
+                          <StatusIcon className="w-3 h-3" />
+                          {invoice.status}
+                        </span>
+                      </td>
+                      <td className="text-center">
+                        <label className={`inline-flex items-center justify-center ${isCancelled || statusUpdating[invoice._id] ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+                          <input
+                            type="checkbox"
+                            aria-label={`Mark invoice ${invoice.invoiceNumber} as printed`}
+                            className="sr-only"
+                            checked={invoice.status === 'Printed'}
+                            disabled={isCancelled || statusUpdating[invoice._id]}
+                            onChange={(e) => handlePrintedToggle(invoice._id, e.target.checked)}
+                          />
+                          <div className={`relative w-10 h-5 rounded-full transition-colors shadow-inner ${invoice.status === 'Printed' ? 'bg-emerald-500' : 'bg-slate-700'}`}>
+                            <span className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${invoice.status === 'Printed' ? 'translate-x-5' : 'translate-x-0'}`} />
+                          </div>
+                        </label>
+                      </td>
+                      <td>
+                        <Link
+                          to={`/invoices/${invoice._id}`}
+                          className="btn btn-secondary py-1.5 px-3 text-sm inline-flex items-center gap-2 group"
+                        >
+                          <Eye className="w-4 h-4" />
+                          View
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
             </table>
 
             {/* Infinite Scroll Loader */}
@@ -606,16 +607,16 @@ export default function InvoicesPage() {
       </AnimatePresence>
 
       {/* Export Modal */}
-        <ExportModal
-          isOpen={showExportModal}
-          onClose={() => {
-            if (!isExporting) setShowExportModal(false);
-          }}
-          data={invoices}
-          stats={exportStats}
-          onExport={handleExport}
-          isExporting={isExporting}
-          entityType="Invoices"
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => {
+          if (!isExporting) setShowExportModal(false);
+        }}
+        data={invoices}
+        stats={exportStats}
+        onExport={handleExport}
+        isExporting={isExporting}
+        entityType="Invoices"
       />
     </motion.div>
   );

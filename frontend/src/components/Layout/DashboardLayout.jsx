@@ -5,7 +5,7 @@ import { ChevronRight } from 'lucide-react';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 import Header from './Header';
-import PageTransition from '../Common/Motion/PageTransition';
+import { RouteTransition } from '../Common/Motion/PageTransition';
 import { useMotionConfig } from '../../hooks';
 
 export default function DashboardLayout() {
@@ -79,24 +79,15 @@ export default function DashboardLayout() {
         {/* Main content area */}
         <main className="flex-1 p-6 lg:p-8 lg:pt-24 xl:p-10 xl:pt-24 overflow-y-auto overflow-x-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 max-w-full">
           <div className="max-w-[1600px] mx-auto w-full">
-            <AnimatePresence mode="wait">
-            <PageTransition 
-              key={location.pathname} 
+            <RouteTransition 
+              location={location}
               variant={getTransitionVariant()}
               transition="smooth"
-              className="h-full"
             >
-              {/* Content wrapper */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: motionConfig.duration.fast }}
-              >
+              <div className="h-full">
                 <Outlet />
-              </motion.div>
-            </PageTransition>
-          </AnimatePresence>
+              </div>
+            </RouteTransition>
 
           {/* Animated background gradient - Desktop only for performance */}
           {motionConfig.shouldInfiniteAnimate && (

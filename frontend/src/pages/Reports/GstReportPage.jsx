@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { reportService } from '../../services/reports/reportService';
 import { formatCurrency } from '../../utils/formatters';
-import { useDebounce } from '../../hooks';
+import { useDebounce, useFirstVisit } from '../../hooks';
 
 // ─── Animation variants ───────────────────────────────────────────────
 const containerVariants = {
@@ -68,6 +68,7 @@ const SLAB_COLORS = {
 
 export default function GstReportPage() {
   const defaults = getDefaultDates();
+  const isFirstVisit = useFirstVisit('gst-report');
 
   // ── State ──
   const [startDate, setStartDate] = useState(defaults.start);
@@ -184,7 +185,7 @@ export default function GstReportPage() {
   return (
     <motion.div
       variants={containerVariants}
-      initial="hidden"
+      initial={isFirstVisit ? "hidden" : false}
       animate="show"
       className="space-y-6 sm:space-y-8"
     >

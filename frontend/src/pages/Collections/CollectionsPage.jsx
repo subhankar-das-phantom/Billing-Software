@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import { useMotionConfig } from '../../hooks';
+import { useMotionConfig, useFirstVisit } from '../../hooks';
 
 const PAYMENT_METHODS = ['Cash', 'UPI', 'Bank Transfer', 'Cheque', 'NEFT/RTGS'];
 
@@ -81,6 +81,7 @@ const getTodayStr = () => {
 
 export default function CollectionsPage() {
   const motionConfig = useMotionConfig();
+  const isFirstVisit = useFirstVisit('collections');
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({ summary: null, payments: [], total: 0, pages: 1 });
   const [selectedDate, setSelectedDate] = useState(getTodayStr());
@@ -133,7 +134,7 @@ export default function CollectionsPage() {
   return (
     <motion.div
       variants={containerVariants}
-      initial="hidden"
+      initial={isFirstVisit ? "hidden" : false}
       animate="visible"
       className="space-y-6"
     >

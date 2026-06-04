@@ -15,7 +15,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { employeeService } from '../../services/employees/employeeService';
-import { useMotionConfig } from '../../hooks';
+import { useMotionConfig, useFirstVisit } from '../../hooks';
 
 // Format currency
 const formatCurrency = (amount) => {
@@ -60,6 +60,7 @@ export default function EmployeeDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { isMobile } = useMotionConfig();
+  const isFirstVisit = useFirstVisit('employee-details');
   
   const [loading, setLoading] = useState(true);
   const [employee, setEmployee] = useState(null);
@@ -215,7 +216,7 @@ export default function EmployeeDetailPage() {
         {statCards.map((stat, index) => (
           <motion.div
             key={stat.label}
-            initial={isMobile ? { opacity: 0 } : { opacity: 0, y: 20 }}
+            initial={isFirstVisit ? (isMobile ? { opacity: 0 } : { opacity: 0, y: 20 }) : false}
             animate={{ opacity: 1, y: 0 }}
             transition={isMobile ? { duration: 0.15 } : { delay: index * 0.05 }}
             className="bg-slate-800/50 rounded-xl border border-slate-700 p-5"

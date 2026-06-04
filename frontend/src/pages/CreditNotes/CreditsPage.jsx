@@ -23,7 +23,7 @@ import {
 } from '../../services/credits/creditService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { PageLoader } from '../../components/Common/Feedback/Loader';
-import { useSWR } from '../../hooks';
+import { useSWR, useFirstVisit } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 
 // Animated counter component
@@ -53,6 +53,7 @@ const AnimatedCounter = ({ value, prefix = '', suffix = '', decimals = 0 }) => {
 
 export default function CreditsPage() {
   const [activeTab, setActiveTab] = useState('outstanding');
+  const isFirstVisit = useFirstVisit('credits');
 
   // Outstanding infinite scroll state
   const [outstandingPage, setOutstandingPage] = useState(1);
@@ -268,7 +269,7 @@ export default function CreditsPage() {
   return (
     <motion.div
       variants={containerVariants}
-      initial="hidden"
+      initial={isFirstVisit ? "hidden" : false}
       animate="visible"
       className="space-y-6"
     >

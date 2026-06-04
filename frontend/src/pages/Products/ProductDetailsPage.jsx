@@ -24,7 +24,7 @@ import { PageLoader } from '../../components/Common/Feedback/Loader';
 import Modal from '../../components/Common/Modals/Modal';
 import EnhancedButton from '../../components/Common/Buttons/EnhancedButton';
 import { useToast } from '../../contexts/ToastContext';
-import { invalidateCachePattern } from '../../hooks';
+import { invalidateCachePattern, useFirstVisit } from '../../hooks';
 
 const cardVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -46,6 +46,7 @@ export default function ProductDetailsPage() {
   const [stockAdjust, setStockAdjust] = useState({ qty: '', type: 'in', reason: '' });
 
   const { success, error } = useToast();
+  const isFirstVisit = useFirstVisit('product-details');
 
   useEffect(() => {
     loadProduct();
@@ -99,12 +100,12 @@ export default function ProductDetailsPage() {
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
+      initial={isFirstVisit ? { opacity: 0 } : false}
       animate={{ opacity: 1 }}
       className="space-y-6"
     >
       {/* Back button */}
-      <motion.div variants={cardVariants} initial="hidden" animate="visible" className="flex justify-between items-center mb-4">
+      <motion.div variants={cardVariants} initial={isFirstVisit ? "hidden" : false} animate="visible" className="flex justify-between items-center mb-4">
         <Link to="/products" className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors">
           <ArrowLeft className="w-4 h-4" />
           Back to Products
@@ -119,7 +120,7 @@ export default function ProductDetailsPage() {
       </motion.div>
 
       {/* Product Info Card */}
-      <motion.div variants={cardVariants} initial="hidden" animate="visible" className="glass-card p-6">
+      <motion.div variants={cardVariants} initial={isFirstVisit ? "hidden" : false} animate="visible" className="glass-card p-6">
         <div className="flex items-start justify-between mb-6">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-blue-500/20 rounded-xl">

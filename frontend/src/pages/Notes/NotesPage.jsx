@@ -21,7 +21,7 @@ import Modal from '../../components/Common/Modals/Modal';
 import ConfirmDialog from '../../components/Common/Dialogs/ConfirmDialog';
 import EnhancedButton from '../../components/Common/Buttons/EnhancedButton';
 import { useToast } from '../../contexts/ToastContext';
-import { useMotionConfig, useSWR, invalidateCachePattern } from '../../hooks';
+import { useFirstVisit, useMotionConfig, useSWR, invalidateCachePattern } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 import { THEME } from '../../utils/themeColors';
 
@@ -52,6 +52,7 @@ export default function NotesPage() {
   const { success, error } = useToast();
   
   const motionConfig = useMotionConfig();
+  const isFirstVisit = useFirstVisit('notes');
   const searchDebounce = useDebounce(search, 300);
 
   // SWR: Instant cached data + background revalidation
@@ -194,7 +195,7 @@ export default function NotesPage() {
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
+      initial={isFirstVisit ? { opacity: 0 } : false}
       animate={{ opacity: 1 }}
       className="space-y-8"
     >

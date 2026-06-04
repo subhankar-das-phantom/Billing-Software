@@ -34,7 +34,7 @@ import { creditNoteService } from '../../services/credits/creditNoteService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { PageLoader } from '../../components/Common/Feedback/Loader';
 import { useToast } from '../../contexts/ToastContext';
-import { useSWR, invalidateCachePattern } from '../../hooks';
+import { useSWR, useFirstVisit, invalidateCachePattern } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 
 const pageVariants = {
@@ -89,6 +89,7 @@ export default function InvoiceViewPage() {
   });
   const printRef = useRef();
   const { success, error } = useToast();
+  const isFirstVisit = useFirstVisit('invoice-view');
 
   // Column definitions
   const ALL_COLUMNS = [
@@ -450,7 +451,7 @@ export default function InvoiceViewPage() {
       <RefreshIndicator isRefreshing={isValidating} />
       <motion.div
         variants={pageVariants}
-        initial="hidden"
+        initial={isFirstVisit ? "hidden" : false}
         animate="visible"
         className="space-y-6"
       >

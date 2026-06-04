@@ -19,7 +19,7 @@ import {
   Award
 } from 'lucide-react';
 import { employeeService } from '../../services/employees/employeeService';
-import { useMotionConfig } from '../../hooks';
+import { useMotionConfig, useFirstVisit } from '../../hooks';
 
 // Format duration in minutes to human readable
 const formatDuration = (minutes) => {
@@ -40,7 +40,7 @@ const formatCurrency = (amount) => {
 };
 
 // Stat Card Component - Mobile optimized
-const StatCard = ({ icon: Icon, label, value, subValue, color = 'blue', delay = 0, isMobile = false }) => {
+const StatCard = ({ icon: Icon, label, value, subValue, color = 'blue', delay = 0, isMobile = false, isFirstVisit }) => {
   const colors = {
     blue: 'from-blue-500 to-blue-600',
     green: 'from-green-500 to-green-600',
@@ -52,7 +52,7 @@ const StatCard = ({ icon: Icon, label, value, subValue, color = 'blue', delay = 
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: isMobile ? 10 : 20 }}
+      initial={isFirstVisit ? { opacity: 0, y: isMobile ? 10 : 20 } : false}
       animate={{ opacity: 1, y: 0 }}
       transition={isMobile ? { duration: 0.15 } : { delay, type: 'spring', stiffness: 300, damping: 24 }}
       className="bg-slate-800/50 rounded-xl p-5 border border-slate-700 hover:border-slate-600 transition-colors"
@@ -74,14 +74,14 @@ const StatCard = ({ icon: Icon, label, value, subValue, color = 'blue', delay = 
 };
 
 // Leaderboard Card - Mobile optimized
-const LeaderboardCard = ({ employees, metric, title, formatValue, isMobile = false }) => {
+const LeaderboardCard = ({ employees, metric, title, formatValue, isMobile = false, isFirstVisit }) => {
   const sorted = [...employees]
     .sort((a, b) => (b[metric] || 0) - (a[metric] || 0))
     .slice(0, 5);
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: isMobile ? 10 : 20 }}
+      initial={isFirstVisit ? { opacity: 0, y: isMobile ? 10 : 20 } : false}
       animate={{ opacity: 1, y: 0 }}
       transition={isMobile ? { duration: 0.2 } : { type: 'spring', stiffness: 300, damping: 24 }}
       className="bg-slate-800/50 rounded-xl p-5 border border-slate-700"
@@ -118,14 +118,14 @@ const LeaderboardCard = ({ employees, metric, title, formatValue, isMobile = fal
 };
 
 // Employee Comparison Row
-const ComparisonRow = ({ employee, maxSales }) => {
+const ComparisonRow = ({ employee, maxSales, isFirstVisit }) => {
   const salesPercent = maxSales > 0 
     ? ((employee.period?.salesGenerated || 0) / maxSales * 100) 
     : 0;
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: -20 }}
+      initial={isFirstVisit ? { opacity: 0, x: -20 } : false}
       animate={{ opacity: 1, x: 0 }}
       className="bg-slate-800/30 rounded-xl p-4 border border-slate-700/50"
     >
@@ -186,6 +186,7 @@ export default function EmployeeAnalyticsPage() {
   // Mobile performance optimization
   const motionConfig = useMotionConfig();
   const { isMobile } = motionConfig;
+  const isFirstVisit = useFirstVisit('employee-analytics');
 
   const fetchData = async () => {
     setLoading(true);
@@ -265,6 +266,7 @@ export default function EmployeeAnalyticsPage() {
           color="blue"
           delay={0}
           isMobile={isMobile}
+          isFirstVisit={isFirstVisit}
         />
         <StatCard
           icon={Activity}
@@ -273,6 +275,7 @@ export default function EmployeeAnalyticsPage() {
           color="green"
           delay={0.1}
           isMobile={isMobile}
+          isFirstVisit={isFirstVisit}
         />
         <StatCard
           icon={FileText}
@@ -281,6 +284,7 @@ export default function EmployeeAnalyticsPage() {
           color="accent"
           delay={0.2}
           isMobile={isMobile}
+          isFirstVisit={isFirstVisit}
         />
         <StatCard
           icon={TrendingUp}
@@ -289,6 +293,7 @@ export default function EmployeeAnalyticsPage() {
           color="emerald"
           delay={0.3}
           isMobile={isMobile}
+          isFirstVisit={isFirstVisit}
         />
         <StatCard
           icon={Wallet}
@@ -297,6 +302,7 @@ export default function EmployeeAnalyticsPage() {
           color="orange"
           delay={0.4}
           isMobile={isMobile}
+          isFirstVisit={isFirstVisit}
         />
         <StatCard
           icon={Clock}
@@ -306,12 +312,13 @@ export default function EmployeeAnalyticsPage() {
           color="pink"
           delay={0.5}
           isMobile={isMobile}
+          isFirstVisit={isFirstVisit}
         />
       </div>
 
       {/* Session Stats */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={isFirstVisit ? { opacity: 0, y: 20 } : false}
         animate={{ opacity: 1, y: 0 }}
         className="bg-slate-800/50 rounded-xl p-5 border border-slate-700 mb-8"
       >
@@ -347,12 +354,14 @@ export default function EmployeeAnalyticsPage() {
           title="Top Sales Performers"
           formatValue={formatCurrency}
           isMobile={isMobile}
+          isFirstVisit={isFirstVisit}
         />
         <LeaderboardCard
           employees={employees.map(e => ({ ...e, invoices: e.metrics?.invoicesCreatedCount }))}
           metric="invoices"
           title="Most Invoices Created"
           isMobile={isMobile}
+          isFirstVisit={isFirstVisit}
         />
         <LeaderboardCard
           employees={employees.map(e => ({ ...e, sessionTime: e.sessionStats?.monthDuration }))}
@@ -360,12 +369,13 @@ export default function EmployeeAnalyticsPage() {
           title="Most Active (Session Time)"
           formatValue={formatDuration}
           isMobile={isMobile}
+          isFirstVisit={isFirstVisit}
         />
       </div>
 
       {/* Comparison Section */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={isFirstVisit ? { opacity: 0, y: 20 } : false}
         animate={{ opacity: 1, y: 0 }}
         className="bg-slate-800/50 rounded-xl p-5 border border-slate-700"
       >
@@ -396,6 +406,7 @@ export default function EmployeeAnalyticsPage() {
                 key={employee.id}
                 employee={employee}
                 maxSales={maxSales}
+                isFirstVisit={isFirstVisit}
               />
             ))
           ) : (
@@ -410,7 +421,7 @@ export default function EmployeeAnalyticsPage() {
       {/* Currently Active */}
       {sessionSummary?.activeSessions?.length > 0 && (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={isFirstVisit ? { opacity: 0, y: 20 } : false}
           animate={{ opacity: 1, y: 0 }}
           className="mt-8 bg-slate-800/50 rounded-xl p-5 border border-slate-700"
         >

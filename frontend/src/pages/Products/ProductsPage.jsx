@@ -34,7 +34,7 @@ import Modal from '../../components/Common/Modals/Modal';
 import ConfirmDialog from '../../components/Common/Dialogs/ConfirmDialog';
 import EnhancedButton from '../../components/Common/Buttons/EnhancedButton';
 import { useToast } from '../../contexts/ToastContext';
-import { useDebounce, useMotionConfig, useSWR, invalidateCachePattern } from '../../hooks';
+import { useDebounce, useMotionConfig, useFirstVisit, useSWR, invalidateCachePattern } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 
 // Helper to create adaptive variants - faster on mobile
@@ -223,109 +223,102 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatDate, formatC
             </tr>
           </thead>
           <tbody>
-            <AnimatePresence>
-              {filteredProducts.map((product, index) => {
-                const lowStock = product.currentStockQty <= 30;
-                const outOfStock = product.currentStockQty === 0;
+            {filteredProducts.map((product, index) => {
+              const lowStock = product.currentStockQty <= 30;
+              const outOfStock = product.currentStockQty === 0;
 
-                return (
-                  <motion.tr
-                    key={product._id}
-                    layout
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.15 }}
-                    className="hover:bg-slate-700/50 transition-colors"
-                  >
-                    <td>
-                      <Link to={`/products/${product._id}`} className="flex items-center gap-3 group">
-                        <div className="p-2 bg-blue-500/20 rounded-lg">
-                          <Package className="w-4 h-4 text-blue-400" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-white group-hover:text-blue-400 transition-colors">{product.productName}</p>
-                          <p className="text-xs text-slate-400 flex items-center gap-1.5">
-                            <Building2 className="w-3 h-3" />
-                            {product.manufacturer}
-                          </p>
-                        </div>
-                      </Link>
-                    </td>
-                    <td className="text-slate-300 font-mono text-sm text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <Barcode className="w-4 h-4 text-slate-500" />
-                        {product.hsnCode}
+              return (
+                <tr
+                  key={product._id}
+                  className="hover:bg-slate-700/50 transition-colors"
+                >
+                  <td>
+                    <Link to={`/products/${product._id}`} className="flex items-center gap-3 group">
+                      <div className="p-2 bg-blue-500/20 rounded-lg">
+                        <Package className="w-4 h-4 text-blue-400" />
                       </div>
-                    </td>
-                    <td className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {product.oldMRP > 0 && product.oldMRP !== product.newMRP && (
-                          <motion.span
-                            className="text-slate-500 line-through text-sm flex items-center gap-1"
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                          >
-                            {product.oldMRP > product.newMRP ? (
-                              <TrendingDown className="w-3 h-3 text-emerald-400" />
-                            ) : (
-                              <TrendingUp className="w-3 h-3 text-red-400" />
-                            )}
-                            {formatCurrency(product.oldMRP)}
-                          </motion.span>
-                        )}
-                        <span className="text-emerald-400 font-medium">
-                          {formatCurrency(product.newMRP)}
-                        </span>
+                      <div>
+                        <p className="font-medium text-white group-hover:text-blue-400 transition-colors">{product.productName}</p>
+                        <p className="text-xs text-slate-400 flex items-center gap-1.5">
+                          <Building2 className="w-3 h-3" />
+                          {product.manufacturer}
+                        </p>
                       </div>
-                    </td>
-                    <td className="text-center">
-                      <span className="inline-flex items-center px-2 py-1 bg-blue-500/20 rounded text-blue-400 text-sm font-medium">
-                        {product.gstPercentage}%
+                    </Link>
+                  </td>
+                  <td className="text-slate-300 font-mono text-sm text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <Barcode className="w-4 h-4 text-slate-500" />
+                      {product.hsnCode}
+                    </div>
+                  </td>
+                  <td className="text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      {product.oldMRP > 0 && product.oldMRP !== product.newMRP && (
+                        <motion.span
+                          className="text-slate-500 line-through text-sm flex items-center gap-1"
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                        >
+                          {product.oldMRP > product.newMRP ? (
+                            <TrendingDown className="w-3 h-3 text-emerald-400" />
+                          ) : (
+                            <TrendingUp className="w-3 h-3 text-red-400" />
+                          )}
+                          {formatCurrency(product.oldMRP)}
+                        </motion.span>
+                      )}
+                      <span className="text-emerald-400 font-medium">
+                        {formatCurrency(product.newMRP)}
                       </span>
-                    </td>
-                    <td className="text-center">
-                      <motion.span
-                        className={`badge inline-flex items-center gap-1.5 ${outOfStock ? 'badge-danger' :
-                            lowStock ? 'badge-warning' :
-                              'badge-success'
-                          }`}
-                        whileHover={{ scale: 1.05 }}
-                        animate={outOfStock ? {
-                          scale: [1, 1.05, 1],
-                          transition: { duration: 2, repeat: Infinity }
-                        } : {}}
+                    </div>
+                  </td>
+                  <td className="text-center">
+                    <span className="inline-flex items-center px-2 py-1 bg-blue-500/20 rounded text-blue-400 text-sm font-medium">
+                      {product.gstPercentage}%
+                    </span>
+                  </td>
+                  <td className="text-center">
+                    <motion.span
+                      className={`badge inline-flex items-center gap-1.5 ${outOfStock ? 'badge-danger' :
+                        lowStock ? 'badge-warning' :
+                          'badge-success'
+                        }`}
+                      whileHover={{ scale: 1.05 }}
+                      animate={outOfStock ? {
+                        scale: [1, 1.05, 1],
+                        transition: { duration: 2, repeat: Infinity }
+                      } : {}}
+                    >
+                      <Layers className="w-3 h-3" />
+                      {product.currentStockQty} {product.unit}
+                    </motion.span>
+                  </td>
+                  <td>
+                    <div className="flex justify-center gap-2">
+                      <motion.button
+                        onClick={() => onEdit(product)}
+                        className="p-2.5 rounded-lg bg-slate-800/40 hover:bg-slate-700 hover:text-blue-400 border border-transparent hover:border-slate-600 transition-colors tooltip-trigger relative"
+                        whileHover={{ scale: 1.1, rotate: 5 }}
+                        whileTap={{ scale: 0.9 }}
+                        title="Edit Product"
                       >
-                        <Layers className="w-3 h-3" />
-                        {product.currentStockQty} {product.unit}
-                      </motion.span>
-                    </td>
-                    <td>
-                      <div className="flex justify-center gap-2">
-                        <motion.button
-                          onClick={() => onEdit(product)}
-                          className="p-2.5 rounded-lg bg-slate-800/40 hover:bg-slate-700 hover:text-blue-400 border border-transparent hover:border-slate-600 transition-colors tooltip-trigger relative"
-                          whileHover={{ scale: 1.1, rotate: 5 }}
-                          whileTap={{ scale: 0.9 }}
-                          title="Edit Product"
-                        >
-                          <Edit2 className="w-4 h-4 text-slate-400 hover:text-blue-400" />
-                        </motion.button>
-                        <motion.button
-                          onClick={() => onDelete(product)}
-                          className="p-2.5 rounded-lg bg-slate-800/40 hover:bg-slate-700 hover:text-red-400 border border-transparent hover:border-slate-600 transition-colors tooltip-trigger relative"
-                          whileHover={{ scale: 1.1, rotate: -5 }}
-                          whileTap={{ scale: 0.9 }}
-                          title="Delete Product"
-                        >
-                          <Trash2 className="w-4 h-4 text-slate-400 hover:text-red-400" />
-                        </motion.button>
-                      </div>
-                    </td>
-                  </motion.tr>
-                );
-              })}
-            </AnimatePresence>
+                        <Edit2 className="w-4 h-4 text-slate-400 hover:text-blue-400" />
+                      </motion.button>
+                      <motion.button
+                        onClick={() => onDelete(product)}
+                        className="p-2.5 rounded-lg bg-slate-800/40 hover:bg-slate-700 hover:text-red-400 border border-transparent hover:border-slate-600 transition-colors tooltip-trigger relative"
+                        whileHover={{ scale: 1.1, rotate: -5 }}
+                        whileTap={{ scale: 0.9 }}
+                        title="Delete Product"
+                      >
+                        <Trash2 className="w-4 h-4 text-slate-400 hover:text-red-400" />
+                      </motion.button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -406,8 +399,8 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatDate, formatC
                   <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Stock Status</p>
                   <motion.span
                     className={`badge inline-flex items-center gap-1.5 px-2 py-1 text-xs ${outOfStock ? 'badge-danger' :
-                        lowStock ? 'badge-warning' :
-                          'badge-success'
+                      lowStock ? 'badge-warning' :
+                        'badge-success'
                       }`}
                     animate={outOfStock ? {
                       scale: [1, 1.05, 1],
@@ -466,6 +459,7 @@ export default function ProductsPage() {
   const [stockAdjustment, setStockAdjustment] = useState({ qty: '', reason: 'add' });
   const [filterStock, setFilterStock] = useState('all');
   const { success, error } = useToast();
+  const isFirstVisit = useFirstVisit('products');
 
   // Infinite Scroll State
   const [page, setPage] = useState(1);
@@ -684,7 +678,7 @@ export default function ProductsPage() {
   return (
     <motion.div
       variants={pageVariants}
-      initial="hidden"
+      initial={isFirstVisit ? "hidden" : false}
       animate="visible"
       className="space-y-6"
     >
@@ -821,8 +815,8 @@ export default function ProductsPage() {
                 key={value}
                 onClick={() => setFilterStock(value)}
                 className={`flex-1 px-3 py-2 rounded-lg font-medium text-sm transition-all ${filterStock === value
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
                   }`}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}

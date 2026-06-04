@@ -19,7 +19,7 @@ import { productService } from '../../services/products/productService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { PageLoader } from '../../components/Common/Feedback/Loader';
 import { useToast } from '../../contexts/ToastContext';
-import { useSWR, invalidateCachePattern } from '../../hooks';
+import { useSWR, useFirstVisit, invalidateCachePattern } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 
 const cardVariants = {
@@ -35,6 +35,7 @@ export default function CreditNoteCreatePage() {
   const { id: invoiceId } = useParams();
   const navigate = useNavigate();
   const { success, error } = useToast();
+  const isFirstVisit = useFirstVisit('credit-note-create');
 
   const isInitialized = useRef(false);
 
@@ -200,7 +201,7 @@ export default function CreditNoteCreatePage() {
         className="space-y-6"
       >
       {/* Back + header */}
-      <motion.div variants={cardVariants} initial="hidden" animate="visible">
+      <motion.div variants={cardVariants} initial={isFirstVisit ? "hidden" : false} animate="visible">
         <Link to={`/invoices/${invoiceId}`} className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-4">
           <ArrowLeft className="w-4 h-4" />
           Back to Invoice
@@ -217,7 +218,7 @@ export default function CreditNoteCreatePage() {
       </motion.div>
 
       {/* Invoice Info */}
-      <motion.div variants={cardVariants} initial="hidden" animate="visible" className="glass-card p-4 bg-slate-800/50">
+      <motion.div variants={cardVariants} initial={isFirstVisit ? "hidden" : false} animate="visible" className="glass-card p-4 bg-slate-800/50">
         <div className="flex flex-wrap gap-6 text-sm">
           <div>
             <span className="text-slate-500">Invoice Date:</span>{' '}
@@ -235,7 +236,7 @@ export default function CreditNoteCreatePage() {
       </motion.div>
 
       {/* Return Items Table */}
-      <motion.div variants={cardVariants} initial="hidden" animate="visible" className="glass-card p-6">
+      <motion.div variants={cardVariants} initial={isFirstVisit ? "hidden" : false} animate="visible" className="glass-card p-6">
         <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
           <Package className="w-5 h-5 text-blue-400" />
           Select Items to Return
@@ -301,7 +302,7 @@ export default function CreditNoteCreatePage() {
       </motion.div>
 
       {/* Return Summary */}
-      <motion.div variants={cardVariants} initial="hidden" animate="visible" className="glass-card p-6">
+      <motion.div variants={cardVariants} initial={isFirstVisit ? "hidden" : false} animate="visible" className="glass-card p-6">
         <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
           <Calculator className="w-5 h-5 text-accent-400" />
           Credit Note Summary

@@ -26,7 +26,7 @@ import Modal from '../../components/Common/Modals/Modal';
 import ConfirmDialog from '../../components/Common/Dialogs/ConfirmDialog';
 import EnhancedButton from '../../components/Common/Buttons/EnhancedButton';
 import { useToast } from '../../contexts/ToastContext';
-import { useDebounce, useMotionConfig, useSWR, invalidateCachePattern } from '../../hooks';
+import { useDebounce, useMotionConfig, useFirstVisit, useSWR, invalidateCachePattern } from '../../hooks';
 
 const initialCustomerState = {
   customerName: '',
@@ -52,20 +52,9 @@ const CustomerCard = memo(function CustomerCard({
   const theme = getCustomerTheme(customer.theme);
 
   return (
-    <motion.div
-      layout={!denseMode}
-      initial={denseMode ? false : { opacity: 0, scale: 0.96 }}
-      animate={{
-        opacity: 1,
-        scale: 1,
-        transition: {
-          delay: shouldStagger && !denseMode ? Math.min(index * 0.02, 0.12) : 0,
-          duration: denseMode ? 0.12 : 0.2
-        }
-      }}
-      exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.12 } }}
-      whileHover={shouldHover ? { y: -4 } : undefined}
-      className="glass-card p-6 hover:border-blue-500/50 transition-colors cursor-pointer group"
+    <div
+      className={`glass-card p-5 ${shouldHover ? 'cursor-pointer hover:bg-slate-800/80 transition-colors hover:-translate-y-1' : ''
+        }`}
     >
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -160,7 +149,7 @@ const CustomerCard = memo(function CustomerCard({
           </Link>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 });
 
@@ -176,13 +165,14 @@ export default function CustomersPage() {
   const [deleteDialog, setDeleteDialog] = useState({ open: false, customer: null });
   const { success, error } = useToast();
   const observer = useRef(null);
-  
+
   // Track which SWR key the latest accumulated data belongs to,
   // so we can discard stale responses from previous search terms.
   const activeSWRKeyRef = useRef('');
 
   // Adaptive motion configuration
   const motionConfig = useMotionConfig();
+  const isFirstVisit = useFirstVisit('customers');
 
   // Build the SWR cache key
   const swrKey = `customers-${search}-${page}`;
@@ -307,7 +297,7 @@ export default function CustomersPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.customerName || !formData.phone) {
       error('Please fill customer name and phone');
       return;
@@ -322,7 +312,7 @@ export default function CustomersPage() {
         await customerService.createCustomer(formData);
         success('Customer created successfully');
       }
-      
+
       setModalOpen(false);
       // Invalidate customers cache and revalidate
       invalidateCachePattern('customers');
@@ -377,14 +367,14 @@ export default function CustomersPage() {
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
+      initial={isFirstVisit ? { opacity: 0 } : false}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
       className="space-y-12"
     >
       {/* Header */}
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
+        initial={isFirstVisit ? { opacity: 0, y: -20 } : false}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
         className="flex flex-col sm:flex-row gap-4 justify-between mb-2"
@@ -428,7 +418,7 @@ export default function CustomersPage() {
               )}
             </AnimatePresence>
           </motion.div>
-          
+
           <motion.button
             type="submit"
             className="btn btn-secondary"
@@ -442,7 +432,7 @@ export default function CustomersPage() {
 
         {/* Add Customer Button */}
         <motion.div
-          initial={{ opacity: 0, x: 20 }}
+          initial={isFirstVisit ? { opacity: 0, x: 20 } : false}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2 }}
         >
@@ -498,29 +488,23 @@ export default function CustomersPage() {
             </motion.div>
           </motion.div>
         ) : customers.length > 0 ? (
-          <motion.div
-            key="customers-grid"
-            initial={false}
-            animate={{ opacity: 1 }}
+          <div
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
           >
-            {/* Framer Motion bug: dynamically changing `mode` causes children to get stuck in DOM */}
-            {/* Therefore, we always use popLayout (or just remove mode entirely) */}
-            <AnimatePresence mode="popLayout">
-              {customers.map((customer, index) => (
-                <CustomerCard
-                  key={customer._id}
-                  customer={customer}
-                  index={index}
-                  denseMode={denseMode}
-                  shouldHover={shouldHoverCards}
-                  shouldStagger={shouldStaggerCards}
-                  openEditModal={openEditModal}
-                  setDeleteDialog={setDeleteDialog}
-                />
+            {/* Removed AnimatePresence and motion for performance with large lists */}
+            {customers.map((customer, index) => (
+              <CustomerCard
+                key={customer._id}
+                customer={customer}
+                index={index}
+                denseMode={denseMode}
+                shouldHover={shouldHoverCards}
+                shouldStagger={shouldStaggerCards}
+                openEditModal={openEditModal}
+                setDeleteDialog={setDeleteDialog}
+              />
             ))}
-            </AnimatePresence>
-          </motion.div>
+          </div>
         ) : null}
       </AnimatePresence>
 
