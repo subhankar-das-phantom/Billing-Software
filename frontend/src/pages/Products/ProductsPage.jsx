@@ -202,12 +202,7 @@ const EmptyProductsState = ({ search, onAddClick }) => (
 const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatDate, formatCurrency, observerTarget, hasMore, isLoadingMore }) => (
   <div className="space-y-4">
     {/* Desktop/Tablet Table View */}
-    <motion.div
-      key="products-table-desktop"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.15 }}
+    <div
       className="hidden md:block glass-card overflow-hidden"
     >
       <div className="table-container">
@@ -255,18 +250,14 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatDate, formatC
                   <td className="text-right">
                     <div className="flex items-center justify-end gap-2">
                       {product.oldMRP > 0 && product.oldMRP !== product.newMRP && (
-                        <motion.span
-                          className="text-slate-500 line-through text-sm flex items-center gap-1"
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                        >
+                        <span className="text-slate-500 line-through text-sm flex items-center gap-1">
                           {product.oldMRP > product.newMRP ? (
                             <TrendingDown className="w-3 h-3 text-emerald-400" />
                           ) : (
                             <TrendingUp className="w-3 h-3 text-red-400" />
                           )}
                           {formatCurrency(product.oldMRP)}
-                        </motion.span>
+                        </span>
                       )}
                       <span className="text-emerald-400 font-medium">
                         {formatCurrency(product.newMRP)}
@@ -279,20 +270,15 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatDate, formatC
                     </span>
                   </td>
                   <td className="text-center">
-                    <motion.span
+                    <span
                       className={`badge inline-flex items-center gap-1.5 ${outOfStock ? 'badge-danger' :
                         lowStock ? 'badge-warning' :
                           'badge-success'
                         }`}
-                      whileHover={{ scale: 1.05 }}
-                      animate={outOfStock ? {
-                        scale: [1, 1.05, 1],
-                        transition: { duration: 2, repeat: Infinity }
-                      } : {}}
                     >
                       <Layers className="w-3 h-3" />
                       {product.currentStockQty} {product.unit}
-                    </motion.span>
+                    </span>
                   </td>
                   <td>
                     <div className="flex justify-center gap-2">
@@ -322,30 +308,19 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatDate, formatC
           </tbody>
         </table>
       </div>
-    </motion.div>
+    </div>
 
     {/* Mobile Card View */}
-    <motion.div
-      key="products-table-mobile"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.15 }}
+    <div
       className="md:hidden space-y-4"
     >
-      <AnimatePresence>
         {filteredProducts.map((product) => {
           const lowStock = product.currentStockQty <= 30;
           const outOfStock = product.currentStockQty === 0;
 
           return (
-            <motion.div
+            <div
               key={`mobile-${product._id}`}
-              layout
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.15 }}
               className="glass-card p-4 flex flex-col gap-4 relative overflow-hidden"
             >
               {/* Product Info Section */}
@@ -397,20 +372,16 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatDate, formatC
 
                 <div className="space-y-1.5 flex flex-col items-end">
                   <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Stock Status</p>
-                  <motion.span
+                  <span
                     className={`badge inline-flex items-center gap-1.5 px-2 py-1 text-xs ${outOfStock ? 'badge-danger' :
                       lowStock ? 'badge-warning' :
                         'badge-success'
                       }`}
-                    animate={outOfStock ? {
-                      scale: [1, 1.05, 1],
-                      transition: { duration: 2, repeat: Infinity }
-                    } : {}}
                   >
                     <Layers className="w-3.5 h-3.5" />
                     <span className="font-medium">{product.currentStockQty}</span>
                     <span className="text-[10px] opacity-90">{product.unit}</span>
-                  </motion.span>
+                  </span>
                 </div>
               </div>
 
@@ -431,11 +402,10 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatDate, formatC
                   <Trash2 className="w-4 h-4" /> Delete
                 </motion.button>
               </div>
-            </motion.div>
+            </div>
           );
         })}
-      </AnimatePresence>
-    </motion.div>
+    </div>
 
     {/* Infinite Scroll Loading Indicator */}
     {(hasMore || isLoadingMore) && (
@@ -463,15 +433,19 @@ export default function ProductsPage() {
 
   // Infinite Scroll State
   const [page, setPage] = useState(1);
-  const [accumulatedProducts, setAccumulatedProducts] = useState([]);
   const observer = useRef(null);
 
   // SWR: Instant cached data + background revalidation
   const { data, isLoading, isValidating, mutate } = useSWR(
     `products-${search}-${page}`,
-    () => productService.getProducts({ search, page, limit: 50 }),
+    () => productService.getProducts({ search, page, limit: 25 }),
     { ttl: 5 * 60 * 1000 } // 5 minute cache
   );
+
+  // Seed from SWR cache so navigating back doesn't flash empty table
+  const [accumulatedProducts, setAccumulatedProducts] = useState(() => {
+    return data?.products ?? [];
+  });
 
   // SWR: Global Stats
   const { data: statsData, mutate: mutateStats } = useSWR(
@@ -830,7 +804,7 @@ export default function ProductsPage() {
       </motion.div>
 
       {/* ✅ FIX #5: Proper AnimatePresence with stable components */}
-      <AnimatePresence mode="wait">
+      <AnimatePresence>
         {filteredProducts.length === 0 ? (
           <EmptyProductsState
             key={`empty-${filterStock}`}

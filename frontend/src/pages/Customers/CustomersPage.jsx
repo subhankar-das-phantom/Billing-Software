@@ -180,7 +180,7 @@ export default function CustomersPage() {
   // SWR: Instant cached data + background revalidation
   const { data, isLoading, isValidating, mutate } = useSWR(
     swrKey,
-    () => customerService.getCustomers({ search, page, limit: 50, includeOutstanding: true, fuzzy: true }),
+    () => customerService.getCustomers({ search, page, limit: 25, includeOutstanding: true, fuzzy: true }),
     { ttl: 5 * 60 * 1000 } // 5 minute cache
   );
 
