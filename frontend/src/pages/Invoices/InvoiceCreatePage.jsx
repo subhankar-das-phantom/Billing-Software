@@ -29,7 +29,7 @@ import { calculateItemAmounts, calculateInvoiceTotals, GST_RATES, removeGST, rou
 import { PageLoader } from '../../components/Common/Feedback/Loader';
 import Modal from '../../components/Common/Modals/Modal';
 import { useToast } from '../../contexts/ToastContext';
-import { invalidateCachePattern, useDebounce } from '../../hooks';
+import { invalidateCachePattern, useDebounce, useFirstVisit } from '../../hooks';
 
 const pageVariants = {
   hidden: { opacity: 0 },
@@ -143,6 +143,7 @@ export default function InvoiceCreatePage() {
   const { id: editInvoiceId } = useParams();
   const location = useLocation();
   const { success, error } = useToast();
+  const isFirstVisit = useFirstVisit('invoice-create');
 
   // Detect if we're in edit mode
   const isEditMode = Boolean(editInvoiceId && location.pathname.includes('/edit'));
@@ -773,7 +774,7 @@ export default function InvoiceCreatePage() {
   return (
     <motion.div
       variants={pageVariants}
-      initial="hidden"
+      initial={isFirstVisit ? "hidden" : false}
       animate="visible"
       className="space-y-12"
     >

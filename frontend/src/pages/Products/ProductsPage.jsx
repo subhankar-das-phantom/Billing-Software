@@ -34,7 +34,7 @@ import Modal from '../../components/Common/Modals/Modal';
 import ConfirmDialog from '../../components/Common/Dialogs/ConfirmDialog';
 import EnhancedButton from '../../components/Common/Buttons/EnhancedButton';
 import { useToast } from '../../contexts/ToastContext';
-import { useDebounce, useMotionConfig, useSWR, invalidateCachePattern } from '../../hooks';
+import { useDebounce, useMotionConfig, useFirstVisit, useSWR, invalidateCachePattern, useMediaQuery, useTransitionDelay } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 
 // Helper to create adaptive variants - faster on mobile
@@ -199,17 +199,11 @@ const EmptyProductsState = ({ search, onAddClick }) => (
 );
 
 // ✅ FIX #2: Separate component for table - simplified for mobile
-const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatDate, formatCurrency, observerTarget, hasMore, isLoadingMore }) => (
+const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatDate, formatCurrency, observerTarget, hasMore, isLoadingMore, isDesktop }) => (
   <div className="space-y-4">
     {/* Desktop/Tablet Table View */}
-    <motion.div
-      key="products-table-desktop"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.15 }}
-      className="hidden md:block glass-card overflow-hidden"
-    >
+    {isDesktop ? (
+    <div className="glass-card overflow-hidden">
       <div className="table-container">
         <table className="table">
           <thead>
@@ -223,226 +217,187 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatDate, formatC
             </tr>
           </thead>
           <tbody>
-            <AnimatePresence>
-              {filteredProducts.map((product, index) => {
-                const lowStock = product.currentStockQty <= 30;
-                const outOfStock = product.currentStockQty === 0;
+            {filteredProducts.map((product, index) => {
+              const lowStock = product.currentStockQty <= 30;
+              const outOfStock = product.currentStockQty === 0;
 
-                return (
-                  <motion.tr
-                    key={product._id}
-                    layout
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.15 }}
-                    className="hover:bg-slate-700/50 transition-colors"
-                  >
-                    <td>
-                      <Link to={`/products/${product._id}`} className="flex items-center gap-3 group">
-                        <div className="p-2 bg-blue-500/20 rounded-lg">
-                          <Package className="w-4 h-4 text-blue-400" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-white group-hover:text-blue-400 transition-colors">{product.productName}</p>
-                          <p className="text-xs text-slate-400 flex items-center gap-1.5">
-                            <Building2 className="w-3 h-3" />
-                            {product.manufacturer}
-                          </p>
-                        </div>
-                      </Link>
-                    </td>
-                    <td className="text-slate-300 font-mono text-sm text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <Barcode className="w-4 h-4 text-slate-500" />
-                        {product.hsnCode}
+              return (
+                <tr
+                  key={product._id}
+                  className="hover:bg-slate-700/50 transition-colors"
+                >
+                  <td>
+                    <Link to={`/products/${product._id}`} className="flex items-center gap-3 group">
+                      <div className="p-2 bg-blue-500/20 rounded-lg">
+                        <Package className="w-4 h-4 text-blue-400" />
                       </div>
-                    </td>
-                    <td className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {product.oldMRP > 0 && product.oldMRP !== product.newMRP && (
-                          <motion.span
-                            className="text-slate-500 line-through text-sm flex items-center gap-1"
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                          >
-                            {product.oldMRP > product.newMRP ? (
-                              <TrendingDown className="w-3 h-3 text-emerald-400" />
-                            ) : (
-                              <TrendingUp className="w-3 h-3 text-red-400" />
-                            )}
-                            {formatCurrency(product.oldMRP)}
-                          </motion.span>
-                        )}
-                        <span className="text-emerald-400 font-medium">
-                          {formatCurrency(product.newMRP)}
-                        </span>
+                      <div>
+                        <p className="font-medium text-white group-hover:text-blue-400 transition-colors">{product.productName}</p>
+                        <p className="text-xs text-slate-400 flex items-center gap-1.5">
+                          <Building2 className="w-3 h-3" />
+                          {product.manufacturer}
+                        </p>
                       </div>
-                    </td>
-                    <td className="text-center">
-                      <span className="inline-flex items-center px-2 py-1 bg-blue-500/20 rounded text-blue-400 text-sm font-medium">
-                        {product.gstPercentage}%
-                      </span>
-                    </td>
-                    <td className="text-center">
-                      <motion.span
-                        className={`badge inline-flex items-center gap-1.5 ${outOfStock ? 'badge-danger' :
-                            lowStock ? 'badge-warning' :
-                              'badge-success'
-                          }`}
-                        whileHover={{ scale: 1.05 }}
-                        animate={outOfStock ? {
-                          scale: [1, 1.05, 1],
-                          transition: { duration: 2, repeat: Infinity }
-                        } : {}}
-                      >
-                        <Layers className="w-3 h-3" />
-                        {product.currentStockQty} {product.unit}
-                      </motion.span>
-                    </td>
-                    <td>
-                      <div className="flex justify-center gap-2">
-                        <motion.button
-                          onClick={() => onEdit(product)}
-                          className="p-2.5 rounded-lg bg-slate-800/40 hover:bg-slate-700 hover:text-blue-400 border border-transparent hover:border-slate-600 transition-colors tooltip-trigger relative"
-                          whileHover={{ scale: 1.1, rotate: 5 }}
-                          whileTap={{ scale: 0.9 }}
-                          title="Edit Product"
-                        >
-                          <Edit2 className="w-4 h-4 text-slate-400 hover:text-blue-400" />
-                        </motion.button>
-                        <motion.button
-                          onClick={() => onDelete(product)}
-                          className="p-2.5 rounded-lg bg-slate-800/40 hover:bg-slate-700 hover:text-red-400 border border-transparent hover:border-slate-600 transition-colors tooltip-trigger relative"
-                          whileHover={{ scale: 1.1, rotate: -5 }}
-                          whileTap={{ scale: 0.9 }}
-                          title="Delete Product"
-                        >
-                          <Trash2 className="w-4 h-4 text-slate-400 hover:text-red-400" />
-                        </motion.button>
-                      </div>
-                    </td>
-                  </motion.tr>
-                );
-              })}
-            </AnimatePresence>
-          </tbody>
-        </table>
-      </div>
-    </motion.div>
-
-    {/* Mobile Card View */}
-    <motion.div
-      key="products-table-mobile"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.15 }}
-      className="md:hidden space-y-4"
-    >
-      <AnimatePresence>
-        {filteredProducts.map((product) => {
-          const lowStock = product.currentStockQty <= 30;
-          const outOfStock = product.currentStockQty === 0;
-
-          return (
-            <motion.div
-              key={`mobile-${product._id}`}
-              layout
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.15 }}
-              className="glass-card p-4 flex flex-col gap-4 relative overflow-hidden"
-            >
-              {/* Product Info Section */}
-              <div className="flex justify-between items-start gap-3">
-                <Link to={`/products/${product._id}`} className="flex gap-3 flex-1 group">
-                  <div className="p-2.5 bg-blue-500/20 rounded-xl shrink-0 h-fit">
-                    <Package className="w-5 h-5 text-blue-400" />
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="font-semibold text-white group-hover:text-blue-400 transition-colors text-base truncate mb-1">
-                      {product.productName}
-                    </h3>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
-                      <span className="flex items-center gap-1.5 shrink-0">
-                        <Building2 className="w-3.5 h-3.5" />
-                        <span className="truncate max-w-[120px]">{product.manufacturer}</span>
-                      </span>
-                      <span className="flex items-center gap-1.5 shrink-0">
-                        <Barcode className="w-3.5 h-3.5" />
-                        <span>{product.hsnCode}</span>
-                      </span>
+                    </Link>
+                  </td>
+                  <td className="text-slate-300 font-mono text-sm text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <Barcode className="w-4 h-4 text-slate-500" />
+                      {product.hsnCode}
                     </div>
-                  </div>
-                </Link>
-              </div>
-
-              {/* Pricing & Stock Grid */}
-              <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-700/50 bg-slate-800/30 -mx-4 px-4 pb-1">
-                <div className="space-y-1.5">
-                  <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Price Details</p>
-                  <div className="flex flex-col gap-1">
-                    <div className="flex flex-wrap items-baseline gap-2">
-                      <span className="text-emerald-400 font-semibold text-sm">
-                        {formatCurrency(product.newMRP)}
-                      </span>
+                  </td>
+                  <td className="text-right">
+                    <div className="flex items-center justify-end gap-2">
                       {product.oldMRP > 0 && product.oldMRP !== product.newMRP && (
-                        <span className="text-slate-500 line-through text-xs">
+                        <span className="text-slate-500 line-through text-sm flex items-center gap-1">
+                          {product.oldMRP > product.newMRP ? (
+                            <TrendingDown className="w-3 h-3 text-emerald-400" />
+                          ) : (
+                            <TrendingUp className="w-3 h-3 text-red-400" />
+                          )}
                           {formatCurrency(product.oldMRP)}
                         </span>
                       )}
-                    </div>
-                    <div>
-                      <span className="inline-flex items-center px-1.5 py-0.5 bg-blue-500/20 rounded text-blue-400 text-[10px] font-medium border border-blue-500/20">
-                        GST: {product.gstPercentage}%
+                      <span className="text-emerald-400 font-medium">
+                        {formatCurrency(product.newMRP)}
                       </span>
                     </div>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5 flex flex-col items-end">
-                  <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Stock Status</p>
-                  <motion.span
-                    className={`badge inline-flex items-center gap-1.5 px-2 py-1 text-xs ${outOfStock ? 'badge-danger' :
+                  </td>
+                  <td className="text-center">
+                    <span className="inline-flex items-center px-2 py-1 bg-blue-500/20 rounded text-blue-400 text-sm font-medium">
+                      {product.gstPercentage}%
+                    </span>
+                  </td>
+                  <td className="text-center">
+                    <span
+                      className={`badge inline-flex items-center gap-1.5 ${outOfStock ? 'badge-danger' :
                         lowStock ? 'badge-warning' :
                           'badge-success'
-                      }`}
-                    animate={outOfStock ? {
-                      scale: [1, 1.05, 1],
-                      transition: { duration: 2, repeat: Infinity }
-                    } : {}}
-                  >
-                    <Layers className="w-3.5 h-3.5" />
-                    <span className="font-medium">{product.currentStockQty}</span>
-                    <span className="text-[10px] opacity-90">{product.unit}</span>
-                  </motion.span>
+                        }`}
+                    >
+                      <Layers className="w-3 h-3" />
+                      {product.currentStockQty} {product.unit}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="flex justify-center gap-2">
+                      <button
+                        onClick={() => onEdit(product)}
+                        className="p-2.5 rounded-lg bg-slate-800/40 hover:bg-slate-700 hover:text-blue-400 border border-transparent hover:border-slate-600 transition-all hover:scale-110 active:scale-95 tooltip-trigger relative"
+                        title="Edit Product"
+                      >
+                        <Edit2 className="w-4 h-4 text-slate-400 hover:text-blue-400" />
+                      </button>
+                      <button
+                        onClick={() => onDelete(product)}
+                        className="p-2.5 rounded-lg bg-slate-800/40 hover:bg-slate-700 hover:text-red-400 border border-transparent hover:border-slate-600 transition-all hover:scale-110 active:scale-95 tooltip-trigger relative"
+                        title="Delete Product"
+                      >
+                        <Trash2 className="w-4 h-4 text-slate-400 hover:text-red-400" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    ) : (
+    /* Mobile Card View */
+    <div className="space-y-4">
+      {filteredProducts.map((product) => {
+        const lowStock = product.currentStockQty <= 30;
+        const outOfStock = product.currentStockQty === 0;
+
+        return (
+          <div
+            key={`mobile-${product._id}`}
+            className="glass-card p-4 flex flex-col gap-4 relative overflow-hidden"
+          >
+            {/* Product Info Section */}
+            <div className="flex justify-between items-start gap-3">
+              <Link to={`/products/${product._id}`} className="flex gap-3 flex-1 group">
+                <div className="p-2.5 bg-blue-500/20 rounded-xl shrink-0 h-fit">
+                  <Package className="w-5 h-5 text-blue-400" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-white group-hover:text-blue-400 transition-colors text-base truncate mb-1">
+                    {product.productName}
+                  </h3>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
+                    <span className="flex items-center gap-1.5 shrink-0">
+                      <Building2 className="w-3.5 h-3.5" />
+                      <span className="truncate max-w-[120px]">{product.manufacturer}</span>
+                    </span>
+                    <span className="flex items-center gap-1.5 shrink-0">
+                      <Barcode className="w-3.5 h-3.5" />
+                      <span>{product.hsnCode}</span>
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            </div>
+
+            {/* Pricing & Stock Grid */}
+            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-700/50 bg-slate-800/30 -mx-4 px-4 pb-1">
+              <div className="space-y-1.5">
+                <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Price Details</p>
+                <div className="flex flex-col gap-1">
+                  <div className="flex flex-wrap items-baseline gap-2">
+                    <span className="text-emerald-400 font-semibold text-sm">
+                      {formatCurrency(product.newMRP)}
+                    </span>
+                    {product.oldMRP > 0 && product.oldMRP !== product.newMRP && (
+                      <span className="text-slate-500 line-through text-xs">
+                        {formatCurrency(product.oldMRP)}
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <span className="inline-flex items-center px-1.5 py-0.5 bg-blue-500/20 rounded text-blue-400 text-[10px] font-medium border border-blue-500/20">
+                      GST: {product.gstPercentage}%
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              {/* Action Buttons Row */}
-              <div className="flex gap-2 pt-1 border-t border-slate-700/50 mt-1">
-                <motion.button
-                  onClick={() => onEdit(product)}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-slate-800/60 hover:bg-slate-700 text-slate-300 hover:text-blue-400 border border-slate-700 hover:border-blue-500/30 transition-all text-sm font-medium"
-                  whileTap={{ scale: 0.98 }}
+              <div className="space-y-1.5 flex flex-col items-end">
+                <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Stock Status</p>
+                <span
+                  className={`badge inline-flex items-center gap-1.5 px-2 py-1 text-xs ${outOfStock ? 'badge-danger' :
+                    lowStock ? 'badge-warning' :
+                      'badge-success'
+                    }`}
                 >
-                  <Edit2 className="w-4 h-4" /> Edit
-                </motion.button>
-                <motion.button
-                  onClick={() => onDelete(product)}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-slate-800/60 hover:bg-slate-700 text-slate-300 hover:text-red-400 border border-slate-700 hover:border-red-500/30 transition-all text-sm font-medium"
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <Trash2 className="w-4 h-4" /> Delete
-                </motion.button>
+                  <Layers className="w-3.5 h-3.5" />
+                  <span className="font-medium">{product.currentStockQty}</span>
+                  <span className="text-[10px] opacity-90">{product.unit}</span>
+                </span>
               </div>
-            </motion.div>
-          );
-        })}
-      </AnimatePresence>
-    </motion.div>
+            </div>
+
+            {/* Action Buttons Row */}
+            <div className="flex gap-2 pt-1 border-t border-slate-700/50 mt-1">
+              <button
+                onClick={() => onEdit(product)}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-slate-800/60 hover:bg-slate-700 text-slate-300 hover:text-blue-400 border border-slate-700 hover:border-blue-500/30 transition-all text-sm font-medium active:scale-[0.98]"
+              >
+                <Edit2 className="w-4 h-4" /> Edit
+              </button>
+              <button
+                onClick={() => onDelete(product)}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-slate-800/60 hover:bg-slate-700 text-slate-300 hover:text-red-400 border border-slate-700 hover:border-red-500/30 transition-all text-sm font-medium active:scale-[0.98]"
+              >
+                <Trash2 className="w-4 h-4" /> Delete
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+    )}
 
     {/* Infinite Scroll Loading Indicator */}
     {(hasMore || isLoadingMore) && (
@@ -466,18 +421,25 @@ export default function ProductsPage() {
   const [stockAdjustment, setStockAdjustment] = useState({ qty: '', reason: 'add' });
   const [filterStock, setFilterStock] = useState('all');
   const { success, error } = useToast();
+  const isFirstVisit = useFirstVisit('products');
+  const isDesktop = useMediaQuery('(min-width: 768px)');
+  const transitionReady = useTransitionDelay(250, isFirstVisit);
 
   // Infinite Scroll State
   const [page, setPage] = useState(1);
-  const [accumulatedProducts, setAccumulatedProducts] = useState([]);
   const observer = useRef(null);
 
   // SWR: Instant cached data + background revalidation
   const { data, isLoading, isValidating, mutate } = useSWR(
     `products-${search}-${page}`,
-    () => productService.getProducts({ search, page, limit: 50 }),
+    () => productService.getProducts({ search, page, limit: 25 }),
     { ttl: 5 * 60 * 1000 } // 5 minute cache
   );
+
+  // Seed from SWR cache so navigating back doesn't flash empty table
+  const [accumulatedProducts, setAccumulatedProducts] = useState(() => {
+    return data?.products ?? [];
+  });
 
   // SWR: Global Stats
   const { data: statsData, mutate: mutateStats } = useSWR(
@@ -684,7 +646,7 @@ export default function ProductsPage() {
   return (
     <motion.div
       variants={pageVariants}
-      initial="hidden"
+      initial={isFirstVisit ? "hidden" : false}
       animate="visible"
       className="space-y-6"
     >
@@ -821,8 +783,8 @@ export default function ProductsPage() {
                 key={value}
                 onClick={() => setFilterStock(value)}
                 className={`flex-1 px-3 py-2 rounded-lg font-medium text-sm transition-all ${filterStock === value
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
                   }`}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -836,8 +798,12 @@ export default function ProductsPage() {
       </motion.div>
 
       {/* ✅ FIX #5: Proper AnimatePresence with stable components */}
-      <AnimatePresence mode="wait">
-        {filteredProducts.length === 0 ? (
+      <AnimatePresence>
+        {!transitionReady ? (
+          <div className="glass-card p-12 flex justify-center items-center">
+            <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+          </div>
+        ) : filteredProducts.length === 0 ? (
           <EmptyProductsState
             key={`empty-${filterStock}`}
             search={search}
@@ -854,6 +820,7 @@ export default function ProductsPage() {
             observerTarget={lastElementRef}
             hasMore={hasMore}
             isLoadingMore={isValidating && page > 1}
+            isDesktop={isDesktop}
           />
         )}
       </AnimatePresence>

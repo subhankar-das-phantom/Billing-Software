@@ -19,7 +19,7 @@ import { formatCurrency, formatDate } from '../../utils/formatters';
 import { PageLoader } from '../../components/Common/Feedback/Loader';
 import ManualEntryModal from '../../components/ManualEntry/ManualEntryModal';
 import { useToast } from '../../contexts/ToastContext';
-import { invalidateCachePattern } from '../../hooks';
+import { invalidateCachePattern, useFirstVisit } from '../../hooks';
 
 export default function ManualEntriesPage() {
   const [entries, setEntries] = useState([]);
@@ -37,6 +37,7 @@ export default function ManualEntriesPage() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const { addToast } = useToast();
+  const isFirstVisit = useFirstVisit('manual-entries');
 
   const loadEntries = useCallback(async () => {
     try {
@@ -130,7 +131,7 @@ export default function ManualEntriesPage() {
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
+      initial={isFirstVisit ? { opacity: 0 } : false}
       animate={{ opacity: 1 }}
       className="space-y-6"
     >

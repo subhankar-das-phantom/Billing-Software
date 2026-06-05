@@ -23,7 +23,7 @@ import {
 } from '../../services/credits/creditService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { PageLoader } from '../../components/Common/Feedback/Loader';
-import { useSWR } from '../../hooks';
+import { useSWR, useFirstVisit } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 
 // Animated counter component
@@ -53,6 +53,7 @@ const AnimatedCounter = ({ value, prefix = '', suffix = '', decimals = 0 }) => {
 
 export default function CreditsPage() {
   const [activeTab, setActiveTab] = useState('outstanding');
+  const isFirstVisit = useFirstVisit('credits');
 
   // Outstanding infinite scroll state
   const [outstandingPage, setOutstandingPage] = useState(1);
@@ -266,14 +267,11 @@ export default function CreditsPage() {
   };
 
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
+    <div
       className="space-y-6"
     >
       {/* Header */}
-      <motion.div variants={itemVariants} className="flex items-center justify-between">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-3 bg-amber-500/20 rounded-xl">
             <Wallet className="w-6 h-6 text-amber-400" />
@@ -287,21 +285,17 @@ export default function CreditsPage() {
         <div className="flex items-center gap-2">
           <RefreshIndicator isRefreshing={isValidating} size="sm" showText />
         </div>
-      </motion.div>
+      </div>
 
       {/* Stat Cards */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((card, index) => {
           const colors = colorClasses[card.color];
           const Icon = card.icon;
           return (
-            <motion.div
+            <div
               key={card.label}
-              className={`glass-card p-5 border ${colors.border} hover:shadow-lg ${colors.glow} transition-all`}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.03, duration: 0.15 }}
-              whileHover={{ y: -2, scale: 1.01 }}
+              className={`glass-card p-5 border ${colors.border} hover:shadow-lg ${colors.glow} transition-all hover:-translate-y-0.5 hover:scale-[1.01]`}
             >
               <div className="flex items-center justify-between mb-3">
                 <div className={`p-2.5 rounded-lg ${colors.bg}`}>
@@ -315,14 +309,13 @@ export default function CreditsPage() {
                   decimals={card.decimals}
                 />
               </p>
-              <p className="text-sm text-slate-400">{card.label}</p>
-            </motion.div>
+            </div>
           );
         })}
-      </motion.div>
+      </div>
 
       {/* Tabs */}
-      <motion.div variants={itemVariants} className="glass-card overflow-hidden">
+      <div className="glass-card overflow-hidden">
         <div className="flex border-b border-slate-700">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -330,11 +323,10 @@ export default function CreditsPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 px-4 py-3 flex items-center justify-center gap-2 transition-all ${
-                  activeTab === tab.id
-                    ? 'bg-slate-700/50 text-white border-b-2 border-amber-500'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-700/30'
-                }`}
+                className={`flex-1 px-4 py-3 flex items-center justify-center gap-2 transition-all ${activeTab === tab.id
+                  ? 'bg-slate-700/50 text-white border-b-2 border-amber-500'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-700/30'
+                  }`}
               >
                 <Icon className="w-4 h-4" />
                 {tab.label}
@@ -347,13 +339,7 @@ export default function CreditsPage() {
           <AnimatePresence mode="wait">
             {/* Outstanding Tab */}
             {activeTab === 'outstanding' && (
-              <motion.div
-                key="outstanding"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.1 }}
-              >
+              <div key="outstanding">
                 {outstandingCustomers.length === 0 && !outstandingValidating ? (
                   <div className="text-center py-12">
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/20 mb-4">
@@ -364,12 +350,7 @@ export default function CreditsPage() {
                 ) : (
                   <div className="space-y-3">
                     {outstandingCustomers.map((customer, index) => (
-                      <motion.div
-                        key={customer._id}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: Math.min(index, 20) * 0.02 }}
-                      >
+                      <div key={customer._id}>
                         <Link
                           to={`/customers/${customer._id}`}
                           className="block p-4 bg-slate-800/50 rounded-xl border border-slate-700/50 hover:border-amber-500/50 transition-all group"
@@ -406,30 +387,27 @@ export default function CreditsPage() {
                             </div>
                           </div>
                         </Link>
-                      </motion.div>
+                      </div>
                     ))}
                     {/* Infinite scroll sentinel */}
-                    {(outstandingHasMore || outstandingValidating) && (
-                      <div ref={outstandingLastRef} className="p-3 flex items-center justify-center gap-2 text-slate-400">
-                        <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
-                        <span className="text-sm">Loading more customers...</span>
+                    {outstandingHasMore && (
+                      <div ref={outstandingLastRef} className="p-3 flex items-center justify-center h-12">
+                        {outstandingValidating && (
+                          <div className="flex items-center gap-2 text-slate-400">
+                            <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                            <span className="text-sm">Loading more customers...</span>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
                 )}
-              </motion.div>
+              </div>
             )}
 
             {/* Ageing Report Tab */}
             {activeTab === 'ageing' && (
-              <motion.div
-                key="ageing"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.1 }}
-                className="space-y-4"
-              >
+              <div key="ageing" className="space-y-4">
                 {/* Ageing Summary Cards */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {[
@@ -488,27 +466,25 @@ export default function CreditsPage() {
                         </Link>
                       ))}
                       {/* Infinite scroll sentinel */}
-                      {(ageingHasMore || ageingValidating) && (
-                        <div ref={ageingLastRef} className="p-3 flex items-center justify-center gap-2 text-slate-400">
-                          <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
-                          <span className="text-sm">Loading more invoices...</span>
+                      {ageingHasMore && (
+                        <div ref={ageingLastRef} className="p-3 flex items-center justify-center h-12">
+                          {ageingValidating && (
+                            <div className="flex items-center gap-2 text-slate-400">
+                              <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                              <span className="text-sm">Loading more invoices...</span>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
                   </div>
                 )}
-              </motion.div>
+              </div>
             )}
 
             {/* Recent Payments Tab */}
             {activeTab === 'payments' && (
-              <motion.div
-                key="payments"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.1 }}
-              >
+              <div key="payments">
                 {recentPayments.length === 0 ? (
                   <div className="text-center py-12">
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-700 mb-4">
@@ -519,11 +495,8 @@ export default function CreditsPage() {
                 ) : (
                   <div className="space-y-3">
                     {recentPayments.map((payment, index) => (
-                      <motion.div
+                      <div
                         key={payment._id}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: index * 0.02 }}
                         className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50"
                       >
                         <div className="flex items-center justify-between">
@@ -558,15 +531,15 @@ export default function CreditsPage() {
                             </p>
                           </div>
                         </div>
-                      </motion.div>
+                      </div>
                     ))}
                   </div>
                 )}
-              </motion.div>
+              </div>
             )}
           </AnimatePresence>
         </div>
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 }

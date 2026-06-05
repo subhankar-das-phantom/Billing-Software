@@ -16,7 +16,7 @@ import { creditNoteService } from '../../services/credits/creditNoteService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { PageLoader } from '../../components/Common/Feedback/Loader';
 import { useToast } from '../../contexts/ToastContext';
-import { useSWR } from '../../hooks';
+import { useSWR, useFirstVisit } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 
 const pageVariants = {
@@ -41,6 +41,7 @@ export default function CreditNoteViewPage() {
   const { id } = useParams();
   const printRef = useRef();
   const { error } = useToast();
+  const isFirstVisit = useFirstVisit('credit-note-view');
 
   const { data: creditNoteData, isLoading: loading, isValidating } = useSWR(
     id ? `credit-note-${id}` : null,
@@ -218,7 +219,7 @@ export default function CreditNoteViewPage() {
       <RefreshIndicator isRefreshing={isValidating} />
       <motion.div
         variants={pageVariants}
-        initial="hidden"
+        initial={isFirstVisit ? "hidden" : false}
         animate="visible"
         className="space-y-6"
       >

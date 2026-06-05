@@ -19,7 +19,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { employeeService } from '../../services/employees/employeeService';
-import { useMotionConfig } from '../../hooks';
+import { useMotionConfig, useFirstVisit } from '../../hooks';
 
 // Format currency
 const formatCurrency = (amount) => {
@@ -60,7 +60,7 @@ const formatDuration = (minutes) => {
 };
 
 // Session Card Component - Mobile optimized
-const SessionCard = ({ entry, isMobile }) => {
+const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
   const [expanded, setExpanded] = useState(false);
   const { session, employee, activities, summary } = entry;
 
@@ -69,7 +69,7 @@ const SessionCard = ({ entry, isMobile }) => {
 
   return (
     <motion.div
-      initial={isMobile ? { opacity: 0 } : { opacity: 0, y: 10 }}
+      initial={isFirstVisit ? (isMobile ? { opacity: 0 } : { opacity: 0, y: 10 }) : false}
       animate={{ opacity: 1, y: 0 }}
       transition={isMobile ? { duration: 0.15 } : { type: 'spring', stiffness: 300, damping: 24 }}
       className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden hover:border-slate-600 transition-colors"
@@ -270,6 +270,7 @@ export default function ActivityLogPage() {
 
   // Mobile optimization
   const { isMobile } = useMotionConfig();
+  const isFirstVisit = useFirstVisit('activity-log');
 
   const timeRangeOptions = [
     { value: 6, label: 'Last 6h' },
@@ -447,7 +448,7 @@ export default function ActivityLogPage() {
         ].map((stat, index) => (
           <motion.div
             key={stat.label}
-            initial={isMobile ? { opacity: 0 } : { opacity: 0, y: 20 }}
+            initial={isFirstVisit ? (isMobile ? { opacity: 0 } : { opacity: 0, y: 20 }) : false}
             animate={{ opacity: 1, y: 0 }}
             transition={isMobile ? { duration: 0.15 } : { delay: index * 0.05 }}
             className="bg-slate-800/50 rounded-xl p-4 border border-slate-700"
@@ -488,6 +489,7 @@ export default function ActivityLogPage() {
               key={entry.session.id || index} 
               entry={entry} 
               isMobile={isMobile}
+              isFirstVisit={isFirstVisit}
             />
           ))}
         </div>

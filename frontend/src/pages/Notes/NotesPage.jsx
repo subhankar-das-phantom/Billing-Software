@@ -21,7 +21,7 @@ import Modal from '../../components/Common/Modals/Modal';
 import ConfirmDialog from '../../components/Common/Dialogs/ConfirmDialog';
 import EnhancedButton from '../../components/Common/Buttons/EnhancedButton';
 import { useToast } from '../../contexts/ToastContext';
-import { useMotionConfig, useSWR, invalidateCachePattern } from '../../hooks';
+import { useFirstVisit, useMotionConfig, useSWR, invalidateCachePattern } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 import { THEME } from '../../utils/themeColors';
 
@@ -52,6 +52,7 @@ export default function NotesPage() {
   const { success, error } = useToast();
   
   const motionConfig = useMotionConfig();
+  const isFirstVisit = useFirstVisit('notes');
   const searchDebounce = useDebounce(search, 300);
 
   // SWR: Instant cached data + background revalidation
@@ -193,11 +194,7 @@ export default function NotesPage() {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="space-y-8"
-    >
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
         <div className="relative w-full md:w-96">
@@ -226,11 +223,7 @@ export default function NotesPage() {
       {/* Notes Grid */}
       <AnimatePresence mode="wait">
         {notes.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="glass-card p-12 text-center"
-          >
+          <div className="glass-card p-12 text-center">
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-slate-800 mb-6">
               <StickyNote className="w-10 h-10 text-slate-400" />
             </div>
@@ -243,30 +236,14 @@ export default function NotesPage() {
                 Create Note
               </EnhancedButton>
             )}
-          </motion.div>
+          </div>
         ) : (
-          <motion.div
-            key="notes-grid"
-            initial={false}
-            animate={{ opacity: 1 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-          >
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             <AnimatePresence mode="popLayout">
               {notes.map((note, index) => (
-                <motion.div
+                <div
                   key={note._id}
-                  layout
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ 
-                    opacity: 1, 
-                    scale: 1,
-                    transition: { 
-                      delay: motionConfig.shouldStagger ? Math.min(index * 0.03, 0.12) : 0,
-                      duration: 0.2 
-                    }
-                  }}
-                  exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.15 } }}
-                  className="group relative flex flex-col glass-card h-48 sm:h-64 overflow-hidden border-t-4 transition-all hover:shadow-xl hover:-translate-y-1"
+                  className="group relative flex flex-col glass-card h-48 sm:h-64 overflow-hidden border-t-4 transition-all hover:shadow-xl hover:-translate-y-1 cursor-pointer"
                   style={{ borderTopColor: note.color }}
                   onClick={() => openEditModal(note)}
                 >
@@ -322,22 +299,17 @@ export default function NotesPage() {
                     </button>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             ))}
             </AnimatePresence>
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
       {/* Pagination */}
       <AnimatePresence>
         {totalPages > 1 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="flex items-center justify-center gap-4 mt-8"
-          >
+          <div className="flex items-center justify-center gap-4 mt-8">
             <motion.button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
@@ -367,7 +339,7 @@ export default function NotesPage() {
             >
               <ChevronRight className="w-6 h-6" />
             </motion.button>
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
@@ -469,6 +441,6 @@ export default function NotesPage() {
         confirmText="Delete"
         variant="danger"
       />
-    </motion.div>
+    </div>
   );
 }

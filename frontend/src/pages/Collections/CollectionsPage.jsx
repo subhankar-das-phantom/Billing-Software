@@ -1,6 +1,5 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import {
   Banknote,
   CreditCard,
@@ -20,8 +19,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import { useMotionConfig } from '../../hooks';
-
+import { useSWR } from '../../hooks';
 const PAYMENT_METHODS = ['Cash', 'UPI', 'Bank Transfer', 'Cheque', 'NEFT/RTGS'];
 
 const METHOD_ICONS = {
@@ -80,65 +78,30 @@ const getTodayStr = () => {
 };
 
 export default function CollectionsPage() {
-  const motionConfig = useMotionConfig();
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState({ summary: null, payments: [], total: 0, pages: 1 });
   const [selectedDate, setSelectedDate] = useState(getTodayStr());
   const [selectedMethod, setSelectedMethod] = useState('');
   const [page, setPage] = useState(1);
 
-  useEffect(() => {
-    loadCollections();
-  }, [selectedDate, selectedMethod, page]);
-
-  const loadCollections = async () => {
-    setLoading(true);
-    try {
+  const { data: swrData, isLoading } = useSWR(
+    `collections-${selectedDate}-${selectedMethod}-${page}`,
+    async () => {
       const params = { date: selectedDate, page, limit: 50 };
       if (selectedMethod) params.paymentMethod = selectedMethod;
       const res = await api.get('/payments/collections', { params });
-      setData(res.data);
-    } catch (error) {
-      console.error('Failed to load collections:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return res.data;
+    },
+    { ttl: 5 * 60 * 1000 }
+  );
+
+  const data = swrData || { summary: null, payments: [], total: 0, pages: 1 };
+  const loading = isLoading && !swrData;
 
   const isToday = selectedDate === getTodayStr();
   const dateLabel = isToday ? 'Today' : formatDate(selectedDate);
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: motionConfig.shouldAnimate ? 0.08 : 0 }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        type: motionConfig.isMobile ? 'tween' : 'spring',
-        duration: motionConfig.isMobile ? 0.18 : undefined,
-        stiffness: motionConfig.isMobile ? undefined : 300,
-        damping: motionConfig.isMobile ? undefined : 24
-      }
-    }
-  };
-
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="space-y-6"
-    >
-      {/* Page Header */}
-      <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
@@ -152,15 +115,10 @@ export default function CollectionsPage() {
           <Calendar className="w-4 h-4" />
           Showing: <span className="text-white font-medium">{dateLabel}</span>
         </div>
-      </motion.div>
+      </div>
 
-      {/* Summary Cards */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total Collected */}
-        <motion.div
-          className="glass-card p-5 relative overflow-hidden group"
-          whileHover={motionConfig.shouldHover ? { scale: 1.02, y: -2 } : undefined}
-        >
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="glass-card p-5 relative overflow-hidden group">
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           <div className="relative">
             <div className="flex items-center justify-between mb-3">
@@ -173,13 +131,9 @@ export default function CollectionsPage() {
             </p>
             <p className="text-sm text-slate-400 mt-1">Total Collected</p>
           </div>
-        </motion.div>
+        </div>
 
-        {/* Payment Count */}
-        <motion.div
-          className="glass-card p-5 relative overflow-hidden group"
-          whileHover={motionConfig.shouldHover ? { scale: 1.02, y: -2 } : undefined}
-        >
+        <div className="glass-card p-5 relative overflow-hidden group">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           <div className="relative">
             <div className="flex items-center justify-between mb-3">
@@ -192,20 +146,18 @@ export default function CollectionsPage() {
             </p>
             <p className="text-sm text-slate-400 mt-1">Payments Received</p>
           </div>
-        </motion.div>
+        </div>
 
-        {/* Method Breakdown Cards — show top 2 methods */}
         {!loading && data.summary?.byMethod && Object.entries(data.summary.byMethod)
-          .sort(([,a], [,b]) => b.total - a.total)
+          .sort(([, a], [, b]) => b.total - a.total)
           .slice(0, 2)
           .map(([method, info]) => {
             const MethodIcon = METHOD_ICONS[method] || CreditCard;
             const colorClass = METHOD_COLORS[method] || 'from-slate-500/20 to-slate-600/10 border-slate-500/30 text-slate-400';
             return (
-              <motion.div
+              <div
                 key={method}
-                className={`glass-card p-5 relative overflow-hidden group`}
-                whileHover={motionConfig.shouldHover ? { scale: 1.02, y: -2 } : undefined}
+                className={`glass-card p-5 relative overflow-hidden group transition-transform hover:scale-[1.02] hover:-translate-y-0.5`}
               >
                 <div className={`absolute inset-0 bg-gradient-to-br ${colorClass.split(' ').slice(0, 2).join(' ')} opacity-0 group-hover:opacity-100 transition-opacity`} />
                 <div className="relative">
@@ -220,12 +172,11 @@ export default function CollectionsPage() {
                   </p>
                   <p className="text-sm text-slate-400 mt-1">{method}</p>
                 </div>
-              </motion.div>
+              </div>
             );
           })
         }
 
-        {/* If no payments, show placeholder cards */}
         {!loading && (!data.summary?.byMethod || Object.keys(data.summary.byMethod).length === 0) && (
           <>
             <div className="glass-card p-5">
@@ -244,11 +195,10 @@ export default function CollectionsPage() {
             </div>
           </>
         )}
-      </motion.div>
+      </div>
 
-      {/* All Method Breakdown (if more than 2 methods) */}
       {!loading && data.summary?.byMethod && Object.keys(data.summary.byMethod).length > 2 && (
-        <motion.div variants={itemVariants} className="glass-card p-5">
+        <div className="glass-card p-5">
           <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Payment Method Breakdown</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {Object.entries(data.summary.byMethod).map(([method, info]) => {
@@ -266,18 +216,16 @@ export default function CollectionsPage() {
               );
             })}
           </div>
-        </motion.div>
+        </div>
       )}
 
-      {/* Filters */}
-      <motion.div variants={itemVariants} className="glass-card p-4">
+      <div className="glass-card p-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
           <div className="flex items-center gap-2 text-slate-400">
             <Filter className="w-4 h-4" />
             <span className="text-sm font-medium">Filters</span>
           </div>
 
-          {/* Date Picker */}
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-slate-500" />
             <input
@@ -321,10 +269,9 @@ export default function CollectionsPage() {
             )}
           </div>
         </div>
-      </motion.div>
+      </div>
 
-      {/* Payments Table */}
-      <motion.div variants={itemVariants} className="glass-card overflow-hidden">
+      <div className="glass-card overflow-hidden">
         <div className="p-5 border-b border-slate-700">
           <h2 className="text-lg font-semibold text-white flex items-center gap-2">
             <CreditCard className="w-5 h-5 text-blue-400" />
@@ -340,14 +287,11 @@ export default function CollectionsPage() {
           </div>
         ) : data.payments.length === 0 ? (
           <div className="text-center py-16">
-            <motion.div
+            <div
               className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-800 mb-4"
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: 'spring', stiffness: 200 }}
             >
               <Banknote className="w-8 h-8 text-slate-400" />
-            </motion.div>
+            </div>
             <p className="text-slate-400">No payments found for {dateLabel}</p>
             <p className="text-sm text-slate-500 mt-1">Try selecting a different date</p>
           </div>
@@ -368,11 +312,8 @@ export default function CollectionsPage() {
                   const MethodIcon = METHOD_ICONS[payment.paymentMethod] || CreditCard;
                   const methodColor = METHOD_COLORS[payment.paymentMethod] || '';
                   return (
-                    <motion.tr
+                    <tr
                       key={payment._id}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: motionConfig.shouldAnimate ? Math.min(index * 0.02, 0.15) : 0 }}
                       className="hover:bg-slate-700/30 transition-colors"
                     >
                       <td className="text-slate-300 whitespace-nowrap">
@@ -408,14 +349,13 @@ export default function CollectionsPage() {
                         {formatCurrency(payment.amount)}
                       </td>
                       <td>
-                        <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border ${
-                          methodColor ? methodColor.split(' ').slice(2).join(' ') : 'border-slate-600 text-slate-300'
-                        } bg-gradient-to-r ${methodColor ? methodColor.split(' ').slice(0, 2).join(' ') : 'from-slate-700/50 to-slate-800/50'}`}>
+                        <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border ${methodColor ? methodColor.split(' ').slice(2).join(' ') : 'border-slate-600 text-slate-300'
+                          } bg-gradient-to-r ${methodColor ? methodColor.split(' ').slice(0, 2).join(' ') : 'from-slate-700/50 to-slate-800/50'}`}>
                           <MethodIcon className="w-3 h-3" />
                           {payment.paymentMethod}
                         </span>
                       </td>
-                    </motion.tr>
+                      </tr>
                   );
                 })}
               </tbody>
@@ -447,7 +387,7 @@ export default function CollectionsPage() {
             </div>
           </div>
         )}
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 }

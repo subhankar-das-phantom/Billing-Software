@@ -23,7 +23,7 @@ import { dashboardService } from '../../services/dashboard/dashboardService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { PageLoader } from '../../components/Common/Feedback/Loader';
 import MotionCard from '../../components/Common/Motion/MotionCard';
-import { useMotionConfig, useSWR } from '../../hooks';
+import { useMotionConfig, useFirstVisit, useSWR } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 
 // Animated Counter Component with adaptive duration
@@ -123,6 +123,7 @@ export default function DashboardPage() {
   
   // Adaptive motion configuration
   const motionConfig = useMotionConfig();
+  const isFirstVisit = useFirstVisit('dashboard');
   const containerVariants = motionConfig.isMobile ? containerVariantsMobile : containerVariantsDesktop;
   const itemVariants = motionConfig.isMobile ? itemVariantsMobile : itemVariantsDesktop;
 
@@ -234,7 +235,7 @@ export default function DashboardPage() {
   return (
     <motion.div 
       variants={containerVariants}
-      initial="hidden"
+      initial={isFirstVisit ? "hidden" : false}
       animate="show"
       className="space-y-12"
     >

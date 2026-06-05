@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Loader2 } from 'lucide-react';
-import { useMotionConfig } from '../../../hooks';
+import { useMotionConfig, useFirstVisit } from '../../../hooks';
 
 // Multiple transition variants for different pages
 const transitionVariants = {
@@ -99,7 +99,8 @@ const PageTransition = ({
   variant = 'fadeUp', // 'fadeUp', 'slideRight', 'slideLeft', 'zoom', etc.
   transition = 'default', // 'default', 'spring', 'smooth', 'bouncy', 'slow', 'fast'
   delay = 0,
-  showLoadingIndicator = false
+  showLoadingIndicator = false,
+  isFirstVisit = true
 }) => {
   const motionConfig = useMotionConfig();
   
@@ -120,9 +121,9 @@ const PageTransition = ({
 
   return (
     <motion.div
-      initial="initial"
+      initial={isFirstVisit ? "initial" : false}
       animate="in"
-      exit="out"
+      exit={isFirstVisit ? "out" : false}
       variants={selectedVariant}
       transition={selectedTransition}
       className={`relative ${className}`}
@@ -148,12 +149,15 @@ export const RouteTransition = ({
   variant = 'fadeUp',
   transition = 'default'
 }) => {
+  const isFirstVisit = useFirstVisit(`route-${location.pathname}`);
+
   return (
     <AnimatePresence mode="wait" initial={false}>
       <PageTransition
         key={location.pathname}
         variant={variant}
         transition={transition}
+        isFirstVisit={isFirstVisit}
       >
         {children}
       </PageTransition>
@@ -230,10 +234,12 @@ export const PageWithHeader = ({
   variant = 'fadeUp',
   className = ''
 }) => {
+  const isFirstVisit = useFirstVisit(`header-${title.replace(/\s+/g, '-').toLowerCase()}`);
+
   return (
-    <PageTransition variant={variant} className={className}>
+    <PageTransition variant={variant} className={className} isFirstVisit={isFirstVisit}>
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
+        initial={isFirstVisit ? { opacity: 0, y: -20 } : false}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2, duration: 0.5 }}
         className="mb-8"
@@ -241,7 +247,7 @@ export const PageWithHeader = ({
         {Icon && (
           <motion.div
             className="inline-flex p-3 bg-blue-500/10 rounded-lg mb-4"
-            initial={{ scale: 0, rotate: -180 }}
+            initial={isFirstVisit ? { scale: 0, rotate: -180 } : false}
             animate={{ scale: 1, rotate: 0 }}
             transition={{ 
               type: 'spring',
@@ -258,7 +264,7 @@ export const PageWithHeader = ({
         {subtitle && (
           <motion.p
             className="text-slate-400 text-lg"
-            initial={{ opacity: 0 }}
+            initial={isFirstVisit ? { opacity: 0 } : false}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
           >
@@ -268,7 +274,7 @@ export const PageWithHeader = ({
       </motion.div>
 
       <motion.div
-        initial={{ opacity: 0 }}
+        initial={isFirstVisit ? { opacity: 0 } : false}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.5 }}
       >

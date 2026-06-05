@@ -16,6 +16,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { authService } from '../../services/auth/authService';
+import { useFirstVisit } from '../../hooks';
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -29,6 +30,7 @@ const itemVariants = {
 export default function ProfilePage() {
   const { admin, updateAdmin } = useAuth();
   const { success: showSuccess, error: showError } = useToast();
+  const isFirstVisit = useFirstVisit('profile');
 
   // Profile form state
   const [profile, setProfile] = useState({
@@ -119,7 +121,7 @@ export default function ProfilePage() {
     <div className="space-y-6">
       {/* Page Header */}
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
+        initial={isFirstVisit ? { opacity: 0, y: -20 } : false}
         animate={{ opacity: 1, y: 0 }}
         className="flex items-center gap-3"
       >
@@ -136,7 +138,7 @@ export default function ProfilePage() {
         {/* Profile Details Card */}
         <motion.div
           variants={itemVariants}
-          initial="hidden"
+          initial={isFirstVisit ? "hidden" : false}
           animate="visible"
           className="glass-card p-6"
         >
@@ -248,7 +250,7 @@ export default function ProfilePage() {
         {/* Change Password Card */}
         <motion.div
           variants={itemVariants}
-          initial="hidden"
+          initial={isFirstVisit ? "hidden" : false}
           animate="visible"
           transition={{ delay: 0.1 }}
           className="glass-card p-6"

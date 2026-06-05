@@ -21,7 +21,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { employeeService } from '../../services/employees/employeeService';
-import { useMotionConfig } from '../../hooks';
+import { useMotionConfig, useFirstVisit } from '../../hooks';
 
 // Format currency
 const formatCurrency = (amount) => {
@@ -403,7 +403,7 @@ const PasswordResetModal = ({ isOpen, onClose, employee, onSave }) => {
 };
 
 // Employee Card Component
-const EmployeeCard = ({ employee, onEdit, onResetPassword, onToggleStatus, isMobile }) => {
+const EmployeeCard = ({ employee, onEdit, onResetPassword, onToggleStatus, isMobile, isFirstVisit }) => {
   const [toggling, setToggling] = useState(false);
 
   const handleToggle = async () => {
@@ -417,7 +417,7 @@ const EmployeeCard = ({ employee, onEdit, onResetPassword, onToggleStatus, isMob
 
   return (
     <motion.div
-      initial={isMobile ? { opacity: 0 } : { opacity: 0, y: 20 }}
+      initial={isFirstVisit ? (isMobile ? { opacity: 0 } : { opacity: 0, y: 20 }) : false}
       animate={{ opacity: 1, y: 0 }}
       transition={isMobile ? { duration: 0.15 } : { type: 'spring', stiffness: 300 }}
       className="bg-slate-800/50 rounded-xl border border-slate-700 p-5 hover:border-slate-600 transition-colors"
@@ -535,6 +535,7 @@ export default function EmployeesPage() {
 
   const motionConfig = useMotionConfig();
   const { isMobile } = motionConfig;
+  const isFirstVisit = useFirstVisit('employees');
 
   const fetchEmployees = async () => {
     try {
@@ -623,7 +624,7 @@ export default function EmployeesPage() {
         {statCards.map((stat, index) => (
           <motion.div
             key={stat.label}
-            initial={isMobile ? { opacity: 0 } : { opacity: 0, y: 20 }}
+            initial={isFirstVisit ? (isMobile ? { opacity: 0 } : { opacity: 0, y: 20 }) : false}
             animate={{ opacity: 1, y: 0 }}
             transition={isMobile ? { duration: 0.15 } : { delay: index * 0.1 }}
             className={`bg-slate-800/50 rounded-xl border border-slate-700 p-5`}
@@ -685,6 +686,7 @@ export default function EmployeesPage() {
               onResetPassword={handleResetPassword}
               onToggleStatus={handleToggleStatus}
               isMobile={isMobile}
+              isFirstVisit={isFirstVisit}
             />
           ))}
         </div>
