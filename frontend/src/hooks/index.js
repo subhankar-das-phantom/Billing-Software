@@ -3,3 +3,5 @@ export { useDeviceType } from './useDeviceType';
 export { useFirstVisit } from './useFirstVisit';
 export { useMotionConfig, useReducedMotion } from './useMotionConfig';
 export { useSWR, invalidateCache, invalidateCachePattern } from './useSWR';
+export { useMediaQuery } from './useMediaQuery';
+export { useTransitionDelay } from './useTransitionDelay';

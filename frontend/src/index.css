@@ -40,6 +40,11 @@
     /* slate-600 */
   }
 
+  html {
+    overflow-y: scroll;
+    scrollbar-gutter: stable;
+  }
+
   body {
     @apply bg-slate-950 text-slate-50 antialiased;
     font-feature-settings: 'rlig' 1, 'calt' 1;
