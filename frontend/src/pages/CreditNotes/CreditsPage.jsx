@@ -390,10 +390,14 @@ export default function CreditsPage() {
                       </div>
                     ))}
                     {/* Infinite scroll sentinel */}
-                    {(outstandingHasMore || outstandingValidating) && (
-                      <div ref={outstandingLastRef} className="p-3 flex items-center justify-center gap-2 text-slate-400">
-                        <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
-                        <span className="text-sm">Loading more customers...</span>
+                    {outstandingHasMore && (
+                      <div ref={outstandingLastRef} className="p-3 flex items-center justify-center h-12">
+                        {outstandingValidating && (
+                          <div className="flex items-center gap-2 text-slate-400">
+                            <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                            <span className="text-sm">Loading more customers...</span>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -462,10 +466,14 @@ export default function CreditsPage() {
                         </Link>
                       ))}
                       {/* Infinite scroll sentinel */}
-                      {(ageingHasMore || ageingValidating) && (
-                        <div ref={ageingLastRef} className="p-3 flex items-center justify-center gap-2 text-slate-400">
-                          <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
-                          <span className="text-sm">Loading more invoices...</span>
+                      {ageingHasMore && (
+                        <div ref={ageingLastRef} className="p-3 flex items-center justify-center h-12">
+                          {ageingValidating && (
+                            <div className="flex items-center gap-2 text-slate-400">
+                              <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                              <span className="text-sm">Loading more invoices...</span>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

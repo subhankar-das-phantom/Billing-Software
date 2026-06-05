@@ -522,10 +522,14 @@ export default function CustomersPage() {
       )}
 
       {/* Infinite Scroll Loading Indicator */}
-      {(hasMore || isValidating) && customers.length > 0 && (
-        <div ref={lastElementRef} className="flex justify-center items-center p-4 glass-card my-4">
-          <Loader2 className="w-5 h-5 text-blue-400 animate-spin mr-3" />
-          <span className="text-sm font-medium text-slate-400">Loading more customers...</span>
+      {hasMore && (
+        <div ref={lastElementRef} className="flex justify-center items-center p-4 my-4 h-16">
+          {isValidating && (
+            <div className="flex items-center glass-card px-6 py-3">
+              <Loader2 className="w-5 h-5 text-blue-400 animate-spin mr-3" />
+              <span className="text-sm font-medium text-slate-400">Loading more...</span>
+            </div>
+          )}
         </div>
       )}
 
