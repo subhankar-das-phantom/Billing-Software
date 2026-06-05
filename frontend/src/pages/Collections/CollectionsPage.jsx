@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Banknote,
@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-
+import { useSWR } from '../../hooks';
 const PAYMENT_METHODS = ['Cash', 'UPI', 'Bank Transfer', 'Cheque', 'NEFT/RTGS'];
 
 const METHOD_ICONS = {
@@ -78,29 +78,23 @@ const getTodayStr = () => {
 };
 
 export default function CollectionsPage() {
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState({ summary: null, payments: [], total: 0, pages: 1 });
   const [selectedDate, setSelectedDate] = useState(getTodayStr());
   const [selectedMethod, setSelectedMethod] = useState('');
   const [page, setPage] = useState(1);
 
-  useEffect(() => {
-    loadCollections();
-  }, [selectedDate, selectedMethod, page]);
-
-  const loadCollections = async () => {
-    setLoading(true);
-    try {
+  const { data: swrData, isLoading } = useSWR(
+    `collections-${selectedDate}-${selectedMethod}-${page}`,
+    async () => {
       const params = { date: selectedDate, page, limit: 50 };
       if (selectedMethod) params.paymentMethod = selectedMethod;
       const res = await api.get('/payments/collections', { params });
-      setData(res.data);
-    } catch (error) {
-      console.error('Failed to load collections:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return res.data;
+    },
+    { ttl: 5 * 60 * 1000 }
+  );
+
+  const data = swrData || { summary: null, payments: [], total: 0, pages: 1 };
+  const loading = isLoading && !swrData;
 
   const isToday = selectedDate === getTodayStr();
   const dateLabel = isToday ? 'Today' : formatDate(selectedDate);
