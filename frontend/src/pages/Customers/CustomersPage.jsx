@@ -26,7 +26,7 @@ import Modal from '../../components/Common/Modals/Modal';
 import ConfirmDialog from '../../components/Common/Dialogs/ConfirmDialog';
 import EnhancedButton from '../../components/Common/Buttons/EnhancedButton';
 import { useToast } from '../../contexts/ToastContext';
-import { useDebounce, useMotionConfig, useFirstVisit, useSWR, invalidateCachePattern } from '../../hooks';
+import { useDebounce, useMotionConfig, useFirstVisit, useSWR, invalidateCachePattern, useTransitionDelay } from '../../hooks';
 
 const initialCustomerState = {
   customerName: '',
@@ -173,6 +173,7 @@ export default function CustomersPage() {
   // Adaptive motion configuration
   const motionConfig = useMotionConfig();
   const isFirstVisit = useFirstVisit('customers');
+  const transitionReady = useTransitionDelay(250, isFirstVisit);
 
   // Build the SWR cache key
   const swrKey = `customers-${search}-${page}`;
@@ -450,7 +451,11 @@ export default function CustomersPage() {
           search term (dataReady). This prevents the "no results" message from flashing
           while SWR is still fetching or revalidating. */}
       <AnimatePresence>
-        {dataReady && customers.length === 0 ? (
+        {!transitionReady ? (
+          <div className="glass-card p-12 flex justify-center items-center">
+            <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+          </div>
+        ) : dataReady && customers.length === 0 ? (
           <motion.div
             key="empty"
             initial={{ opacity: 0, scale: 0.95 }}

@@ -55,11 +55,11 @@ const getDefaultDates = () => {
 };
 
 const SLAB_COLORS = {
-  0:  { bg: 'from-slate-500/20 to-slate-600/20',  bar: 'from-slate-400 to-slate-500',  text: 'text-slate-300',  border: 'border-slate-600/30' },
-  5:  { bg: 'from-emerald-500/20 to-teal-500/20', bar: 'from-emerald-400 to-teal-500', text: 'text-emerald-300', border: 'border-emerald-500/30' },
-  12: { bg: 'from-blue-500/20 to-accent2-500/20',  bar: 'from-blue-400 to-accent2-500',  text: 'text-blue-300',   border: 'border-blue-500/30' },
-  18: { bg: 'from-amber-500/20 to-orange-500/20', bar: 'from-amber-400 to-orange-500', text: 'text-amber-300',  border: 'border-amber-500/30' },
-  28: { bg: 'from-rose-500/20 to-pink-500/20',    bar: 'from-rose-400 to-pink-500',    text: 'text-rose-300',   border: 'border-rose-500/30' }
+  0: { bg: 'from-slate-500/20 to-slate-600/20', bar: 'from-slate-400 to-slate-500', text: 'text-slate-300', border: 'border-slate-600/30' },
+  5: { bg: 'from-emerald-500/20 to-teal-500/20', bar: 'from-emerald-400 to-teal-500', text: 'text-emerald-300', border: 'border-emerald-500/30' },
+  12: { bg: 'from-blue-500/20 to-accent2-500/20', bar: 'from-blue-400 to-accent2-500', text: 'text-blue-300', border: 'border-blue-500/30' },
+  18: { bg: 'from-amber-500/20 to-orange-500/20', bar: 'from-amber-400 to-orange-500', text: 'text-amber-300', border: 'border-amber-500/30' },
+  28: { bg: 'from-rose-500/20 to-pink-500/20', bar: 'from-rose-400 to-pink-500', text: 'text-rose-300', border: 'border-rose-500/30' }
 };
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -172,8 +172,8 @@ export default function GstReportPage() {
   // ── Derived data ──
   const slabEntries = reportData
     ? Object.entries(reportData.slabs)
-        .map(([pct, val]) => ({ pct: Number(pct), sales: val.sales }))
-        .sort((a, b) => a.pct - b.pct)
+      .map(([pct, val]) => ({ pct: Number(pct), sales: val.sales }))
+      .sort((a, b) => a.pct - b.pct)
     : [];
 
   const maxSlabSales = slabEntries.reduce((max, s) => Math.max(max, s.sales), 0) || 1;
@@ -391,19 +391,16 @@ export default function GstReportPage() {
             )}
           </motion.button>
 
-          <label className="flex items-center gap-2 cursor-pointer group px-1">
-            <input
-              type="checkbox"
-              checked={showBreakdown}
-              onChange={(e) => setShowBreakdown(e.target.checked)}
-              className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500/30 cursor-pointer"
-              id="gst-breakdown-toggle"
-            />
+          <button
+            type="button"
+            onClick={() => setShowBreakdown(!showBreakdown)}
+            className="flex items-center gap-2 cursor-pointer group px-1"
+          >
             <span className="text-xs sm:text-sm text-slate-400 group-hover:text-slate-300 transition-colors flex items-center gap-1.5">
               {showBreakdown ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
               Show GST Breakdown
             </span>
-          </label>
+          </button>
         </div>
       </motion.div>
 

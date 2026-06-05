@@ -293,47 +293,32 @@ export default function InvoicesPage() {
             bgColor: 'bg-accent-500/20'
           }
         ].map((stat, index) => (
-          <motion.div
+          <div
             key={stat.label}
-            variants={cardVariants}
-            whileHover={{ y: -4, scale: 1.02 }}
-            className="glass-card p-6 cursor-pointer group"
+            className="glass-card p-6 cursor-pointer group transition-transform hover:-translate-y-1 hover:scale-[1.02]"
           >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-400 mb-1">{stat.label}</p>
-                <motion.p
-                  className="text-3xl font-bold text-white"
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.2 + index * 0.1, type: 'spring', stiffness: 200 }}
-                >
+                <p className="text-3xl font-bold text-white">
                   {stat.value}
-                </motion.p>
+                </p>
               </div>
-              <motion.div
-                className={`p-3 rounded-xl ${stat.bgColor}`}
-                whileHover={{ rotate: 360, scale: 1.1 }}
-                transition={{ duration: 0.6 }}
-              >
+              <div className={`p-3 rounded-xl ${stat.bgColor} transition-transform group-hover:rotate-[360deg] group-hover:scale-110 duration-700`}>
                 <stat.icon className={`w-6 h-6 ${stat.iconColor}`} />
-              </motion.div>
+              </div>
             </div>
-          </motion.div>
+          </div>
         ))}
       </div>
 
       {/* Header with Filters */}
-      <motion.div variants={cardVariants} className="glass-card p-6">
+      <div className="glass-card p-6">
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center mb-6">
           <div className="flex items-center gap-3">
-            <motion.div
-              className="p-2 bg-blue-500/20 rounded-lg"
-              whileHover={{ rotate: 360 }}
-              transition={{ duration: 0.6 }}
-            >
+            <div className="p-2 bg-blue-500/20 rounded-lg transition-transform hover:rotate-[360deg] duration-700">
               <FileText className="w-5 h-5 text-blue-400" />
-            </motion.div>
+            </div>
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-semibold text-white">All Invoices</h2>
@@ -345,12 +330,12 @@ export default function InvoicesPage() {
             </div>
           </div>
 
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Link to="/invoices/create" className="btn btn-primary flex items-center gap-2">
+          <div>
+            <Link to="/invoices/create" className="btn btn-primary flex items-center gap-2 active:scale-95 transition-transform">
               <Plus className="w-5 h-5" />
-              Create Invoice
+              New Invoice
             </Link>
-          </motion.div>
+          </div>
         </div>
 
         {/* Search and Filters */}
@@ -421,71 +406,48 @@ export default function InvoicesPage() {
           </div>
 
           {/* Export Button */}
-          <motion.button
+          <button
             onClick={() => setShowExportModal(true)}
-            className="btn bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold flex items-center justify-center gap-2 px-6 py-3 shadow-lg shadow-emerald-500/30 border-0"
-            whileHover={{ scale: 1.05, y: -2 }}
-            whileTap={{ scale: 0.95 }}
+            className="btn bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold flex items-center justify-center gap-2 px-6 py-3 shadow-lg shadow-emerald-500/30 border-0 active:scale-95 transition-transform"
           >
             <Download className="w-5 h-5" />
             Export
-          </motion.button>
+          </button>
         </div>
-      </motion.div>
+      </div>
 
       {/* Invoices Table */}
       <AnimatePresence mode="wait">
         {invoices.length === 0 ? (
-          <motion.div
+          <div
             key={`empty-${statusFilter}`}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.3 }}
             className="glass-card p-12 text-center"
           >
-            <motion.div
+            <div
               className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-slate-800 mb-6"
-              initial={{ scale: 0, rotate: -180 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ type: 'spring', stiffness: 200, delay: 0.1 }}
             >
               <FileText className="w-10 h-10 text-slate-400" />
-            </motion.div>
-            <motion.p
+            </div>
+            <p
               className="text-slate-400 mb-6 text-lg"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
             >
               {search || searchInput || startDate || endDate
                 ? 'No invoices found matching your search'
                 : statusFilter !== 'all'
                   ? `No ${statusFilter} invoices found`
                   : 'No invoices found. Create your first invoice!'}
-            </motion.p>
+            </p>
             {!search && !searchInput && !startDate && !endDate && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-              >
+              <div>
                 <Link to="/invoices/create" className="btn btn-primary inline-flex items-center gap-2">
                   <Plus className="w-5 h-5" />
                   Create Invoice
                 </Link>
-              </motion.div>
+              </div>
             )}
-          </motion.div>
+          </div>
         ) : (
-          <motion.div
-            key={`table-${statusFilter}-${search}-${startDate}-${endDate}`}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.3 }}
-            className="glass-card overflow-x-auto"
-          >
+          <div className="glass-card overflow-x-auto">
             <table className="table min-w-[800px]">
               <thead>
                 <tr>
@@ -602,7 +564,7 @@ export default function InvoicesPage() {
                 <span className="text-sm">Loading more invoices...</span>
               </div>
             )}
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
