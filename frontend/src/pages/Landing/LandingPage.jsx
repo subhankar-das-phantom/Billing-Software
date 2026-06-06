@@ -125,8 +125,12 @@ function FloatingNav({ reduceMotion, isLoggedIn }) {
   }, []);
 
   const navClick = useCallback((id) => {
-    scrollToSection(id);
     setMobileOpen(false);
+    // Delay scroll slightly on mobile so the drawer closing animation 
+    // doesn't interrupt the smooth scrolling (especially on iOS Safari)
+    setTimeout(() => {
+      scrollToSection(id);
+    }, 100);
   }, []);
 
   const links = [
@@ -368,7 +372,7 @@ const features = [
 
 function FeaturesSection({ reduceMotion }) {
   return (
-    <Reveal id="features" className="py-20 lg:py-32 relative" reduceMotion={reduceMotion}>
+    <Reveal id="features" className="py-20 lg:py-32 relative scroll-mt-20" reduceMotion={reduceMotion}>
       {/* Subtle bg accent — use radial-gradient instead of blur filter for perf */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] rounded-full" style={{ background: 'radial-gradient(ellipse at center, rgba(59,130,246,0.03) 0%, transparent 70%)' }} />
@@ -450,7 +454,7 @@ const steps = [
 
 function HowItWorksSection({ reduceMotion }) {
   return (
-    <Reveal id="how-it-works" className="py-20 lg:py-32 relative" reduceMotion={reduceMotion}>
+    <Reveal id="how-it-works" className="py-20 lg:py-32 relative scroll-mt-20" reduceMotion={reduceMotion}>
       {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-slate-900/50 to-transparent pointer-events-none" />
 
@@ -637,7 +641,7 @@ const pricingFeatures = [
 
 function PricingSection({ reduceMotion, isLoggedIn }) {
   return (
-    <Reveal id="pricing" className="py-20 lg:py-32 relative" reduceMotion={reduceMotion}>
+    <Reveal id="pricing" className="py-20 lg:py-32 relative scroll-mt-20" reduceMotion={reduceMotion}>
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] rounded-full" style={{ background: 'radial-gradient(ellipse at center, rgba(59,130,246,0.03) 0%, transparent 70%)' }} />
       </div>
