@@ -22,7 +22,7 @@ import {
   getRecentPayments
 } from '../../services/credits/creditService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import { PageLoader } from '../../components/Common/Feedback/Loader';
+import { TableSkeleton } from '../../components/Common/Feedback/Loader';
 import { useSWR, useFirstVisit } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 
@@ -102,6 +102,16 @@ export default function CreditsPage() {
   const ageing = ageingBuckets;
   const recentPayments = paymentsData?.payments || [];
 
+  // Derive lists synchronously when on page 1 to prevent a 1-render-frame gap
+  // caused by useEffect, which was making the lists visually remount on revisits.
+  const activeOutstandingCustomers = (outstandingPage === 1 && outstandingData?.customers && outstandingCustomers.length === 0) 
+    ? outstandingData.customers 
+    : outstandingCustomers;
+    
+  const activeAgeingInvoices = (ageingPage === 1 && ageingData?.invoices && ageingInvoices.length === 0)
+    ? ageingData.invoices
+    : ageingInvoices;
+
   // Store outstanding summary in stable state + accumulate customers
   useEffect(() => {
     if (!outstandingData) return;
@@ -177,27 +187,9 @@ export default function CreditsPage() {
   // Loading states
   const loading = (statsLoading || outstandingLoading || ageingLoading || paymentsLoading) && !stats;
   const isValidating = statsValidating || outstandingValidating || ageingValidating || paymentsValidating;
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.05, delayChildren: 0.05 }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 10 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { type: 'tween', duration: 0.15, ease: 'easeOut' }
-    }
-  };
-
-  if (loading) {
-    return <PageLoader />;
-  }
+  const showOutstandingSkeleton = outstandingLoading && activeOutstandingCustomers.length === 0;
+  const showAgeingSkeleton = ageingLoading && activeAgeingInvoices.length === 0;
+  const showPaymentsSkeleton = paymentsLoading && recentPayments.length === 0;
 
   const tabs = [
     { id: 'outstanding', label: 'Outstanding', icon: Wallet },
@@ -340,7 +332,11 @@ export default function CreditsPage() {
             {/* Outstanding Tab */}
             {activeTab === 'outstanding' && (
               <div key="outstanding">
-                {outstandingCustomers.length === 0 && !outstandingValidating ? (
+                {showOutstandingSkeleton ? (
+                  <div className="glass-card overflow-hidden">
+                    <TableSkeleton rows={6} columns={3} />
+                  </div>
+                ) : activeOutstandingCustomers.length === 0 && !outstandingValidating ? (
                   <div className="text-center py-12">
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/20 mb-4">
                       <Wallet className="w-8 h-8 text-emerald-400" />
@@ -349,7 +345,7 @@ export default function CreditsPage() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {outstandingCustomers.map((customer, index) => (
+                    {activeOutstandingCustomers.map((customer, index) => (
                       <div key={customer._id}>
                         <Link
                           to={`/customers/${customer._id}`}
@@ -408,6 +404,12 @@ export default function CreditsPage() {
             {/* Ageing Report Tab */}
             {activeTab === 'ageing' && (
               <div key="ageing" className="space-y-4">
+                {showAgeingSkeleton ? (
+                  <div className="glass-card overflow-hidden">
+                    <TableSkeleton rows={6} columns={4} />
+                  </div>
+                ) : (
+                  <>
                 {/* Ageing Summary Cards */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {[
@@ -441,10 +443,10 @@ export default function CreditsPage() {
                   <div className="mt-6">
                     <h3 className="text-sm font-medium text-slate-400 mb-3">
                       Overdue Invoices
-                      <span className="text-slate-500 ml-2">({ageingInvoices.length} of {ageing.summary.totalCount})</span>
+                      <span className="text-slate-500 ml-2">({activeAgeingInvoices.length} of {ageing.summary.totalCount})</span>
                     </h3>
                     <div className="space-y-2">
-                      {ageingInvoices.map((inv) => (
+                      {activeAgeingInvoices.map((inv) => (
                         <Link
                           key={inv._id}
                           to={`/invoices/${inv._id}`}
@@ -479,13 +481,19 @@ export default function CreditsPage() {
                     </div>
                   </div>
                 )}
+                  </>
+                )}
               </div>
             )}
 
             {/* Recent Payments Tab */}
             {activeTab === 'payments' && (
               <div key="payments">
-                {recentPayments.length === 0 ? (
+                {showPaymentsSkeleton ? (
+                  <div className="glass-card overflow-hidden">
+                    <TableSkeleton rows={6} columns={3} />
+                  </div>
+                ) : recentPayments.length === 0 ? (
                   <div className="text-center py-12">
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-700 mb-4">
                       <CreditCard className="w-8 h-8 text-slate-400" />
