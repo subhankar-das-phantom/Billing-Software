@@ -177,8 +177,11 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
         setUserRole(null);
       } finally {
-        // Minimal delay for smooth transition (reduced from 800ms)
-        setTimeout(() => setLoading(false), 200);
+        // Set loading to false immediately so React can batch this
+        // with the setUser() call above into a single render.
+        // The AnimatePresence exit animation on AuthLoadingScreen
+        // provides the visual smoothness instead of an artificial delay.
+        setLoading(false);
       }
     };
 
@@ -307,8 +310,11 @@ export const AuthProvider = ({ children }) => {
         authTransition
       }}
     >
-      {/* Loading screen - render directly without exit animation to prevent issues */}
-      {loading && <AuthLoadingScreen />}
+      {/* Loading screen - AnimatePresence enables the smooth exit fade
+          that covers dashboard entrance animations during auth resolution */}
+      <AnimatePresence>
+        {loading && <AuthLoadingScreen key="auth-loading" />}
+      </AnimatePresence>
 
       {/* Toast notifications container */}
       <div className="fixed top-4 right-4 z-[9999] pointer-events-none">

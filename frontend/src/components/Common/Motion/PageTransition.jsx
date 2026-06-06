@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Loader2 } from 'lucide-react';
 import { useMotionConfig, useFirstVisit } from '../../../hooks';
@@ -149,12 +150,35 @@ export const RouteTransition = ({
   variant = 'fadeUp',
   transition = 'default'
 }) => {
-  const isFirstVisit = useFirstVisit(`route-${location.pathname}`);
+  // NOTE: We can't use useFirstVisit() here. That hook uses useRef internally
+  // which evaluates once per mount. Since RouteTransition persists across
+  // navigations (it lives inside DashboardLayout), the ref would cache the
+  // value from the FIRST route and return that stale value for ALL subsequent
+  // navigations — causing every page change to play full exit+enter animations.
+  //
+  // Instead, we track visited routes in a Set that updates per-pathname.
+  const visitedRoutes = useRef(new Set());
+  const pathname = location.pathname;
+
+  let isFirstVisit = false;
+  if (!visitedRoutes.current.has(pathname)) {
+    const storageKey = `visited_route-${pathname}`;
+    try {
+      if (!sessionStorage.getItem(storageKey)) {
+        isFirstVisit = true;
+        sessionStorage.setItem(storageKey, '1');
+      }
+    } catch {
+      // sessionStorage unavailable (e.g. private browsing quota exceeded)
+      isFirstVisit = true;
+    }
+    visitedRoutes.current.add(pathname);
+  }
 
   return (
     <AnimatePresence mode="wait" initial={false}>
       <PageTransition
-        key={location.pathname}
+        key={pathname}
         variant={variant}
         transition={transition}
         isFirstVisit={isFirstVisit}

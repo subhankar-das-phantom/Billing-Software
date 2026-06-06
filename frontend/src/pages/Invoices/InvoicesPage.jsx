@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { invoiceService } from '../../services/invoices/invoiceService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import { PageLoader } from '../../components/Common/Feedback/Loader';
+import { PageLoader, TableSkeleton } from '../../components/Common/Feedback/Loader';
 import ExportModal from '../../components/Common/Modals/ExportModal';
 import { useToast } from '../../contexts/ToastContext';
 import { invalidateCachePattern, useDebounce, useFirstVisit, useMotionConfig, useSWR } from '../../hooks';
@@ -114,15 +114,20 @@ export default function InvoicesPage() {
     { ttl: 5 * 60 * 1000 }
   );
 
-  const invoices = accumulatedInvoices;
+  // Derive invoices synchronously when on page 1 to prevent a 1-render-frame gap
+  // caused by useEffect, which was making the table visually remount on revisits.
+  const invoices = (page === 1 && data?.invoices) ? data.invoices : accumulatedInvoices;
   const totalMatched = data?.total || 0;
   const hasMore = data?.hasMore ?? (data?.pages ? page < data.pages : false);
 
-  // Reset infinite list when filters/search change
+  // Reset page when filters/search change.
+  // We intentionally do NOT clear accumulatedInvoices here — clearing it
+  // causes invoices.length===0 which flashes the PageLoader even when
+  // SWR has cached data. Instead, the accumulation effect below replaces
+  // the list when page===1 data arrives.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPage(1);
-    setAccumulatedInvoices([]);
   }, [search, statusFilter, startDate, endDate]);
 
   // Accumulate invoices as pages arrive
@@ -253,10 +258,9 @@ export default function InvoicesPage() {
     }
   };
 
-  // Only show full page loader on first load with no cached data
-  if (isLoading && invoices.length === 0 && page === 1) {
-    return <PageLoader />;
-  }
+  // Only show full page loader on the very first load ever (no cached data at all).
+  // On revisits SWR serves cached data, so invoices.length > 0 and we skip this.
+  const showTableSkeleton = isLoading && invoices.length === 0 && page === 1;
 
   return (
     <motion.div
@@ -418,7 +422,11 @@ export default function InvoicesPage() {
 
       {/* Invoices Table */}
       <AnimatePresence mode="wait">
-        {invoices.length === 0 ? (
+        {showTableSkeleton ? (
+          <div key="skeleton" className="glass-card overflow-hidden">
+            <TableSkeleton rows={8} columns={7} />
+          </div>
+        ) : invoices.length === 0 ? (
           <div
             key={`empty-${statusFilter}`}
             className="glass-card p-12 text-center"

@@ -325,3 +325,53 @@ export function SkeletonLoader({
     </div>
   );
 }
+
+// Table Skeleton Loader - shows shimmer rows that mimic a data table
+export function TableSkeleton({
+  rows = 6,
+  columns = 5,
+  className = ''
+}) {
+  // Column width patterns to look realistic (not uniform)
+  const colWidths = ['w-24', 'w-20', 'w-32', 'w-16', 'w-20', 'w-24', 'w-16', 'w-20', 'w-16'];
+
+  return (
+    <div className={`${className}`}>
+      {/* Header row */}
+      <div className="flex items-center gap-4 px-5 py-4 border-b border-slate-700/50 bg-slate-800/30">
+        {Array.from({ length: columns }).map((_, i) => (
+          <div
+            key={`h-${i}`}
+            className={`h-3 bg-slate-700/60 rounded ${colWidths[i % colWidths.length]}`}
+          />
+        ))}
+      </div>
+
+      {/* Data rows */}
+      {Array.from({ length: rows }).map((_, rowIndex) => (
+        <div
+          key={rowIndex}
+          className="flex items-center gap-4 px-5 py-4 border-b border-slate-700/20"
+        >
+          {Array.from({ length: columns }).map((_, colIndex) => (
+            <div
+              key={`${rowIndex}-${colIndex}`}
+              className={`h-4 bg-slate-700/40 rounded animate-pulse ${colWidths[colIndex % colWidths.length]}`}
+              style={{
+                animationDelay: `${(rowIndex * columns + colIndex) * 50}ms`,
+                animationDuration: '1.5s'
+              }}
+            />
+          ))}
+        </div>
+      ))}
+
+      {/* Subtle loading indicator at bottom */}
+      <div className="flex items-center justify-center gap-2 py-3 text-slate-500">
+        <Loader2 className="w-4 h-4 animate-spin" />
+        <span className="text-xs">Loading data...</span>
+      </div>
+    </div>
+  );
+}
+
