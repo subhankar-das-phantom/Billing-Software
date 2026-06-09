@@ -257,7 +257,7 @@ export default function NotesPage() {
                     className={`p-1.5 rounded-full transition-colors ${
                       note.isPinned 
                         ? 'bg-yellow-500/20 text-yellow-400' 
-                        : 'text-slate-500 hover:text-slate-300 opacity-100 md:opacity-0 md:group-hover:opacity-100'
+                        : 'text-slate-500 hover:text-slate-300 opacity-100 lg:opacity-0 lg:group-hover:opacity-100'
                     }`}
                   >
                     <Pin size={16} className={note.isPinned ? 'fill-current' : ''} />
@@ -272,7 +272,7 @@ export default function NotesPage() {
                 </div>
 
                 {/* Note Footer */}
-                <div className="p-4 pt-0 mt-auto flex justify-between items-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                <div className="p-4 pt-0 mt-auto flex justify-between items-center opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                   <span className="text-xs text-slate-500 flex items-center gap-1">
                     <Calendar size={12} />
                     {formatDate(note.updatedAt)}

@@ -53,7 +53,7 @@ const CustomerCard = memo(function CustomerCard({
 
   return (
     <div
-      className={`glass-card p-5 ${shouldHover ? 'cursor-pointer hover:bg-slate-800/80 transition-colors hover:-translate-y-1' : ''
+      className={`glass-card p-5 group ${shouldHover ? 'cursor-pointer hover:bg-slate-800/80 transition-colors hover:-translate-y-1' : ''
         }`}
     >
       <div className="flex items-start justify-between mb-4">
@@ -75,7 +75,7 @@ const CustomerCard = memo(function CustomerCard({
           </div>
         </div>
 
-        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
           <button
             onClick={(e) => {
               e.stopPropagation();
