@@ -26,7 +26,7 @@ export default function EnhancedButton({
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`relative overflow-hidden px-6 py-3 rounded-xl font-semibold text-white flex items-center gap-2 shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all duration-300 group disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
+      className={`enhanced-btn relative overflow-hidden px-6 py-3 rounded-xl font-semibold text-white flex items-center gap-2 shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all duration-300 group disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
       style={{
         background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
       }}
@@ -34,20 +34,18 @@ export default function EnhancedButton({
       whileTap={disabled ? {} : { scale: 0.98 }}
       {...rest}
     >
-      {/* Shimmer effect */}
+      {/* Shimmer effect - inherit={false} prevents parent variant propagation */}
       <motion.div
         className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
         initial={{ x: '-100%' }}
         whileHover={{ x: '100%' }}
         transition={{ duration: 0.6 }}
+        inherit={false}
       />
       
-      {/* Background glow on hover */}
-      <motion.div
-        className="absolute inset-0 bg-white"
-        initial={{ opacity: 0 }}
-        whileHover={{ opacity: 0.15 }}
-        transition={{ duration: 0.3 }}
+      {/* Background glow on hover — uses pure CSS to avoid Framer variant propagation flash */}
+      <div
+        className="absolute inset-0 bg-white opacity-0 group-hover:opacity-[0.15] transition-opacity duration-300"
       />
       
       {/* Icon with rotation animation */}
@@ -61,6 +59,7 @@ export default function EnhancedButton({
               : { duration: 0.3 }
           }
           className="relative z-10"
+          inherit={false}
         >
           <Icon className="w-5 h-5" />
         </motion.div>
