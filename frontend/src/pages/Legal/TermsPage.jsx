@@ -256,9 +256,9 @@ const sections = [
       <>
         <ul>
           <li>The Platform relies on <strong>MongoDB Atlas</strong>, <strong>Vercel</strong>, and <strong>Render</strong> for infrastructure.</li>
+          <li>We use <strong>Razorpay</strong> as our secure third-party payment gateway for processing subscription payments.</li>
           <li>We are not responsible for availability or security of third-party services.</li>
-          <li>No current integration with payment gateways, social logins, or ad networks.</li>
-          <li>Future integrations will be reflected in updated Terms.</li>
+          <li>No current integration with social logins or ad networks.</li>
         </ul>
       </>
     )
@@ -334,14 +334,20 @@ const sections = [
     content: (
       <>
         <ul>
-          <li>The Platform is currently offered <strong>free of charge</strong> during its launch phase.</li>
-          <li><strong>Paid plans</strong> or premium features may be introduced in the future.</li>
-          <li>Existing users will receive advance notice of pricing changes.</li>
-          <li>Early adopters may receive preferential pricing.</li>
-          <li>We will never charge without explicit consent and prior notification.</li>
+          <li>The Platform operates on a <strong>Subscription SaaS model</strong> with various tiers (e.g., Starter, Business, Professional).</li>
+          <li><strong>Billing Cycles</strong> — Subscriptions are billed in advance (e.g., 1, 3, 6, or 12 months).</li>
+          <li><strong>Proration</strong> — When upgrading or downgrading, your remaining balance is prorated and converted into days on the new plan based on the price difference.
+            <br/><span className="text-sm text-slate-400 mt-2 block border-l-2 border-blue-500 pl-3">
+              <em>Example:</em> Upgrading from Starter (₹299/mo) to Professional (₹699/mo) with 30 days remaining:<br/>
+              • 30 days remaining × (299 / 699) = 12.8 days.<br/>
+              • You receive the 30 days of Professional you purchased, plus the converted 12.8 days = 42.8 days total.
+            </span>
+          </li>
+          <li><strong>No Refunds</strong> — All subscription payments are final and non-refundable, except where required by law.</li>
+          <li><strong>Payment Processing</strong> — Subscriptions are securely processed via Razorpay. We do not store your payment credentials.</li>
         </ul>
         <div className="pp-callout">
-          <strong>Note:</strong> Any future paid plans will include detailed terms covering billing cycles, refund policies, and cancellation procedures.
+          <strong>Note:</strong> Failure to renew an expired subscription will result in your account entering a grace period, followed by restricted read-only access until renewed.
         </div>
       </>
     )
@@ -413,7 +419,7 @@ export default function TermsPage() {
             </div>
             <h1 className="pp-title">Terms & Conditions</h1>
             <p className="pp-subtitle">Bharat Enterprise Billing System</p>
-            <p className="pp-last-updated">Last Updated: May 17, 2026</p>
+            <p className="pp-last-updated">Last Updated: June 11, 2026</p>
           </div>
         </div>
       </header>
@@ -480,12 +486,12 @@ export default function TermsPage() {
                     <tr><td>Employee Access</td><td>Admin-managed; employees don't own data</td></tr>
                     <tr><td>Financial Data</td><td>Users responsible for accuracy</td></tr>
                     <tr><td>GST Compliance</td><td>Users must verify compliance in their jurisdiction</td></tr>
-                    <tr><td>Payment Data</td><td>No card/UPI data stored</td></tr>
+                    <tr><td>Payment Data</td><td>Subscription payments handled securely by Razorpay; no cards stored</td></tr>
                     <tr><td>Service Availability</td><td>Best effort; no 100% uptime guarantee</td></tr>
                     <tr><td>Backups</td><td>For disaster recovery; may persist temporarily</td></tr>
                     <tr><td>Acceptable Use</td><td>No abuse, reverse engineering, or resale</td></tr>
                     <tr><td>Intellectual Property</td><td>Platform IP belongs to Bharat Enterprise</td></tr>
-                    <tr><td>Future Pricing</td><td>Paid plans may come with advance notice</td></tr>
+                    <tr><td>Subscriptions</td><td>Billed in advance; no refunds; prorated plan changes</td></tr>
                     <tr><td>Governing Law</td><td>Indian law; Indian courts</td></tr>
                     <tr><td>Target Market</td><td>Indian businesses (pharma, retail, SMBs)</td></tr>
                   </tbody>
@@ -499,7 +505,7 @@ export default function TermsPage() {
       {/* Footer */}
       <footer className="pp-footer">
         <div className="pp-footer-inner">
-          <p>These Terms & Conditions are effective as of May 17, 2026.</p>
+          <p>These Terms & Conditions are effective as of June 11, 2026.</p>
           <p className="pp-footer-copyright">
             © {new Date().getFullYear()} Bharat Enterprise Billing System. All rights reserved.
           </p>

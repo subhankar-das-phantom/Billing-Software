@@ -70,6 +70,7 @@ app.use('/api/payments', generalLimiter, require('./routes/payments'));
 app.use('/api/reports', generalLimiter, require('./routes/reports'));
 app.use('/api/manual-entries', generalLimiter, require('./routes/manualEntries'));
 app.use('/api/credit-notes', generalLimiter, require('./routes/creditNotes'));
+app.use('/api/saas', generalLimiter, require('./saas/routes'));
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -17,22 +17,26 @@ const {
   adjustStockValidator,
   mongoIdParam 
 } = require('../middleware/validators');
+const { checkSubscription, checkFeatureAccess, checkWriteAccess } = require('../saas/middleware');
+const { Feature } = require('../saas/shared/features');
 
-// Apply protection to all routes
+// Apply protection and subscription check to all routes
 router.use(protect);
+router.use(checkSubscription);
+router.use(checkFeatureAccess(Feature.PRODUCTS));
 
 router.get('/stats', getProductStats);
 router.get('/stock/low', getLowStock);
 
 router.route('/')
   .get(getProducts)
-  .post(createProductValidator, createProduct);
+  .post(checkWriteAccess, createProductValidator, createProduct);
 
 router.route('/:id')
   .get(mongoIdParam, getProduct)
-  .put(updateProductValidator, updateProduct)
-  .delete(mongoIdParam, deleteProduct);
+  .put(checkWriteAccess, updateProductValidator, updateProduct)
+  .delete(checkWriteAccess, mongoIdParam, deleteProduct);
 
-router.put('/:id/stock', adjustStockValidator, adjustStock);
+router.put('/:id/stock', checkWriteAccess, adjustStockValidator, adjustStock);
 
 module.exports = router;

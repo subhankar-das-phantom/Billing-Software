@@ -37,11 +37,13 @@ Test Credentials:
   - Accurate stock with minimal operations
 
 ### Core Functionality
-- ✅ **Invoice & Payment Engine** - Multi-item GST calculations, full/partial payment tracking, and GST-compliant sales returns (Credit Notes)
-- ✅ **Customer Ledger & Collections** - Unified financial history per customer with running balances, and daily cash flow tracking across all payment methods
-- ✅ **Product & Customer Management** - Real-time stock tracking with informational MRP/Batch tracking, and customer credit profiles
-- ✅ **Analytics & Reporting** - Monthly sales trends, top customers, credit aging dashboards (30/60/90+ days), and employee performance
-- ✅ **Secure Authentication** - JWT-based login with admin-controlled employee accounts (No self-signup)
+- ✅ **Multi-Tenant SaaS Architecture** - Built-in isolation for multiple distinct businesses with their own customers, products, and invoices.
+- ✅ **Subscription & Billing Layer** - Automated SaaS subscription management, free trials, grace periods, prorated plan changes, and secure Razorpay integration.
+- ✅ **Invoice & Payment Engine** - Multi-item GST calculations, full/partial payment tracking, and GST-compliant sales returns (Credit Notes).
+- ✅ **Customer Ledger & Collections** - Unified financial history per customer with running balances, and daily cash flow tracking across all payment methods.
+- ✅ **Product & Customer Management** - Real-time stock tracking with informational MRP/Batch tracking, and customer credit profiles.
+- ✅ **Analytics & Reporting** - Monthly sales trends, top customers, credit aging dashboards (30/60/90+ days), and employee performance.
+- ✅ **Secure Authentication** - JWT-based login with admin-controlled employee accounts (No self-signup).
 
 ### Advanced Capabilities
 - ✅ **Simplified Stock Tracking** - Inventory is managed at the product level natively, skipping unnecessary batch/FIFO complexity
@@ -60,11 +62,12 @@ Test Credentials:
 
 | Layer | Technology |
 |-------|------------|
-| Backend | Node.js + Express.js |
+| Backend | Node.js + Express.js + TypeScript (SaaS Module) |
 | Database | MongoDB + Mongoose |
 | Frontend | React 18 + Vite |
 | Styling | Tailwind CSS |
 | Auth | JWT + Bcrypt |
+| Payments | Razorpay SDK |
 | HTTP | Axios |
 
 ## Architecture Overview
@@ -167,6 +170,7 @@ bharat-billing/
 ## API Endpoints
 
 ### Authentication
+- `POST /api/auth/register` - Tenant registration (SaaS)
 - `POST /api/auth/login` - Admin login
 - `POST /api/auth/employee/login` - Employee login
 - `GET /api/auth/me` - Get current user
@@ -174,6 +178,13 @@ bharat-billing/
 - `PUT /api/auth/change-password` - Change password
 - `POST /api/auth/heartbeat` - Session heartbeat
 - `PUT /api/auth/profile` - Update profile (Admin only)
+
+### SaaS & Subscriptions
+- `GET /api/saas/plans` - List available subscription tiers
+- `GET /api/saas/subscription` - Get current tenant subscription status
+- `POST /api/saas/subscription/checkout` - Initiate Razorpay checkout
+- `POST /api/saas/subscription/verify` - Verify Razorpay signature and activate
+- `GET /api/saas/subscription/history` - View payment history
 
 ### Products
 - `GET /api/products` - List products (with pagination)
@@ -292,9 +303,15 @@ MONGODB_URI=mongodb://localhost:27017/bharat-billing
 JWT_SECRET=your-secret-key
 JWT_EXPIRE=7d
 FRONTEND_URL=http://localhost:3000
+
+# Super Admin (Optional, if using env seeder)
 ADMIN_EMAIL=admin@bharat.com
 ADMIN_PASSWORD=admin123
 FIRM_NAME=Bharat Enterprise
+
+# Razorpay (For SaaS subscriptions)
+RAZORPAY_KEY_ID=rzp_test_xxxxxxx
+RAZORPAY_KEY_SECRET=your_secret
 ```
 
 ### Frontend (.env)

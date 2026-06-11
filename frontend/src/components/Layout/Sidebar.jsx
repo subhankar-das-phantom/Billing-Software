@@ -22,6 +22,8 @@ import {
   FileBarChart
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSubscription } from '../../contexts/SubscriptionContext';
+import UpgradeBadge from '../Subscription/UpgradeBadge';
 import { invoiceService } from '../../services/invoices/invoiceService';
 import { useMotionConfig, useSWR } from '../../hooks';
 
@@ -123,6 +125,7 @@ function useMediaQuery(query) {
 export default function Sidebar({ isOpen, onClose }) {
   const location = useLocation();
   const { admin, user, isAdmin, logout } = useAuth();
+  const { canAccessRoute } = useSubscription();
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const shouldShow = isOpen || isDesktop;
   const [hoveredItem, setHoveredItem] = useState(null);
@@ -329,6 +332,11 @@ export default function Sidebar({ isOpen, onClose }) {
                           </motion.span>
                         )}
                         
+                        {/* Upgrade badge for locked features */}
+                        {!canAccessRoute(item.path) && (
+                          <UpgradeBadge variant="lock" />
+                        )}
+                        
                         {/* Hover arrow */}
                         <AnimatePresence>
                           {hoveredItem === item.path && (
@@ -377,6 +385,9 @@ export default function Sidebar({ isOpen, onClose }) {
                         <span className={`${item.badgeColor || 'bg-blue-500'} text-white text-[10px] px-1.5 py-0.5 rounded font-semibold`}>
                           {item.badge}
                         </span>
+                      )}
+                      {!canAccessRoute(item.path) && (
+                        <UpgradeBadge variant="lock" />
                       )}
                     </Link>
                   </motion.li>

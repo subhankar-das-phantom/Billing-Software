@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   User, 
@@ -11,10 +12,13 @@ import {
   Loader2,
   CheckCircle,
   Eye,
-  EyeOff
+  EyeOff,
+  Crown,
+  CreditCard
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
+import { useSubscription } from '../../contexts/SubscriptionContext';
 import { authService } from '../../services/auth/authService';
 import { useFirstVisit } from '../../hooks';
 
@@ -30,6 +34,7 @@ const itemVariants = {
 export default function ProfilePage() {
   const { admin, updateAdmin } = useAuth();
   const { success: showSuccess, error: showError } = useToast();
+  const { subscription, isExpired, isGrace, isTrial, planName, daysRemaining } = useSubscription();
   const isFirstVisit = useFirstVisit('profile');
 
   // Profile form state
@@ -357,6 +362,66 @@ export default function ProfilePage() {
             <p className="text-xs text-slate-400">
               <strong className="text-slate-300">Security Tip:</strong> Use a strong password with a mix of letters, numbers, and special characters. Never share your password with anyone.
             </p>
+          </div>
+        </motion.div>
+
+        {/* Subscription Info Card */}
+        <motion.div
+          variants={itemVariants}
+          initial={isFirstVisit ? "hidden" : false}
+          animate="visible"
+          transition={{ delay: 0.2 }}
+          className="glass-card p-6 lg:col-span-2 relative overflow-hidden"
+        >
+          {/* Decorative background for pro plans */}
+          {(planName === 'Professional' || planName === 'Business') && (
+            <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+          )}
+
+          <div className="flex items-center gap-2 mb-6">
+            <Crown className="w-5 h-5 text-purple-400" />
+            <h2 className="text-lg font-semibold text-white">Subscription & Billing</h2>
+          </div>
+
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-slate-800/50 rounded-xl p-5 border border-slate-700/50">
+            <div className="flex items-center gap-4 w-full md:w-auto">
+              <div className="p-4 bg-gradient-to-br from-slate-700 to-slate-800 rounded-xl border border-slate-600 shadow-inner">
+                <CreditCard className="w-8 h-8 text-blue-400" />
+              </div>
+              <div>
+                <p className="text-slate-400 text-sm mb-1">Current Plan</p>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-2xl font-bold text-white">{planName}</h3>
+                  {isTrial && <span className="px-2 py-0.5 rounded text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30">TRIAL</span>}
+                </div>
+              </div>
+            </div>
+
+            <div className="w-full md:w-auto flex flex-col md:items-end">
+              <p className="text-slate-400 text-sm mb-1">Status</p>
+              {isExpired ? (
+                <span className="text-red-400 font-medium">Expired</span>
+              ) : isGrace ? (
+                <span className="text-amber-400 font-medium">Grace Period ({daysRemaining} days left)</span>
+              ) : (
+                <span className="text-emerald-400 font-medium">Active ({daysRemaining} days remaining)</span>
+              )}
+            </div>
+
+            <div className="w-full md:w-auto mt-4 md:mt-0">
+              <Link
+                to="/subscription"
+                className="btn w-full md:w-auto py-2.5 px-6 font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-lg shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2 transition-transform hover:scale-105 active:scale-95"
+              >
+                <Crown className="w-4 h-4" />
+                {isExpired ? 'Renew Now' : 'Upgrade Plan'}
+              </Link>
+            </div>
+          </div>
+          
+          <div className="mt-4 text-xs text-slate-500 flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+            Billing is processed securely via Razorpay. To view detailed plan comparisons, click the upgrade button.
           </div>
         </motion.div>
       </div>

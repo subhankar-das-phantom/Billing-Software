@@ -67,7 +67,7 @@ const sections = [
         </ul>
 
         <div className="pp-callout">
-          <strong>Note:</strong> We do not collect or store any payment card numbers, bank account details, or UPI credentials. All payment references recorded on the Platform are business transaction records entered by you — not payment gateway data.
+          <strong>Note:</strong> We do not collect or store any payment card numbers, bank account details, or UPI credentials. All platform subscription payments are processed securely by our partner, <strong>Razorpay</strong>. Internal business payments recorded on the Platform are simply transaction records entered by you.
         </div>
       </>
     )
@@ -218,9 +218,8 @@ const sections = [
     color: 'from-blue-500 to-cyan-500',
     content: (
       <>
-        <p>The Platform relies on MongoDB Atlas, Vercel, and Render for infrastructure. We do <strong>not</strong> currently integrate with:</p>
+        <p>The Platform relies on MongoDB Atlas, Vercel, and Render for infrastructure. We partner with <strong>Razorpay</strong> to process subscription payments securely. We do <strong>not</strong> currently integrate with:</p>
         <ul>
-          <li>Third-party payment gateways</li>
           <li>External analytics platforms (e.g., Google Analytics)</li>
           <li>Social media login providers</li>
           <li>Advertising networks</li>
@@ -241,7 +240,7 @@ const sections = [
           <li>The Platform is a <strong>software tool, not a tax advisor</strong>. It assists in generating invoices and reports based on your input.</li>
           <li><strong>You are responsible for verifying GST compliance</strong> in your jurisdiction, including tax rates, HSN/SAC codes, and filings.</li>
           <li>Tax data accuracy depends on the rates and rules you configure.</li>
-          <li><strong>No payment card data is stored.</strong> Payment records are business transaction entries, not gateway data.</li>
+          <li><strong>No payment card data is stored.</strong> Platform subscriptions use Razorpay. Customer payment records are internal business entries only.</li>
         </ul>
         <div className="pp-callout pp-callout-warning">
           <strong>Disclaimer:</strong> Bharat Enterprise Billing System is not a substitute for professional accounting or tax advisory services. Please consult a qualified Chartered Accountant for GST compliance.
@@ -451,7 +450,7 @@ export default function PrivacyPolicyPage() {
             </div>
             <h1 className="pp-title">Privacy Policy</h1>
             <p className="pp-subtitle">Bharat Enterprise Billing System</p>
-            <p className="pp-last-updated">Last Updated: May 17, 2026</p>
+            <p className="pp-last-updated">Last Updated: June 11, 2026</p>
           </div>
         </div>
       </header>
@@ -536,7 +535,7 @@ export default function PrivacyPolicyPage() {
       {/* Footer */}
       <footer className="pp-footer">
         <div className="pp-footer-inner">
-          <p>This Privacy Policy is effective as of May 17, 2026.</p>
+          <p>This Privacy Policy is effective as of June 11, 2026.</p>
           <p className="pp-footer-copyright">
             © {new Date().getFullYear()} Bharat Enterprise Billing System. All rights reserved.
           </p>

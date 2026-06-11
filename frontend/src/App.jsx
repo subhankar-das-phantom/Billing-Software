@@ -1,6 +1,7 @@
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { AuthProvider, useAuth, AdminRoute } from './contexts/AuthContext';
+import { SubscriptionProvider } from './contexts/SubscriptionContext';
 import { ToastProvider } from './contexts/ToastContext';
 
 // Eager load - needed immediately
@@ -22,6 +23,7 @@ const CreditsPage = lazy(() => import('./pages/CreditNotes/CreditsPage'));
 const ProfilePage = lazy(() => import('./pages/Profile/ProfilePage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const CollectionsPage = lazy(() => import('./pages/Collections/CollectionsPage'));
+const SubscriptionPage = lazy(() => import('./pages/Subscription/SubscriptionPage'));
 
 // Admin-only pages
 const EmployeesPage = lazy(() => import('./pages/Employees/EmployeesPage'));
@@ -143,6 +145,7 @@ function AppRoutes() {
           <Route path="/collections" element={<CollectionsPage />} />
           <Route path="/reports/gst" element={<GstReportPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/subscription" element={<SubscriptionPage />} />
           
           {/* Admin-only routes */}
           <Route 
@@ -198,9 +201,11 @@ export default function App() {
   return (
     <HashRouter>
       <AuthProvider>
-        <ToastProvider>
-          <AppRoutes />
-        </ToastProvider>
+        <SubscriptionProvider>
+          <ToastProvider>
+            <AppRoutes />
+          </ToastProvider>
+        </SubscriptionProvider>
       </AuthProvider>
     </HashRouter>
   );

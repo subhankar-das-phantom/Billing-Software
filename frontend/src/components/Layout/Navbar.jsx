@@ -21,6 +21,8 @@ import {
   FileBarChart
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSubscription } from '../../contexts/SubscriptionContext';
+import UpgradeBadge from '../Subscription/UpgradeBadge';
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -45,6 +47,7 @@ const adminNavItems = [
 export default function Navbar() {
   const location = useLocation();
   const { admin, user, isAdmin, logout } = useAuth();
+  const { canAccessRoute } = useSubscription();
   const navigate = useNavigate();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
@@ -166,6 +169,9 @@ export default function Navbar() {
                     )}
                     {item.adminOnly && (
                       <span className="text-[10px] px-1.5 py-0.5 bg-accent-500/20 text-accent-400 rounded font-semibold hidden 2xl:inline-block">Admin</span>
+                    )}
+                    {!canAccessRoute(item.path) && (
+                      <UpgradeBadge variant="lock" />
                     )}
                   </motion.div>
                 </Link>
