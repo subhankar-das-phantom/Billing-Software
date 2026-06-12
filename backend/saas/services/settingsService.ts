@@ -70,7 +70,7 @@ export async function setSetting(
 // ─── Convenience Getters ─────────────────────────────────────────
 
 export async function getDefaultTrialDays(): Promise<number> {
-  return getSetting<number>(SettingKeys.DEFAULT_TRIAL_DAYS, 30);
+  return getSetting<number>(SettingKeys.DEFAULT_TRIAL_DAYS, 14);
 }
 
 export async function getDefaultGraceDays(): Promise<number> {
