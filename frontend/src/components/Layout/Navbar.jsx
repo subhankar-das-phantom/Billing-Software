@@ -18,7 +18,8 @@ import {
   BarChart3,
   Shield,
   Clock,
-  FileBarChart
+  FileBarChart,
+  Gift
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSubscription } from '../../contexts/SubscriptionContext';
@@ -228,8 +229,20 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* User Menu */}
-          <div className="relative">
+          <div className="flex items-center gap-4">
+            {/* Refer & Earn Button */}
+            {isAdmin && (
+              <Link 
+                to="/referral"
+                className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-full transition-colors group shadow-lg shadow-emerald-500/10"
+              >
+                <Gift className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
+                <span className="text-xs font-semibold text-emerald-400">Refer & Earn</span>
+              </Link>
+            )}
+
+            {/* User Menu */}
+            <div className="relative">
             <motion.button
               onClick={() => setUserMenuOpen(!userMenuOpen)}
               className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 hover:border-slate-600 transition-colors"
@@ -323,6 +336,7 @@ export default function Navbar() {
                 </>
               )}
             </AnimatePresence>
+          </div>
           </div>
         </div>
       </div>

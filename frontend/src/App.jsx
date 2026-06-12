@@ -24,6 +24,7 @@ const ProfilePage = lazy(() => import('./pages/Profile/ProfilePage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const CollectionsPage = lazy(() => import('./pages/Collections/CollectionsPage'));
 const SubscriptionPage = lazy(() => import('./pages/Subscription/SubscriptionPage'));
+const ReferralPage = lazy(() => import('./pages/Referral/ReferralPage'));
 
 // Admin-only pages
 const EmployeesPage = lazy(() => import('./pages/Employees/EmployeesPage'));
@@ -146,6 +147,7 @@ function AppRoutes() {
           <Route path="/reports/gst" element={<GstReportPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/subscription" element={<SubscriptionPage />} />
+          <Route path="/referral" element={<ReferralPage />} />
           
           {/* Admin-only routes */}
           <Route 

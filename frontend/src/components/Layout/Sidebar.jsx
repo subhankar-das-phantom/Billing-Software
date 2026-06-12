@@ -19,7 +19,8 @@ import {
   Banknote,
   UsersRound,
   Shield,
-  FileBarChart
+  FileBarChart,
+  Gift
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSubscription } from '../../contexts/SubscriptionContext';
@@ -47,6 +48,7 @@ const getQuickActions = (isAdmin) => {
   if (isAdmin) {
     actions.push(
       { path: '/profile', label: 'Profile', icon: User },
+      { path: '/referral', label: 'Refer & Earn', icon: Gift, badge: 'Free Days', badgeColor: 'bg-emerald-500' },
       { path: '/employees', label: 'Employees', icon: UsersRound, badge: 'Admin', badgeColor: 'bg-accent-500' },
       { path: '/employee-analytics', label: 'Employee Analytics', icon: BarChart3 },
       { path: '/manual-entries', label: 'Manual Entries', icon: Shield, badge: 'Admin', badgeColor: 'bg-accent-500' },
