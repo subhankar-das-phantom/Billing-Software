@@ -222,19 +222,27 @@ export default function SubscriptionPage() {
                 )}
               </div>
 
-              {/* Pro-ration notice */}
-              {!isExpired && daysRemaining > 0 && activeDbSub && activeDbSub.planId !== plan._id && (
-                <div className="mb-4 bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 text-xs text-blue-300">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-                    <p>
-                      Your remaining <strong>{daysRemaining} days</strong> of {planName} will be converted to{' '}
-                      <strong>{Math.round(daysRemaining * ((activeDbSub?.currentPricingSnapshot?.baseMonthlyPrice || 0) / (plan.baseMonthlyPrice || 1)))} days</strong>{' '}
-                      of {plan.name} and added to your new purchase.
-                    </p>
+              {/* Pro-ration notice — only for switching to a DIFFERENT plan */}
+              {!isExpired && daysRemaining > 0 && activeDbSub && String(activeDbSub.planId) !== String(plan._id) && (() => {
+                // Find the user's CURRENT plan from the plans list to get accurate pricing
+                const currentPlan = plans.find(p => String(p._id) === String(activeDbSub.planId));
+                const currentPrice = currentPlan?.baseMonthlyPrice || activeDbSub?.currentPricingSnapshot?.baseMonthlyPrice || 0;
+                const targetPrice = plan.baseMonthlyPrice || 1;
+                const convertedDays = Math.round(daysRemaining * (currentPrice / targetPrice));
+                
+                return (
+                  <div className="mb-4 bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 text-xs text-blue-300">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+                      <p>
+                        Your remaining <strong>{daysRemaining} days</strong> of {planName} will be converted to{' '}
+                        <strong>{convertedDays} days</strong>{' '}
+                        of {plan.name} and added to your new purchase.
+                      </p>
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               <button
                 onClick={() => handleSubscribe(plan)}
@@ -255,21 +263,44 @@ export default function SubscriptionPage() {
               </button>
 
               <div className="space-y-3 flex-1">
-                <p className="text-sm font-medium text-slate-300 mb-4">What's included:</p>
-                {plan.features.slice(0, 8).map((feature, i) => (
-                  <div key={i} className="flex items-start gap-2">
-                    <div className="mt-0.5 bg-blue-500/20 p-0.5 rounded-full">
-                      <Check className="w-3 h-3 text-blue-400" />
-                    </div>
-                    <span className="text-sm text-slate-400">
-                      {feature.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                    </span>
-                  </div>
-                ))}
-                {plan.features.length > 8 && (
-                  <div className="text-xs text-slate-500 italic mt-2">
-                    + {plan.features.length - 8} more features
-                  </div>
+                {plan.code?.toLowerCase() === 'starter' && (
+                  <>
+                    <p className="text-sm font-medium text-slate-300 mb-4">What's included:</p>
+                    {['Up to 100 invoices/mo', '1 Admin + 1 Employee', 'Basic GST Billing', 'Customer Management', 'Product Catalog'].map((f, i) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <div className="mt-0.5 bg-blue-500/20 p-0.5 rounded-full">
+                          <Check className="w-3 h-3 text-blue-400" />
+                        </div>
+                        <span className="text-sm text-slate-400">{f}</span>
+                      </div>
+                    ))}
+                  </>
+                )}
+                {plan.code?.toLowerCase() === 'business' && (
+                  <>
+                    <p className="text-sm font-semibold text-emerald-400 mb-2">Everything in Starter, plus:</p>
+                    {['Unlimited Invoices', 'Up to 3 Employees', 'Payments & Collections', 'Credit Notes & Returns', 'Notes & Reminders'].map((f, i) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <div className="mt-0.5 bg-emerald-500/20 p-0.5 rounded-full">
+                          <Check className="w-3 h-3 text-emerald-400" />
+                        </div>
+                        <span className="text-sm text-slate-400">{f}</span>
+                      </div>
+                    ))}
+                  </>
+                )}
+                {plan.code?.toLowerCase() === 'professional' && (
+                  <>
+                    <p className="text-sm font-semibold text-indigo-400 mb-2">Everything in Business, plus:</p>
+                    {['Unlimited Employees', 'Advanced Analytics', 'GST Reports & Filing', 'Activity Logs', 'Priority Support'].map((f, i) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <div className="mt-0.5 bg-indigo-500/20 p-0.5 rounded-full">
+                          <Check className="w-3 h-3 text-indigo-400" />
+                        </div>
+                        <span className="text-sm text-slate-400">{f}</span>
+                      </div>
+                    ))}
+                  </>
                 )}
               </div>
             </motion.div>
