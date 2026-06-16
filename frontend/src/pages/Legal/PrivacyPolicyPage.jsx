@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Shield, Lock, Database, Users, Eye, Server, Cookie, Clock, Share2, Globe, FileText, UserCheck, ShieldCheck, HardDrive, Trash2, Baby, Bell, Mail, Heart } from 'lucide-react';
+import { ArrowLeft, Shield, Lock, Database, Users, Eye, Server, Cookie, Clock, Share2, Globe, FileText, UserCheck, ShieldCheck, HardDrive, Trash2, Baby, Bell, Mail, Heart, Gift } from 'lucide-react';
 
 const sections = [
   {
@@ -52,14 +52,30 @@ const sections = [
           <li>Outstanding and ageing reports</li>
         </ul>
 
-        <h4>2.4 Device & Browser Information</h4>
+        <h4>2.4 Subscription & Payment Data</h4>
+        <ul>
+          <li>Current subscription plan and billing cycle</li>
+          <li>Payment transaction IDs and timestamps (via Razorpay)</li>
+          <li>Subscription history, renewals, and plan changes</li>
+          <li>Grace period and trial status</li>
+        </ul>
+
+        <h4>2.5 Referral Data</h4>
+        <ul>
+          <li>Unique referral codes generated for your account</li>
+          <li>Referral link sharing activity</li>
+          <li>Referred user signup and purchase status</li>
+          <li>Referral reward grants and history</li>
+        </ul>
+
+        <h4>2.6 Device & Browser Information</h4>
         <ul>
           <li>IP address, browser type and version</li>
           <li>Operating system and device type</li>
           <li>Screen resolution</li>
         </ul>
 
-        <h4>2.5 Usage Analytics</h4>
+        <h4>2.7 Usage Analytics</h4>
         <ul>
           <li>Pages visited and features used</li>
           <li>Session duration and frequency of use</li>
@@ -83,8 +99,10 @@ const sections = [
         <ul>
           <li><strong>Service Delivery</strong> — To provide billing, invoicing, inventory tracking, customer ledger management, credit note processing, and GST reporting features.</li>
           <li><strong>Account Management</strong> — To authenticate users, manage sessions, and enforce role-based access within your tenant.</li>
+          <li><strong>Subscription Management</strong> — To manage your subscription lifecycle including free trials, plan upgrades, renewals, grace periods, and payment verification via Razorpay.</li>
+          <li><strong>Referral Program</strong> — To track referral code usage, verify eligible conversions, and grant subscription day rewards to both referrer and referred users.</li>
           <li><strong>Platform Improvement</strong> — To analyze usage patterns, diagnose technical issues, and improve performance, reliability, and usability.</li>
-          <li><strong>Communication</strong> — To send important service updates, security alerts, or policy change notifications.</li>
+          <li><strong>Communication</strong> — To send important service updates, security alerts, subscription expiry notifications, or policy change notifications.</li>
           <li><strong>Compliance & Security</strong> — To detect unauthorized access, prevent abuse, and comply with applicable legal obligations.</li>
           <li><strong>Reporting & Analytics</strong> — To generate dashboard insights and business reports for your use within the Platform.</li>
         </ul>
@@ -450,7 +468,7 @@ export default function PrivacyPolicyPage() {
             </div>
             <h1 className="pp-title">Privacy Policy</h1>
             <p className="pp-subtitle">Bharat Enterprise Billing System</p>
-            <p className="pp-last-updated">Last Updated: June 11, 2026</p>
+            <p className="pp-last-updated">Last Updated: June 16, 2026</p>
           </div>
         </div>
       </header>
@@ -517,6 +535,8 @@ export default function PrivacyPolicyPage() {
                     <tr><td>Password Security</td><td>Encrypted using bcrypt; never stored in plain text</td></tr>
                     <tr><td>Payment Card Data</td><td>Not collected or stored by the Platform</td></tr>
                     <tr><td>GST Compliance</td><td>Users are responsible for verifying compliance</td></tr>
+                    <tr><td>Subscription Data</td><td>Plan, billing cycle, and payment IDs tracked; no card data stored</td></tr>
+                    <tr><td>Referral Data</td><td>Referral codes, link sharing, and reward grants tracked</td></tr>
                     <tr><td>Data Sharing</td><td>Never sold or rented to third parties</td></tr>
                     <tr><td>Security</td><td>Reasonable measures; no platform is 100% secure</td></tr>
                     <tr><td>Backups</td><td>Maintained for disaster recovery</td></tr>
@@ -535,7 +555,7 @@ export default function PrivacyPolicyPage() {
       {/* Footer */}
       <footer className="pp-footer">
         <div className="pp-footer-inner">
-          <p>This Privacy Policy is effective as of June 11, 2026.</p>
+          <p>This Privacy Policy is effective as of June 16, 2026.</p>
           <p className="pp-footer-copyright">
             © {new Date().getFullYear()} Bharat Enterprise Billing System. All rights reserved.
           </p>

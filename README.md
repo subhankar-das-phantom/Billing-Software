@@ -38,7 +38,8 @@ Test Credentials:
 
 ### Core Functionality
 - ✅ **Multi-Tenant SaaS Architecture** - Built-in isolation for multiple distinct businesses with their own customers, products, and invoices.
-- ✅ **Subscription & Billing Layer** - Automated SaaS subscription management, free trials, grace periods, prorated plan changes, and secure Razorpay integration.
+- ✅ **Subscription & Billing Layer** - Automated SaaS subscription management, 14-day free trials, grace periods, prorated plan upgrades, and secure Razorpay integration.
+- ✅ **Referral Program** - Built-in viral loop where users can share custom links, auto-apply codes on signup, and automatically earn free subscription days upon successful conversion.
 - ✅ **Invoice & Payment Engine** - Multi-item GST calculations, full/partial payment tracking, and GST-compliant sales returns (Credit Notes).
 - ✅ **Customer Ledger & Collections** - Unified financial history per customer with running balances, and daily cash flow tracking across all payment methods.
 - ✅ **Product & Customer Management** - Real-time stock tracking with informational MRP/Batch tracking, and customer credit profiles.
@@ -185,6 +186,11 @@ bharat-billing/
 - `POST /api/saas/subscription/checkout` - Initiate Razorpay checkout
 - `POST /api/saas/subscription/verify` - Verify Razorpay signature and activate
 - `GET /api/saas/subscription/history` - View payment history
+
+### Referral System
+- `GET /api/saas/referral/stats` - Get user referral stats and history
+- `POST /api/saas/referral/code` - Generate or retrieve unique referral code
+- `POST /api/saas/referral/apply` - Apply a referral code during signup
 
 ### Products
 - `GET /api/products` - List products (with pagination)
