@@ -26,8 +26,12 @@ export default function ReferralPage() {
   const [copiedCode, setCopiedCode] = useState(false);
   const [hideApplyCode, setHideApplyCode] = useState(false);
   
-  const { isTrial } = useSubscription();
+  const { isTrial, activeDbSub } = useSubscription();
   const { success: showSuccess, error: showError } = useToast();
+
+  // Allow applying referral code if they are on trial, have no subscription (old users), 
+  // or if their only subscription was a trial (even if expired).
+  const canApplyCode = isTrial || !activeDbSub || activeDbSub.status === 'trial';
 
   const fetchReferralData = useCallback(async () => {
     try {
@@ -246,7 +250,7 @@ export default function ReferralPage() {
             </div>
 
             {/* Apply Code */}
-            {isTrial && !hideApplyCode && (
+            {canApplyCode && !hideApplyCode && (
               <div className="bg-gradient-to-br from-indigo-900/30 to-blue-900/30 border border-indigo-500/20 rounded-2xl p-6">
                 <h3 className="text-white font-bold mb-2">Have a referral code?</h3>
                 <p className="text-xs text-indigo-200/70 mb-4">
