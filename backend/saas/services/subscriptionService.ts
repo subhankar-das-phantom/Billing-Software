@@ -110,10 +110,10 @@ export async function activateSubscription(
       // Plan change — prorate remaining days based on the price ratio
       const oldPrice = existing.currentPricingSnapshot.baseMonthlyPrice || 0;
       const newPrice = plan.baseMonthlyPrice || 1; // Prevent div zero
-      
+
       const ratio = oldPrice / newPrice;
       const proratedDays = remainingDays * ratio;
-      
+
       additionalDays += proratedDays;
     }
   }
@@ -205,6 +205,8 @@ export async function applyAdjustment(
   reason: string,
   createdBy: string,
 ): Promise<void> {
+  // Include EXPIRED so referral rewards can revive an expired subscription.
+  // The reactivation logic below handles status transition back to ACTIVE.
   const subscription = await Subscription.findOne({
     tenantId,
     status: {
@@ -212,6 +214,7 @@ export async function applyAdjustment(
         SubscriptionStatus.ACTIVE,
         SubscriptionStatus.TRIAL,
         SubscriptionStatus.GRACE,
+        SubscriptionStatus.EXPIRED,
       ],
     },
   }).sort({ createdAt: -1 });
@@ -225,7 +228,7 @@ export async function applyAdjustment(
   const newExpiresAt = new Date(subscription.expiresAt.getTime() + msToAdd);
   const newGraceUntil = new Date(
     newExpiresAt.getTime() +
-      subscription.gracePeriodDays * 24 * 60 * 60 * 1000,
+    subscription.gracePeriodDays * 24 * 60 * 60 * 1000,
   );
 
   subscription.expiresAt = newExpiresAt;

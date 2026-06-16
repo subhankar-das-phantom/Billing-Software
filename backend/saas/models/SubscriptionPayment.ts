@@ -76,7 +76,6 @@ const subscriptionPaymentSchema = new Schema(
 // Indexes
 subscriptionPaymentSchema.index({ tenantId: 1, createdAt: -1 });
 subscriptionPaymentSchema.index({ paymentStatus: 1 });
-subscriptionPaymentSchema.index({ gatewayOrderId: 1 }, { sparse: true });
-subscriptionPaymentSchema.index({ gatewayPaymentId: 1 }, { sparse: true });
+
 
 export default mongoose.model('SubscriptionPayment', subscriptionPaymentSchema);

@@ -6,7 +6,6 @@ const referralSchema = new Schema(
     referralCode: {
       type: String,
       required: [true, 'Referral code is required'],
-      unique: true,
       uppercase: true,
       trim: true,
       maxlength: [20, 'Referral code cannot exceed 20 characters'],
@@ -49,9 +48,9 @@ const referralSchema = new Schema(
 );
 
 // Indexes
+referralSchema.index({ referralCode: 1 });
 referralSchema.index({ referrerTenantId: 1 });
 referralSchema.index({ referredTenantId: 1 }, { sparse: true });
 referralSchema.index({ status: 1 });
-referralSchema.index({ referralCode: 1 });
 
 export default mongoose.model('Referral', referralSchema);

@@ -17,14 +17,15 @@ import {
   RewardType,
   AdjustmentType,
 } from '../shared/features';
-import { applyAdjustment } from './subscriptionService';
+import { applyAdjustment, createTrialSubscription } from './subscriptionService';
 import { getReferralMaxFreeDays } from './settingsService';
 
 // ─── Generate Referral Code ──────────────────────────────────────
 
 /**
  * Get or create a referral code for a tenant.
- * Each tenant gets one code linked to the active campaign.
+ * Each tenant gets ONE persistent code linked to the active campaign.
+ * The code does NOT change when someone uses it.
  */
 export async function getOrCreateReferralCode(
   tenantId: string,
@@ -33,24 +34,47 @@ export async function getOrCreateReferralCode(
   const campaign = await getActiveCampaign();
   if (!campaign) return null;
 
-  // Check for existing code for this tenant + campaign
-  let referral = await Referral.findOne({
+  // Find the tenant's FIRST code for this campaign (regardless of usage)
+  const existingReferral = await Referral.findOne({
     referrerTenantId: tenantId,
     campaignId: campaign._id,
-    referredTenantId: null, // Unused code
+    referredTenantId: null, // The "master" code document (no referred tenant)
   }).lean();
 
-  if (referral) {
+  if (existingReferral) {
     return {
-      referralCode: referral.referralCode,
+      referralCode: existingReferral.referralCode,
       campaign: campaign.name,
     };
   }
 
-  // Generate unique code
+  // Also check if the tenant has ANY code (even used ones) — return that same code
+  const anyReferral = await Referral.findOne({
+    referrerTenantId: tenantId,
+    campaignId: campaign._id,
+  })
+    .sort({ createdAt: 1 })
+    .lean();
+
+  if (anyReferral) {
+    // Re-create the master document so future lookups are fast
+    await Referral.create({
+      referralCode: anyReferral.referralCode,
+      campaignId: campaign._id,
+      referrerTenantId: tenantId,
+      status: ReferralStatus.PENDING,
+    });
+
+    return {
+      referralCode: anyReferral.referralCode,
+      campaign: campaign.name,
+    };
+  }
+
+  // No code exists at all — generate a new one
   const code = await generateUniqueCode(tenantId);
 
-  referral = await Referral.create({
+  await Referral.create({
     referralCode: code,
     campaignId: campaign._id,
     referrerTenantId: tenantId,
@@ -65,30 +89,41 @@ export async function getOrCreateReferralCode(
 
 /**
  * Apply a referral code during signup.
- * Links the referred tenant to the referral record.
+ * Creates a NEW referral document linking referrer → referred.
+ * The original "master" code document stays untouched.
  * NO reward is granted at this stage.
  */
 export async function applyReferralCode(
   referredTenantId: string,
   referralCode: string,
 ): Promise<{ success: boolean; message: string }> {
-  const referral = await Referral.findOne({
+  // Find any referral with this code to identify the referrer
+  const codeOwner = await Referral.findOne({
     referralCode: referralCode.toUpperCase(),
-    referredTenantId: null,
-    status: ReferralStatus.PENDING,
-  });
+  })
+    .sort({ createdAt: 1 })
+    .lean();
 
-  if (!referral) {
-    return { success: false, message: 'Invalid or already used referral code' };
+  if (!codeOwner) {
+    return { success: false, message: 'Invalid referral code' };
   }
 
   // Prevent self-referral
-  if (referral.referrerTenantId.toString() === referredTenantId) {
+  if (codeOwner.referrerTenantId.toString() === referredTenantId) {
     return { success: false, message: 'Cannot use your own referral code' };
   }
 
+  // Check if this referred tenant already used a referral code
+  const alreadyReferred = await Referral.findOne({
+    referredTenantId,
+  }).lean();
+
+  if (alreadyReferred) {
+    return { success: false, message: 'You have already used a referral code' };
+  }
+
   // Check campaign is still active
-  const campaign = await ReferralCampaign.findById(referral.campaignId).lean();
+  const campaign = await ReferralCampaign.findById(codeOwner.campaignId).lean();
   if (!campaign || !campaign.active) {
     return { success: false, message: 'Referral campaign is no longer active' };
   }
@@ -101,9 +136,9 @@ export async function applyReferralCode(
   // Check max referrals per tenant
   if (campaign.maxReferralsPerTenant && campaign.maxReferralsPerTenant > 0) {
     const referralCount = await Referral.countDocuments({
-      referrerTenantId: referral.referrerTenantId,
+      referrerTenantId: codeOwner.referrerTenantId,
       campaignId: campaign._id,
-      status: { $in: [ReferralStatus.QUALIFIED, ReferralStatus.REWARDED] },
+      referredTenantId: { $ne: null },
     });
 
     if (referralCount >= campaign.maxReferralsPerTenant) {
@@ -114,9 +149,14 @@ export async function applyReferralCode(
     }
   }
 
-  // Link referred tenant
-  referral.referredTenantId = referredTenantId as any;
-  await referral.save();
+  // Create a NEW referral document for this usage (don't touch the master)
+  await Referral.create({
+    referralCode: referralCode.toUpperCase(),
+    campaignId: codeOwner.campaignId,
+    referrerTenantId: codeOwner.referrerTenantId,
+    referredTenantId,
+    status: ReferralStatus.PENDING,
+  });
 
   return { success: true, message: 'Referral code applied successfully' };
 }
@@ -126,17 +166,30 @@ export async function applyReferralCode(
  * Called by subscription payment verification flow.
  *
  * Grants rewards to both referrer and referred based on campaign config.
+ *
+ * Also retries previously failed reward grants: if a referral is already
+ * QUALIFIED but one or both rewards were not granted (e.g. the referrer's
+ * subscription had expired), this function will re-attempt those grants.
  */
 export async function processReferralReward(
   referredTenantId: string,
 ): Promise<void> {
-  // Find the referral for this tenant
+  // Find a PENDING referral, OR a QUALIFIED referral with ungranted rewards
   const referral = await Referral.findOne({
     referredTenantId,
-    status: ReferralStatus.PENDING,
+    $or: [
+      { status: ReferralStatus.PENDING },
+      {
+        status: ReferralStatus.QUALIFIED,
+        $or: [
+          { referrerRewardGranted: false },
+          { referredRewardGranted: false },
+        ],
+      },
+    ],
   });
 
-  if (!referral) return; // No referral to process
+  if (!referral) return; // No referral to process or retry
 
   const campaign = await ReferralCampaign.findById(
     referral.campaignId,
@@ -145,41 +198,56 @@ export async function processReferralReward(
 
   const maxFreeDays = await getReferralMaxFreeDays();
 
-  // Mark as qualified
-  referral.status = ReferralStatus.QUALIFIED;
-  referral.qualifiedAt = new Date();
-  await referral.save();
-
-  // Grant referrer reward
-  try {
-    await grantReward(
-      referral.referrerTenantId.toString(),
-      campaign.referrerReward,
-      maxFreeDays,
-      `Referral reward: ${referral.referralCode} (you referred a new user)`,
-    );
-    referral.referrerRewardGranted = true;
-  } catch (err) {
-    console.error('Failed to grant referrer reward:', err);
+  // Mark as qualified (if not already)
+  if (referral.status === ReferralStatus.PENDING) {
+    referral.status = ReferralStatus.QUALIFIED;
+    referral.qualifiedAt = new Date();
   }
 
-  // Grant referred reward
-  try {
-    await grantReward(
-      referredTenantId,
-      campaign.referredReward,
-      maxFreeDays,
-      `Welcome reward: signed up with referral code ${referral.referralCode}`,
-    );
-    referral.referredRewardGranted = true;
-  } catch (err) {
-    console.error('Failed to grant referred reward:', err);
+  // Grant referrer reward (skip if already granted)
+  if (!referral.referrerRewardGranted) {
+    try {
+      await grantReward(
+        referral.referrerTenantId.toString(),
+        campaign.referrerReward,
+        maxFreeDays,
+        `Referral reward: ${referral.referralCode} (you referred a new user)`,
+      );
+      referral.referrerRewardGranted = true;
+    } catch (err) {
+      console.error(
+        `Failed to grant referrer reward for referral ${referral._id} ` +
+        `(referrer: ${referral.referrerTenantId}, referred: ${referredTenantId}):`,
+        err instanceof Error ? err.message : err,
+      );
+    }
   }
 
-  // Mark as rewarded if both succeeded
+  // Grant referred reward (skip if already granted)
+  if (!referral.referredRewardGranted) {
+    try {
+      await grantReward(
+        referredTenantId,
+        campaign.referredReward,
+        maxFreeDays,
+        `Welcome reward: signed up with referral code ${referral.referralCode}`,
+      );
+      referral.referredRewardGranted = true;
+    } catch (err) {
+      console.error(
+        `Failed to grant referred reward for referral ${referral._id} ` +
+        `(referred: ${referredTenantId}):`,
+        err instanceof Error ? err.message : err,
+      );
+    }
+  }
+
+  // Mark as rewarded only if both succeeded
   if (referral.referrerRewardGranted && referral.referredRewardGranted) {
     referral.status = ReferralStatus.REWARDED;
   }
+
+  // Single save at the end — status + reward flags together
   await referral.save();
 }
 
@@ -187,17 +255,20 @@ export async function processReferralReward(
  * Get referral stats for a tenant (referrer dashboard).
  */
 export async function getReferralStats(tenantId: string) {
-  const referrals = await Referral.find({ referrerTenantId: tenantId })
+  // Only fetch actual invite records (exclude the "master" code document)
+  const referrals = await Referral.find({
+    referrerTenantId: tenantId,
+    referredTenantId: { $ne: null },
+  })
     .sort({ createdAt: -1 })
     .lean();
 
-  const totalReferred = referrals.filter((r) => r.referredTenantId).length;
+  const totalReferred = referrals.length;
   const totalRewarded = referrals.filter(
     (r) => r.status === ReferralStatus.REWARDED,
   ).length;
   const pending = referrals.filter(
-    (r) =>
-      r.referredTenantId && r.status === ReferralStatus.PENDING,
+    (r) => r.status === ReferralStatus.PENDING,
   ).length;
 
   return {
@@ -257,13 +328,33 @@ async function grantReward(
 ): Promise<void> {
   if (reward.rewardType === RewardType.FREE_DAYS) {
     const days = Math.min(reward.rewardValue, maxFreeDays);
-    await applyAdjustment(
-      tenantId,
-      days,
-      AdjustmentType.REFERRAL_REWARD,
-      reason,
-      tenantId, // Self-attribution for referral rewards
-    );
+
+    try {
+      await applyAdjustment(
+        tenantId,
+        days,
+        AdjustmentType.REFERRAL_REWARD,
+        reason,
+        tenantId, // Self-attribution for referral rewards
+      );
+    } catch (err: any) {
+      // If the tenant has no subscription at all (e.g. account created
+      // before the SaaS system was added), provision a trial first,
+      // then retry the adjustment.
+      if (err?.message?.includes('No active subscription found')) {
+        console.log(`[REFERRAL] Tenant ${tenantId} has no subscription — provisioning trial first`);
+        await createTrialSubscription(tenantId);
+        await applyAdjustment(
+          tenantId,
+          days,
+          AdjustmentType.REFERRAL_REWARD,
+          reason,
+          tenantId,
+        );
+      } else {
+        throw err;
+      }
+    }
   }
 
   // PERCENT_DISCOUNT and FLAT_DISCOUNT are applied at checkout time,
