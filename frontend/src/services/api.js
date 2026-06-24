@@ -178,7 +178,7 @@ api.interceptors.response.use(
     // Handle 401 Unauthorized
     if (error.response?.status === 401) {
       const isAuthCheck = config?.url?.includes('/auth/me');
-      const isLoginPage = window.location.hash === '#/login' || window.location.hash.startsWith('#/login');
+      const isLoginPage = window.location.pathname === '/login' || window.location.pathname.startsWith('/login');
       const isLoginRequest = config?.url?.includes('/auth/login');
       
       if (!isAuthCheck && !isLoginPage && !isLoginRequest) {
@@ -189,12 +189,12 @@ api.interceptors.response.use(
         localStorage.removeItem('userRole');
         
         // Store intended destination for redirect after login
-        const currentHash = window.location.hash.slice(1) || '/'; // Remove '#' prefix
-        if (currentHash !== '/' && currentHash !== '/login') {
-          sessionStorage.setItem('redirectAfterLogin', currentHash);
+        const currentPath = window.location.pathname || '/';
+        if (currentPath !== '/' && currentPath !== '/login') {
+          sessionStorage.setItem('redirectAfterLogin', currentPath);
         }
         
-        window.location.href = '/#/login';
+        window.location.href = '/login';
       }
     }
 
