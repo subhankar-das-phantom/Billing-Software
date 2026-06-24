@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { lazy, Suspense, useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight } from 'lucide-react';
@@ -7,6 +7,8 @@ import Navbar from './Navbar';
 import Header from './Header';
 import { RouteTransition } from '../Common/Motion/PageTransition';
 import { useMotionConfig } from '../../hooks';
+
+const CalculatorWidget = lazy(() => import('../../features/calculator/CalculatorWidget'));
 
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -137,6 +139,10 @@ export default function DashboardLayout() {
       >
         <ChevronRight className="w-5 h-5 -rotate-90" />
       </motion.button>
+
+      <Suspense fallback={null}>
+        <CalculatorWidget />
+      </Suspense>
     </div>
   );
 }
