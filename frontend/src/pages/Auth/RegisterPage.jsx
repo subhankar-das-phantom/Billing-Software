@@ -79,6 +79,7 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const navigate = useNavigate();
   const { error: showError, success: showSuccess } = useToast();
 
@@ -110,6 +111,11 @@ export default function RegisterPage() {
 
     if (formData.password !== formData.confirmPassword) {
       showError('Passwords do not match');
+      return;
+    }
+
+    if (!agreedToTerms) {
+      showError('Please agree to the Privacy Policy and Terms & Conditions');
       return;
     }
 
@@ -367,24 +373,47 @@ export default function RegisterPage() {
               </div>
             </motion.div>
 
-            {/* Privacy Policy & Terms Consent */}
-            <motion.p variants={itemVariants} className="text-xs text-slate-500 text-center mt-2">
-              By creating an account, you agree to our{' '}
-              <Link 
-                to="/privacy-policy" 
-                className="relative z-20 text-blue-400 hover:text-blue-300 font-medium transition-colors"
-                target="_blank"
-              >
-                Privacy Policy
-              </Link>{' '}and{' '}
-              <Link 
-                to="/terms" 
-                className="relative z-20 text-blue-400 hover:text-blue-300 font-medium transition-colors"
-                target="_blank"
-              >
-                Terms & Conditions
-              </Link>.
-            </motion.p>
+            {/* Privacy Policy & Terms Consent — Explicit Checkbox */}
+            <motion.div variants={itemVariants} className="mt-3">
+              <label className="flex items-start gap-3 cursor-pointer group" htmlFor="consent-checkbox">
+                <div className="relative flex-shrink-0 mt-0.5">
+                  <input
+                    id="consent-checkbox"
+                    type="checkbox"
+                    checked={agreedToTerms}
+                    onChange={(e) => setAgreedToTerms(e.target.checked)}
+                    className="sr-only peer"
+                    disabled={loading}
+                  />
+                  <div className="w-5 h-5 rounded-md border-2 border-slate-600 bg-slate-800/50 peer-checked:bg-emerald-500 peer-checked:border-emerald-500 transition-all duration-200 flex items-center justify-center group-hover:border-slate-500 peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-500/50">
+                    {agreedToTerms && (
+                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+                <span className="text-xs text-slate-400 leading-relaxed select-none">
+                  I agree to the{' '}
+                  <Link
+                    to="/privacy-policy"
+                    className="relative z-20 text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                    target="_blank"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Privacy Policy
+                  </Link>{' '}and{' '}
+                  <Link
+                    to="/terms"
+                    className="relative z-20 text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                    target="_blank"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Terms & Conditions
+                  </Link>
+                </span>
+              </label>
+            </motion.div>
 
             {/* Submit Button */}
             <motion.button
