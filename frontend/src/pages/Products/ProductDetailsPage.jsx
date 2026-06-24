@@ -142,9 +142,10 @@ export default function ProductDetailsPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {[
             { label: 'MRP', value: formatCurrency(product.newMRP), icon: DollarSign, color: 'emerald' },
+            { label: 'Rate', value: formatCurrency(product.rate), icon: DollarSign, color: 'violet' },
             { label: 'GST', value: `${product.gstPercentage}%`, icon: Percent, color: 'blue' },
             { label: 'Unit', value: product.unit || 'Pieces', icon: Ruler, color: 'accent' },
             { label: 'Current Stock', value: `${product.currentStockQty}`, icon: Layers, color: product.currentStockQty > 0 ? 'amber' : 'red' }
