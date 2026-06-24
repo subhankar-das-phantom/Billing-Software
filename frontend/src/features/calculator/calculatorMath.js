@@ -45,12 +45,13 @@ function tokenize(expression) {
       if (!hasDigit) throw new Error('Incomplete expression');
 
       let value = Number(numberText);
-      if (expression[index] === '%') {
+      const isPercent = expression[index] === '%';
+      if (isPercent) {
         value /= 100;
         index += 1;
       }
 
-      tokens.push(value);
+      tokens.push({ value, isPercent });
       expectingNumber = false;
       continue;
     }
@@ -76,17 +77,24 @@ export function evaluateExpression(expression) {
 
     if (operator === '×' || operator === '÷') {
       const previousValue = values.pop();
-      if (operator === '÷' && nextValue === 0) throw new Error('Cannot divide by zero');
-      values.push(operator === '×' ? previousValue * nextValue : previousValue / nextValue);
+      if (operator === '÷' && nextValue.value === 0) throw new Error('Cannot divide by zero');
+      values.push({
+        value: operator === '×'
+          ? previousValue.value * nextValue.value
+          : previousValue.value / nextValue.value,
+        isPercent: false,
+      });
     } else {
       additiveOperators.push(operator);
       values.push(nextValue);
     }
   }
 
-  let result = values[0];
+  let result = values[0].value;
   additiveOperators.forEach((operator, index) => {
-    result = operator === '+' ? result + values[index + 1] : result - values[index + 1];
+    const nextValue = values[index + 1];
+    const amount = nextValue.isPercent ? result * nextValue.value : nextValue.value;
+    result = operator === '+' ? result + amount : result - amount;
   });
 
   return formatNumber(result);
