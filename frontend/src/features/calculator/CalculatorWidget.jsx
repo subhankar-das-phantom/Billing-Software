@@ -111,7 +111,7 @@ export default function CalculatorWidget() {
   return (
     <section
       ref={widgetRef}
-      className={`no-print fixed left-0 top-0 z-[45] flex max-h-[70vh] max-w-[80vw] flex-col overflow-hidden rounded-2xl border border-slate-600/60 bg-slate-900/95 shadow-2xl shadow-black/50 backdrop-blur-xl will-change-transform ${
+      className={`[container-type:size] no-print fixed left-0 top-0 z-[45] flex max-h-[70vh] max-w-[80vw] flex-col overflow-hidden rounded-2xl border border-slate-600/60 bg-slate-900/95 shadow-2xl shadow-black/50 backdrop-blur-xl will-change-transform ${
         isInteracting ? 'select-none' : 'transition-transform duration-200 ease-out'
       }`}
       style={{

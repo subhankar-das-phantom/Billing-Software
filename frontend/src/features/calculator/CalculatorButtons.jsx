@@ -37,7 +37,7 @@ export default function CalculatorButtons({ onInput }) {
         <button
           key={button.value}
           type="button"
-          className={`flex min-h-0 items-center justify-center rounded-lg border px-1 py-0.5 text-sm font-semibold leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 sm:text-base ${
+          className={`flex min-h-0 items-center justify-center rounded-lg border px-1 py-0.5 text-[clamp(0.875rem,calc(3cqw+4cqh),2.25rem)] font-semibold leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
             TONES[button.tone || 'number']
           } ${button.span ? 'col-span-2' : ''}`}
           onClick={() => onInput(button.value)}
