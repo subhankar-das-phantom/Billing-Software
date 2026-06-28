@@ -25,8 +25,9 @@ import { PageLoader } from '../../components/Common/Feedback/Loader';
 import Modal from '../../components/Common/Modals/Modal';
 import ConfirmDialog from '../../components/Common/Dialogs/ConfirmDialog';
 import EnhancedButton from '../../components/Common/Buttons/EnhancedButton';
+import { VirtualizedGrid } from '../../components/Common/VirtualizedList';
 import { useToast } from '../../contexts/ToastContext';
-import { useDebounce, useMotionConfig, useFirstVisit, useSWR, invalidateCachePattern, useTransitionDelay } from '../../hooks';
+import { useDebounce, useMotionConfig, useFirstVisit, useSWR, invalidateCachePattern, useTransitionDelay, useMediaQuery } from '../../hooks';
 
 const initialCustomerState = {
   customerName: '',
@@ -174,6 +175,8 @@ export default function CustomersPage() {
   const motionConfig = useMotionConfig();
   const isFirstVisit = useFirstVisit('customers');
   const transitionReady = useTransitionDelay(250, isFirstVisit);
+  const isDesktopGrid = useMediaQuery('(min-width: 1024px)');
+  const isTabletGrid = useMediaQuery('(min-width: 768px)');
 
   // Build the SWR cache key
   const swrKey = `customers-${search}-${page}`;
@@ -361,6 +364,7 @@ export default function CustomersPage() {
   const denseMode = customers.length > LARGE_CUSTOMER_LIST_THRESHOLD;
   const shouldStaggerCards = motionConfig.shouldStagger && !denseMode;
   const shouldHoverCards = motionConfig.shouldHover && !denseMode;
+  const customerGridLanes = isDesktopGrid ? 3 : isTabletGrid ? 2 : 1;
 
   if (loading) {
     return <PageLoader />;
@@ -493,13 +497,15 @@ export default function CustomersPage() {
             </motion.div>
           </motion.div>
         ) : customers.length > 0 ? (
-          <div
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-          >
-            {/* Removed AnimatePresence and motion for performance with large lists */}
-            {customers.map((customer, index) => (
+          <VirtualizedGrid
+            items={customers}
+            lanes={customerGridLanes}
+            gap={16}
+            estimateSize={() => 245}
+            getKey={(customer) => customer._id}
+            className="min-h-[245px]"
+            renderItem={(customer, index) => (
               <CustomerCard
-                key={customer._id}
                 customer={customer}
                 index={index}
                 denseMode={denseMode}
@@ -508,8 +514,8 @@ export default function CustomersPage() {
                 openEditModal={openEditModal}
                 setDeleteDialog={setDeleteDialog}
               />
-            ))}
-          </div>
+            )}
+          />
         ) : null}
       </AnimatePresence>
 
