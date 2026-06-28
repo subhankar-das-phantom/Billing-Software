@@ -11,6 +11,7 @@
     "security:check": "node scripts/check-forbidden-packages.js"
   },
   "dependencies": {
+    "@tanstack/react-virtual": "^3.14.4",
     "axios": "^1.13.2",
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.26",
