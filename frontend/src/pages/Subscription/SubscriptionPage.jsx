@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Crown, Shield, Zap, AlertCircle } from 'lucide-react';
+import { Check, Shield, Zap, AlertCircle, CreditCard, Repeat } from 'lucide-react';
 import { useSubscription } from '../../contexts/SubscriptionContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -15,6 +15,7 @@ export default function SubscriptionPage() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [selectedDuration, setSelectedDuration] = useState(1); // 1, 3, 6, 12 months
+  const [renewalMode, setRenewalMode] = useState('manual'); // manual, auto
 
   useEffect(() => {
     loadPlans();
@@ -48,32 +49,46 @@ export default function SubscriptionPage() {
       setProcessing(true);
 
       // Initiate checkout
-      const res = await subscriptionService.checkout(plan._id, selectedDuration);
+      const res = await subscriptionService.checkout(
+        plan._id,
+        selectedDuration,
+        renewalMode === 'auto',
+      );
 
-      if (!res.success || !res.order) {
+      if (!res.success || (!res.order && !res.subscription)) {
         throw new Error(res.message || 'Failed to initiate checkout');
       }
 
       // Configure Razorpay checkout
+      const isAutoRenewCheckout = res.checkoutType === 'subscription';
       const options = {
         key: res.key, // Test or Live key from backend
-        amount: res.order.amount,
-        currency: res.order.currency,
+        ...(isAutoRenewCheckout
+          ? { subscription_id: res.subscription.id }
+          : {
+              amount: res.order.amount,
+              currency: res.order.currency,
+              order_id: res.order.id,
+            }),
         name: 'Bharat Enterprise',
-        description: `Subscription: ${plan.name} (${selectedDuration} months)`,
-        order_id: res.order.id,
+        description: isAutoRenewCheckout
+          ? `Auto-renewing subscription: ${plan.name}`
+          : `Subscription: ${plan.name} (${selectedDuration} months)`,
         handler: async function (response) {
           // Verify payment
           try {
             const verifyRes = await subscriptionService.verifyPayment({
               razorpay_order_id: response.razorpay_order_id,
+              razorpay_subscription_id: response.razorpay_subscription_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
               paymentId: res.paymentId
             });
 
             if (verifyRes.success) {
-              toast.success('Subscription activated successfully!');
+              toast.success(isAutoRenewCheckout
+                ? 'Auto-renewal activated successfully!'
+                : 'Subscription activated successfully!');
               refreshSubscription();
             } else {
               toast.error(verifyRes.message || 'Payment verification failed');
@@ -139,6 +154,21 @@ export default function SubscriptionPage() {
                 <span className="text-emerald-400">Active - {daysRemaining} days remaining</span>
               )}
             </p>
+            {activeDbSub && (
+              <p className="text-xs text-slate-500 mt-2 flex items-center gap-1.5">
+                {activeDbSub.autoRenew ? (
+                  <>
+                    <Repeat className="w-3.5 h-3.5 text-emerald-400" />
+                    Auto-renewal enabled
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="w-3.5 h-3.5 text-slate-400" />
+                    Manual renewal
+                  </>
+                )}
+              </p>
+            )}
           </div>
 
           <div className="flex items-center gap-3 bg-slate-900/50 p-3 rounded-lg border border-slate-800">
@@ -148,6 +178,31 @@ export default function SubscriptionPage() {
               <p className="font-semibold text-white">Razorpay</p>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Renewal Mode Selector */}
+      <div className="flex justify-center mb-6">
+        <div className="bg-slate-800/50 p-1 rounded-xl flex items-center border border-slate-700/50">
+          {[
+            { value: 'manual', label: 'Manual renewal', icon: CreditCard },
+            { value: 'auto', label: 'Auto-renew', icon: Repeat }
+          ].map(option => {
+            const Icon = option.icon;
+            return (
+              <button
+                key={option.value}
+                onClick={() => setRenewalMode(option.value)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${renewalMode === option.value
+                    ? 'bg-blue-500 text-white shadow-lg'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
+                  }`}
+              >
+                <Icon className="w-4 h-4" />
+                {option.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -215,11 +270,11 @@ export default function SubscriptionPage() {
                   <span className="text-3xl font-bold text-white">₹{monthlyEquivalent}</span>
                   <span className="text-slate-400 mb-1">/mo</span>
                 </div>
-                {selectedDuration > 1 && (
-                  <p className="text-xs text-emerald-400 mt-1">
-                    Billed ₹{finalPrice} every {selectedDuration} months
-                  </p>
-                )}
+                <p className="text-xs text-emerald-400 mt-1">
+                  {renewalMode === 'auto'
+                    ? `Auto-renews at ₹${finalPrice} every ${selectedDuration} month${selectedDuration > 1 ? 's' : ''}`
+                    : `Pay ₹${finalPrice} once for ${selectedDuration} month${selectedDuration > 1 ? 's' : ''}`}
+                </p>
               </div>
 
               {/* Pro-ration notice — only for switching to a DIFFERENT plan */}
@@ -256,8 +311,12 @@ export default function SubscriptionPage() {
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                 ) : (
                   <>
-                    <Zap className="w-4 h-4" />
-                    Subscribe Now
+                    {renewalMode === 'auto' ? (
+                      <Repeat className="w-4 h-4" />
+                    ) : (
+                      <Zap className="w-4 h-4" />
+                    )}
+                    {renewalMode === 'auto' ? 'Start Auto-renewal' : 'Pay Once'}
                   </>
                 )}
               </button>

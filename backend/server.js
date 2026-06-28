@@ -37,6 +37,13 @@ connectDB();
 
 const app = express();
 
+// Razorpay webhooks must receive the raw body for signature validation.
+app.post(
+  '/api/saas/subscription/webhook',
+  express.raw({ type: 'application/json' }),
+  require('./saas/controllers/subscriptionController').handleRazorpayWebhook
+);
+
 // Body parser
 app.use(express.json());
 

@@ -16,6 +16,15 @@ import { calculatePrice } from './pricingService';
 import { invalidateSubscriptionCache } from './featureService';
 import { scheduleExpiryNotifications } from './notificationService';
 
+type ActivateSubscriptionOptions = {
+  autoRenew?: boolean;
+  gatewaySubscriptionId?: string;
+  gatewayPlanId?: string;
+  gatewayCustomerId?: string | null;
+  nextChargeAt?: Date | null;
+  autoRenewStatus?: string;
+};
+
 // ─── Create Trial Subscription ───────────────────────────────────
 
 /**
@@ -81,7 +90,12 @@ export async function activateSubscription(
   planId: string,
   durationMonths: number,
   paymentId: string,
-): Promise<typeof Subscription.prototype> {
+  options: ActivateSubscriptionOptions = {},
+): Promise<{
+  subscription: typeof Subscription.prototype;
+  proratedDaysAdded: number;
+  isUpgrade: boolean;
+}> {
   const graceDays = await getDefaultGraceDays();
 
   const plan = await Plan.findById(planId).lean();
@@ -135,17 +149,24 @@ export async function activateSubscription(
 
   // If extending an existing subscription, update it
   if (existing) {
+    const recurringFields = buildRecurringFields(options, durationMonths);
     const updated = await Subscription.findByIdAndUpdate(
       existing._id,
       {
         $set: {
           planId: plan._id,
           status: SubscriptionStatus.ACTIVE,
+          autoRenew: options.autoRenew === true,
+          billingMode: options.autoRenew === true ? 'auto' : 'manual',
           expiresAt,
           graceUntil,
           gracePeriodDays: graceDays,
           currentPricingSnapshot: snapshot,
+          ...recurringFields.$set,
         },
+        ...(Object.keys(recurringFields.$unset).length > 0
+          ? { $unset: recurringFields.$unset }
+          : {}),
       },
       { new: true },
     );
@@ -174,6 +195,9 @@ export async function activateSubscription(
     startedAt: now,
     expiresAt,
     graceUntil,
+    autoRenew: options.autoRenew === true,
+    billingMode: options.autoRenew === true ? 'auto' : 'manual',
+    ...buildRecurringFields(options, durationMonths).$set,
     gracePeriodDays: graceDays,
     currentPricingSnapshot: snapshot,
   });
@@ -191,6 +215,177 @@ export async function activateSubscription(
 
   invalidateSubscriptionCache(tenantId);
   return { subscription, proratedDaysAdded: 0, isUpgrade: false };
+}
+
+function buildRecurringFields(
+  options: ActivateSubscriptionOptions,
+  durationMonths: number,
+): {
+  $set: Record<string, unknown>;
+  $unset: Record<string, ''>;
+} {
+  if (options.autoRenew === true) {
+    return {
+      $set: {
+        gatewaySubscriptionId: options.gatewaySubscriptionId,
+        gatewayPlanId: options.gatewayPlanId,
+        gatewayCustomerId: options.gatewayCustomerId || undefined,
+        renewalIntervalMonths: durationMonths,
+        nextChargeAt: options.nextChargeAt || undefined,
+        autoRenewStatus: options.autoRenewStatus || 'active',
+      },
+      $unset: {},
+    };
+  }
+
+  return {
+    $set: {},
+    $unset: {
+      gatewaySubscriptionId: '',
+      gatewayPlanId: '',
+      gatewayCustomerId: '',
+      renewalIntervalMonths: '',
+      nextChargeAt: '',
+      autoRenewStatus: '',
+    },
+  };
+}
+
+export async function applyAutoRenewalCycle(
+  gatewaySubscriptionId: string,
+  paymentData: Record<string, any>,
+  eventId?: string,
+  razorpaySubscription?: Record<string, any>,
+): Promise<{
+  subscription: typeof Subscription.prototype | null;
+  payment: typeof SubscriptionPayment.prototype | null;
+  duplicate: boolean;
+}> {
+  const subscription = await Subscription.findOne({
+    gatewaySubscriptionId,
+  }).sort({ createdAt: -1 });
+
+  if (!subscription) {
+    return { subscription: null, payment: null, duplicate: false };
+  }
+
+  if (paymentData?.id) {
+    const existingPayment = await SubscriptionPayment.findOne({
+      gatewayPaymentId: paymentData.id,
+    });
+    if (existingPayment) {
+      return { subscription, payment: existingPayment, duplicate: true };
+    }
+  }
+
+  const durationMonths =
+    subscription.renewalIntervalMonths ||
+    subscription.currentPricingSnapshot?.durationMonths ||
+    1;
+
+  const baseAmount =
+    (subscription.currentPricingSnapshot?.baseMonthlyPrice || 0) *
+    durationMonths;
+  const finalAmount =
+    typeof paymentData?.amount === 'number'
+      ? paymentData.amount / 100
+      : subscription.currentPricingSnapshot?.finalAmount || baseAmount;
+  const discountAmount = Math.max(0, baseAmount - finalAmount);
+
+  const payment = await SubscriptionPayment.create({
+    tenantId: subscription.tenantId,
+    subscriptionId: subscription._id,
+    planId: subscription.planId,
+    durationMonths,
+    baseAmount,
+    discountAmount,
+    finalAmount,
+    paymentGateway: 'razorpay',
+    gatewaySubscriptionId,
+    gatewayInvoiceId: paymentData?.invoice_id,
+    gatewayPaymentId: paymentData?.id,
+    paymentStatus: PaymentStatus.COMPLETED,
+    billingMode: 'auto',
+    gatewayEventId: eventId,
+    paidAt: paymentData?.created_at
+      ? new Date(paymentData.created_at * 1000)
+      : new Date(),
+    metadata: {
+      eventId,
+      razorpayStatus: paymentData?.status,
+      method: paymentData?.method,
+      invoiceId: paymentData?.invoice_id,
+    },
+  });
+
+  const graceDays = await getDefaultGraceDays();
+  const now = new Date();
+  const baseDate =
+    subscription.expiresAt && subscription.expiresAt > now
+      ? subscription.expiresAt
+      : now;
+  const expiresAt = new Date(
+    baseDate.getTime() + durationMonths * 30 * 24 * 60 * 60 * 1000,
+  );
+  const graceUntil = new Date(
+    expiresAt.getTime() + graceDays * 24 * 60 * 60 * 1000,
+  );
+
+  subscription.status = SubscriptionStatus.ACTIVE;
+  subscription.autoRenew = true;
+  subscription.billingMode = 'auto';
+  subscription.expiresAt = expiresAt;
+  subscription.graceUntil = graceUntil;
+  subscription.gracePeriodDays = graceDays;
+  subscription.nextChargeAt = razorpaySubscription?.charge_at
+    ? new Date(razorpaySubscription.charge_at * 1000)
+    : undefined;
+  subscription.autoRenewStatus =
+    razorpaySubscription?.status || subscription.autoRenewStatus || 'active';
+  if (razorpaySubscription?.customer_id) {
+    subscription.gatewayCustomerId = razorpaySubscription.customer_id;
+  }
+
+  await subscription.save();
+  await scheduleExpiryNotifications(
+    subscription.tenantId.toString(),
+    subscription._id.toString(),
+    expiresAt,
+  );
+  invalidateSubscriptionCache(subscription.tenantId.toString());
+
+  return { subscription, payment, duplicate: false };
+}
+
+export async function updateAutoRenewStatus(
+  gatewaySubscriptionId: string,
+  razorpaySubscription: Record<string, any>,
+): Promise<void> {
+  const status = razorpaySubscription?.status;
+  const shouldDisable = [
+    'cancelled',
+    'completed',
+    'expired',
+    'halted',
+  ].includes(status);
+
+  const set: Record<string, unknown> = {
+    autoRenewStatus: status,
+    gatewayCustomerId: razorpaySubscription?.customer_id || undefined,
+    nextChargeAt: razorpaySubscription?.charge_at
+      ? new Date(razorpaySubscription.charge_at * 1000)
+      : undefined,
+  };
+
+  if (shouldDisable) {
+    set.autoRenew = false;
+    set.billingMode = 'manual';
+  }
+
+  await Subscription.findOneAndUpdate(
+    { gatewaySubscriptionId },
+    { $set: set },
+  );
 }
 
 // ─── Apply Adjustment ────────────────────────────────────────────

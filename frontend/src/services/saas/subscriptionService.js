@@ -21,10 +21,11 @@ export const subscriptionService = {
     return data;
   },
 
-  async checkout(planId, durationMonths) {
+  async checkout(planId, durationMonths, autoRenew = false) {
     const { data } = await api.post('/saas/subscription/checkout', {
       planId,
       durationMonths,
+      autoRenew,
     });
     return data;
   },

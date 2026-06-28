@@ -47,6 +47,16 @@ const subscriptionPaymentSchema = new Schema(
       trim: true,
       sparse: true,
     },
+    gatewaySubscriptionId: {
+      type: String,
+      trim: true,
+      sparse: true,
+    },
+    gatewayInvoiceId: {
+      type: String,
+      trim: true,
+      sparse: true,
+    },
     gatewayPaymentId: {
       type: String,
       trim: true,
@@ -62,6 +72,16 @@ const subscriptionPaymentSchema = new Schema(
       default: PaymentStatus.PENDING,
       required: true,
     },
+    billingMode: {
+      type: String,
+      enum: ['manual', 'auto'],
+      default: 'manual',
+    },
+    gatewayEventId: {
+      type: String,
+      trim: true,
+      sparse: true,
+    },
     paidAt: {
       type: Date,
     },
@@ -76,6 +96,9 @@ const subscriptionPaymentSchema = new Schema(
 // Indexes
 subscriptionPaymentSchema.index({ tenantId: 1, createdAt: -1 });
 subscriptionPaymentSchema.index({ paymentStatus: 1 });
+subscriptionPaymentSchema.index({ gatewaySubscriptionId: 1 });
+subscriptionPaymentSchema.index({ gatewayPaymentId: 1 });
+subscriptionPaymentSchema.index({ gatewayEventId: 1 });
 
 
 export default mongoose.model('SubscriptionPayment', subscriptionPaymentSchema);

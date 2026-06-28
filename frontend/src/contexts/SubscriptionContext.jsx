@@ -119,6 +119,7 @@ export const SubscriptionProvider = ({ children }) => {
       const data = await subscriptionService.getSubscription();
       if (data.success) {
         setSubscription(data.info);
+        setActiveDbSub(data.subscription);
       }
     } catch (err) {
       console.error('Failed to refresh subscription:', err);

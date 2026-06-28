@@ -88,6 +88,13 @@ export interface ISubscription {
   expiresAt: Date;
   graceUntil: Date;
   autoRenew: boolean;
+  billingMode?: 'manual' | 'auto';
+  gatewaySubscriptionId?: string;
+  gatewayCustomerId?: string;
+  gatewayPlanId?: string;
+  renewalIntervalMonths?: number;
+  nextChargeAt?: Date;
+  autoRenewStatus?: string;
   gracePeriodDays: number;
   currentPricingSnapshot: IPricingSnapshot;
   createdAt: Date;
@@ -107,9 +114,13 @@ export interface ISubscriptionPayment {
   finalAmount: number;
   paymentGateway: PaymentGateway;
   gatewayOrderId?: string;
+  gatewaySubscriptionId?: string;
+  gatewayInvoiceId?: string;
   gatewayPaymentId?: string;
   gatewaySignature?: string;
   paymentStatus: PaymentStatus;
+  billingMode?: 'manual' | 'auto';
+  gatewayEventId?: string;
   paidAt?: Date;
   metadata?: Record<string, unknown>;
   createdAt: Date;

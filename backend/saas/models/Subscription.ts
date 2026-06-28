@@ -53,6 +53,37 @@ const subscriptionSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    billingMode: {
+      type: String,
+      enum: ['manual', 'auto'],
+      default: 'manual',
+    },
+    gatewaySubscriptionId: {
+      type: String,
+      trim: true,
+      sparse: true,
+    },
+    gatewayCustomerId: {
+      type: String,
+      trim: true,
+      sparse: true,
+    },
+    gatewayPlanId: {
+      type: String,
+      trim: true,
+      sparse: true,
+    },
+    renewalIntervalMonths: {
+      type: Number,
+      min: 1,
+    },
+    nextChargeAt: {
+      type: Date,
+    },
+    autoRenewStatus: {
+      type: String,
+      trim: true,
+    },
     gracePeriodDays: {
       type: Number,
       default: 7,
@@ -70,5 +101,6 @@ subscriptionSchema.index({ tenantId: 1, status: 1 });
 subscriptionSchema.index({ expiresAt: 1 });
 subscriptionSchema.index({ graceUntil: 1 });
 subscriptionSchema.index({ tenantId: 1, createdAt: -1 });
+subscriptionSchema.index({ gatewaySubscriptionId: 1 });
 
 export default mongoose.model('Subscription', subscriptionSchema);
