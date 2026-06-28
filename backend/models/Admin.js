@@ -37,6 +37,12 @@ const adminSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  preferences: {
+    showCalculator: {
+      type: Boolean,
+      default: true
+    }
   }
 }, {
   timestamps: true

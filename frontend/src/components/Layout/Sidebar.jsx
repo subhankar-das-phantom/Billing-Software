@@ -14,6 +14,7 @@ import {
   BarChart3,
   Sparkles,
   User,
+  Settings,
   StickyNote,
   Wallet,
   Banknote,
@@ -44,7 +45,7 @@ const getQuickActions = (isAdmin) => {
   // Admin-only menu items
   if (isAdmin) {
     actions.push(
-      { path: '/profile', label: 'Profile', icon: User },
+      { path: '/settings', label: 'Settings', icon: Settings },
       { path: '/employees', label: 'Employees', icon: UsersRound, badge: 'Admin', badgeColor: 'bg-accent-500' },
       { path: '/employee-analytics', label: 'Employee Analytics', icon: BarChart3 },
       { path: '/manual-entries', label: 'Manual Entries', icon: Shield, badge: 'Admin', badgeColor: 'bg-accent-500' },

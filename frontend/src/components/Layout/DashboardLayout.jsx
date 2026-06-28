@@ -7,6 +7,7 @@ import Navbar from './Navbar';
 import Header from './Header';
 import { RouteTransition } from '../Common/Motion/PageTransition';
 import { useMotionConfig } from '../../hooks';
+import { useAuth } from '../../contexts/AuthContext';
 
 const CalculatorWidget = lazy(() => import('../../features/calculator/CalculatorWidget'));
 
@@ -14,6 +15,7 @@ export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const motionConfig = useMotionConfig();
+  const { user } = useAuth();
 
   useEffect(() => {
     // Close sidebar on route change (mobile)
@@ -141,7 +143,7 @@ export default function DashboardLayout() {
       </motion.button>
 
       <Suspense fallback={null}>
-        <CalculatorWidget />
+        {user?.preferences?.showCalculator !== false && <CalculatorWidget />}
       </Suspense>
     </div>
   );

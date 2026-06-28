@@ -132,6 +132,34 @@ export const authService = {
   },
 
   /**
+   * Update user preferences
+   * @param {object} preferences - Preferences object to update
+   * @returns {Promise<{success: boolean, preferences: object}>}
+   */
+  updatePreferences: async (preferences) => {
+    try {
+      const response = await api.put('/auth/preferences', preferences);
+      
+      // Update stored user info with new preferences
+      const admin = JSON.parse(localStorage.getItem('admin'));
+      if (admin) {
+        admin.preferences = { ...admin.preferences, ...preferences };
+        localStorage.setItem('admin', JSON.stringify(admin));
+      }
+
+      const user = JSON.parse(localStorage.getItem('user'));
+      if (user) {
+        user.preferences = { ...user.preferences, ...preferences };
+        localStorage.setItem('user', JSON.stringify(user));
+      }
+      
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
    * Change user password
    * @param {string} currentPassword - Current password
    * @param {string} newPassword - New password

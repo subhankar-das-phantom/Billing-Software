@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Menu, 
   User, 
   LogOut, 
-  ChevronDown
+  ChevronDown,
+  Settings
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -13,6 +14,7 @@ export default function Header({ onMenuClick, title }) {
   const { admin, user, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
   return (
     <header 
@@ -64,7 +66,7 @@ export default function Header({ onMenuClick, title }) {
 
 
           {/* Profile dropdown */}
-          <div className="relative">
+          <div className="relative" ref={dropdownRef}>
             <motion.button
               onClick={() => setProfileOpen(!profileOpen)}
               className="flex items-center gap-2 p-1.5 pr-3 rounded-lg hover:bg-slate-800 transition-colors group"
@@ -121,20 +123,16 @@ export default function Header({ onMenuClick, title }) {
                       </p>
                     </motion.div>
 
-                    {/* Profile link - Admin only */}
+                    {/* Settings link - Admin only */}
                     {isAdmin && (
                       <div className="py-2">
-                        <motion.button
-                          onClick={() => { setProfileOpen(false); navigate('/profile'); }}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-700/50 text-slate-300 hover:text-white transition-colors"
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.05 }}
-                          whileHover={{ x: 4 }}
+                        <button 
+                          onClick={() => { setProfileOpen(false); navigate('/settings'); }}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors"
                         >
-                          <User size={18} />
-                          <span className="text-sm">Profile</span>
-                        </motion.button>
+                          <Settings className="w-4 h-4" />
+                          <span className="text-sm">Settings</span>
+                        </button>
                       </div>
                     )}
 
