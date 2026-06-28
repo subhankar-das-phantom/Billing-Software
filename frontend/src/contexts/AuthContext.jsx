@@ -287,6 +287,22 @@ export const AuthProvider = ({ children }) => {
     // Removed showToast here to prevent duplicate success toast in ProfilePage and RegisterPage
   };
 
+  const updateUserPreferences = (newPreferences) => {
+    setUser(prev => ({
+      ...prev,
+      preferences: { ...prev?.preferences, ...newPreferences }
+    }));
+    
+    if (userRole === 'admin') {
+      const updatedAdmin = { ...admin, preferences: { ...admin?.preferences, ...newPreferences } };
+      localStorage.setItem('admin', JSON.stringify(updatedAdmin));
+      setAdmin(updatedAdmin);
+    } else if (userRole === 'employee') {
+      const updatedEmployee = { ...user, preferences: { ...user?.preferences, ...newPreferences } };
+      localStorage.setItem('user', JSON.stringify(updatedEmployee));
+    }
+  };
+
   // Check if current user is admin
   const isAdmin = () => userRole === 'admin';
 
@@ -305,6 +321,7 @@ export const AuthProvider = ({ children }) => {
         login, 
         logout, 
         updateAdmin, 
+        updateUserPreferences,
         loading,
         showToast,
         authTransition
