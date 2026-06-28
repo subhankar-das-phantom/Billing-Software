@@ -85,6 +85,14 @@ const employeeSchema = new mongoose.Schema({
   createdByAdmin: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Admin'
+  },
+  
+  // User Preferences
+  preferences: {
+    showCalculator: {
+      type: Boolean,
+      default: true
+    }
   }
 }, {
   timestamps: true
@@ -117,6 +125,7 @@ employeeSchema.methods.getPublicProfile = function() {
     phone: this.phone,
     isActive: this.isActive,
     lastLogin: this.lastLogin,
+    preferences: this.preferences,
     createdAt: this.createdAt
   };
 };
@@ -130,6 +139,7 @@ employeeSchema.methods.getFullProfile = function() {
     phone: this.phone,
     isActive: this.isActive,
     lastLogin: this.lastLogin,
+    preferences: this.preferences,
     metrics: this.metrics,
     createdAt: this.createdAt,
     updatedAt: this.updatedAt
