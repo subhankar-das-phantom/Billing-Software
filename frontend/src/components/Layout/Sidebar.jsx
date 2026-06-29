@@ -49,7 +49,7 @@ const getQuickActions = (isAdmin) => {
       { path: '/employees', label: 'Employees', icon: UsersRound, badge: 'Admin', badgeColor: 'bg-accent-500' },
       { path: '/employee-analytics', label: 'Employee Analytics', icon: BarChart3 },
       { path: '/manual-entries', label: 'Manual Entries', icon: Shield, badge: 'Admin', badgeColor: 'bg-accent-500' },
-      { path: '/reports/gst', label: 'GST Report', icon: FileBarChart }
+      { path: '/reports', label: 'Reports', icon: FileBarChart }
     );
   }
   

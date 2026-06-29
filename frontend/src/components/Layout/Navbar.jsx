@@ -19,7 +19,8 @@ import {
   BarChart3,
   Shield,
   Clock,
-  FileBarChart
+  FileBarChart,
+  Layers
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -38,9 +39,9 @@ const navItems = [
 const adminNavItems = [
   { path: '/employees', label: 'Employees', icon: UsersRound, adminOnly: true },
   { path: '/employee-analytics', label: 'Employee Analytics', icon: BarChart3, adminOnly: true },
-  { path: '/activity-log', label: 'Activity Log', icon: Clock, adminOnly: true },
-  { path: '/manual-entries', label: 'Manual Entries', icon: FileText, adminOnly: true },
-  { path: '/reports/gst', label: 'GST Report', icon: FileBarChart, adminOnly: true },
+  { path: '/collections', label: 'Collections', icon: Layers, adminOnly: false },
+  { path: '/reports', label: 'Reports', icon: FileBarChart, adminOnly: true },
+  { path: '/settings', label: 'Settings', icon: Settings, adminOnly: false },
 ];
 
 export default function Navbar() {
