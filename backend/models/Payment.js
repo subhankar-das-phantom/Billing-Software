@@ -79,5 +79,7 @@ paymentSchema.index({ customer: 1, paymentDate: 1 });
 paymentSchema.index({ customer: 1, paymentDate: -1 });
 paymentSchema.index({ paymentDate: -1 });
 paymentSchema.index({ createdAt: -1 });
+// Ledger optimization index
+paymentSchema.index({ tenantId: 1, customer: 1, paymentDate: -1 });
 
 module.exports = mongoose.model('Payment', paymentSchema);
