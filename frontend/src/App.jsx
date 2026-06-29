@@ -36,7 +36,7 @@ const CreditNoteCreatePage = lazy(() => import('./pages/CreditNotes/CreditNoteCr
 const CreditNoteViewPage = lazy(() => import('./pages/CreditNotes/CreditNoteViewPage'));
 
 // Report pages
-const GstReportPage = lazy(() => import('./pages/Reports/GstReportPage'));
+const ReportsPage = lazy(() => import('./pages/Reports/ReportsPage'));
 const PrivacyPolicyPage = lazy(() => import('./pages/Legal/PrivacyPolicyPage'));
 const TermsPage = lazy(() => import('./pages/Legal/TermsPage'));
 
@@ -141,7 +141,8 @@ function AppRoutes() {
           <Route path="/notes" element={<NotesPage />} />
           <Route path="/credits" element={<CreditsPage />} />
           <Route path="/collections" element={<CollectionsPage />} />
-          <Route path="/reports/gst" element={<GstReportPage />} />
+          <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/reports/gst" element={<Navigate to="/reports" replace />} />
           <Route path="/settings" element={<SettingsPage />} />
           
           {/* Admin-only routes */}

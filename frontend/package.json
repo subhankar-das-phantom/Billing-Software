@@ -11,6 +11,7 @@
     "security:check": "node scripts/check-forbidden-packages.js"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.101.2",
     "@tanstack/react-virtual": "^3.14.4",
     "axios": "^1.13.2",
     "clsx": "^2.1.1",
@@ -19,11 +20,13 @@
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-router-dom": "^7.10.1",
+    "recharts": "^3.9.0",
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@tailwindcss/vite": "^4.1.18",
+    "@tanstack/react-query-devtools": "^5.101.2",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",

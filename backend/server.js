@@ -90,6 +90,7 @@ app.use('/api/dashboard', generalLimiter, require('./routes/dashboard'));
 app.use('/api/notes', generalLimiter, require('./routes/notes'));
 app.use('/api/payments', generalLimiter, require('./routes/payments'));
 app.use('/api/reports', generalLimiter, require('./routes/reports'));
+app.use('/api/sales-analytics', generalLimiter, require('./src/modules/salesAnalytics/routes/index'));
 app.use('/api/manual-entries', generalLimiter, require('./routes/manualEntries'));
 app.use('/api/credit-notes', generalLimiter, require('./routes/creditNotes'));
 
