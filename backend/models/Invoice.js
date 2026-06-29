@@ -193,4 +193,10 @@ invoiceSchema.index(
   { unique: true, partialFilterExpression: { createRequestId: { $exists: true, $type: 'string' } } }
 );
 
+// Ledger optimization index (Partial index ignoring Cancelled invoices)
+invoiceSchema.index(
+  { tenantId: 1, 'customer._id': 1, invoiceDate: -1 },
+  { partialFilterExpression: { status: { $ne: 'Cancelled' } } }
+);
+
 module.exports = mongoose.model('Invoice', invoiceSchema);
