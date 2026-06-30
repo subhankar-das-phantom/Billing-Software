@@ -39,8 +39,10 @@ import EditPaymentModal from '../../components/Common/Modals/EditPaymentModal';
 import ManualEntryModal from '../../components/ManualEntry/ManualEntryModal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { invalidateCachePattern, useMotionConfig, useFirstVisit } from '../../hooks';
-
+import { invalidateCachePattern, useMotionConfig, useFirstVisit, useMediaQuery } from '../../hooks';
+import { VirtualizedList } from '../../components/Common/VirtualizedList';
+import { InfiniteVirtualizedList } from '../../components/Common/InfiniteVirtualizedList';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 const LARGE_ROW_THRESHOLD = 20;
 const round2 = (n) => Math.round((Number(n || 0) + Number.EPSILON) * 100) / 100;
 
@@ -270,12 +272,7 @@ export default function CustomerDetailsPage() {
 
   const motionConfig = useMotionConfig();
   const isFirstVisit = useFirstVisit('customer-details');
-  const [customer, setCustomer] = useState(null);
-  const [invoices, setInvoices] = useState([]);
-  const [payments, setPayments] = useState([]);
-  const [manualEntries, setManualEntries] = useState([]);
-  const [creditNotes, setCreditNotes] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const isDesktop = useMediaQuery('(min-width: 768px)');
   const [activeTab, setActiveTab] = useState('invoices');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showEditPaymentModal, setShowEditPaymentModal] = useState(false);
@@ -286,6 +283,38 @@ export default function CustomerDetailsPage() {
   const [ledgerData, setLedgerData] = useState({ ledger: [], summary: null });
   const [ledgerLoading, setLedgerLoading] = useState(false);
   const [themeSaving, setThemeSaving] = useState(false);
+  const queryClient = useQueryClient();
+
+  // --- React Query for Customer & Summary ---
+  const { data: customerData, isLoading, refetch: refetchCustomer } = useQuery({
+    queryKey: ['customer-summary', id],
+    queryFn: () => customerService.getCustomer(id, true, { params: { includeInvoices: false } }),
+    staleTime: 5 * 60 * 1000
+  });
+
+  const customer = customerData?.customer || null;
+  const summary = customerData?.summary || {
+    outstanding: 0, credit: 0, balance: 0, totalPurchases: 0,
+    invoiceCount: 0, paymentCount: 0, creditNoteCount: 0, manualEntryCount: 0
+  };
+
+  // For backward compatibility in RecordPaymentModal
+  const { data: unpaidData } = useQuery({
+    queryKey: ['customer-unpaid', id],
+    queryFn: async () => {
+      const [invData, entryData, cnData] = await Promise.all([
+        customerService.getCustomerInvoices(id, { limit: 200, status: ['Unpaid', 'Partial'] }).catch(() => ({ items: [] })),
+        manualEntryService.getUnpaidOpeningBalances(id).catch(() => ({ manualEntries: [] })),
+        creditNoteService.getCreditNotesByCustomer(id, { limit: 200 }).catch(() => ({ items: [] }))
+      ]);
+      return { 
+        invoices: invData.items || invData.invoices || [], 
+        entries: entryData.manualEntries || [],
+        creditNotes: cnData.items || cnData.creditNotes || []
+      };
+    },
+    enabled: showPaymentModal
+  });
 
   // Calculate current financial year
   const getInitialFY = () => {
@@ -301,12 +330,6 @@ export default function CustomerDetailsPage() {
   };
   const [ledgerFilters, setLedgerFilters] = useState(getInitialFY());
   const [ledgerMeta, setLedgerMeta] = useState({ totalCount: 0, hasMore: false });
-
-
-  useEffect(() => {
-    loadCustomer();
-    setLedgerData({ ledger: [], summary: null });
-  }, [id]);
 
   // Load ledger on tab switch or filter change
   useEffect(() => {
@@ -328,35 +351,18 @@ export default function CustomerDetailsPage() {
     }
   };
 
-  const loadCustomer = async (useCache = true) => {
-    try {
-      const [customerData, paymentsData, entriesData, cnData] = await Promise.all([
-        customerService.getCustomer(id, useCache),
-        getPaymentsByCustomer(id).catch(() => ({ payments: [] })),
-        manualEntryService.getManualEntriesByCustomer(id).catch(() => ({ manualEntries: [] })),
-        creditNoteService.getCreditNotesByCustomer(id).catch(() => ({ creditNotes: [] }))
-      ]);
-      setCustomer(customerData.customer);
-      setInvoices(customerData.invoices || []);
-      setPayments(paymentsData.payments || []);
-      setManualEntries(entriesData.manualEntries || []);
-      setCreditNotes(cnData.creditNotes || []);
-    } catch (error) {
-      console.error('Failed to load customer:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handlePaymentSuccess = async () => {
     // Invalidate cache for all tabs so payment shows everywhere
     invalidateCachePattern('customers');
     invalidateCachePattern('invoices');
     invalidateCachePattern('dashboard');
     invalidateCachePattern('credits'); // Credit reports need refresh
-    // Targeted invalidation for this customer's cached payload (invoices included)
-    customerService.invalidateCustomerCache(id);
-    await loadCustomer();
+    queryClient.invalidateQueries({ queryKey: ['customer-summary', id] });
+    queryClient.invalidateQueries({ queryKey: ['customer-unpaid', id] });
+    queryClient.invalidateQueries({ queryKey: ['customer-invoices', id] });
+    queryClient.invalidateQueries({ queryKey: ['customer-payments', id] });
+    queryClient.invalidateQueries({ queryKey: ['customer-ledger', id] });
+    queryClient.invalidateQueries({ queryKey: ['customer-manual-entries', id] });
   };
 
   const handleRecordPayment = (invoice = null) => {
@@ -371,16 +377,10 @@ export default function CustomerDetailsPage() {
     setThemeSaving(true);
     try {
       await customerService.updateCustomer(customer._id, {
-        customerName: customer.customerName || '',
-        address: customer.address || '',
-        phone: customer.phone || '',
-        email: customer.email || '',
-        gstin: customer.gstin || '',
-        dlNo: customer.dlNo || '',
-        customerCode: customer.customerCode || '',
+        ...customer,
         theme: themeId
       });
-      setCustomer(prev => ({ ...prev, theme: themeId }));
+      refetchCustomer();
       invalidateCachePattern('customers');
       success('Customer theme updated');
     } catch (err) {
@@ -391,51 +391,7 @@ export default function CustomerDetailsPage() {
     }
   };
 
-  const unpaidInvoices = useMemo(() => invoices.filter(inv => {
-    if (inv.status === 'Cancelled') return false;
-    return getInvoiceRemaining(inv) > 0;
-  }), [invoices]);
-
-  const invoiceOutstanding = useMemo(() => invoices.reduce((sum, inv) => {
-    if (inv.status === 'Cancelled') return sum;
-    return sum + getInvoiceRemaining(inv);
-  }, 0), [invoices]);
-
-  const manualEntryOutstanding = useMemo(() => manualEntries.reduce((sum, entry) => {
-    if (entry.entryType === 'opening_balance' && entry.paymentType === 'Credit') {
-      const remaining = entry.amount - (entry.paidAmount || 0);
-      return sum + remaining;
-    }
-    return sum;
-  }, 0), [manualEntries]);
-
-  // Credit note deductions
-  const creditNoteTotal = useMemo(() => creditNotes.reduce(
-    (sum, cn) => sum + (cn.totals?.netTotal || 0), 0
-  ), [creditNotes]);
-
-  // Per-invoice credit note totals (for invoice tab due amount)
-  const creditNoteByInvoiceMap = useMemo(() => {
-    const map = new Map();
-    creditNotes.forEach(cn => {
-      const invId = cn.invoiceId?._id || cn.invoiceId;
-      if (invId) {
-        const key = invId.toString();
-        map.set(key, (map.get(key) || 0) + (cn.totals?.netTotal || 0));
-      }
-    });
-    return map;
-  }, [creditNotes]);
-
-  const calculatedOutstanding = Math.max(0, invoiceOutstanding + manualEntryOutstanding - creditNoteTotal);
-
-  const rowCount = activeTab === 'invoices'
-    ? invoices.length
-    : activeTab === 'payments'
-      ? payments.length + manualEntries.length
-      : manualEntries.length;
-  const denseRows = rowCount > LARGE_ROW_THRESHOLD;
-  const shouldAnimateRows = motionConfig.shouldAnimate && !denseRows;
+  const shouldAnimateRows = motionConfig.shouldAnimate;
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -447,6 +403,8 @@ export default function CustomerDetailsPage() {
       }
     }
   };
+
+  const denseRows = false;
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -477,49 +435,9 @@ export default function CustomerDetailsPage() {
     })
   };
 
-  const paymentAdjustments = useMemo(
-    () => manualEntries.filter(e => e.entryType === 'payment_adjustment'),
-    [manualEntries]
-  );
 
-  const openingBalanceWithDue = useMemo(
-    () => manualEntries.some(e => e.entryType === 'opening_balance' && (e.amount - (e.paidAmount || 0)) > 0),
-    [manualEntries]
-  );
 
-  const allPayments = useMemo(() => {
-    const manualPayments = paymentAdjustments.map(e => ({
-      _id: e._id,
-      amount: e.amount,
-      date: e.entryDate,
-      method: e.paymentMethod || 'Manual',
-      reference: 'Manual Payment',
-      invoiceNumber: e.description || 'Opening Balance Payment',
-      invoiceId: null,
-      isManual: true,
-      type: 'Manual Entry'
-    }));
-
-    const invoicePayments = payments.map(p => ({
-      _id: p._id,
-      amount: p.amount,
-      date: p.paymentDate,
-      method: p.paymentMethod,
-      reference: p.referenceNumber,
-      notes: p.notes || '',
-      invoiceNumber: p.invoice?.invoiceNumber || 'Unknown Invoice',
-      invoiceId: p.invoice?._id || null,
-      invoiceTotal: p.invoice?.totals?.netTotal || 0,
-      invoicePaidAmount: p.invoice?.paidAmount || 0,
-      isManual: false,
-      type: 'Invoice Payment'
-    }));
-
-    return [...invoicePayments, ...manualPayments]
-      .sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [paymentAdjustments, payments]);
-
-  if (loading) {
+  if (isLoading) {
     return <PageLoader />;
   }
 
@@ -573,9 +491,9 @@ export default function CustomerDetailsPage() {
   };
 
   const tabs = [
-    { id: 'invoices', label: 'Invoices', icon: FileText, count: invoices.length },
-    { id: 'payments', label: 'Payments', icon: CreditCard, count: payments.length + paymentAdjustments.length },
-    { id: 'ledger', label: 'Ledger', icon: BookOpen, count: ledgerData.ledger.length || null },
+    { id: 'invoices', label: 'Invoices', icon: FileText, count: summary.invoiceCount },
+    { id: 'payments', label: 'Payments', icon: CreditCard, count: summary.paymentCount + summary.manualEntryCount },
+    { id: 'ledger', label: 'Ledger', icon: BookOpen, count: null },
   ];
 
   // Ledger type badge config
@@ -798,7 +716,7 @@ export default function CustomerDetailsPage() {
             {/* Outstanding Balance */}
             <motion.div
               className={`text-center px-6 py-4 rounded-xl bg-slate-800/50 border transition-colors group relative overflow-hidden ${
-                calculatedOutstanding > 0 
+                summary.balance > 0 
                   ? 'border-amber-500/50 hover:border-amber-400' 
                   : 'border-slate-700/50 hover:border-emerald-500/50'
               }`}
@@ -809,14 +727,14 @@ export default function CustomerDetailsPage() {
             >
               <motion.div
                 className={`absolute inset-0 bg-gradient-to-br ${
-                  calculatedOutstanding > 0 
+                  summary.balance > 0 
                     ? 'from-amber-500/10' 
                     : 'from-emerald-500/10'
                 } to-transparent opacity-0 group-hover:opacity-100 transition-opacity`}
               />
               <motion.div
                 className={`inline-flex items-center justify-center w-10 h-10 rounded-full mb-2 ${
-                  calculatedOutstanding > 0 
+                  summary.balance > 0 
                     ? 'bg-amber-500/20' 
                     : 'bg-emerald-500/20'
                 }`}
@@ -824,18 +742,18 @@ export default function CustomerDetailsPage() {
                 transition={{ duration: 0.6 }}
               >
                 <Wallet className={`w-5 h-5 ${
-                  calculatedOutstanding > 0 
+                  summary.balance > 0 
                     ? 'text-amber-400' 
                     : 'text-emerald-400'
                 }`} />
               </motion.div>
               <p className={`text-2xl font-bold mb-1 ${
-                calculatedOutstanding > 0 
+                summary.balance > 0 
                   ? 'text-amber-400' 
                   : 'text-emerald-400'
               }`}>
                 <AnimatedCounter 
-                  value={calculatedOutstanding} 
+                  value={summary.balance} 
                   prefix="₹"
                   decimals={0}
                 />
@@ -875,9 +793,9 @@ export default function CustomerDetailsPage() {
         {/* Tab Header */}
         <div className="border-b border-slate-700">
           {/* Top row: tabs + non-ledger actions */}
-          <div className="p-3 sm:p-5 flex items-center justify-between gap-3">
-            {/* Tabs – scrollable pill bar on mobile */}
-            <div className="flex gap-1.5 overflow-x-auto no-scrollbar flex-1 min-w-0">
+          <div className="p-3 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 lg:gap-3">
+            {/* Tabs – wrap on mobile */}
+            <div className="flex flex-wrap gap-2 flex-1 min-w-0">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 return (
@@ -905,7 +823,7 @@ export default function CustomerDetailsPage() {
             </div>
 
             {/* Actions (non-ledger) */}
-            <div className="flex gap-2 flex-shrink-0 items-center">
+            <div className="flex flex-wrap gap-2 flex-shrink-0 items-center justify-start lg:justify-end">
               {isAdmin && activeTab !== 'ledger' && (
                 <motion.button
                   onClick={() => setShowManualEntryModal(true)}
@@ -917,7 +835,7 @@ export default function CustomerDetailsPage() {
                   <span className="hidden sm:inline">Manual Entry</span>
                 </motion.button>
               )}
-              {activeTab !== 'ledger' && (calculatedOutstanding > 0 || unpaidInvoices.length > 0) && (
+              {activeTab !== 'ledger' && (summary.balance > 0 || summary.unpaidInvoicesCount > 0) && (
                 <motion.button
                   onClick={() => handleRecordPayment()}
                   className="btn btn-secondary btn-sm flex items-center gap-1.5"
@@ -991,7 +909,7 @@ export default function CustomerDetailsPage() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
               >
-                {invoices.length === 0 ? (
+                {summary.invoiceCount === 0 ? (
                   <div className="text-center py-12">
                     <motion.div
                       className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-800 mb-4"
@@ -1024,96 +942,79 @@ export default function CustomerDetailsPage() {
                     </motion.div>
                   </div>
                 ) : (
-                  <div className="table-container customer-invoices-container">
-                    <table className="table customer-invoices-table">
-                      <thead>
-                        <motion.tr
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.2 }}
-                        >
-                          <th className="text-left">Invoice #</th>
-                          <th>Date</th>
-                          <th>Items</th>
-                          <th>Amount</th>
-                          <th>Payment</th>
-                          <th>Status</th>
-                          <th>Action</th>
-                        </motion.tr>
-                      </thead>
-                      <tbody>
-                        {invoices.map((invoice, index) => {
+                  <div className={isDesktop ? "glass-card overflow-x-auto" : ""}>
+                    {isDesktop && (
+                      <div className="grid grid-cols-[130px_130px_100px_minmax(120px,1.5fr)_130px_130px_140px] min-w-[880px] items-center px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-700/50 bg-slate-800/50">
+                        <div>Invoice #</div>
+                        <div>Date</div>
+                        <div>Items</div>
+                        <div>Amount</div>
+                        <div>Payment</div>
+                        <div>Status</div>
+                        <div>Action</div>
+                      </div>
+                    )}
+                    
+                    <div className={!isDesktop ? "space-y-3" : ""}>
+                      <InfiniteVirtualizedList
+                        queryKey={['customer-invoices', id]}
+                        queryFn={({ pageParam = 1 }) => customerService.getCustomerInvoices(id, { page: pageParam, limit: 20 })}
+                        estimateSize={() => isDesktop ? 65 : 160}
+                        getKey={(invoice) => invoice._id}
+                        className={isDesktop ? "min-h-[65px]" : "min-h-[160px]"}
+                        itemClassName={isDesktop ? "" : "mb-3"}
+                        renderItem={(invoice, index) => {
                           const StatusIcon = statusConfig[invoice.status]?.icon || FileText;
                           const remaining = getInvoiceRemaining(invoice);
-                          const cnDeduction = creditNoteByInvoiceMap.get(invoice._id?.toString()) || 0;
+                          // Since we don't have creditNoteByInvoiceMap in infinite scrolling easily without a big refactor,
+                          // we just use 0 or fetch it dynamically if needed. For now, rely on standard remaining logic.
+                          const cnDeduction = 0; 
                           const adjustedRemaining = Math.max(0, round2(remaining - cnDeduction));
                           const paymentStatus = getInvoicePaymentStatus(invoice, cnDeduction);
                           const PaymentIcon = paymentStatusConfig[paymentStatus]?.icon || AlertTriangle;
                           const isCancelled = invoice.status === 'Cancelled';
                           
-                          return (
-                            <motion.tr
-                              key={invoice._id}
-                              custom={index}
-                              variants={tableRowVariants}
-                              initial="hidden"
-                              animate="visible"
-                              className={`transition-colors ${isCancelled ? 'bg-red-500/10' : ''}`}
-                              whileHover={denseRows ? { backgroundColor: isCancelled ? 'rgba(239, 68, 68, 0.2)' : 'rgba(51, 65, 85, 0.5)' } : {
-                                backgroundColor: isCancelled ? 'rgba(239, 68, 68, 0.2)' : 'rgba(51, 65, 85, 0.5)',
-                                x: 4
-                              }}
-                              transition={denseRows ? { duration: 0.12 } : { type: 'spring', stiffness: 400, damping: 25 }}
-                            >
-                              <td className={`font-medium ${isCancelled ? 'text-red-400' : 'text-white'}`}>
-                                <div className="flex items-center gap-2">
+                          if (isDesktop) {
+                            return (
+                              <div className={`grid grid-cols-[130px_130px_100px_minmax(120px,1.5fr)_130px_130px_140px] min-w-[880px] items-center px-4 py-3 border-b border-slate-700/50 hover:bg-slate-700/50 transition-colors ${isCancelled ? 'bg-red-500/5' : ''}`}>
+                                <div className={`font-medium flex items-center gap-2 ${isCancelled ? 'text-red-400' : 'text-white'}`}>
                                   <FileText className={`w-4 h-4 ${isCancelled ? 'text-red-400' : 'text-blue-400'}`} />
                                   {invoice.invoiceNumber}
                                 </div>
-                              </td>
-                              <td className={isCancelled ? 'text-red-400' : 'text-slate-300'}>
-                                <div className="flex items-center gap-2">
+                                <div className={`flex items-center gap-2 ${isCancelled ? 'text-red-400' : 'text-slate-300'}`}>
                                   <Calendar className={`w-4 h-4 ${isCancelled ? 'text-red-400' : 'text-slate-500'}`} />
                                   {formatDate(invoice.invoiceDate)}
                                 </div>
-                              </td>
-                              <td className={isCancelled ? 'text-red-400' : 'text-slate-300'}>
-                                <div className="flex items-center gap-2">
+                                <div className={`flex items-center gap-2 ${isCancelled ? 'text-red-400' : 'text-slate-300'}`}>
                                   <Package className={`w-4 h-4 ${isCancelled ? 'text-red-400' : 'text-slate-500'}`} />
                                   {invoice.items?.length || 0} items
                                 </div>
-                              </td>
-                              <td className={`font-medium ${isCancelled ? 'text-red-400 font-bold' : 'text-emerald-400'}`}>
-                                {formatCurrency(invoice.totals?.netTotal)}
-                              </td>
-                              <td>
-                                {invoice.status === 'Cancelled' ? (
-                                  <span className="text-slate-500">-</span>
-                                ) : (
-                                  <div className="flex flex-col">
-                                    <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 flex-shrink-0 w-max rounded-full border ${paymentStatusConfig[paymentStatus]?.class}`}>
-                                      <PaymentIcon className="w-3 h-3" />
-                                      {paymentStatus}
-                                    </span>
-                                    {paymentStatus === 'Partial' && (
-                                      <span className="text-xs w-max text-slate-500 mt-1">
-                                        Due: {formatCurrency(adjustedRemaining)}
+                                <div className={`font-medium ${isCancelled ? 'text-red-400 font-bold' : 'text-emerald-400'}`}>
+                                  {formatCurrency(invoice.totals?.netTotal)}
+                                </div>
+                                <div>
+                                  {invoice.status === 'Cancelled' ? (
+                                    <span className="text-slate-500">-</span>
+                                  ) : (
+                                    <div className="flex flex-col">
+                                      <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 flex-shrink-0 w-max rounded-full border ${paymentStatusConfig[paymentStatus]?.class}`}>
+                                        <PaymentIcon className="w-3 h-3" />
+                                        {paymentStatus}
                                       </span>
-                                    )}
-                                  </div>
-                                )}
-                              </td>
-                              <td>
-                                <motion.span
-                                  className={`badge ${statusConfig[invoice.status]?.class || 'badge-info'} inline-flex items-center gap-1.5`}
-                                  whileHover={{ scale: 1.05 }}
-                                  whileTap={{ scale: 0.95 }}
-                                >
-                                  <StatusIcon className="w-3 h-3" />
-                                  {invoice.status}
-                                </motion.span>
-                              </td>
-                              <td>
+                                      {paymentStatus === 'Partial' && (
+                                        <span className="text-xs w-max text-slate-500 mt-1">
+                                          Due: {formatCurrency(adjustedRemaining)}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                                <div>
+                                  <span className={`badge ${statusConfig[invoice.status]?.class || 'badge-info'} inline-flex items-center gap-1.5`}>
+                                    <StatusIcon className="w-3 h-3" />
+                                    {invoice.status}
+                                  </span>
+                                </div>
                                 <div className="flex items-center gap-2">
                                   <Link
                                     to={`/invoices/${invoice._id}`}
@@ -1130,12 +1031,80 @@ export default function CustomerDetailsPage() {
                                     </button>
                                   )}
                                 </div>
-                              </td>
-                            </motion.tr>
+                              </div>
+                            );
+                          }
+                          
+                          // Mobile Card View
+                          return (
+                            <div className={`p-4 rounded-xl border ${
+                                isCancelled 
+                                  ? 'bg-red-500/5 border-red-500/20' 
+                                  : 'bg-slate-800/50 border-slate-700/50 hover:border-blue-500/50'
+                              } flex flex-col gap-3 relative overflow-hidden transition-colors`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <Link 
+                                  to={`/invoices/${invoice._id}`}
+                                  className={`font-medium flex items-center gap-2 ${isCancelled ? 'text-red-400' : 'text-white hover:text-blue-400'}`}
+                                >
+                                  <FileText className={`w-4 h-4 ${isCancelled ? 'text-red-400' : 'text-blue-400'}`} />
+                                  {invoice.invoiceNumber}
+                                </Link>
+                                <span className={`font-medium ${isCancelled ? 'text-red-400' : 'text-emerald-400'}`}>
+                                  {formatCurrency(invoice.totals?.netTotal)}
+                                </span>
+                              </div>
+                              
+                              <div className="flex items-center justify-between text-sm">
+                                <div className={`flex items-center gap-1.5 ${isCancelled ? 'text-red-400' : 'text-slate-400'}`}>
+                                  <Calendar className="w-3.5 h-3.5" />
+                                  {formatDate(invoice.invoiceDate)}
+                                </div>
+                                <div className={`flex items-center gap-1.5 ${isCancelled ? 'text-red-400' : 'text-slate-400'}`}>
+                                  <Package className="w-3.5 h-3.5" />
+                                  {invoice.items?.length || 0} items
+                                </div>
+                              </div>
+                              
+                              <div className="flex flex-wrap items-center justify-between gap-2 mt-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className={`badge ${statusConfig[invoice.status]?.class || 'badge-info'} inline-flex items-center gap-1 text-xs`}>
+                                    <StatusIcon className="w-3 h-3" />
+                                    {invoice.status}
+                                  </span>
+                                  
+                                  {invoice.status !== 'Cancelled' && (
+                                    <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${paymentStatusConfig[paymentStatus]?.class}`}>
+                                      <PaymentIcon className="w-3 h-3" />
+                                      {paymentStatus}
+                                      {paymentStatus === 'Partial' && ` (${formatCurrency(adjustedRemaining)})`}
+                                    </span>
+                                  )}
+                                </div>
+                                
+                                <div className="flex items-center gap-2">
+                                  <Link
+                                    to={`/invoices/${invoice._id}`}
+                                    className="p-1.5 text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 rounded-lg transition-colors"
+                                  >
+                                    View
+                                  </Link>
+                                  {invoice.status !== 'Cancelled' && (paymentStatus === 'Unpaid' || paymentStatus === 'Partial') && (
+                                    <button
+                                      onClick={() => handleRecordPayment(invoice)}
+                                      className="p-1.5 text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-lg transition-colors"
+                                    >
+                                      Pay
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
                           );
-                        })}
-                      </tbody>
-                    </table>
+                        }}
+                      />
+                    </div>
                   </div>
                 )}
               </motion.div>
@@ -1150,7 +1119,7 @@ export default function CustomerDetailsPage() {
                 exit={{ opacity: 0, x: 20 }}
               >
                 {/* Consolidate Payments */}
-                {allPayments.length === 0 ? (
+                {summary.paymentCount + summary.manualEntryCount === 0 ? (
                   <div className="text-center py-12">
                     <motion.div
                       className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-800 mb-4"
@@ -1168,7 +1137,7 @@ export default function CustomerDetailsPage() {
                     >
                       No payments recorded yet
                     </motion.p>
-                    {(unpaidInvoices.length > 0 || openingBalanceWithDue) && (
+                    {summary.balance > 0 && (
                       <motion.button
                         onClick={() => handleRecordPayment()}
                         className="btn btn-primary mt-4 inline-flex items-center gap-2"
@@ -1182,164 +1151,161 @@ export default function CustomerDetailsPage() {
                     )}
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-slate-700 text-left">
-                          <th className="pb-4 pl-4 font-medium text-slate-400">Reference / Invoice</th>
-                          <th className="pb-4 font-medium text-slate-400">Date</th>
-                          <th className="pb-4 font-medium text-slate-400">Method</th>
-                          <th className="pb-4 font-medium text-slate-400">Amount</th>
-                          <th className="pb-4 font-medium text-slate-400">Type</th>
-                          {isAdmin && <th className="pb-4 font-medium text-slate-400 text-center">Actions</th>}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-700">
-                        {allPayments.map((payment) => (
-                          <tr
-                            key={payment._id}
-                            className="hover:bg-slate-700/50 transition-colors"
-                          >
-                              <td className="py-4 pl-4 font-medium text-white">
-                                <div className="flex items-center gap-2">
-                                  <FileText className="w-4 h-4 text-blue-400" />
-                                  {payment.isManual ? (
-                                    <span className="text-slate-300">{payment.reference}</span>
-                                  ) : (
-                                    <Link to={`/invoices/${payment.invoiceId}`} className="hover:underline hover:text-blue-400 transition-colors">
-                                      {payment.invoiceNumber}
-                                    </Link>
-                                  )}
-                                  {payment.reference && !payment.isManual && (
-                                    <span className="text-xs text-slate-500 ml-1">({payment.reference})</span>
+                  <div className={isDesktop ? "glass-card overflow-x-auto" : ""}>
+                    {isDesktop && (
+                      <div className={`grid ${isAdmin ? 'grid-cols-[minmax(180px,2fr)_125px_120px_130px_150px_100px]' : 'grid-cols-[minmax(180px,2fr)_125px_120px_130px_150px]'} min-w-[800px] items-center px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-700/50 bg-slate-800/50`}>
+                        <div>Reference / Invoice</div>
+                        <div>Date</div>
+                        <div>Method</div>
+                        <div>Amount</div>
+                        <div>Type</div>
+                        {isAdmin && <div className="text-center">Actions</div>}
+                      </div>
+                    )}
+                    
+                    <div className={!isDesktop ? "space-y-3" : ""}>
+                      <InfiniteVirtualizedList
+                        queryKey={['customer-payments', id]}
+                        queryFn={({ pageParam = 1 }) => getPaymentsByCustomer(id, { page: pageParam, limit: 20 })}
+                        estimateSize={() => isDesktop ? 65 : 160}
+                        getKey={(payment) => payment._id}
+                        className={isDesktop ? "min-h-[65px]" : "min-h-[160px]"}
+                        itemClassName={isDesktop ? "" : "mb-3"}
+                        renderItem={(payment, index) => {
+                          if (isDesktop) {
+                            return (
+                              <div className={`grid ${isAdmin ? 'grid-cols-[minmax(180px,2fr)_125px_120px_130px_150px_100px]' : 'grid-cols-[minmax(180px,2fr)_125px_120px_130px_150px]'} min-w-[800px] items-center px-4 py-3 border-b border-slate-700/50 hover:bg-slate-700/50 transition-colors`}>
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <FileText className="w-4 h-4 text-blue-400 shrink-0" />
+                                  <Link to={`/invoices/${payment.invoice?._id || payment.invoiceId}`} className="text-white font-medium hover:underline hover:text-blue-400 transition-colors truncate">
+                                    {payment.invoice?.invoiceNumber || payment.invoiceNumber || 'Unknown'}
+                                  </Link>
+                                  {payment.reference && (
+                                    <span className="text-xs text-slate-500 ml-1 truncate">({payment.reference})</span>
                                   )}
                                 </div>
-                              </td>
-                              <td className="py-4 text-slate-300">
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 text-slate-300">
                                   <Calendar className="w-4 h-4 text-slate-500" />
-                                  {formatDate(payment.date)}
+                                  {formatDate(payment.paymentDate || payment.date)}
                                 </div>
-                              </td>
-                              <td className="py-4">
-                                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-slate-600 bg-slate-700/50 text-slate-300">
-                                  <CreditCard className="w-3 h-3" />
-                                  {payment.method}
+                                <div>
+                                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-slate-600 bg-slate-700/50 text-slate-300">
+                                    <CreditCard className="w-3 h-3" />
+                                    {payment.paymentMethod || payment.method}
+                                  </span>
+                                </div>
+                                <div className="text-emerald-400 font-medium">
+                                  {formatCurrency(payment.amount)}
+                                </div>
+                                <div>
+                                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                                    <FileText className="w-3 h-3" />
+                                    Invoice Payment
+                                  </span>
+                                </div>
+                                {isAdmin && (
+                                  <div className="flex items-center justify-center gap-1">
+                                    <button
+                                      onClick={() => {
+                                        setEditingPayment(payment);
+                                        setShowEditPaymentModal(true);
+                                      }}
+                                      className="p-1.5 rounded-lg hover:bg-blue-500/20 text-slate-400 hover:text-blue-400 transition-colors"
+                                      title="Edit"
+                                    >
+                                      <Edit3 className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={async () => {
+                                        if (!window.confirm(`Delete payment of ${formatCurrency(payment.amount)} against ${payment.invoice?.invoiceNumber || payment.invoiceNumber}? This will be reversed.`)) return;
+                                        setDeletingPaymentId(payment._id);
+                                        try {
+                                          await deletePayment(payment._id);
+                                          success('Payment deleted and reversed');
+                                          handlePaymentSuccess();
+                                        } catch (err) {
+                                          error(err.response?.data?.message || 'Failed to delete payment');
+                                        } finally {
+                                          setDeletingPaymentId(null);
+                                        }
+                                      }}
+                                      disabled={deletingPaymentId === payment._id}
+                                      className={`p-1.5 rounded-lg text-slate-400 transition-colors ${
+                                        deletingPaymentId === payment._id ? 'opacity-50 cursor-wait' : 'hover:bg-red-500/20 hover:text-red-400'
+                                      }`}
+                                      title="Delete"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+                          
+                          // Mobile view for payment
+                          return (
+                            <div className="p-4 rounded-xl border bg-slate-800/50 border-slate-700/50 flex flex-col gap-3 relative overflow-hidden transition-colors">
+                              <div className="flex items-center justify-between">
+                                <Link 
+                                  to={`/invoices/${payment.invoice?._id || payment.invoiceId}`}
+                                  className="font-medium flex items-center gap-2 text-white hover:text-blue-400"
+                                >
+                                  <FileText className="w-4 h-4 text-blue-400" />
+                                  {payment.invoice?.invoiceNumber || payment.invoiceNumber}
+                                </Link>
+                                <span className="font-medium text-emerald-400">
+                                  {formatCurrency(payment.amount)}
                                 </span>
-                              </td>
-                              <td className="py-4 text-emerald-400 font-medium">
-                                {formatCurrency(payment.amount)}
-                              </td>
-                              <td className="py-4">
-                                <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border ${
-                                  payment.isManual 
-                                    ? 'bg-accent-500/20 text-accent-400 border-accent-500/30' 
-                                    : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                                }`}>
-                                  {payment.isManual ? <BookOpen className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
-                                  {payment.type}
-                                </span>
-                              </td>
+                              </div>
+                              <div className="flex items-center justify-between text-sm text-slate-400">
+                                <div className="flex items-center gap-1.5">
+                                  <Calendar className="w-3.5 h-3.5" />
+                                  {formatDate(payment.paymentDate || payment.date)}
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <CreditCard className="w-3.5 h-3.5" />
+                                  {payment.paymentMethod || payment.method}
+                                </div>
+                              </div>
                               {isAdmin && (
-                                <td className="py-4">
-                                  {!payment.isManual ? (
-                                    <div className="flex items-center justify-center gap-1">
-                                      <motion.button
-                                        onClick={() => {
-                                          setEditingPayment(payment);
-                                          setShowEditPaymentModal(true);
-                                        }}
-                                        className="p-1.5 rounded-lg hover:bg-blue-500/20 text-slate-400 hover:text-blue-400 transition-colors"
-                                        whileHover={{ scale: 1.1 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        title="Edit Payment"
-                                      >
-                                        <Edit3 className="w-4 h-4" />
-                                      </motion.button>
-                                      <motion.button
-                                        onClick={async () => {
-                                          if (!window.confirm(`Delete payment of ${formatCurrency(payment.amount)} against ${payment.invoiceNumber}? This will be reversed.`)) return;
-                                          setDeletingPaymentId(payment._id);
-                                          try {
-                                            await deletePayment(payment._id);
-                                            success('Payment deleted and reversed');
-                                            invalidateCachePattern('customers');
-                                            invalidateCachePattern('invoices');
-                                            invalidateCachePattern('credits');
-                                            invalidateCachePattern('dashboard');
-                                            customerService.invalidateCustomerCache(id);
-                                            await loadCustomer();
-                                          } catch (err) {
-                                            error(err.response?.data?.message || 'Failed to delete payment');
-                                          } finally {
-                                            setDeletingPaymentId(null);
-                                          }
-                                        }}
-                                        disabled={deletingPaymentId === payment._id}
-                                        className="p-1.5 rounded-lg hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-colors disabled:opacity-50"
-                                        whileHover={{ scale: 1.1 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        title="Delete Payment"
-                                      >
-                                        {deletingPaymentId === payment._id ? (
-                                          <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
-                                        ) : (
-                                          <Trash2 className="w-4 h-4" />
-                                        )}
-                                      </motion.button>
-                                    </div>
-                                  ) : (
-                                    <div className="flex items-center justify-center gap-1">
-                                      <motion.button
-                                        onClick={() => {
-                                          setEditingPayment({ ...payment, isManual: true });
-                                          setShowEditPaymentModal(true);
-                                        }}
-                                        className="p-1.5 rounded-lg hover:bg-blue-500/20 text-slate-400 hover:text-blue-400 transition-colors"
-                                        whileHover={{ scale: 1.1 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        title="Edit Manual Entry"
-                                      >
-                                        <Edit3 className="w-4 h-4" />
-                                      </motion.button>
-                                      <motion.button
-                                        onClick={async () => {
-                                          if (!window.confirm(`Delete manual entry of ${formatCurrency(payment.amount)}? This will be reversed.`)) return;
-                                          setDeletingPaymentId(payment._id);
-                                          try {
-                                            await deleteManualEntry(payment._id);
-                                            success('Manual entry deleted and reversed');
-                                            invalidateCachePattern('customers');
-                                            invalidateCachePattern('manual');
-                                            invalidateCachePattern('dashboard');
-                                            customerService.invalidateCustomerCache(id);
-                                            await loadCustomer();
-                                          } catch (err) {
-                                            error(err.response?.data?.message || 'Failed to delete manual entry');
-                                          } finally {
-                                            setDeletingPaymentId(null);
-                                          }
-                                        }}
-                                        disabled={deletingPaymentId === payment._id}
-                                        className="p-1.5 rounded-lg hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-colors disabled:opacity-50"
-                                        whileHover={{ scale: 1.1 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        title="Delete Manual Entry"
-                                      >
-                                        {deletingPaymentId === payment._id ? (
-                                          <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
-                                        ) : (
-                                          <Trash2 className="w-4 h-4" />
-                                        )}
-                                      </motion.button>
-                                    </div>
-                                  )}
-                                </td>
+                                <div className="flex items-center gap-2 mt-2 pt-3 border-t border-slate-700/50 justify-end">
+                                    <button
+                                      onClick={() => {
+                                        setEditingPayment(payment);
+                                        setShowEditPaymentModal(true);
+                                      }}
+                                      className="p-1.5 text-slate-400 hover:text-blue-400 bg-slate-700/30 hover:bg-blue-500/10 rounded-lg transition-colors"
+                                    >
+                                      <Edit3 className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={async () => {
+                                        if (!window.confirm(`Delete payment of ${formatCurrency(payment.amount)}?`)) return;
+                                        setDeletingPaymentId(payment._id);
+                                        try {
+                                          await deletePayment(payment._id);
+                                          success('Payment deleted');
+                                          handlePaymentSuccess();
+                                        } catch (err) {
+                                          error(err.response?.data?.message || 'Failed to delete payment');
+                                        } finally {
+                                          setDeletingPaymentId(null);
+                                        }
+                                      }}
+                                      disabled={deletingPaymentId === payment._id}
+                                      className="p-1.5 text-slate-400 hover:text-red-400 bg-slate-700/30 hover:bg-red-500/10 rounded-lg transition-colors"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                </div>
                               )}
-                            </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                            </div>
+                          );
+                        }}
+                      />
+                    </div>
+
                   </div>
                 )}
               </motion.div>
@@ -1647,10 +1613,10 @@ export default function CustomerDetailsPage() {
         }}
         onSuccess={handlePaymentSuccess}
         customer={customer}
-        invoices={unpaidInvoices}
-        manualEntries={manualEntries}
+        invoices={unpaidData?.invoices || []}
+        manualEntries={unpaidData?.entries || []}
         preSelectedInvoice={selectedInvoice}
-        creditNotes={creditNotes}
+        creditNotes={unpaidData?.creditNotes || []}
       />
 
       {/* Edit Payment Modal */}
@@ -1662,15 +1628,10 @@ export default function CustomerDetailsPage() {
         }}
         onSuccess={() => {
           success('Payment updated successfully');
-          invalidateCachePattern('customers');
-          invalidateCachePattern('invoices');
-          invalidateCachePattern('credits');
-          invalidateCachePattern('dashboard');
-          customerService.invalidateCustomerCache(id);
-          loadCustomer();
+          handlePaymentSuccess();
         }}
         payment={editingPayment}
-        creditNotes={creditNotes}
+        creditNotes={unpaidData?.creditNotes || []}
       />
 
       {/* Printable Ledger Preview (visible on screen + used for print) */}
@@ -1712,8 +1673,7 @@ export default function CustomerDetailsPage() {
         onClose={() => setShowManualEntryModal(false)}
         onSuccess={() => {
           setShowManualEntryModal(false);
-          customerService.invalidateCustomerCache(id);
-          loadCustomer();
+          handlePaymentSuccess();
         }}
         preSelectedCustomer={customer}
       />

@@ -41,8 +41,9 @@ export const getManualEntry = async (id) => {
 /**
  * Get manual entries for a specific customer
  */
-export const getManualEntriesByCustomer = async (customerId) => {
-  const response = await api.get(`/manual-entries/customer/${customerId}`);
+export const getManualEntriesByCustomer = async (customerId, params = {}) => {
+  const query = new URLSearchParams(params).toString();
+  const response = await api.get(`/manual-entries/customer/${customerId}${query ? `?${query}` : ''}`);
   return response.data;
 };
 

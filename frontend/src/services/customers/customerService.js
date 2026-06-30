@@ -179,7 +179,7 @@ export const customerService = {
    */
   getCustomerInvoices: async (id, params = {}) => {
     try {
-      const response = await api.get(`/customers/${id}/invoices`, { params });
+      const response = await api.get(`/invoices/customer/${id}`, { params });
       return response.data;
     } catch (error) {
       throw error;

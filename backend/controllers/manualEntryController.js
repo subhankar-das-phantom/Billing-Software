@@ -201,19 +201,36 @@ exports.getManualEntry = async (req, res, next) => {
   }
 };
 
-/**
- * @desc    Get manual entries for a specific customer
- * @route   GET /api/manual-entries/customer/:customerId
- * @access  Private
- */
+// @desc    Get manual entries for a specific customer
+// @route   GET /api/manual-entries/customer/:customerId
+// @access  Private
 exports.getManualEntriesByCustomer = async (req, res, next) => {
   try {
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+    const skip = (page - 1) * limit;
     const tenantId = getTenantId(req);
-    const manualEntries = await ManualEntry.find({ tenantId, customer: req.params.customerId })
-      .sort({ entryDate: -1, createdAt: -1 });
+    
+    const query = { tenantId, customer: req.params.customerId };
+
+    const manualEntries = await ManualEntry.find(query)
+      .sort({ entryDate: -1, createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await ManualEntry.countDocuments(query);
+    const pages = Math.ceil(total / limit);
 
     res.status(200).json({
       success: true,
+      items: manualEntries,
+      pagination: {
+        page,
+        limit,
+        total,
+        hasMore: page < pages
+      },
+      // Backward compatibility
       manualEntries
     });
   } catch (error) {

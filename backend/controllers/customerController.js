@@ -577,7 +577,33 @@ exports.getCustomer = async (req, res, next) => {
       });
     }
 
-    const includeInvoices = req.query.includeInvoices !== 'false';
+    // Always calculate summary metrics for the frontend
+    const [paymentCount, creditNoteCount, manualEntryCount, unpaidInvoicesCount] = await Promise.all([
+      Payment.countDocuments({ tenantId, customer: customer._id }),
+      CreditNote.countDocuments({ tenantId, customer: customer._id }),
+      ManualEntry.countDocuments({ tenantId, customer: customer._id }),
+      Invoice.countDocuments({ 
+        tenantId, 
+        'customer._id': customer._id, 
+        status: { $ne: 'Cancelled' },
+        $expr: { $gt: ["$totals.netTotal", "$paidAmount"] }
+      })
+    ]);
+
+    const summary = {
+      outstanding: customer.outstandingBalance || 0,
+      credit: customer.creditBalance || 0,
+      balance: (customer.outstandingBalance || 0) - (customer.creditBalance || 0),
+      totalPurchases: customer.totalPurchases || 0,
+      invoiceCount: customer.invoiceCount || 0,
+      paymentCount,
+      creditNoteCount,
+      manualEntryCount,
+      unpaidInvoicesCount
+    };
+
+    // Kept for backward compatibility if old clients request it
+    const includeInvoices = req.query.includeInvoices === 'true';
     let invoices = [];
 
     if (includeInvoices) {
@@ -592,7 +618,8 @@ exports.getCustomer = async (req, res, next) => {
     res.status(200).json({
       success: true,
       customer,
-      invoices
+      summary,
+      invoices: includeInvoices ? invoices : undefined
     });
   } catch (error) {
     next(error);
