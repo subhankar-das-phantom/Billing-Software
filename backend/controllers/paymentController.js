@@ -448,16 +448,34 @@ exports.getPayment = async (req, res, next) => {
 // @access  Private
 exports.getPaymentsByCustomer = async (req, res, next) => {
   try {
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+    const skip = (page - 1) * limit;
     const tenantId = getTenantId(req);
-    const payments = await Payment.find({ tenantId, customer: req.params.customerId })
+    
+    const query = { tenantId, customer: req.params.customerId };
+
+    const payments = await Payment.find(query)
       .populate('invoice', 'invoiceNumber invoiceDate totals.netTotal paidAmount paymentType')
       .sort({ paymentDate: -1 })
-      .limit(100);
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Payment.countDocuments(query);
+    const pages = Math.ceil(total / limit);
 
     const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
 
     res.status(200).json({
       success: true,
+      items: payments,
+      pagination: {
+        page,
+        limit,
+        total,
+        hasMore: page < pages
+      },
+      // Backward compatibility
       count: payments.length,
       totalPaid,
       payments

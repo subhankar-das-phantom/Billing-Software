@@ -223,24 +223,43 @@ exports.getInvoice = async (req, res, next) => {
 // @access  Private
 exports.getCustomerInvoices = async (req, res, next) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
     const skip = (page - 1) * limit;
     const tenantId = getTenantId(req);
 
-    const invoices = await Invoice.find({ tenantId, 'customer._id': req.params.customerId })
+    // Support optional filtering by status
+    const query = { tenantId, 'customer._id': req.params.customerId };
+    if (req.query.status) {
+      if (Array.isArray(req.query.status)) {
+        query.status = { $in: req.query.status };
+      } else {
+        query.status = req.query.status;
+      }
+    }
+
+    const invoices = await Invoice.find(query)
       .sort({ invoiceDate: -1 })
       .skip(skip)
       .limit(limit);
 
-    const total = await Invoice.countDocuments({ tenantId, 'customer._id': req.params.customerId });
+    const total = await Invoice.countDocuments(query);
+    const pages = Math.ceil(total / limit);
 
     res.status(200).json({
       success: true,
+      items: invoices,
+      pagination: {
+        page,
+        limit,
+        total,
+        hasMore: page < pages
+      },
+      // Backward compatibility
       count: invoices.length,
       total,
       page,
-      pages: Math.ceil(total / limit),
+      pages,
       invoices
     });
   } catch (error) {
