@@ -166,7 +166,10 @@ export class SalesAnalyticsService {
       },
       {
         $group: {
-          _id: { month: { $month: '$invoiceDate' }, year: { $year: '$invoiceDate' } },
+          _id: { 
+            month: { $month: { date: '$invoiceDate', timezone: 'Asia/Kolkata' } }, 
+            year: { $year: { date: '$invoiceDate', timezone: 'Asia/Kolkata' } } 
+          },
           revenue: { $sum: '$totals.netTotal' },
           invoiceCount: { $sum: 1 }
         }
@@ -208,7 +211,7 @@ export class SalesAnalyticsService {
       },
       {
         $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$invoiceDate" } },
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$invoiceDate", timezone: "Asia/Kolkata" } },
           revenue: { $sum: '$totals.netTotal' },
           invoiceCount: { $sum: 1 }
         }
@@ -237,7 +240,7 @@ export class SalesAnalyticsService {
       },
       {
         $group: {
-          _id: { year: { $year: '$invoiceDate' } },
+          _id: { year: { $year: { date: '$invoiceDate', timezone: 'Asia/Kolkata' } } },
           revenue: { $sum: '$totals.netTotal' },
           invoiceCount: { $sum: 1 }
         }
