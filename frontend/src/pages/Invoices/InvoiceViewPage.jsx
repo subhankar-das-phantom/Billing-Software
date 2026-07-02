@@ -148,7 +148,7 @@ export default function InvoiceViewPage() {
     if (!customerId) return 0;
     try {
       const [customerData, entriesData, cnData] = await Promise.all([
-        customerService.getCustomer(customerId),
+        customerService.getCustomer(customerId, true, { params: { includeInvoices: 'true' } }),
         manualEntryService.getManualEntriesByCustomer(customerId).catch(() => ({ manualEntries: [] })),
         creditNoteService.getCreditNotesByCustomer(customerId).catch(() => ({ creditNotes: [] }))
       ]);

@@ -29,7 +29,8 @@ import { calculateItemAmounts, calculateInvoiceTotals, GST_RATES, removeGST, rou
 import { PageLoader } from '../../components/Common/Feedback/Loader';
 import Modal from '../../components/Common/Modals/Modal';
 import { useToast } from '../../contexts/ToastContext';
-import { invalidateCachePattern, useDebounce, useFirstVisit } from '../../hooks';
+import { invalidateCachePattern, useDebounce, useFirstVisit, useMediaQuery } from '../../hooks';
+import InvoiceItemMobileCard from './InvoiceItemMobileCard';
 
 const pageVariants = {
   hidden: { opacity: 0 },
@@ -144,6 +145,7 @@ export default function InvoiceCreatePage() {
   const location = useLocation();
   const { success, error } = useToast();
   const isFirstVisit = useFirstVisit('invoice-create');
+  const isDesktop = useMediaQuery('(min-width: 950px)');
 
   // Detect if we're in edit mode
   const isEditMode = Boolean(editInvoiceId && location.pathname.includes('/edit'));
@@ -533,7 +535,7 @@ export default function InvoiceCreatePage() {
     const amounts = calculateItemAmounts(1, baseRate, product.gstPercentage, 0);
     const netRate = round(baseRate * (1 + product.gstPercentage / 100), 2);
     
-    setInvoiceItems(prev => [...prev, {
+    setInvoiceItems(prev => [{
       product: {
         _id: product._id,
         productName: product.productName,
@@ -549,7 +551,7 @@ export default function InvoiceCreatePage() {
       netRate: netRate,
       schemeDiscount: 0,
       ...amounts
-    }]);
+    }, ...prev]);
 
     setProductSearch('');
     setProductResults([]);
@@ -1073,7 +1075,8 @@ export default function InvoiceCreatePage() {
               transition={{ duration: 0.3 }}
               className="overflow-hidden"
             >
-              <div className="table-container">
+              {isDesktop ? (
+                <div className="table-container">
                 <table className="table">
                   <thead>
                     <motion.tr
@@ -1203,6 +1206,21 @@ export default function InvoiceCreatePage() {
                   </tbody>
                 </table>
               </div>
+              ) : (
+                <div className="space-y-4">
+                  <AnimatePresence mode="popLayout">
+                    {invoiceItems.map((item, index) => (
+                      <InvoiceItemMobileCard
+                        key={item.product._id}
+                        item={item}
+                        index={index}
+                        updateItemQuantity={updateItemQuantity}
+                        removeItem={removeItem}
+                      />
+                    ))}
+                  </AnimatePresence>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

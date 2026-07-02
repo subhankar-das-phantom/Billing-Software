@@ -124,9 +124,29 @@ function useMediaQuery(query) {
 export default function Sidebar({ isOpen, onClose }) {
   const location = useLocation();
   const { admin, user, isAdmin, logout } = useAuth();
-  const isDesktop = useMediaQuery('(min-width: 768px)');
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
   const shouldShow = isOpen || isDesktop;
   const [hoveredItem, setHoveredItem] = useState(null);
+
+  // Lock body scroll when mobile sidebar is open
+  useEffect(() => {
+    if (isOpen && !isDesktop) {
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.left = '0';
+      document.body.style.right = '0';
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.left = '';
+        document.body.style.right = '';
+        document.body.style.overflow = '';
+        window.scrollTo(0, scrollY);
+      };
+    }
+  }, [isOpen, isDesktop]);
   
   // Adaptive motion configuration
   const motionConfig = useMotionConfig();
@@ -159,18 +179,6 @@ export default function Sidebar({ isOpen, onClose }) {
 
   return (
     <>
-      {/* Overlay for mobile */}
-      <AnimatePresence>
-        {isOpen && !isDesktop && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0, transition: { delay: 0.15 } }}
-            className="sidebar-overlay fixed inset-0 bg-black/50 z-30 md:hidden backdrop-blur-sm" 
-            onClick={onClose}
-          />
-        )}
-      </AnimatePresence>
       
       {/* Sidebar */}
       <motion.aside 
