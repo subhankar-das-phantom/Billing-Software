@@ -35,29 +35,32 @@ export default function DashboardLayout() {
   return (
     <div className="flex min-h-screen bg-slate-950">
       {/* Mobile Sidebar - only visible on small screens */}
-      <AnimatePresence mode="wait">
+      <AnimatePresence>
         {sidebarOpen && (
-          <>
-            <motion.div
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              onClick={() => setSidebarOpen(false)}
-            />
-            
-            {/* Sidebar panel */}
-            <motion.div
-              className="fixed inset-y-0 left-0 z-50 lg:hidden"
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={sidebarTransition}
-            >
-              <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-            </motion.div>
-          </>
+          <motion.div
+            key="sidebar-overlay"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => setSidebarOpen(false)}
+            onTouchEnd={(e) => { e.preventDefault(); setSidebarOpen(false); }}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div
+            key="sidebar-panel"
+            className="fixed inset-y-0 left-0 z-50 lg:hidden"
+            initial={{ x: '-100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
+            transition={sidebarTransition}
+          >
+            <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          </motion.div>
         )}
       </AnimatePresence>
       

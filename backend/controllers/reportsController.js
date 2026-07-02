@@ -30,8 +30,8 @@ exports.getOutstandingReport = async (req, res, next) => {
       // Aggregation 1: Group unpaid invoices by customer
       Invoice.aggregate([
         { $match: unpaidFilter },
-        { $addFields: { remaining: { $subtract: ['$totals.netTotal', { $ifNull: ['$paidAmount', 0] }] } } },
-        { $match: { remaining: { $gt: 0 } } },
+        { $addFields: { remaining: { $round: [{ $subtract: ['$totals.netTotal', { $ifNull: ['$paidAmount', 0] }] }, 2] } } },
+        { $match: { remaining: { $gt: 0.01 } } },
         { $group: {
           _id: '$customer._id',
           customerName: { $first: '$customer.customerName' },
@@ -113,7 +113,8 @@ exports.getAgeingReport = async (req, res, next) => {
     };
 
     // Same formula: remaining = totals.netTotal - (paidAmount || 0)
-    const remainingExpr = { $subtract: ['$totals.netTotal', { $ifNull: ['$paidAmount', 0] }] };
+    // Round to 2 decimals to avoid floating-point ghost entries (e.g. 0.004 showing as ₹0.00)
+    const remainingExpr = { $round: [{ $subtract: ['$totals.netTotal', { $ifNull: ['$paidAmount', 0] }] }, 2] };
 
     // Two parallel aggregations
     const [bucketSummaries, paginatedInvoices] = await Promise.all([
@@ -121,7 +122,7 @@ exports.getAgeingReport = async (req, res, next) => {
       Invoice.aggregate([
         { $match: unpaidFilter },
         { $addFields: { remaining: remainingExpr } },
-        { $match: { remaining: { $gt: 0 } } },
+        { $match: { remaining: { $gt: 0.01 } } },
         { $addFields: {
           bucket: { $switch: {
             branches: [
@@ -143,7 +144,7 @@ exports.getAgeingReport = async (req, res, next) => {
       Invoice.aggregate([
         { $match: unpaidFilter },
         { $addFields: { remaining: remainingExpr } },
-        { $match: { remaining: { $gt: 0 } } },
+        { $match: { remaining: { $gt: 0.01 } } },
         { $project: {
           invoiceNumber: 1,
           invoiceDate: 1,
@@ -235,11 +236,11 @@ exports.getCreditStats = async (req, res, next) => {
       Invoice.aggregate([
         { $match: unpaidFilter },
         { $project: {
-          remaining: { $subtract: ['$totals.netTotal', { $ifNull: ['$paidAmount', 0] }] },
+          remaining: { $round: [{ $subtract: ['$totals.netTotal', { $ifNull: ['$paidAmount', 0] }] }, 2] },
           invoiceDate: 1,
           customerId: '$customer._id'
         }},
-        { $match: { remaining: { $gt: 0 } } },
+        { $match: { remaining: { $gt: 0.01 } } },
         { $group: {
           _id: null,
           totalOutstanding: { $sum: '$remaining' },
