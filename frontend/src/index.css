@@ -7,13 +7,19 @@
    accent2 = gradient partner with blue (buttons, CTAs)
    ═══════════════════════════════════════════ */
 @theme {
-  --color-accent-400: #2dd4bf;  /* teal-400 */
-  --color-accent-500: #14b8a6;  /* teal-500 */
-  --color-accent-600: #0d9488;  /* teal-600 */
+  --color-accent-400: #2dd4bf;
+  /* teal-400 */
+  --color-accent-500: #14b8a6;
+  /* teal-500 */
+  --color-accent-600: #0d9488;
+  /* teal-600 */
 
-  --color-accent2-400: #22d3ee; /* cyan-400 */
-  --color-accent2-500: #06b6d4; /* cyan-500 */
-  --color-accent2-600: #0891b2; /* cyan-600 */
+  --color-accent2-400: #22d3ee;
+  /* cyan-400 */
+  --color-accent2-500: #06b6d4;
+  /* cyan-500 */
+  --color-accent2-600: #0891b2;
+  /* cyan-600 */
 }
 
 /* Base Styles & CSS Variables */
@@ -203,7 +209,8 @@
   /* Mobile-optimized table */
   @media (max-width: 768px) {
     .table-container {
-      margin: 0; padding: 0;
+      margin: 0;
+      padding: 0;
     }
 
     .table th,
@@ -519,7 +526,9 @@
 }
 
 @media (min-width: 640px) {
-  .pp-title { font-size: 3.25rem; }
+  .pp-title {
+    font-size: 3.25rem;
+  }
 }
 
 .pp-subtitle {
@@ -561,11 +570,15 @@
 }
 
 @media (min-width: 640px) {
-  .pp-toc-grid { grid-template-columns: repeat(2, 1fr); }
+  .pp-toc-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (min-width: 1024px) {
-  .pp-toc-grid { grid-template-columns: repeat(3, 1fr); }
+  .pp-toc-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 .pp-toc-link {
@@ -965,6 +978,7 @@
     opacity: 0;
     transform: translateY(-150px) rotate(var(--start-rotate, 0deg));
   }
+
   to {
     opacity: 1;
     transform: translateY(0) rotate(var(--end-rotate, 0deg));

@@ -5,3 +5,4 @@ export { useMotionConfig, useReducedMotion } from './useMotionConfig';
 export { useSWR, invalidateCache, invalidateCachePattern } from './useSWR';
 export { useMediaQuery } from './useMediaQuery';
 export { useTransitionDelay } from './useTransitionDelay';
+export { useCustomerFilters, DEFAULT_FILTERS } from './useCustomerFilters';
