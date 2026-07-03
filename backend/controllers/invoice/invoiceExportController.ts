@@ -307,12 +307,13 @@ function drawSingleInvoicePDF(doc: PDFKit.PDFDocument, invoice: IInvoice, distri
     .fontSize(8)
     .fillColor('#334155')
     .text(safeText(distributor.firmAddress, ''), pageLeft + 14, doc.y + 4, { width: contentWidth - 28 });
-  doc.text(
-    `Phone: ${safeText(distributor.firmPhone, '')}   GSTIN: ${safeText(distributor.firmGSTIN, '')}`,
-    pageLeft + 14,
-    doc.y + 3,
-    { width: contentWidth - 28 }
-  );
+  let phoneGstinText = `Phone: ${safeText(distributor.firmPhone, '')}   GSTIN: ${safeText(distributor.firmGSTIN, '')}`;
+  if (distributor.paymentInformation?.enabled) {
+    const payInfo = `UPI: ${safeText(distributor.paymentInformation.upiId, '')} | A/C: ${safeText(distributor.paymentInformation.accountNumber, '')} | IFSC: ${safeText(distributor.paymentInformation.ifscCode, '')}`;
+    phoneGstinText = `|  ${payInfo}  |  ${phoneGstinText}`;
+  }
+
+  doc.text(phoneGstinText, pageLeft + 14, doc.y + 3, { width: contentWidth - 28 });
 
   doc.y = 104;
 
@@ -459,6 +460,7 @@ function drawSingleInvoicePDF(doc: PDFKit.PDFDocument, invoice: IInvoice, distri
     });
 
   doc.y = Math.max(doc.y + 28, totalsStartY + totals.length * 20 + 12);
+
   ensureSpace(doc, 34);
   doc
     .moveTo(pageLeft, doc.page.height - 46)
@@ -482,7 +484,8 @@ async function getDistributor(invoice: IInvoice, req: AuthenticatedRequest): Pro
     firmName: admin?.firmName,
     firmAddress: admin?.firmAddress,
     firmPhone: admin?.firmPhone,
-    firmGSTIN: admin?.firmGSTIN
+    firmGSTIN: admin?.firmGSTIN,
+    paymentInformation: admin?.paymentInformation
   };
 }
 

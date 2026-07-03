@@ -91,7 +91,13 @@ const invoiceSchema = new mongoose.Schema({
     firmName: String,
     firmAddress: String,
     firmPhone: String,
-    firmGSTIN: String
+    firmGSTIN: String,
+    paymentInformation: {
+      enabled: Boolean,
+      upiId: String,
+      accountNumber: String,
+      ifscCode: String
+    }
   },
   // Invoice items
   items: [invoiceItemSchema],

@@ -125,7 +125,7 @@ export default function InvoiceViewPage() {
   };
 
   const activeColumns = ALL_COLUMNS.filter(c => visibleColumns.includes(c.key));
-  
+
   // 1. Fetch Invoice
   const { data: invoiceData, isLoading: invoiceLoading, mutate: mutateInvoice, isValidating: isInvoiceValidating } = useSWR(
     id ? `invoice-${id}` : null,
@@ -140,10 +140,10 @@ export default function InvoiceViewPage() {
 
   const invoice = invoiceData?.invoice;
   const creditNotes = creditNotesData?.creditNotes || [];
-  
+
   // 3. Customer Outstanding Logic (using SWR)
   const customerId = invoice?.customer?._id;
-  
+
   const fetchCustomerBalance = async () => {
     if (!customerId) return 0;
     try {
@@ -152,17 +152,17 @@ export default function InvoiceViewPage() {
         manualEntryService.getManualEntriesByCustomer(customerId).catch(() => ({ manualEntries: [] })),
         creditNoteService.getCreditNotesByCustomer(customerId).catch(() => ({ creditNotes: [] }))
       ]);
-      
+
       const customerInvoices = customerData?.invoices || [];
       const manualEntries = entriesData?.manualEntries || [];
       const customerCreditNotes = cnData?.creditNotes || [];
-      
+
       const invoiceOutstanding = customerInvoices.reduce((sum, inv) => {
         if (inv.status === 'Cancelled') return sum;
         const remaining = (inv.totals?.netTotal || 0) - (inv.paidAmount || 0);
         return sum + (remaining > 0 ? remaining : 0);
       }, 0);
-      
+
       const manualEntryOutstanding = manualEntries.reduce((sum, entry) => {
         if (entry.entryType === 'opening_balance' && entry.paymentType === 'Credit') {
           const remaining = entry.amount - (entry.paidAmount || 0);
@@ -175,7 +175,7 @@ export default function InvoiceViewPage() {
       const creditNoteTotal = customerCreditNotes.reduce(
         (sum, cn) => sum + (cn.totals?.netTotal || 0), 0
       );
-      
+
       return Math.max(0, invoiceOutstanding + manualEntryOutstanding - creditNoteTotal);
     } catch (e) {
       console.warn('Failed calculating outstanding', e);
@@ -194,14 +194,14 @@ export default function InvoiceViewPage() {
       const customerName = invoice.customer?.customerName?.replace(/[^a-zA-Z0-9\s]/g, '') || 'Customer';
       const invoiceDate = new Date(invoice.invoiceDate).toLocaleDateString('en-GB', {
         day: '2-digit',
-        month: '2-digit', 
+        month: '2-digit',
         year: 'numeric'
       }).replace(/\//g, '-');
       const invoiceNum = invoice.invoiceNumber || '';
-      
+
       // Set title for PDF filename: "Invoice_CustomerName_Date"
       document.title = `Invoice_${customerName}_${invoiceDate}`;
-      
+
       // Restore original title when leaving the page
       return () => {
         document.title = 'Bharat Enterprise - Billing System';
@@ -223,7 +223,7 @@ export default function InvoiceViewPage() {
       // Optimistically update status
       mutateInvoice({ invoice: { ...invoice, status: 'Printed' } }, false);
       await invoiceService.updateStatus(id, 'Printed');
-      
+
       // Invalidate cache for all tabs
       invalidateCachePattern(`invoice-${id}`);
       invalidateCachePattern('invoices');
@@ -251,13 +251,13 @@ export default function InvoiceViewPage() {
     if (!window.confirm('Are you sure you want to cancel this invoice? This action cannot be undone.')) {
       return;
     }
-    
+
     setUpdating(true);
     try {
       // Optimistically update
       mutateInvoice({ invoice: { ...invoice, status: 'Cancelled' } }, false);
       await invoiceService.updateStatus(id, 'Cancelled');
-      
+
       // Invalidate cache for all tabs - stock restored on cancel
       invalidateCachePattern(`invoice-${id}`);
       invalidateCachePattern('invoices');
@@ -309,9 +309,9 @@ export default function InvoiceViewPage() {
 
   // Reusable Invoice Copy Component
   const InvoiceCopy = () => (
-    <div 
+    <div
       className="invoice-copy bg-white flex flex-col"
-      style={{ 
+      style={{
         width: '100%',
         minHeight: '130mm',
         fontSize: '12px',
@@ -328,10 +328,19 @@ export default function InvoiceViewPage() {
             <h1 className="font-bold mb-0.5" style={{ fontSize: '18px' }}>{invoice.distributor?.firmName || 'BHARAT ENTERPRISES'}</h1>
             <p className="text-[11px] leading-tight">{invoice.distributor?.firmAddress || 'Address Line 1, City, State - PIN'}</p>
           </div>
-          <div className="text-right text-[11px] leading-tight">
-            <p>Phone: {invoice.distributor?.firmPhone || 'XXXXXXXXXX'}</p>
-            <p>DL No: DL-XXXXX-XXXXX</p>
-            <p>GSTIN: {invoice.distributor?.firmGSTIN || 'XXXXXXXXXXXX'}</p>
+          <div className="flex justify-end text-[11px] leading-tight">
+            {invoice.distributor?.paymentInformation?.enabled && (
+              <div className="text-left border-l border-r border-black px-2 mr-2">
+                <p>UPI: {invoice.distributor.paymentInformation.upiId}</p>
+                <p>A/C: {invoice.distributor.paymentInformation.accountNumber}</p>
+                <p>IFSC: {invoice.distributor.paymentInformation.ifscCode}</p>
+              </div>
+            )}
+            <div className="text-left">
+              <p>Phone: {invoice.distributor?.firmPhone || 'XXXXXXXXXX'}</p>
+              <p>DL No: DL-XXXXX-XXXXX</p>
+              <p>GSTIN: {invoice.distributor?.firmGSTIN || 'XXXXXXXXXXXX'}</p>
+            </div>
           </div>
         </div>
 
@@ -347,7 +356,7 @@ export default function InvoiceViewPage() {
             {invoice.customer?.dlNo && <p>DL No: {invoice.customer.dlNo}</p>}
           </div>
           <div className="text-right">
-            <p><span className="font-bold">Invoice No:</span> {invoice.invoiceNumber}</p>
+            <p className="font-bold">Invoice No: {invoice.invoiceNumber}</p>
             <p><span className="font-bold">Date:</span> {formatDate(invoice.invoiceDate)}</p>
             <p><span className="font-bold">Bill Type:</span> {invoice.paymentType?.toUpperCase() || 'CREDIT'}</p>
           </div>
@@ -387,7 +396,7 @@ export default function InvoiceViewPage() {
             <p className="font-bold">Current Dues: ₹{Math.round(customerOutstanding)}</p>
             <div className="border-t border-black mt-1 pt-0.5">
               <p className="font-bold mb-0.5">Amount in Words:</p>
-            <p className="uppercase">{invoice.totals?.amountInWords || 'Rupees Zero Only'}</p>
+              <p className="uppercase">{invoice.totals?.amountInWords || 'Rupees Zero Only'}</p>
             </div>
           </div>
           <div className="text-[11px]">
@@ -455,333 +464,329 @@ export default function InvoiceViewPage() {
         animate="visible"
         className="space-y-6"
       >
-      {/* Actions Bar */}
-      <motion.div
-        variants={cardVariants}
-        className="flex flex-wrap gap-3 no-print"
-      >
-        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          <Link to="/invoices" className="btn btn-secondary flex items-center gap-2">
-            <ArrowLeft className="w-5 h-5" />
-            Back
-          </Link>
-        </motion.div>
-
-        {/* Edit Button - only show for non-cancelled invoices */}
-        {invoice.status !== 'Cancelled' && (
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Link to={`/invoices/${id}/edit`} className="btn btn-secondary flex items-center gap-2">
-              <Edit className="w-5 h-5" />
-              Edit
-            </Link>
-          </motion.div>
-        )}
-
-        {/* Create Return / Credit Note - only for non-cancelled invoices */}
-        {invoice.status !== 'Cancelled' && (
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Link to={`/invoices/${id}/return`} className="btn btn-secondary flex items-center gap-2 text-amber-400 border-amber-500/30 hover:bg-amber-500/10">
-              <RotateCcw className="w-5 h-5" />
-              Create Return
-            </Link>
-          </motion.div>
-        )}
-
-        <motion.button
-          onClick={handlePrint}
-          className="btn btn-primary flex items-center gap-2"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <Printer className="w-5 h-5" />
-          Print
-        </motion.button>
-
-        <motion.button
-          onClick={toggleCopyMode}
-          className="btn btn-secondary flex items-center gap-2"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          title="Switch between single and double print copies"
-        >
-          <FileText className="w-5 h-5" />
-          {isSingleCopy ? 'Single Copy' : 'Double Copy'}
-        </motion.button>
-
-        <AnimatePresence mode="wait">
-          {invoice.status === 'Created' && (
-            <motion.button
-              onClick={handleMarkPrinted}
-              disabled={updating}
-              className="btn btn-success flex items-center gap-2"
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0 }}
-              whileHover={{ scale: updating ? 1 : 1.05 }}
-              whileTap={{ scale: updating ? 1 : 0.95 }}
-            >
-              {updating ? (
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                >
-                  <Clock className="w-5 h-5" />
-                </motion.div>
-              ) : (
-                <CheckCircle className="w-5 h-5" />
-              )}
-              {updating ? 'Updating...' : 'Mark Printed'}
-            </motion.button>
-          )}
-        </AnimatePresence>
-
-        <motion.button
-          onClick={handleDownload}
-          className="btn btn-secondary flex items-center gap-2"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <Download className="w-5 h-5" />
-          Download
-        </motion.button>
-
-        <motion.button
-          className="btn btn-secondary flex items-center gap-2"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <Share2 className="w-5 h-5" />
-          Share
-        </motion.button>
-
-        {/* Cancel Invoice Button */}
-        <AnimatePresence>
-          {invoice.status !== 'Cancelled' && (
-            <motion.button
-              onClick={handleCancelInvoice}
-              disabled={updating}
-              className="btn bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30 flex items-center gap-2 rounded-xl px-4 py-2"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <XCircle className="w-5 h-5" />
-              {updating ? 'Cancelling...' : 'Cancel Invoice'}
-            </motion.button>
-          )}
-        </AnimatePresence>
-
+        {/* Actions Bar */}
         <motion.div
-          className={`badge ${statusConfig[invoice.status]?.badge || 'badge-info'} ml-auto flex items-center gap-2 px-4 py-2`}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          whileHover={{ scale: 1.05 }}
+          variants={cardVariants}
+          className="flex flex-wrap gap-3 no-print"
         >
-          <StatusIcon className="w-4 h-4" />
-          {invoice.status}
-        </motion.div>
-      </motion.div>
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Link to="/invoices" className="btn btn-secondary flex items-center gap-2">
+              <ArrowLeft className="w-5 h-5" />
+              Back
+            </Link>
+          </motion.div>
 
-      {/* Column Settings Toggle */}
-      <motion.div variants={cardVariants} className="no-print">
-        <motion.button
-          onClick={() => setShowColumnSettings(!showColumnSettings)}
-          className="btn btn-secondary flex items-center gap-2"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <Settings className="w-5 h-5" />
-          Customise Columns
-        </motion.button>
-        <AnimatePresence>
-          {showColumnSettings && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="glass-card mt-3 p-4 overflow-hidden"
-            >
-              <p className="text-sm text-slate-400 mb-3">Select which columns appear on the printed invoice:</p>
-              <div className="flex flex-wrap gap-2">
-                {ALL_COLUMNS.map(col => {
-                  const isActive = visibleColumns.includes(col.key);
-                  return (
-                    <motion.button
-                      key={col.key}
-                      onClick={() => toggleColumn(col.key)}
-                      className={`px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 border transition-colors ${
-                        isActive
-                          ? 'bg-blue-500/20 text-blue-400 border-blue-500/40'
-                          : 'bg-slate-800 text-slate-500 border-slate-700 hover:text-slate-300'
-                      }`}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      {isActive && <Check className="w-3.5 h-3.5" />}
-                      {col.label}
-                    </motion.button>
-                  );
-                })}
-              </div>
+          {/* Edit Button - only show for non-cancelled invoices */}
+          {invoice.status !== 'Cancelled' && (
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Link to={`/invoices/${id}/edit`} className="btn btn-secondary flex items-center gap-2">
+                <Edit className="w-5 h-5" />
+                Edit
+              </Link>
             </motion.div>
           )}
-        </AnimatePresence>
-      </motion.div>
 
-      {/* Credit Notes Section */}
-      {creditNotes.length > 0 && (
-        <motion.div variants={cardVariants} className="glass-card overflow-hidden no-print">
-          <div className="p-5 border-b border-slate-700/50 flex items-center gap-3">
-            <div className="p-2 bg-amber-500/20 rounded-lg">
-              <RotateCcw className="w-5 h-5 text-amber-400" />
-            </div>
-            <div>
-              <h2 className="text-white font-semibold">Credit Notes / Returns</h2>
-              <p className="text-xs text-slate-400">{creditNotes.length} return(s) associated with this invoice</p>
-            </div>
-          </div>
-          <div className="divide-y divide-slate-700/50">
-            {creditNotes.map((cn, idx) => (
-              <Link
-                key={cn._id}
-                to={`/credit-notes/${cn._id}`}
-                className="block p-4 hover:bg-slate-700/30 transition-colors group"
-              >
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.05 }}
-                  className="flex flex-col sm:flex-row justify-between gap-3"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="p-1.5 bg-amber-500/10 rounded-lg mt-0.5">
-                      <Receipt className="w-4 h-4 text-amber-400" />
-                    </div>
-                    <div>
-                      <p className="text-amber-400 font-semibold group-hover:text-amber-300 transition-colors">
-                        {cn.creditNoteNumber}
-                      </p>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        {formatDate(cn.createdAt)}
-                        {cn.reason && <span> · {cn.reason}</span>}
-                      </p>
-                      <p className="text-sm text-slate-300 mt-1">
-                        {cn.items.map(item => `${item.productName} ×${item.quantityReturned}`).join(', ')}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 sm:text-right">
-                    <div className="px-3 py-1.5 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
-                      <p className="text-xs text-slate-400">Credit Amount</p>
-                      <p className="text-lg font-bold text-emerald-400">{formatCurrency(cn.totals?.netTotal)}</p>
-                    </div>
-                    <ArrowLeft className="w-4 h-4 text-slate-500 rotate-180 group-hover:text-white transition-colors hidden sm:block" />
-                  </div>
-                </motion.div>
+          {/* Create Return / Credit Note - only for non-cancelled invoices */}
+          {invoice.status !== 'Cancelled' && (
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Link to={`/invoices/${id}/return`} className="btn btn-secondary flex items-center gap-2 text-amber-400 border-amber-500/30 hover:bg-amber-500/10">
+                <RotateCcw className="w-5 h-5" />
+                Create Return
               </Link>
-            ))}
-          </div>
-        </motion.div>
-      )}
-      {/* Due Amount Summary Card */}
-      {invoice && (
-        <motion.div variants={cardVariants} className="glass-card p-5 no-print">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-blue-500/20 rounded-lg">
-              <DollarSign className="w-5 h-5 text-blue-400" />
-            </div>
-            <h2 className="text-white font-semibold">Payment Summary</h2>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="p-3 bg-slate-800/50 rounded-xl border border-slate-700/50">
-              <p className="text-xs text-slate-400 mb-1">Invoice Total</p>
-              <p className="text-lg font-bold text-white">{formatCurrency(invoice.totals?.netTotal)}</p>
-            </div>
-            <div className="p-3 bg-slate-800/50 rounded-xl border border-slate-700/50">
-              <p className="text-xs text-slate-400 mb-1">Paid Amount</p>
-              <p className="text-lg font-bold text-emerald-400">{formatCurrency(invoice.paidAmount || 0)}</p>
-            </div>
-            {(() => {
-              const totalCreditNoteAmount = creditNotes.reduce((sum, cn) => sum + (cn.totals?.netTotal || 0), 0);
-              const netDue = Math.max(0, (invoice.totals?.netTotal || 0) - (invoice.paidAmount || 0) - totalCreditNoteAmount);
-              return (
-                <>
-                  {totalCreditNoteAmount > 0 && (
-                    <div className="p-3 bg-slate-800/50 rounded-xl border border-amber-500/30">
-                      <p className="text-xs text-slate-400 mb-1">Credit Notes</p>
-                      <p className="text-lg font-bold text-amber-400">-{formatCurrency(totalCreditNoteAmount)}</p>
-                    </div>
-                  )}
-                  <div className={`p-3 rounded-xl border ${
-                    netDue > 0
-                      ? 'bg-red-500/10 border-red-500/30'
-                      : 'bg-emerald-500/10 border-emerald-500/30'
-                  }`}>
-                    <p className="text-xs text-slate-400 mb-1">Net Due</p>
-                    <p className={`text-lg font-bold ${
-                      netDue > 0 ? 'text-red-400' : 'text-emerald-400'
-                    }`}>{formatCurrency(netDue)}</p>
-                  </div>
-                </>
-              );
-            })()}
-          </div>
-        </motion.div>
-      )}
+            </motion.div>
+          )}
 
-      {/* Copy Mode Control */}
-      <motion.div variants={cardVariants} className="glass-card p-4 no-print">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-white">Copy Mode</p>
-            <p className="text-xs text-slate-400">Choose whether to print one copy or both customer and business copies.</p>
-          </div>
+          <motion.button
+            onClick={handlePrint}
+            className="btn btn-primary flex items-center gap-2"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Printer className="w-5 h-5" />
+            Print
+          </motion.button>
+
           <motion.button
             onClick={toggleCopyMode}
-            className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
-              isSingleCopy
-                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                : 'bg-blue-500/20 text-blue-300 border-blue-500/40'
-            }`}
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
+            className="btn btn-secondary flex items-center gap-2"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            title="Switch between single and double print copies"
           >
-            {isSingleCopy ? 'Single Copy (1x)' : 'Double Copy (2x)'}
+            <FileText className="w-5 h-5" />
+            {isSingleCopy ? 'Single Copy' : 'Double Copy'}
           </motion.button>
+
+          <AnimatePresence mode="wait">
+            {invoice.status === 'Created' && (
+              <motion.button
+                onClick={handleMarkPrinted}
+                disabled={updating}
+                className="btn btn-success flex items-center gap-2"
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0 }}
+                whileHover={{ scale: updating ? 1 : 1.05 }}
+                whileTap={{ scale: updating ? 1 : 0.95 }}
+              >
+                {updating ? (
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  >
+                    <Clock className="w-5 h-5" />
+                  </motion.div>
+                ) : (
+                  <CheckCircle className="w-5 h-5" />
+                )}
+                {updating ? 'Updating...' : 'Mark Printed'}
+              </motion.button>
+            )}
+          </AnimatePresence>
+
+          <motion.button
+            onClick={handleDownload}
+            className="btn btn-secondary flex items-center gap-2"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Download className="w-5 h-5" />
+            Download
+          </motion.button>
+
+          <motion.button
+            className="btn btn-secondary flex items-center gap-2"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Share2 className="w-5 h-5" />
+            Share
+          </motion.button>
+
+          {/* Cancel Invoice Button */}
+          <AnimatePresence>
+            {invoice.status !== 'Cancelled' && (
+              <motion.button
+                onClick={handleCancelInvoice}
+                disabled={updating}
+                className="btn bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30 flex items-center gap-2 rounded-xl px-4 py-2"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <XCircle className="w-5 h-5" />
+                {updating ? 'Cancelling...' : 'Cancel Invoice'}
+              </motion.button>
+            )}
+          </AnimatePresence>
+
+          <motion.div
+            className={`badge ${statusConfig[invoice.status]?.badge || 'badge-info'} ml-auto flex items-center gap-2 px-4 py-2`}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            whileHover={{ scale: 1.05 }}
+          >
+            <StatusIcon className="w-4 h-4" />
+            {invoice.status}
+          </motion.div>
+        </motion.div>
+
+        {/* Column Settings Toggle */}
+        <motion.div variants={cardVariants} className="no-print">
+          <motion.button
+            onClick={() => setShowColumnSettings(!showColumnSettings)}
+            className="btn btn-secondary flex items-center gap-2"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Settings className="w-5 h-5" />
+            Customise Columns
+          </motion.button>
+          <AnimatePresence>
+            {showColumnSettings && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="glass-card mt-3 p-4 overflow-hidden"
+              >
+                <p className="text-sm text-slate-400 mb-3">Select which columns appear on the printed invoice:</p>
+                <div className="flex flex-wrap gap-2">
+                  {ALL_COLUMNS.map(col => {
+                    const isActive = visibleColumns.includes(col.key);
+                    return (
+                      <motion.button
+                        key={col.key}
+                        onClick={() => toggleColumn(col.key)}
+                        className={`px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 border transition-colors ${isActive
+                            ? 'bg-blue-500/20 text-blue-400 border-blue-500/40'
+                            : 'bg-slate-800 text-slate-500 border-slate-700 hover:text-slate-300'
+                          }`}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        {isActive && <Check className="w-3.5 h-3.5" />}
+                        {col.label}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+
+        {/* Credit Notes Section */}
+        {creditNotes.length > 0 && (
+          <motion.div variants={cardVariants} className="glass-card overflow-hidden no-print">
+            <div className="p-5 border-b border-slate-700/50 flex items-center gap-3">
+              <div className="p-2 bg-amber-500/20 rounded-lg">
+                <RotateCcw className="w-5 h-5 text-amber-400" />
+              </div>
+              <div>
+                <h2 className="text-white font-semibold">Credit Notes / Returns</h2>
+                <p className="text-xs text-slate-400">{creditNotes.length} return(s) associated with this invoice</p>
+              </div>
+            </div>
+            <div className="divide-y divide-slate-700/50">
+              {creditNotes.map((cn, idx) => (
+                <Link
+                  key={cn._id}
+                  to={`/credit-notes/${cn._id}`}
+                  className="block p-4 hover:bg-slate-700/30 transition-colors group"
+                >
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className="flex flex-col sm:flex-row justify-between gap-3"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="p-1.5 bg-amber-500/10 rounded-lg mt-0.5">
+                        <Receipt className="w-4 h-4 text-amber-400" />
+                      </div>
+                      <div>
+                        <p className="text-amber-400 font-semibold group-hover:text-amber-300 transition-colors">
+                          {cn.creditNoteNumber}
+                        </p>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          {formatDate(cn.createdAt)}
+                          {cn.reason && <span> · {cn.reason}</span>}
+                        </p>
+                        <p className="text-sm text-slate-300 mt-1">
+                          {cn.items.map(item => `${item.productName} ×${item.quantityReturned}`).join(', ')}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 sm:text-right">
+                      <div className="px-3 py-1.5 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+                        <p className="text-xs text-slate-400">Credit Amount</p>
+                        <p className="text-lg font-bold text-emerald-400">{formatCurrency(cn.totals?.netTotal)}</p>
+                      </div>
+                      <ArrowLeft className="w-4 h-4 text-slate-500 rotate-180 group-hover:text-white transition-colors hidden sm:block" />
+                    </div>
+                  </motion.div>
+                </Link>
+              ))}
+            </div>
+          </motion.div>
+        )}
+        {/* Due Amount Summary Card */}
+        {invoice && (
+          <motion.div variants={cardVariants} className="glass-card p-5 no-print">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-blue-500/20 rounded-lg">
+                <DollarSign className="w-5 h-5 text-blue-400" />
+              </div>
+              <h2 className="text-white font-semibold">Payment Summary</h2>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="p-3 bg-slate-800/50 rounded-xl border border-slate-700/50">
+                <p className="text-xs text-slate-400 mb-1">Invoice Total</p>
+                <p className="text-lg font-bold text-white">{formatCurrency(invoice.totals?.netTotal)}</p>
+              </div>
+              <div className="p-3 bg-slate-800/50 rounded-xl border border-slate-700/50">
+                <p className="text-xs text-slate-400 mb-1">Paid Amount</p>
+                <p className="text-lg font-bold text-emerald-400">{formatCurrency(invoice.paidAmount || 0)}</p>
+              </div>
+              {(() => {
+                const totalCreditNoteAmount = creditNotes.reduce((sum, cn) => sum + (cn.totals?.netTotal || 0), 0);
+                const netDue = Math.max(0, (invoice.totals?.netTotal || 0) - (invoice.paidAmount || 0) - totalCreditNoteAmount);
+                return (
+                  <>
+                    {totalCreditNoteAmount > 0 && (
+                      <div className="p-3 bg-slate-800/50 rounded-xl border border-amber-500/30">
+                        <p className="text-xs text-slate-400 mb-1">Credit Notes</p>
+                        <p className="text-lg font-bold text-amber-400">-{formatCurrency(totalCreditNoteAmount)}</p>
+                      </div>
+                    )}
+                    <div className={`p-3 rounded-xl border ${netDue > 0
+                        ? 'bg-red-500/10 border-red-500/30'
+                        : 'bg-emerald-500/10 border-emerald-500/30'
+                      }`}>
+                      <p className="text-xs text-slate-400 mb-1">Net Due</p>
+                      <p className={`text-lg font-bold ${netDue > 0 ? 'text-red-400' : 'text-emerald-400'
+                        }`}>{formatCurrency(netDue)}</p>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          </motion.div>
+        )}
+
+        {/* Copy Mode Control */}
+        <motion.div variants={cardVariants} className="glass-card p-4 no-print">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-white">Copy Mode</p>
+              <p className="text-xs text-slate-400">Choose whether to print one copy or both customer and business copies.</p>
+            </div>
+            <motion.button
+              onClick={toggleCopyMode}
+              className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${isSingleCopy
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                  : 'bg-blue-500/20 text-blue-300 border-blue-500/40'
+                }`}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+            >
+              {isSingleCopy ? 'Single Copy (1x)' : 'Double Copy (2x)'}
+            </motion.button>
+          </div>
+        </motion.div>
+
+        {/* Invoice Print Area */}
+        <div className="flex justify-center">
+          <motion.div
+            ref={printRef}
+            variants={cardVariants}
+            className="invoice-print bg-white border-2 border-slate-300 shadow-lg"
+            style={{
+              width: '190mm',
+              fontSize: '10px',
+              color: '#000000',
+              margin: '0 auto',
+              padding: '2mm'
+            }}
+          >
+            <InvoiceCopy />
+
+            {!isSingleCopy && (
+              <>
+                <div className="flex items-center my-2" style={{ borderTop: '1px dashed #000' }}>
+                  <span className="text-[9px] text-gray-600 mx-auto bg-white px-2" style={{ marginTop: '-10px' }}>
+                    Cut Here
+                  </span>
+                </div>
+                <InvoiceCopy />
+              </>
+            )}
+          </motion.div>
         </div>
       </motion.div>
-
-      {/* Invoice Print Area */}
-      <div className="flex justify-center">
-        <motion.div
-          ref={printRef}
-          variants={cardVariants}
-          className="invoice-print bg-white border-2 border-slate-300 shadow-lg"
-          style={{ 
-            width: '190mm',
-            fontSize: '10px',
-            color: '#000000',
-            margin: '0 auto',
-            padding: '2mm'
-          }}
-        >
-          <InvoiceCopy />
-
-          {!isSingleCopy && (
-            <>
-              <div className="flex items-center my-2" style={{ borderTop: '1px dashed #000' }}>
-                <span className="text-[9px] text-gray-600 mx-auto bg-white px-2" style={{ marginTop: '-10px' }}>
-                  Cut Here
-                </span>
-              </div>
-              <InvoiceCopy />
-            </>
-          )}
-        </motion.div>
-      </div>
-    </motion.div>
     </>
   );
 }
