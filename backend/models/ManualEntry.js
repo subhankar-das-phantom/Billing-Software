@@ -147,5 +147,7 @@ manualEntrySchema.index({ entryDate: -1 });
 manualEntrySchema.index({ createdAt: -1 });
 // Ledger optimization index
 manualEntrySchema.index({ tenantId: 1, customer: 1, entryDate: -1 });
+// Customer payment history optimization index
+manualEntrySchema.index({ tenantId: 1, customer: 1, entryType: 1, entryDate: -1 });
 
 module.exports = mongoose.model('ManualEntry', manualEntrySchema);
