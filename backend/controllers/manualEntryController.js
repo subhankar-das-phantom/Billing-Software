@@ -23,6 +23,13 @@ exports.createManualEntry = async (req, res, next) => {
       });
     }
 
+    if (customer.isActive === false) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot create manual entry for an inactive customer'
+      });
+    }
+
     // Calculate financial impact based on entry type and payment type
     let outstandingChange = 0;
     let totalPurchasesChange = 0;

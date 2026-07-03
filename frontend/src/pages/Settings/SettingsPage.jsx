@@ -17,7 +17,8 @@ import {
   Shield,
   Palette,
   Bell,
-  ChevronRight
+  ChevronRight,
+  CreditCard
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -36,7 +37,13 @@ export default function SettingsPage() {
     firmName: '',
     firmAddress: '',
     firmPhone: '',
-    firmGSTIN: ''
+    firmGSTIN: '',
+    paymentInformation: {
+      enabled: false,
+      upiId: '',
+      accountNumber: '',
+      ifscCode: ''
+    }
   });
   const [profileLoading, setProfileLoading] = useState(false);
 
@@ -63,7 +70,13 @@ export default function SettingsPage() {
         firmName: user.firmName || '',
         firmAddress: user.firmAddress || '',
         firmPhone: user.firmPhone || '',
-        firmGSTIN: user.firmGSTIN || ''
+        firmGSTIN: user.firmGSTIN || '',
+        paymentInformation: {
+          enabled: user.paymentInformation?.enabled || false,
+          upiId: user.paymentInformation?.upiId || '',
+          accountNumber: user.paymentInformation?.accountNumber || '',
+          ifscCode: user.paymentInformation?.ifscCode || ''
+        }
       });
     }
     if (user && user.preferences) {
@@ -79,8 +92,18 @@ export default function SettingsPage() {
     if (userRole !== 'admin') return;
     
     setProfileLoading(true);
+    const submitData = {
+      ...profile,
+      paymentInformation: {
+        enabled: profile.paymentInformation.enabled,
+        upiId: profile.paymentInformation.upiId.trim(),
+        accountNumber: profile.paymentInformation.accountNumber.trim(),
+        ifscCode: profile.paymentInformation.ifscCode.trim().toUpperCase()
+      }
+    };
+    
     try {
-      const result = await authService.updateProfile(profile);
+      const result = await authService.updateProfile(submitData);
       if (result.success) {
         updateAdmin(result.admin);
         showSuccess('Business details updated successfully!');
@@ -261,6 +284,100 @@ export default function SettingsPage() {
                   className="w-full bg-slate-800/40 border border-white/5 text-white focus:bg-slate-800/80 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 pl-12 pr-4 py-3 rounded-xl transition-all outline-none min-h-[100px] resize-none placeholder:text-slate-600"
                   placeholder="Enter full business address"
                 />
+              </div>
+            </div>
+          </div>
+
+          {/* Payment Information Section */}
+          <div className="pt-6 border-t border-white/5 space-y-5">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <h3 className="text-sm font-bold text-white mb-1">Payment Information</h3>
+                <p className="text-xs text-slate-400">Add payment details to your invoices for direct payments.</p>
+              </div>
+              <label className="flex items-center cursor-pointer">
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    className="sr-only"
+                    checked={profile.paymentInformation.enabled}
+                    onChange={(e) => setProfile({
+                      ...profile,
+                      paymentInformation: { ...profile.paymentInformation, enabled: e.target.checked }
+                    })}
+                  />
+                  <div className={`block w-10 h-6 rounded-full transition-colors ${profile.paymentInformation.enabled ? 'bg-blue-500' : 'bg-slate-700'}`}></div>
+                  <div className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${profile.paymentInformation.enabled ? 'transform translate-x-4' : ''}`}></div>
+                </div>
+                <span className="ml-3 text-sm font-medium text-white select-none">Show on Invoice</span>
+              </label>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {/* UPI ID */}
+              <div className="group">
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block group-focus-within:text-blue-400 transition-colors">
+                  UPI ID
+                </label>
+                <div className="relative flex items-center">
+                  <div className="absolute left-4 text-slate-500 group-focus-within:text-blue-400 transition-colors">
+                    <Phone size={18} />
+                  </div>
+                  <input
+                    type="text"
+                    value={profile.paymentInformation.upiId}
+                    onChange={(e) => setProfile({
+                      ...profile,
+                      paymentInformation: { ...profile.paymentInformation, upiId: e.target.value }
+                    })}
+                    className="w-full bg-slate-800/40 border border-white/5 text-white focus:bg-slate-800/80 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 pl-12 pr-4 py-3 rounded-xl transition-all outline-none placeholder:text-slate-600"
+                    placeholder="bharat@upi"
+                  />
+                </div>
+              </div>
+
+              {/* Account Number */}
+              <div className="group">
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block group-focus-within:text-blue-400 transition-colors">
+                  Bank Account Number
+                </label>
+                <div className="relative flex items-center">
+                  <div className="absolute left-4 text-slate-500 group-focus-within:text-blue-400 transition-colors">
+                    <CreditCard size={18} />
+                  </div>
+                  <input
+                    type="text"
+                    value={profile.paymentInformation.accountNumber}
+                    onChange={(e) => setProfile({
+                      ...profile,
+                      paymentInformation: { ...profile.paymentInformation, accountNumber: e.target.value }
+                    })}
+                    className="w-full bg-slate-800/40 border border-white/5 text-white focus:bg-slate-800/80 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 pl-12 pr-4 py-3 rounded-xl transition-all outline-none placeholder:text-slate-600"
+                    placeholder="XXXXXXXX1234"
+                  />
+                </div>
+              </div>
+
+              {/* IFSC Code */}
+              <div className="group">
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block group-focus-within:text-blue-400 transition-colors">
+                  IFSC Code
+                </label>
+                <div className="relative flex items-center">
+                  <div className="absolute left-4 text-slate-500 group-focus-within:text-blue-400 transition-colors">
+                    <Building2 size={18} />
+                  </div>
+                  <input
+                    type="text"
+                    value={profile.paymentInformation.ifscCode}
+                    onChange={(e) => setProfile({
+                      ...profile,
+                      paymentInformation: { ...profile.paymentInformation, ifscCode: e.target.value.toUpperCase() }
+                    })}
+                    className="w-full bg-slate-800/40 border border-white/5 text-white focus:bg-slate-800/80 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 pl-12 pr-4 py-3 rounded-xl transition-all outline-none uppercase font-mono placeholder:text-slate-600"
+                    placeholder="SBIN0001234"
+                  />
+                </div>
               </div>
             </div>
           </div>

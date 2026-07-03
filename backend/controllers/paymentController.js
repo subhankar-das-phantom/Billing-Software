@@ -51,6 +51,29 @@ const getCollectionSortDate = (entry) => {
   return new Date(0);
 };
 
+const buildCollectionSortDateExpression = (dateField) => {
+  const entryDate = `$${dateField}`;
+
+  return {
+    $cond: [
+      {
+        $ne: [
+          {
+            $dateToString: {
+              format: '%H%M%S%L',
+              date: { $ifNull: [entryDate, new Date(0)] },
+              timezone: 'UTC'
+            }
+          },
+          '000000000'
+        ]
+      },
+      entryDate,
+      { $ifNull: ['$createdAt', { $ifNull: [entryDate, new Date(0)] }] }
+    ]
+  };
+};
+
 // @desc    Get daily collections summary + payment list
 // @route   GET /api/payments/collections
 // @access  Private
@@ -281,17 +304,25 @@ exports.createPayment = async (req, res, next) => {
 
     // Create payment record
     let customer = null;
-    if (invoice.paymentType === 'Credit') {
-      customer = await Customer.findOne({
-        _id: invoice.customer._id,
-        tenantId
+    
+    // Always fetch customer to check active status
+    customer = await Customer.findOne({
+      _id: invoice.customer._id,
+      tenantId
+    });
+    
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: 'Associated customer not found'
       });
-      if (!customer) {
-        return res.status(404).json({
-          success: false,
-          message: 'Associated customer not found'
-        });
-      }
+    }
+
+    if (customer.isActive === false) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot record payment for an inactive customer'
+      });
     }
 
     const payment = await Payment.create({
@@ -452,23 +483,161 @@ exports.getPaymentsByCustomer = async (req, res, next) => {
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
     const skip = (page - 1) * limit;
     const tenantId = getTenantId(req);
+    const customerId = req.params.customerId;
+
+    const mongoose = require('mongoose');
+    if (!mongoose.Types.ObjectId.isValid(customerId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid customerId'
+      });
+    }
+
+    const customerObjectId = new mongoose.Types.ObjectId(customerId);
     
-    const query = { tenantId, customer: req.params.customerId };
+    const query = { tenantId, customer: customerObjectId };
+    const meQuery = {
+      tenantId,
+      customer: customerObjectId,
+      entryType: { $in: ['payment_adjustment', 'credit_adjustment'] }
+    };
 
-    const payments = await Payment.find(query)
-      .populate('invoice', 'invoiceNumber invoiceDate totals.netTotal paidAmount paymentType')
-      .sort({ paymentDate: -1 })
-      .skip(skip)
-      .limit(limit);
+    const [result = {}] = await Payment.aggregate([
+      { $match: query },
+      {
+        $addFields: {
+          sortDate: buildCollectionSortDateExpression('paymentDate'),
+          isManualEntry: false
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          paymentDate: 1,
+          createdAt: 1,
+          amount: 1,
+          paymentMethod: 1,
+          referenceNumber: 1,
+          notes: 1,
+          customer: 1,
+          invoice: 1,
+          invoiceSnapshot: 1,
+          isManualEntry: 1,
+          sortDate: 1
+        }
+      },
+      {
+        $unionWith: {
+          coll: ManualEntry.collection.name,
+          pipeline: [
+            { $match: meQuery },
+            {
+              $addFields: {
+                paymentDate: '$entryDate',
+                sortDate: buildCollectionSortDateExpression('entryDate'),
+                isManualEntry: true
+              }
+            },
+            {
+              $project: {
+                _id: 1,
+                paymentDate: 1,
+                createdAt: 1,
+                amount: 1,
+                paymentMethod: { $ifNull: ['$paymentMethod', 'Cash'] },
+                referenceNumber: { $ifNull: ['$referenceNumber', ''] },
+                notes: { $ifNull: ['$description', '$notes'] },
+                customer: 1,
+                invoice: { $literal: null },
+                invoiceSnapshot: { $literal: null },
+                isManualEntry: 1,
+                entryType: 1,
+                description: 1,
+                sortDate: 1
+              }
+            }
+          ]
+        }
+      },
+      {
+        $facet: {
+          items: [
+            { $sort: { sortDate: -1, createdAt: -1, _id: -1 } },
+            { $skip: skip },
+            { $limit: limit },
+            {
+              $lookup: {
+                from: Invoice.collection.name,
+                localField: 'invoice',
+                foreignField: '_id',
+                as: 'invoiceDoc'
+              }
+            },
+            { $unwind: { path: '$invoiceDoc', preserveNullAndEmptyArrays: true } },
+            {
+              $lookup: {
+                from: Customer.collection.name,
+                localField: 'customer',
+                foreignField: '_id',
+                as: 'customerDoc'
+              }
+            },
+            { $unwind: { path: '$customerDoc', preserveNullAndEmptyArrays: true } },
+            {
+              $project: {
+                _id: 1,
+                paymentDate: 1,
+                createdAt: 1,
+                amount: 1,
+                paymentMethod: 1,
+                referenceNumber: 1,
+                notes: 1,
+                customer: {
+                  $cond: [
+                    '$isManualEntry',
+                    {
+                      _id: '$customerDoc._id',
+                      customerName: '$customerDoc.customerName',
+                      phone: '$customerDoc.phone'
+                    },
+                    '$customer'
+                  ]
+                },
+                invoice: {
+                  $cond: [
+                    { $ifNull: ['$invoiceDoc._id', false] },
+                    {
+                      _id: '$invoiceDoc._id',
+                      invoiceNumber: '$invoiceDoc.invoiceNumber',
+                      invoiceDate: '$invoiceDoc.invoiceDate',
+                      totals: { netTotal: '$invoiceDoc.totals.netTotal' },
+                      paidAmount: '$invoiceDoc.paidAmount',
+                      paymentType: '$invoiceDoc.paymentType'
+                    },
+                    null
+                  ]
+                },
+                invoiceSnapshot: 1,
+                isManualEntry: 1,
+                entryType: 1,
+                description: 1
+              }
+            }
+          ],
+          metadata: [{ $count: 'total' }],
+          totals: [{ $group: { _id: null, totalPaid: { $sum: '$amount' } } }]
+        }
+      }
+    ]).allowDiskUse(true);
 
-    const total = await Payment.countDocuments(query);
+    const paginatedPayments = result.items || [];
+    const total = result.metadata?.[0]?.total || 0;
     const pages = Math.ceil(total / limit);
-
-    const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+    const totalPaid = result.totals?.[0]?.totalPaid || 0;
 
     res.status(200).json({
       success: true,
-      items: payments,
+      items: paginatedPayments,
       pagination: {
         page,
         limit,
@@ -476,9 +645,9 @@ exports.getPaymentsByCustomer = async (req, res, next) => {
         hasMore: page < pages
       },
       // Backward compatibility
-      count: payments.length,
+      count: paginatedPayments.length,
       totalPaid,
-      payments
+      payments: paginatedPayments
     });
   } catch (error) {
     next(error);

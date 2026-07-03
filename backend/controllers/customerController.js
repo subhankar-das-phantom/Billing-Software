@@ -9,6 +9,7 @@ const mongoose = require('mongoose');
 const getTenantId = require('../utils/getTenantId');
 
 const { escapeRegex, getSearchPattern, buildFuzzyPattern } = require('../utils/searchUtils');
+const { buildCustomerFilter } = require('../utils/queryBuilders/buildCustomerFilter');
 
 // Round to 2 decimal places safely (avoids JS floating point drift)
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
@@ -24,12 +25,11 @@ exports.getCustomerLedger = async (req, res, next) => {
     const parsedLimit = parseInt(limit, 10);
     const parsedOffset = parseInt(offset, 10);
 
+    const objectId = new mongoose.Types.ObjectId(customerId);
+
     // Verify customer exists
     const tenantId = getTenantId(req);
-    const customer = await Customer.findOne({
-      _id: customerId,
-      tenantId
-    });
+    const customer = await Customer.findOne({ _id: objectId, tenantId }).lean();
     if (!customer) {
       return res.status(404).json({
         success: false,
@@ -37,7 +37,16 @@ exports.getCustomerLedger = async (req, res, next) => {
       });
     }
 
-    const objectId = new mongoose.Types.ObjectId(customerId);
+    if (customer.isActive === false) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot access ledger for inactive customer'
+      });
+    }
+
+    // --- 1. Compute Opening Balance Using Aggregate ($unionWith) ---
+    let openingBalanceDebit = 0;
+    let openingBalanceCredit = 0;
 
     // Parse dates
     const start = startDate ? new Date(startDate) : null;
@@ -47,10 +56,6 @@ exports.getCustomerLedger = async (req, res, next) => {
     if (endDate) {
       end.setHours(23, 59, 59, 999);
     }
-
-    // --- 1. Compute Opening Balance Using Aggregate ($unionWith) ---
-    let openingBalanceDebit = 0;
-    let openingBalanceCredit = 0;
 
     if (start) {
       const openingBalanceResult = await Invoice.aggregate([
@@ -417,41 +422,10 @@ exports.getCustomers = async (req, res, next) => {
     const skip = (page - 1) * limit;
 
     const tenantId = getTenantId(req);
-    const query = { tenantId };
-    
-    // Only filter by isActive if includeInactive is not set
-    if (req.query.includeInactive !== 'true') {
-      query.isActive = true;
-    }
-
-    // Search
-    if (req.query.search) {
-      const rawSearch = String(req.query.search || '').trim();
-      const usePrefix = req.query.prefix === 'true';
-      const useFuzzy = req.query.fuzzy === 'true';
-      const pattern = getSearchPattern(rawSearch, usePrefix);
-      const conditions = [
-        { customerName: { $regex: pattern, $options: 'i' } },
-        { phone: { $regex: pattern, $options: 'i' } },
-        { gstin: { $regex: pattern, $options: 'i' } }
-      ];
-
-      if (useFuzzy && rawSearch.length >= 2) {
-        const fuzzyPattern = buildFuzzyPattern(rawSearch);
-        if (fuzzyPattern && fuzzyPattern !== pattern) {
-          conditions.push(
-            { customerName: { $regex: fuzzyPattern, $options: 'i' } },
-            { phone: { $regex: fuzzyPattern, $options: 'i' } },
-            { gstin: { $regex: fuzzyPattern, $options: 'i' } }
-          );
-        }
-      }
-
-      query.$or = conditions;
-    }
+    const { filter: query, sort } = buildCustomerFilter(tenantId, req.query);
 
     const customers = await Customer.find(query)
-      .sort({ createdAt: -1 })
+      .sort(sort)
       .skip(skip)
       .limit(limit);
 
@@ -693,7 +667,8 @@ exports.updateCustomer = async (req, res, next) => {
       gstin,
       dlNo,
       customerCode,
-      theme
+      theme,
+      isActive
     } = req.body;
 
     const updateFields = {};
@@ -705,6 +680,7 @@ exports.updateCustomer = async (req, res, next) => {
     if (dlNo !== undefined) updateFields.dlNo = dlNo;
     if (customerCode !== undefined) updateFields.customerCode = customerCode;
     if (theme !== undefined) updateFields.theme = theme;
+    if (isActive !== undefined) updateFields.isActive = isActive;
 
     customer = await Customer.findOneAndUpdate(
       { _id: req.params.id, tenantId },

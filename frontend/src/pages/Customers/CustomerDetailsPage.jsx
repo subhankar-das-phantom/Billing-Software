@@ -283,6 +283,7 @@ export default function CustomerDetailsPage() {
   const [ledgerData, setLedgerData] = useState({ ledger: [], summary: null });
   const [ledgerLoading, setLedgerLoading] = useState(false);
   const [themeSaving, setThemeSaving] = useState(false);
+  const [reactivating, setReactivating] = useState(false);
   const queryClient = useQueryClient();
 
   // --- React Query for Customer & Summary ---
@@ -388,6 +389,25 @@ export default function CustomerDetailsPage() {
       error('Failed to update customer theme');
     } finally {
       setThemeSaving(false);
+    }
+  };
+
+  const handleReactivate = async () => {
+    if (!customer || reactivating) return;
+    setReactivating(true);
+    try {
+      await customerService.updateCustomer(customer._id, {
+        ...customer,
+        isActive: true
+      });
+      refetchCustomer();
+      invalidateCachePattern('customers');
+      success('Customer reactivated successfully');
+    } catch (err) {
+      console.error('Failed to reactivate customer:', err);
+      error('Failed to reactivate customer');
+    } finally {
+      setReactivating(false);
     }
   };
 
@@ -546,7 +566,7 @@ export default function CustomerDetailsPage() {
       </motion.div>
 
       {/* Customer Info Card */}
-      <motion.div variants={itemVariants} className="glass-card p-6">
+      <motion.div variants={itemVariants} className={`glass-card p-6 ${customer.isActive === false ? 'opacity-90 border-red-500/30 grayscale-[0.2]' : ''}`}>
         <div className="flex flex-col xl:flex-row xl:items-start gap-6">
           {/* Avatar */}
           <motion.div
@@ -567,14 +587,30 @@ export default function CustomerDetailsPage() {
 
           {/* Customer Details */}
           <div className="flex-1">
-            <motion.h1
-              className="text-2xl font-bold text-white mb-4"
+            <motion.div
+              className="flex items-center gap-3 mb-4"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 }}
             >
-              {customer.customerName}
-            </motion.h1>
+              <h1 className="text-2xl font-bold text-white">
+                {customer.customerName}
+              </h1>
+              {customer.isActive === false && (
+                <>
+                  <span className="px-2.5 py-1 rounded flex items-center gap-1 bg-red-500/10 text-red-400 text-xs font-semibold tracking-wider uppercase border border-red-500/20">
+                    Inactive
+                  </span>
+                  <button
+                    onClick={handleReactivate}
+                    disabled={reactivating}
+                    className="ml-2 px-3 py-1 bg-slate-700 hover:bg-blue-600 text-white text-xs font-medium rounded-lg transition-colors border border-slate-600 hover:border-blue-500 shadow-sm"
+                  >
+                    {reactivating ? 'Reactivating...' : 'Reactivate Customer'}
+                  </button>
+                </>
+              )}
+            </motion.div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {/* Phone */}
@@ -827,9 +863,10 @@ export default function CustomerDetailsPage() {
               {isAdmin && activeTab !== 'ledger' && (
                 <motion.button
                   onClick={() => setShowManualEntryModal(true)}
-                  className="btn btn-secondary btn-sm flex items-center gap-1.5"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  disabled={customer.isActive === false}
+                  className={`btn btn-secondary btn-sm flex items-center gap-1.5 ${customer.isActive === false ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  whileHover={customer.isActive !== false ? { scale: 1.02 } : {}}
+                  whileTap={customer.isActive !== false ? { scale: 0.98 } : {}}
                 >
                   <Shield className="w-4 h-4" />
                   <span className="hidden sm:inline">Manual Entry</span>
@@ -838,22 +875,30 @@ export default function CustomerDetailsPage() {
               {activeTab !== 'ledger' && (summary.balance > 0 || summary.unpaidInvoicesCount > 0) && (
                 <motion.button
                   onClick={() => handleRecordPayment()}
-                  className="btn btn-secondary btn-sm flex items-center gap-1.5"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  disabled={customer.isActive === false}
+                  className={`btn btn-secondary btn-sm flex items-center gap-1.5 ${customer.isActive === false ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  whileHover={customer.isActive !== false ? { scale: 1.02 } : {}}
+                  whileTap={customer.isActive !== false ? { scale: 0.98 } : {}}
                 >
                   <CreditCard className="w-4 h-4" />
                   <span className="hidden sm:inline">Record Payment</span>
                 </motion.button>
               )}
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Link
-                  to={`/invoices/create?customer=${customer._id}`}
-                  className="btn btn-primary btn-sm flex items-center gap-1.5"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span className="hidden sm:inline">New Invoice</span>
-                </Link>
+              <motion.div whileHover={customer.isActive !== false ? { scale: 1.05 } : {}} whileTap={customer.isActive !== false ? { scale: 0.95 } : {}}>
+                {customer.isActive === false ? (
+                  <button disabled className="btn btn-primary btn-sm flex items-center gap-1.5 opacity-50 cursor-not-allowed">
+                    <Plus className="w-4 h-4" />
+                    <span className="hidden sm:inline">New Invoice</span>
+                  </button>
+                ) : (
+                  <Link
+                    to={`/invoices/create?customer=${customer._id}`}
+                    className="btn btn-primary btn-sm flex items-center gap-1.5"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span className="hidden sm:inline">New Invoice</span>
+                  </Link>
+                )}
               </motion.div>
             </div>
           </div>
@@ -1176,12 +1221,18 @@ export default function CustomerDetailsPage() {
                             return (
                               <div className={`grid ${isAdmin ? 'grid-cols-[minmax(180px,2fr)_125px_120px_130px_150px_100px]' : 'grid-cols-[minmax(180px,2fr)_125px_120px_130px_150px]'} min-w-[800px] items-center px-4 py-3 border-b border-slate-700/50 hover:bg-slate-700/50 transition-colors`}>
                                 <div className="flex items-center gap-2 min-w-0">
-                                  <FileText className="w-4 h-4 text-blue-400 shrink-0" />
-                                  <Link to={`/invoices/${payment.invoice?._id || payment.invoiceId}`} className="text-white font-medium hover:underline hover:text-blue-400 transition-colors truncate">
-                                    {payment.invoice?.invoiceNumber || payment.invoiceNumber || 'Unknown'}
-                                  </Link>
-                                  {payment.reference && (
-                                    <span className="text-xs text-slate-500 ml-1 truncate">({payment.reference})</span>
+                                  <FileText className={`w-4 h-4 ${payment.isManualEntry ? 'text-amber-400' : 'text-blue-400'} shrink-0`} />
+                                  {payment.isManualEntry ? (
+                                    <span className="text-white font-medium truncate">
+                                      {payment.description || (payment.entryType === 'payment_adjustment' ? 'Payment Adj.' : 'Credit Adj.')}
+                                    </span>
+                                  ) : (
+                                    <Link to={`/invoices/${payment.invoice?._id || payment.invoiceId}`} className="text-white font-medium hover:underline hover:text-blue-400 transition-colors truncate">
+                                      {payment.invoice?.invoiceNumber || payment.invoiceNumber || 'Unknown'}
+                                    </Link>
+                                  )}
+                                  {(payment.reference || payment.referenceNumber) && (
+                                    <span className="text-xs text-slate-500 ml-1 truncate">({payment.reference || payment.referenceNumber})</span>
                                   )}
                                 </div>
                                 <div className="flex items-center gap-2 text-slate-300">
@@ -1198,9 +1249,9 @@ export default function CustomerDetailsPage() {
                                   {formatCurrency(payment.amount)}
                                 </div>
                                 <div>
-                                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                                  <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border ${payment.isManualEntry ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'}`}>
                                     <FileText className="w-3 h-3" />
-                                    Invoice Payment
+                                    {payment.isManualEntry ? 'Manual Entry' : 'Invoice Payment'}
                                   </span>
                                 </div>
                                 {isAdmin && (
@@ -1217,16 +1268,30 @@ export default function CustomerDetailsPage() {
                                     </button>
                                     <button
                                       onClick={async () => {
-                                        if (!window.confirm(`Delete payment of ${formatCurrency(payment.amount)} against ${payment.invoice?.invoiceNumber || payment.invoiceNumber}? This will be reversed.`)) return;
-                                        setDeletingPaymentId(payment._id);
-                                        try {
-                                          await deletePayment(payment._id);
-                                          success('Payment deleted and reversed');
-                                          handlePaymentSuccess();
-                                        } catch (err) {
-                                          error(err.response?.data?.message || 'Failed to delete payment');
-                                        } finally {
-                                          setDeletingPaymentId(null);
+                                        if (payment.isManualEntry) {
+                                          if (!window.confirm(`Delete manual entry of ${formatCurrency(payment.amount)}? This will be reversed.`)) return;
+                                          setDeletingPaymentId(payment._id);
+                                          try {
+                                            await deleteManualEntry(payment._id);
+                                            success('Manual entry deleted and reversed');
+                                            handlePaymentSuccess();
+                                          } catch (err) {
+                                            error(err.response?.data?.message || 'Failed to delete manual entry');
+                                          } finally {
+                                            setDeletingPaymentId(null);
+                                          }
+                                        } else {
+                                          if (!window.confirm(`Delete payment of ${formatCurrency(payment.amount)} against ${payment.invoice?.invoiceNumber || payment.invoiceNumber}? This will be reversed.`)) return;
+                                          setDeletingPaymentId(payment._id);
+                                          try {
+                                            await deletePayment(payment._id);
+                                            success('Payment deleted and reversed');
+                                            handlePaymentSuccess();
+                                          } catch (err) {
+                                            error(err.response?.data?.message || 'Failed to delete payment');
+                                          } finally {
+                                            setDeletingPaymentId(null);
+                                          }
                                         }
                                       }}
                                       disabled={deletingPaymentId === payment._id}
@@ -1247,13 +1312,20 @@ export default function CustomerDetailsPage() {
                           return (
                             <div className="p-4 rounded-xl border bg-slate-800/50 border-slate-700/50 flex flex-col gap-3 relative overflow-hidden transition-colors">
                               <div className="flex items-center justify-between">
-                                <Link 
-                                  to={`/invoices/${payment.invoice?._id || payment.invoiceId}`}
-                                  className="font-medium flex items-center gap-2 text-white hover:text-blue-400"
-                                >
-                                  <FileText className="w-4 h-4 text-blue-400" />
-                                  {payment.invoice?.invoiceNumber || payment.invoiceNumber}
-                                </Link>
+                                {payment.isManualEntry ? (
+                                  <span className="font-medium flex items-center gap-2 text-white">
+                                    <FileText className="w-4 h-4 text-amber-400" />
+                                    {payment.description || 'Manual Entry'}
+                                  </span>
+                                ) : (
+                                  <Link 
+                                    to={`/invoices/${payment.invoice?._id || payment.invoiceId}`}
+                                    className="font-medium flex items-center gap-2 text-white hover:text-blue-400"
+                                  >
+                                    <FileText className="w-4 h-4 text-blue-400" />
+                                    {payment.invoice?.invoiceNumber || payment.invoiceNumber}
+                                  </Link>
+                                )}
                                 <span className="font-medium text-emerald-400">
                                   {formatCurrency(payment.amount)}
                                 </span>
@@ -1281,16 +1353,30 @@ export default function CustomerDetailsPage() {
                                     </button>
                                     <button
                                       onClick={async () => {
-                                        if (!window.confirm(`Delete payment of ${formatCurrency(payment.amount)}?`)) return;
-                                        setDeletingPaymentId(payment._id);
-                                        try {
-                                          await deletePayment(payment._id);
-                                          success('Payment deleted');
-                                          handlePaymentSuccess();
-                                        } catch (err) {
-                                          error(err.response?.data?.message || 'Failed to delete payment');
-                                        } finally {
-                                          setDeletingPaymentId(null);
+                                        if (payment.isManualEntry) {
+                                          if (!window.confirm(`Delete manual entry of ${formatCurrency(payment.amount)}?`)) return;
+                                          setDeletingPaymentId(payment._id);
+                                          try {
+                                            await deleteManualEntry(payment._id);
+                                            success('Manual entry deleted');
+                                            handlePaymentSuccess();
+                                          } catch (err) {
+                                            error(err.response?.data?.message || 'Failed to delete manual entry');
+                                          } finally {
+                                            setDeletingPaymentId(null);
+                                          }
+                                        } else {
+                                          if (!window.confirm(`Delete payment of ${formatCurrency(payment.amount)}?`)) return;
+                                          setDeletingPaymentId(payment._id);
+                                          try {
+                                            await deletePayment(payment._id);
+                                            success('Payment deleted');
+                                            handlePaymentSuccess();
+                                          } catch (err) {
+                                            error(err.response?.data?.message || 'Failed to delete payment');
+                                          } finally {
+                                            setDeletingPaymentId(null);
+                                          }
                                         }
                                       }}
                                       disabled={deletingPaymentId === payment._id}

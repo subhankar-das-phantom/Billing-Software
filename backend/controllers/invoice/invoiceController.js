@@ -314,6 +314,14 @@ exports.createInvoice = async (req, res, next) => {
       });
     }
 
+    if (customer.isActive === false) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot create invoice for an inactive customer'
+      });
+    }
+
     // Resolve firm info from the tenant admin.
     const adminInfo = await Admin.findById(tenantId).session(session);
 
@@ -425,7 +433,8 @@ exports.createInvoice = async (req, res, next) => {
         firmName: adminInfo.firmName,
         firmAddress: adminInfo.firmAddress,
         firmPhone: adminInfo.firmPhone,
-        firmGSTIN: adminInfo.firmGSTIN
+        firmGSTIN: adminInfo.firmGSTIN,
+        paymentInformation: adminInfo.paymentInformation
       },
       items: processedItems,
       totals,

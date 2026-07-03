@@ -143,7 +143,14 @@ function AppRoutes() {
           <Route path="/collections" element={<CollectionsPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/reports/gst" element={<Navigate to="/reports" replace />} />
-          <Route path="/settings" element={<SettingsPage />} />
+          <Route 
+            path="/settings" 
+            element={
+              <AdminRoute>
+                <SettingsPage />
+              </AdminRoute>
+            } 
+          />
           
           {/* Admin-only routes */}
           <Route 

@@ -22,11 +22,11 @@ router.post('/employee/login', employeeLogin);
 // Protected routes (both admin and employee)
 router.get('/me', protect, getMe);
 router.post('/logout', protect, logout);
-router.put('/change-password', protect, changePassword);
 router.post('/heartbeat', protect, heartbeat);
-router.put('/preferences', protect, updatePreferences);
 
 // Admin-only routes
+router.put('/change-password', protect, adminOnly, changePassword);
+router.put('/preferences', protect, adminOnly, updatePreferences);
 router.put('/profile', protect, adminOnly, updateProfileValidator, updateProfile);
 
 module.exports = router;

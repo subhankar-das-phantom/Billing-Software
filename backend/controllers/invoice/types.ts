@@ -48,6 +48,12 @@ export interface IDistributorSnapshot {
   firmAddress?: string;
   firmPhone?: string;
   firmGSTIN?: string;
+  paymentInformation?: {
+    enabled?: boolean;
+    upiId?: string;
+    accountNumber?: string;
+    ifscCode?: string;
+  };
 }
 
 export interface IInvoice {
