@@ -51,9 +51,18 @@ const getInvoiceRemaining = (invoice) => {
   return remaining > 0 ? remaining : 0;
 };
 
+const getInvoiceEffectiveDue = (invoice) => {
+  if (invoice.effectiveDue !== undefined && invoice.effectiveDue !== null) {
+    return Math.max(0, round2(invoice.effectiveDue));
+  }
+
+  return Math.max(0, round2(getInvoiceRemaining(invoice) - (invoice.creditNoteTotal || 0)));
+};
+
 const getInvoicePaymentStatus = (invoice, cnDeduction = 0) => {
-  const remaining = getInvoiceRemaining(invoice);
-  const adjustedRemaining = Math.max(0, round2(remaining - cnDeduction));
+  const adjustedRemaining = invoice.effectiveDue !== undefined && invoice.effectiveDue !== null
+    ? getInvoiceEffectiveDue(invoice)
+    : Math.max(0, round2(getInvoiceRemaining(invoice) - cnDeduction));
   const paidAmount = round2(invoice.paidAmount || 0);
   const hasCredits = cnDeduction > 0;
 
@@ -304,7 +313,7 @@ export default function CustomerDetailsPage() {
     queryKey: ['customer-unpaid', id],
     queryFn: async () => {
       const [invData, entryData, cnData] = await Promise.all([
-        customerService.getCustomerInvoices(id, { limit: 200, status: ['Unpaid', 'Partial'] }).catch(() => ({ items: [] })),
+        customerService.getCustomerInvoices(id, { limit: 200, paymentStatus: ['Unpaid', 'Partial'], payableOnly: true }).catch(() => ({ items: [] })),
         manualEntryService.getUnpaidOpeningBalances(id).catch(() => ({ manualEntries: [] })),
         creditNoteService.getCreditNotesByCustomer(id, { limit: 200 }).catch(() => ({ items: [] }))
       ]);
@@ -1010,14 +1019,12 @@ export default function CustomerDetailsPage() {
                         itemClassName={isDesktop ? "" : "mb-3"}
                         renderItem={(invoice, index) => {
                           const StatusIcon = statusConfig[invoice.status]?.icon || FileText;
-                          const remaining = getInvoiceRemaining(invoice);
-                          // Since we don't have creditNoteByInvoiceMap in infinite scrolling easily without a big refactor,
-                          // we just use 0 or fetch it dynamically if needed. For now, rely on standard remaining logic.
-                          const cnDeduction = 0; 
-                          const adjustedRemaining = Math.max(0, round2(remaining - cnDeduction));
+                          const cnDeduction = round2(invoice.creditNoteTotal || 0);
+                          const adjustedRemaining = getInvoiceEffectiveDue(invoice);
                           const paymentStatus = getInvoicePaymentStatus(invoice, cnDeduction);
                           const PaymentIcon = paymentStatusConfig[paymentStatus]?.icon || AlertTriangle;
                           const isCancelled = invoice.status === 'Cancelled';
+                          const canRecordPayment = !isCancelled && adjustedRemaining > 0 && (paymentStatus === 'Unpaid' || paymentStatus === 'Partial');
                           
                           if (isDesktop) {
                             return (
@@ -1067,7 +1074,7 @@ export default function CustomerDetailsPage() {
                                   >
                                     View
                                   </Link>
-                                  {invoice.status !== 'Cancelled' && (paymentStatus === 'Unpaid' || paymentStatus === 'Partial') && (
+                                  {canRecordPayment && (
                                     <button
                                       onClick={() => handleRecordPayment(invoice)}
                                       className="px-3 py-1.5 text-xs font-medium bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-lg transition-colors"
@@ -1135,7 +1142,7 @@ export default function CustomerDetailsPage() {
                                   >
                                     View
                                   </Link>
-                                  {invoice.status !== 'Cancelled' && (paymentStatus === 'Unpaid' || paymentStatus === 'Partial') && (
+                                  {canRecordPayment && (
                                     <button
                                       onClick={() => handleRecordPayment(invoice)}
                                       className="p-1.5 text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-lg transition-colors"

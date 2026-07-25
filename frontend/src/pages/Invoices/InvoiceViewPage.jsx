@@ -33,9 +33,12 @@ import { manualEntryService } from '../../services/entries/manualEntryService';
 import { creditNoteService } from '../../services/credits/creditNoteService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { PageLoader } from '../../components/Common/Feedback/Loader';
+import RecordPaymentModal from '../../components/Common/Modals/RecordPaymentModal';
 import { useToast } from '../../contexts/ToastContext';
 import { useSWR, useFirstVisit, invalidateCachePattern } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
+
+const roundCurrency = (value) => Math.round(((Number(value) || 0) + Number.EPSILON) * 100) / 100;
 
 const pageVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -79,6 +82,7 @@ const tableRowVariants = {
 export default function InvoiceViewPage() {
   const { id } = useParams();
   const [updating, setUpdating] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showColumnSettings, setShowColumnSettings] = useState(false);
   const [isSingleCopy, setIsSingleCopy] = useState(() => {
     try {
@@ -271,6 +275,17 @@ export default function InvoiceViewPage() {
     }
   };
 
+  const handlePaymentSuccess = async () => {
+    invalidateCachePattern(`invoice-${id}`);
+    invalidateCachePattern('invoices');
+    invalidateCachePattern('customers');
+    invalidateCachePattern('dashboard');
+    await Promise.all([
+      mutateInvoice(),
+      mutateCN()
+    ]);
+  };
+
   if (loading) {
     return <PageLoader />;
   }
@@ -306,6 +321,19 @@ export default function InvoiceViewPage() {
   };
 
   const StatusIcon = statusConfig[invoice.status]?.icon || FileText;
+  const totalCreditNoteAmount = roundCurrency(
+    creditNotes.reduce((sum, cn) => sum + (cn.totals?.netTotal || 0), 0)
+  );
+  const netDue = Math.max(
+    0,
+    roundCurrency((invoice.totals?.netTotal || 0) - (invoice.paidAmount || 0) - totalCreditNoteAmount)
+  );
+  const canRecordPayment = invoice.status !== 'Cancelled' && netDue > 0;
+  const invoiceForPayment = {
+    ...invoice,
+    creditNoteTotal: totalCreditNoteAmount,
+    effectiveDue: netDue
+  };
 
   // Reusable Invoice Copy Component
   const InvoiceCopy = () => (
@@ -494,6 +522,18 @@ export default function InvoiceViewPage() {
                 Create Return
               </Link>
             </motion.div>
+          )}
+
+          {canRecordPayment && (
+            <motion.button
+              onClick={() => setShowPaymentModal(true)}
+              className="btn btn-success flex items-center gap-2"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <CreditCard className="w-5 h-5" />
+              Record Payment
+            </motion.button>
           )}
 
           <motion.button
@@ -711,29 +751,33 @@ export default function InvoiceViewPage() {
                 <p className="text-xs text-slate-400 mb-1">Paid Amount</p>
                 <p className="text-lg font-bold text-emerald-400">{formatCurrency(invoice.paidAmount || 0)}</p>
               </div>
-              {(() => {
-                const totalCreditNoteAmount = creditNotes.reduce((sum, cn) => sum + (cn.totals?.netTotal || 0), 0);
-                const netDue = Math.max(0, (invoice.totals?.netTotal || 0) - (invoice.paidAmount || 0) - totalCreditNoteAmount);
-                return (
-                  <>
-                    {totalCreditNoteAmount > 0 && (
-                      <div className="p-3 bg-slate-800/50 rounded-xl border border-amber-500/30">
-                        <p className="text-xs text-slate-400 mb-1">Credit Notes</p>
-                        <p className="text-lg font-bold text-amber-400">-{formatCurrency(totalCreditNoteAmount)}</p>
-                      </div>
-                    )}
-                    <div className={`p-3 rounded-xl border ${netDue > 0
-                        ? 'bg-red-500/10 border-red-500/30'
-                        : 'bg-emerald-500/10 border-emerald-500/30'
-                      }`}>
-                      <p className="text-xs text-slate-400 mb-1">Net Due</p>
-                      <p className={`text-lg font-bold ${netDue > 0 ? 'text-red-400' : 'text-emerald-400'
-                        }`}>{formatCurrency(netDue)}</p>
-                    </div>
-                  </>
-                );
-              })()}
+              {totalCreditNoteAmount > 0 && (
+                <div className="p-3 bg-slate-800/50 rounded-xl border border-amber-500/30">
+                  <p className="text-xs text-slate-400 mb-1">Credit Notes</p>
+                  <p className="text-lg font-bold text-amber-400">-{formatCurrency(totalCreditNoteAmount)}</p>
+                </div>
+              )}
+              <div className={`p-3 rounded-xl border ${netDue > 0
+                  ? 'bg-red-500/10 border-red-500/30'
+                  : 'bg-emerald-500/10 border-emerald-500/30'
+                }`}>
+                <p className="text-xs text-slate-400 mb-1">Net Due</p>
+                <p className={`text-lg font-bold ${netDue > 0 ? 'text-red-400' : 'text-emerald-400'
+                  }`}>{formatCurrency(netDue)}</p>
+              </div>
             </div>
+            {canRecordPayment && (
+              <motion.button
+                type="button"
+                onClick={() => setShowPaymentModal(true)}
+                className="mt-4 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition-colors inline-flex items-center gap-2"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <CreditCard className="w-4 h-4" />
+                Record Payment
+              </motion.button>
+            )}
           </motion.div>
         )}
 
@@ -787,6 +831,16 @@ export default function InvoiceViewPage() {
           </motion.div>
         </div>
       </motion.div>
+      <RecordPaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onSuccess={handlePaymentSuccess}
+        customer={invoice.customer}
+        invoices={canRecordPayment ? [invoiceForPayment] : []}
+        manualEntries={[]}
+        preSelectedInvoice={invoiceForPayment}
+        creditNotes={creditNotes}
+      />
     </>
   );
 }

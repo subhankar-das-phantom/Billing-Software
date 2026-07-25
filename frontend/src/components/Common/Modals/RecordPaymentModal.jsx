@@ -16,6 +16,12 @@ import { recordPayment, PAYMENT_METHODS } from '../../../services/credits/credit
 import { invoiceService } from '../../../services/invoices/invoiceService';
 import { manualEntryService } from '../../../services/entries/manualEntryService';
 import { formatCurrency, formatDate } from '../../../utils/formatters';
+import CustomDropdown from '../Dropdowns/CustomDropdown';
+
+const roundCurrency = (value) => Math.round(((Number(value) || 0) + Number.EPSILON) * 100) / 100;
+
+const getInvoiceId = (invoice) => invoice?._id?.toString();
+const isPayablePaymentStatus = (status) => !status || ['Unpaid', 'Partial'].includes(status);
 
 export default function RecordPaymentModal({
   isOpen,
@@ -39,6 +45,7 @@ export default function RecordPaymentModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const preSelectedInvoiceId = getInvoiceId(preSelectedInvoice);
 
   // Filter manual entries to only show unpaid opening balances
   const unpaidEntries = manualEntries.filter(entry => 
@@ -60,26 +67,88 @@ export default function RecordPaymentModal({
     return map;
   }, [creditNotes]);
 
+  const payableInvoices = useMemo(() => {
+    const invoiceMap = new Map();
+
+    const addInvoice = (inv, { requirePayableStatus = true, requirePositiveDue = true } = {}) => {
+      const invoiceId = getInvoiceId(inv);
+      if (!invoiceId || invoiceMap.has(invoiceId)) return;
+      if (inv.status === 'Cancelled') return;
+      if (requirePayableStatus && !isPayablePaymentStatus(inv.paymentStatus)) return;
+
+      const remaining = (inv.totals?.netTotal || 0) - (inv.paidAmount || 0);
+      const cnDeduction = inv.creditNoteTotal ?? cnByInvoiceMap.get(invoiceId) ?? 0;
+      const effectiveDue = roundCurrency(remaining - cnDeduction);
+      if (!requirePositiveDue || effectiveDue > 0) {
+        invoiceMap.set(invoiceId, inv);
+      }
+    };
+
+    invoices.forEach(inv => addInvoice(inv));
+    addInvoice(preSelectedInvoice, {
+      requirePayableStatus: false,
+      requirePositiveDue: false
+    });
+
+    return Array.from(invoiceMap.values());
+  }, [invoices, preSelectedInvoice, cnByInvoiceMap]);
+
+  const selectionGroups = useMemo(() => {
+    const invoiceOptions = payableInvoices.map(inv => {
+      const invoiceId = getInvoiceId(inv);
+      const remaining = (inv.totals?.netTotal || 0) - (inv.paidAmount || 0);
+      const cnDeduction = inv.creditNoteTotal ?? cnByInvoiceMap.get(invoiceId) ?? 0;
+      const effectiveDue = Math.max(0, roundCurrency(remaining - cnDeduction));
+
+      return {
+        value: invoiceId,
+        label: `${inv.invoiceNumber} - ${formatDate(inv.invoiceDate)} - Due: ${formatCurrency(effectiveDue)}`,
+        invoiceNumber: inv.invoiceNumber,
+        date: formatDate(inv.invoiceDate),
+        due: effectiveDue,
+        type: 'invoice'
+      };
+    });
+
+    const entryOptions = unpaidEntries.map(entry => {
+      const remaining = roundCurrency(entry.amount - (entry.paidAmount || 0));
+
+      return {
+        value: `entry_${entry._id}`,
+        label: `Opening Balance - ${formatDate(entry.entryDate)} - Due: ${formatCurrency(remaining)}`,
+        invoiceNumber: 'Opening Balance',
+        date: formatDate(entry.entryDate),
+        due: remaining,
+        type: 'entry'
+      };
+    });
+
+    return [
+      ...(invoiceOptions.length > 0 ? [{ label: 'Invoices', options: invoiceOptions }] : []),
+      ...(entryOptions.length > 0 ? [{ label: 'Opening Balances', options: entryOptions }] : [])
+    ];
+  }, [payableInvoices, unpaidEntries, cnByInvoiceMap]);
+
+  const paymentMethodOptions = useMemo(
+    () => PAYMENT_METHODS.map(method => ({ value: method.value, label: method.label })),
+    []
+  );
+
   // Derive selected item directly from selectionId to avoid state sync issues
   const selectedItem = useMemo(() => {
     if (!formData.selectionId) return null;
     if (formData.selectionType === 'invoice') {
-      return invoices.find(inv => inv._id === formData.selectionId) || null;
+      return payableInvoices.find(inv => getInvoiceId(inv) === formData.selectionId) || null;
     } else {
       return unpaidEntries.find(e => e._id === formData.selectionId) || null;
     }
-  }, [formData.selectionId, formData.selectionType, invoices, unpaidEntries]);
+  }, [formData.selectionId, formData.selectionType, payableInvoices, unpaidEntries]);
 
   // Reset form when modal opens
   useEffect(() => {
     if (isOpen) {
-      // Check if preSelectedInvoice still exists in the current invoices list
-      const validPreSelected = preSelectedInvoice 
-        ? invoices.find(inv => inv._id === preSelectedInvoice._id)
-        : null;
-      
       setFormData({
-        selectionId: validPreSelected?._id || '',
+        selectionId: preSelectedInvoiceId || '',
         selectionType: 'invoice',
         amount: '',
         paymentDate: new Date().toISOString().split('T')[0],
@@ -90,7 +159,7 @@ export default function RecordPaymentModal({
       setError('');
       setSuccess(false);
     }
-  }, [isOpen]);
+  }, [isOpen, preSelectedInvoiceId]);
 
   const handleSelectionChange = (value) => {
     if (value.startsWith('entry_')) {
@@ -104,9 +173,9 @@ export default function RecordPaymentModal({
   const getRemainingAmount = () => {
     if (!selectedItem) return 0;
     if (formData.selectionType === 'invoice') {
-      return selectedItem.totals.netTotal - (selectedItem.paidAmount || 0);
+      return roundCurrency((selectedItem.totals?.netTotal || 0) - (selectedItem.paidAmount || 0));
     } else {
-      return selectedItem.amount - (selectedItem.paidAmount || 0);
+      return roundCurrency(selectedItem.amount - (selectedItem.paidAmount || 0));
     }
   };
 
@@ -115,8 +184,8 @@ export default function RecordPaymentModal({
     if (!selectedItem) return 0;
     const remaining = getRemainingAmount();
     if (formData.selectionType === 'invoice') {
-      const cnDeduction = cnByInvoiceMap.get(selectedItem._id?.toString()) || 0;
-      return Math.max(0, remaining - cnDeduction);
+      const cnDeduction = selectedItem.creditNoteTotal ?? cnByInvoiceMap.get(getInvoiceId(selectedItem)) ?? 0;
+      return Math.max(0, roundCurrency(remaining - cnDeduction));
     }
     return remaining;
   };
@@ -162,9 +231,14 @@ export default function RecordPaymentModal({
           return;
         }
 
+        const latestCreditNoteDeduction = selectedItem?.creditNoteTotal ?? cnByInvoiceMap.get(latestInvoice._id?.toString()) ?? 0;
         const latestRemaining = Math.max(
           0,
-          (latestInvoice?.totals?.netTotal || 0) - (latestInvoice?.paidAmount || 0)
+          roundCurrency(
+            (latestInvoice?.totals?.netTotal || 0)
+            - (latestInvoice?.paidAmount || 0)
+            - latestCreditNoteDeduction
+          )
         );
         const roundedLatestRemaining = parseFloat(latestRemaining.toFixed(2));
         const roundedAmount = parseFloat(amount.toFixed(2));
@@ -313,25 +387,46 @@ export default function RecordPaymentModal({
                       <FileText className="w-4 h-4 inline mr-2" />
                       Select Invoice or Opening Balance
                     </label>
-                    <div className="relative">
+                    <CustomDropdown
+                      value={formData.selectionType === 'entry' ? `entry_${formData.selectionId}` : formData.selectionId}
+                      onChange={handleSelectionChange}
+                      groups={selectionGroups}
+                      placeholder="Choose..."
+                      ariaLabel="Select invoice or opening balance"
+                      renderOption={(option) => (
+                        <span className="block min-w-0">
+                          <span className="block truncate font-medium">{option.invoiceNumber}</span>
+                          <span className="block text-xs text-slate-400 truncate">
+                            {option.date} - Due: {formatCurrency(option.due)}
+                          </span>
+                        </span>
+                      )}
+                      renderValue={(option) => (
+                        <span className="block truncate">
+                          {option.invoiceNumber} - {option.date} - Due: {formatCurrency(option.due)}
+                        </span>
+                      )}
+                    />
+                    <div className="hidden">
                       <select
                         value={formData.selectionType === 'entry' ? `entry_${formData.selectionId}` : formData.selectionId}
                         onChange={(e) => handleSelectionChange(e.target.value)}
                         className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 appearance-none cursor-pointer hover:border-slate-500 transition-colors pr-10"
                         style={{ backgroundImage: 'none' }}
-                        required
+                        disabled
                       >
                         <option value="" className="bg-slate-800 text-slate-400">Choose...</option>
                         
                         {/* Invoices Section */}
-                        {invoices.length > 0 && (
+                        {payableInvoices.length > 0 && (
                           <optgroup label="📄 Invoices" className="bg-slate-800">
-                            {invoices.map((inv) => {
-                              const remaining = inv.totals.netTotal - (inv.paidAmount || 0);
-                              const cnDed = cnByInvoiceMap.get(inv._id?.toString()) || 0;
-                              const effectiveDue = Math.max(0, remaining - cnDed);
+                            {payableInvoices.map((inv) => {
+                              const invoiceId = getInvoiceId(inv);
+                              const remaining = (inv.totals?.netTotal || 0) - (inv.paidAmount || 0);
+                              const cnDed = inv.creditNoteTotal ?? cnByInvoiceMap.get(invoiceId) ?? 0;
+                              const effectiveDue = Math.max(0, roundCurrency(remaining - cnDed));
                               return (
-                                <option key={inv._id} value={inv._id} className="bg-slate-800 text-white py-2">
+                                <option key={invoiceId} value={invoiceId} className="bg-slate-800 text-white py-2">
                                   {inv.invoiceNumber} - {formatDate(inv.invoiceDate)} - Due: {formatCurrency(effectiveDue)}
                                 </option>
                               );
@@ -385,11 +480,11 @@ export default function RecordPaymentModal({
                             {formatCurrency(selectedItem.paidAmount || 0)}
                           </span>
                         </div>
-                        {formData.selectionType === 'invoice' && (cnByInvoiceMap.get(selectedItem._id?.toString()) || 0) > 0 && (
+                        {formData.selectionType === 'invoice' && (selectedItem.creditNoteTotal ?? cnByInvoiceMap.get(getInvoiceId(selectedItem)) ?? 0) > 0 && (
                           <div>
                             <span className="text-slate-400">Credit Notes:</span>
                             <span className="ml-2 text-amber-400 font-medium">
-                              -{formatCurrency(cnByInvoiceMap.get(selectedItem._id?.toString()) || 0)}
+                              -{formatCurrency(selectedItem.creditNoteTotal ?? cnByInvoiceMap.get(getInvoiceId(selectedItem)) ?? 0)}
                             </span>
                           </div>
                         )}
@@ -456,12 +551,19 @@ export default function RecordPaymentModal({
                         <Wallet className="w-4 h-4 inline mr-2" />
                         Payment Method
                       </label>
-                      <div className="relative">
+                      <CustomDropdown
+                        value={formData.paymentMethod}
+                        onChange={(nextValue) => setFormData(prev => ({ ...prev, paymentMethod: nextValue }))}
+                        groups={paymentMethodOptions}
+                        ariaLabel="Select payment method"
+                      />
+                      <div className="hidden">
                         <select
                           value={formData.paymentMethod}
                           onChange={(e) => setFormData(prev => ({ ...prev, paymentMethod: e.target.value }))}
                           className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 appearance-none cursor-pointer hover:border-slate-500 transition-colors"
                           style={{ backgroundImage: 'none' }}
+                          disabled
                         >
                           {PAYMENT_METHODS.map((method) => (
                             <option key={method.value} value={method.value} className="bg-slate-800 text-white py-2">
