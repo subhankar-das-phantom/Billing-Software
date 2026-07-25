@@ -2,6 +2,7 @@ const Payment = require('../models/Payment');
 const Invoice = require('../models/Invoice');
 const Customer = require('../models/Customer');
 const ManualEntry = require('../models/ManualEntry');
+const CreditNote = require('../models/CreditNote');
 const { getAttribution } = require('../middleware/auth');
 const { trackActivity, ACTIVITY_TYPES } = require('../utils/activityTracker');
 const getTenantId = require('../utils/getTenantId');
@@ -18,6 +19,20 @@ const derivePaymentStatus = (totalAmount, paidAmount) => {
   if (remaining <= 0 && roundedPaid > 0) return 'Paid';
   if (roundedPaid > 0) return 'Partial';
   return 'Unpaid';
+};
+
+const getInvoiceCreditNoteTotal = async (invoiceId, tenantId) => {
+  const result = await CreditNote.aggregate([
+    { $match: { invoiceId, tenantId } },
+    {
+      $group: {
+        _id: null,
+        total: { $sum: { $ifNull: ['$totals.netTotal', 0] } }
+      }
+    }
+  ]);
+
+  return getRoundedNumber(result[0]?.total);
 };
 
 const hasExplicitTime = (dateValue) => {
@@ -275,9 +290,18 @@ exports.createPayment = async (req, res, next) => {
       });
     }
 
-    // Calculate remaining amount (handle undefined paidAmount for old invoices)
+    const creditNoteTotal = await getInvoiceCreditNoteTotal(invoice._id, tenantId);
+
+    // Calculate effective remaining amount after payments and credit note returns.
     // Use round2 to avoid floating-point precision drift (e.g. 0.01 vs 0.009999...)
-    const remainingAmount = round2(getRoundedNumber(invoice.totals.netTotal) - getRoundedNumber(invoice.paidAmount));
+    const remainingAmount = Math.max(
+      0,
+      round2(
+        getRoundedNumber(invoice.totals.netTotal)
+        - getRoundedNumber(invoice.paidAmount)
+        - creditNoteTotal
+      )
+    );
     const normalizedAmount = getRoundedNumber(amount);
     
     // Validate payment amount
@@ -291,7 +315,7 @@ exports.createPayment = async (req, res, next) => {
     if (remainingAmount <= 0) {
       return res.status(400).json({
         success: false,
-        message: 'Invoice is already fully paid'
+        message: 'Invoice is already fully paid or settled by credit notes'
       });
     }
 
@@ -375,7 +399,7 @@ exports.createPayment = async (req, res, next) => {
       invoiceUpdate: {
         paidAmount: newPaidAmount,
         paymentStatus: newPaymentStatus,
-        remainingAmount: round2(getRoundedNumber(invoice.totals.netTotal) - newPaidAmount)
+        remainingAmount: Math.max(0, round2(getRoundedNumber(invoice.totals.netTotal) - newPaidAmount - creditNoteTotal))
       }
     });
   } catch (error) {

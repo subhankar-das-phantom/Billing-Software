@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Invoice = require('../../models/Invoice');
+const CreditNote = require('../../models/CreditNote');
 const Product = require('../../models/Product');
 const Customer = require('../../models/Customer');
 const Admin = require('../../models/Admin');
@@ -56,6 +57,8 @@ const isRetryableInvoiceTransactionError = (error) => {
 
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 const getRoundedNumber = (n) => round2(Number(n) || 0);
+const INVOICE_STATUSES = new Set(['Created', 'Printed', 'Cancelled']);
+const PAYMENT_STATUSES = new Set(['Unpaid', 'Partial', 'Paid']);
 
 const derivePaymentStatus = (totalAmount, paidAmount) => {
   const roundedTotal = getRoundedNumber(totalAmount);
@@ -65,6 +68,127 @@ const derivePaymentStatus = (totalAmount, paidAmount) => {
   if (remaining <= 0 && roundedPaid > 0) return 'Paid';
   if (roundedPaid > 0) return 'Partial';
   return 'Unpaid';
+};
+
+const getQueryValues = (query, key) => {
+  const rawValues = [query[key], query[`${key}[]`]].filter(value => value !== undefined);
+  return rawValues
+    .flatMap(value => Array.isArray(value) ? value : String(value).split(','))
+    .map(value => String(value).trim())
+    .filter(Boolean);
+};
+
+const toMongoFilter = (values) => {
+  if (values.length === 0) return undefined;
+  return values.length === 1 ? values[0] : { $in: values };
+};
+
+const applyInvoiceStatusFilters = (query, reqQuery) => {
+  const statusValues = getQueryValues(reqQuery, 'status').filter(value => value !== 'all');
+  const paymentStatusValues = getQueryValues(reqQuery, 'paymentStatus').filter(value => value !== 'all');
+
+  const lifecycleStatuses = statusValues.filter(value => INVOICE_STATUSES.has(value));
+  const statusesUsedAsPaymentStatuses = statusValues.filter(value => PAYMENT_STATUSES.has(value));
+  const paymentStatuses = [...new Set([
+    ...paymentStatusValues.filter(value => PAYMENT_STATUSES.has(value)),
+    ...statusesUsedAsPaymentStatuses
+  ])];
+
+  const lifecycleFilter = toMongoFilter(lifecycleStatuses);
+  if (lifecycleFilter !== undefined) {
+    query.status = lifecycleFilter;
+  }
+
+  const paymentStatusFilter = toMongoFilter(paymentStatuses);
+  if (paymentStatusFilter !== undefined) {
+    query.paymentStatus = paymentStatusFilter;
+    if (lifecycleFilter === undefined) {
+      query.status = { $ne: 'Cancelled' };
+    }
+  }
+
+  return { paymentStatuses };
+};
+
+const shouldUsePayableFilter = (reqQuery, paymentStatuses) => {
+  const payableOnly = String(reqQuery.payableOnly || reqQuery.onlyPayable || '').toLowerCase() === 'true';
+  if (payableOnly) return true;
+
+  return paymentStatuses.some(status => status === 'Unpaid' || status === 'Partial')
+    && String(reqQuery.includeCreditNoteSettled || '').toLowerCase() !== 'true';
+};
+
+const getInvoicesWithCreditNotesPage = async (query, { sort, skip, limit, payableOnly = false }) => {
+  const pipeline = [
+    { $match: query },
+    {
+      $lookup: {
+        from: CreditNote.collection.name,
+        let: { invoiceId: '$_id', tenantId: '$tenantId' },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  { $eq: ['$invoiceId', '$$invoiceId'] },
+                  { $eq: ['$tenantId', '$$tenantId'] }
+                ]
+              }
+            }
+          },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: { $ifNull: ['$totals.netTotal', 0] } }
+            }
+          }
+        ],
+        as: 'creditNoteTotals'
+      }
+    },
+    {
+      $addFields: {
+        creditNoteTotal: {
+          $ifNull: [{ $arrayElemAt: ['$creditNoteTotals.total', 0] }, 0]
+        }
+      }
+    },
+    {
+      $addFields: {
+        effectiveDue: {
+          $round: [
+            {
+              $subtract: [
+                { $subtract: [{ $ifNull: ['$totals.netTotal', 0] }, { $ifNull: ['$paidAmount', 0] }] },
+                '$creditNoteTotal'
+              ]
+            },
+            2
+          ]
+        }
+      }
+    },
+    ...(payableOnly ? [{ $match: { effectiveDue: { $gt: 0 } } }] : []),
+    { $sort: sort },
+    {
+      $facet: {
+        items: [
+          { $skip: skip },
+          { $limit: limit },
+          { $project: { creditNoteTotals: 0 } }
+        ],
+        metadata: [{ $count: 'total' }]
+      }
+    }
+  ];
+
+  const result = await Invoice.aggregate(pipeline);
+
+  const pageResult = result[0] || { items: [], metadata: [] };
+  return {
+    invoices: pageResult.items || [],
+    total: pageResult.metadata[0]?.total || 0
+  };
 };
 
 // @desc    Get all invoices
@@ -79,10 +203,7 @@ exports.getInvoices = async (req, res, next) => {
 
     const query = { tenantId };
 
-    // Filter by status
-    if (req.query.status && req.query.status !== 'all') {
-      query.status = req.query.status;
-    }
+    const { paymentStatuses } = applyInvoiceStatusFilters(query, req.query);
 
     // Filter by date range
     if (req.query.startDate || req.query.endDate) {
@@ -133,12 +254,17 @@ exports.getInvoices = async (req, res, next) => {
       query.$or = primaryConditions;
     }
 
-    const invoices = await Invoice.find(query)
-      .sort({ invoiceDate: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    const total = await Invoice.countDocuments(query);
+    const sort = { invoiceDate: -1 };
+    const usePayableFilter = shouldUsePayableFilter(req.query, paymentStatuses);
+    const { invoices, total } = usePayableFilter
+      ? await getInvoicesWithCreditNotesPage(query, { sort, skip, limit, payableOnly: true })
+      : {
+          invoices: await Invoice.find(query)
+            .sort(sort)
+            .skip(skip)
+            .limit(limit),
+          total: await Invoice.countDocuments(query)
+        };
 
     const pages = Math.max(1, Math.ceil(total / limit));
 
@@ -228,22 +354,36 @@ exports.getCustomerInvoices = async (req, res, next) => {
     const skip = (page - 1) * limit;
     const tenantId = getTenantId(req);
 
-    // Support optional filtering by status
-    const query = { tenantId, 'customer._id': req.params.customerId };
-    if (req.query.status) {
-      if (Array.isArray(req.query.status)) {
-        query.status = { $in: req.query.status };
-      } else {
-        query.status = req.query.status;
-      }
+    if (!mongoose.Types.ObjectId.isValid(req.params.customerId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid customer ID'
+      });
     }
 
-    const invoices = await Invoice.find(query)
-      .sort({ invoiceDate: -1 })
-      .skip(skip)
-      .limit(limit);
+    const query = {
+      tenantId,
+      'customer._id': new mongoose.Types.ObjectId(req.params.customerId)
+    };
+    const { paymentStatuses } = applyInvoiceStatusFilters(query, req.query);
 
-    const total = await Invoice.countDocuments(query);
+    const sort = { invoiceDate: -1 };
+    const usePayableFilter = shouldUsePayableFilter(req.query, paymentStatuses);
+    const includeCreditNoteTotals = String(req.query.includeCreditNoteTotals || 'true').toLowerCase() !== 'false';
+    const { invoices, total } = usePayableFilter || includeCreditNoteTotals
+      ? await getInvoicesWithCreditNotesPage(query, {
+          sort,
+          skip,
+          limit,
+          payableOnly: usePayableFilter
+        })
+      : {
+          invoices: await Invoice.find(query)
+            .sort(sort)
+            .skip(skip)
+            .limit(limit),
+          total: await Invoice.countDocuments(query)
+        };
     const pages = Math.ceil(total / limit);
 
     res.status(200).json({
