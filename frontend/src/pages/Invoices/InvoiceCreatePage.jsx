@@ -30,6 +30,7 @@ import { PageLoader } from '../../components/Common/Feedback/Loader';
 import Modal from '../../components/Common/Modals/Modal';
 import { useToast } from '../../contexts/ToastContext';
 import { invalidateCachePattern, useDebounce, useFirstVisit, useMediaQuery } from '../../hooks';
+import { useQueryClient } from '@tanstack/react-query';
 import InvoiceItemMobileCard from './InvoiceItemMobileCard';
 
 const pageVariants = {
@@ -144,6 +145,7 @@ export default function InvoiceCreatePage() {
   const { id: editInvoiceId } = useParams();
   const location = useLocation();
   const { success, error } = useToast();
+  const queryClient = useQueryClient();
   const isFirstVisit = useFirstVisit('invoice-create');
   const isDesktop = useMediaQuery('(min-width: 950px)');
 
@@ -735,6 +737,11 @@ export default function InvoiceCreatePage() {
         invalidateCachePattern('invoices');
         invalidateCachePattern('dashboard');
         invalidateCachePattern('products'); // Stock changed
+        invalidateCachePattern('customers'); // Customer summary changed
+        // Also invalidate React Query customer caches so CustomerDetailsPage shows fresh data
+        queryClient.invalidateQueries({ queryKey: ['customer-summary'] });
+        queryClient.invalidateQueries({ queryKey: ['customer-invoices'] });
+        queryClient.invalidateQueries({ queryKey: ['customer-payments'] });
         success('Invoice updated successfully!');
       } else {
         result = await invoiceService.createInvoice(invoiceData);
@@ -744,6 +751,11 @@ export default function InvoiceCreatePage() {
         invalidateCachePattern('invoices');
         invalidateCachePattern('dashboard');
         invalidateCachePattern('products'); // Stock changed
+        invalidateCachePattern('customers'); // Customer summary changed
+        // Also invalidate React Query customer caches so CustomerDetailsPage shows fresh data
+        queryClient.invalidateQueries({ queryKey: ['customer-summary'] });
+        queryClient.invalidateQueries({ queryKey: ['customer-invoices'] });
+        queryClient.invalidateQueries({ queryKey: ['customer-payments'] });
         success('Invoice created successfully!');
       }
 
@@ -765,8 +777,15 @@ export default function InvoiceCreatePage() {
     setPaymentType('Credit');
     setNotes('');
     setCreateRequestId(generateCreateRequestId());
+    setOriginalInvoice(null);
     clearDraftFromStorage();
     success('Draft cleared');
+
+    // If we're on an edit URL, navigate to the create page so isEditMode
+    // (derived from the URL) becomes false and the form behaves as "Create Invoice"
+    if (isEditMode) {
+      navigate('/invoices/create', { replace: true });
+    }
   };
 
   if (loading) {
@@ -1112,6 +1131,9 @@ export default function InvoiceCreatePage() {
                               <p className="font-medium text-white">{item.product.productName}</p>
                               <p className="text-xs text-slate-400">
                                 Stock: {item.product.currentStock}
+                                {item.product.newMRP != null && (
+                                  <span className="text-slate-500"> • MRP: {formatCurrency(item.product.newMRP)}</span>
+                                )}
                               </p>
                             </div>
                           </td>
