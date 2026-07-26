@@ -206,10 +206,11 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatCurrency, obs
     {isDesktop ? (
     <div className="glass-card overflow-x-auto">
       {/* Header Row */}
-      <div className="grid grid-cols-[minmax(260px,2fr)_120px_180px_100px_150px_130px] items-center px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-700/50 bg-slate-800/50">
+      <div className="grid grid-cols-[minmax(260px,2fr)_120px_180px_120px_100px_150px_130px] items-center px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-700/50 bg-slate-800/50">
         <div>Product Name</div>
         <div className="text-center">HSN</div>
         <div className="text-right">MRP</div>
+        <div className="text-right">Rate</div>
         <div className="text-center">GST</div>
         <div className="text-center">Stock</div>
         <div className="text-center">Actions</div>
@@ -227,7 +228,7 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatCurrency, obs
                     const outOfStock = product.currentStockQty === 0;
 
                     return (
-                      <div className="grid grid-cols-[minmax(260px,2fr)_120px_180px_100px_150px_130px] items-center px-4 py-3 hover:bg-slate-700/50 transition-colors">
+                      <div className="grid grid-cols-[minmax(260px,2fr)_120px_180px_120px_100px_150px_130px] items-center px-4 py-3 hover:bg-slate-700/50 transition-colors">
                         <div>
                           <Link to={`/products/${product._id}`} className="flex items-center gap-3 group">
                             <div className="p-2 bg-blue-500/20 rounded-lg">
@@ -264,6 +265,11 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatCurrency, obs
                               {formatCurrency(product.newMRP)}
                             </span>
                           </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-blue-400 font-medium">
+                            {formatCurrency(product.rate)}
+                          </span>
                         </div>
                         <div className="text-center">
                           <span className="inline-flex items-center px-2 py-1 bg-blue-500/20 rounded text-blue-400 text-sm font-medium">
@@ -355,6 +361,9 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatCurrency, obs
                         {formatCurrency(product.oldMRP)}
                       </span>
                     )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-400">Rate: <span className="text-blue-400 font-medium">{formatCurrency(product.rate)}</span></span>
                   </div>
                   <div>
                     <span className="inline-flex items-center px-1.5 py-0.5 bg-blue-500/20 rounded text-blue-400 text-[10px] font-medium border border-blue-500/20">
