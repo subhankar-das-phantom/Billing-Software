@@ -28,11 +28,16 @@ export default function InvoiceItemMobileCard({
               <p className="text-xs text-slate-400 mt-1">HSN: {item.product.hsnCode}</p>
             )}
           </div>
-          <div className="text-right shrink-0">
+          <div className="text-right shrink-0 space-y-1">
             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-slate-900/50 text-xs font-medium text-slate-300">
               <Package className="w-3 h-3" />
               Stock: {item.product.currentStock}
             </span>
+            {item.product.newMRP != null && (
+              <p className="text-xs text-slate-500 px-1">
+                MRP: ₹{item.product.newMRP}
+              </p>
+            )}
           </div>
         </div>
         <div className="mt-2 text-xs text-slate-400">

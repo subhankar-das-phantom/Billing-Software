@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import { useSWR } from '../../hooks';
+import { useSWR, useMediaQuery } from '../../hooks';
 const PAYMENT_METHODS = ['Cash', 'UPI', 'Bank Transfer', 'Cheque', 'NEFT/RTGS'];
 
 const METHOD_ICONS = {
@@ -81,6 +81,7 @@ export default function CollectionsPage() {
   const [selectedDate, setSelectedDate] = useState(getTodayStr());
   const [selectedMethod, setSelectedMethod] = useState('');
   const [page, setPage] = useState(1);
+  const isDesktop = useMediaQuery('(min-width: 768px)');
 
   const { data: swrData, isLoading } = useSWR(
     `collections-${selectedDate}-${selectedMethod}-${page}`,
@@ -295,7 +296,7 @@ export default function CollectionsPage() {
             <p className="text-slate-400">No payments found for {dateLabel}</p>
             <p className="text-sm text-slate-500 mt-1">Try selecting a different date</p>
           </div>
-        ) : (
+        ) : isDesktop ? (
           <div className="table-container">
             <table className="table" id="collections-table">
               <thead>
@@ -308,7 +309,7 @@ export default function CollectionsPage() {
                 </tr>
               </thead>
               <tbody>
-                {data.payments.map((payment, index) => {
+                {data.payments.map((payment) => {
                   const MethodIcon = METHOD_ICONS[payment.paymentMethod] || CreditCard;
                   const methodColor = METHOD_COLORS[payment.paymentMethod] || '';
                   return (
@@ -360,6 +361,69 @@ export default function CollectionsPage() {
                 })}
               </tbody>
             </table>
+          </div>
+        ) : (
+          /* Mobile Card View */
+          <div className="p-3 space-y-3">
+            {data.payments.map((payment) => {
+              const MethodIcon = METHOD_ICONS[payment.paymentMethod] || CreditCard;
+              const methodColor = METHOD_COLORS[payment.paymentMethod] || 'from-slate-500/20 to-slate-600/10 border-slate-500/30 text-slate-400';
+              const methodTextColor = methodColor.split(' ').pop();
+              return (
+                <div
+                  key={payment._id}
+                  className="bg-slate-800/80 border border-slate-700/50 rounded-xl overflow-hidden"
+                >
+                  {/* Card Header: Customer + Amount */}
+                  <div className="p-4 flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-sm font-bold shadow-lg shadow-emerald-500/20 shrink-0">
+                        {payment.customer?.customerName?.charAt(0) || '?'}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-white text-sm truncate">
+                          {payment.customer?.customerName || 'Unknown'}
+                        </p>
+                        <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+                          <Calendar className="w-3 h-3" />
+                          {formatTime(payment)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-emerald-400 font-bold text-base">
+                        {formatCurrency(payment.amount)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Card Footer: Invoice + Method */}
+                  <div className="px-4 py-3 border-t border-slate-700/50 bg-slate-800/30 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      {payment.invoice ? (
+                        <Link
+                          to={`/invoices/${payment.invoice._id}`}
+                          className="text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1.5 text-sm font-medium"
+                        >
+                          <FileText className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate">{payment.invoice.invoiceNumber || payment.invoiceSnapshot?.invoiceNumber || '-'}</span>
+                        </Link>
+                      ) : payment.isManualEntry ? (
+                        <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-accent-500/20 text-accent-400 border border-accent-500/30">
+                          Manual Entry
+                        </span>
+                      ) : (
+                        <span className="text-xs text-slate-500">No invoice</span>
+                      )}
+                    </div>
+                    <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border shrink-0 ${methodColor.split(' ').slice(2).join(' ')} bg-gradient-to-r ${methodColor.split(' ').slice(0, 2).join(' ')}`}>
+                      <MethodIcon className="w-3 h-3" />
+                      {payment.paymentMethod}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
 
