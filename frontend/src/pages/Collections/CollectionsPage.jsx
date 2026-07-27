@@ -20,6 +20,7 @@ import {
 import api from '../../services/api';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { useSWR, useMediaQuery } from '../../hooks';
+import { CollectionsTableSkeleton } from './CollectionsPageSkeleton';
 const PAYMENT_METHODS = ['Cash', 'UPI', 'Bank Transfer', 'Cheque', 'NEFT/RTGS'];
 
 const METHOD_ICONS = {
@@ -282,10 +283,7 @@ export default function CollectionsPage() {
         </div>
 
         {loading ? (
-          <div className="text-center py-16">
-            <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-            <p className="text-sm text-slate-400">Loading collections...</p>
-          </div>
+          <CollectionsTableSkeleton />
         ) : data.payments.length === 0 ? (
           <div className="text-center py-16">
             <div

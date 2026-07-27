@@ -22,7 +22,7 @@ import {
   getRecentPayments
 } from '../../services/credits/creditService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import { TableSkeleton } from '../../components/Common/Feedback/Loader';
+import { OutstandingTabSkeleton, AgeingTabSkeleton, PaymentsTabSkeleton } from './CreditsPageSkeleton';
 import { useSWR, useFirstVisit } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 import { VirtualizedList } from '../../components/Common/VirtualizedList';
@@ -334,9 +334,7 @@ export default function CreditsPage() {
             {activeTab === 'outstanding' && (
               <div key="outstanding">
                 {showOutstandingSkeleton ? (
-                  <div className="glass-card overflow-hidden">
-                    <TableSkeleton rows={6} columns={3} />
-                  </div>
+                  <OutstandingTabSkeleton />
                 ) : activeOutstandingCustomers.length === 0 && !outstandingValidating ? (
                   <div className="text-center py-12">
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/20 mb-4">
@@ -411,9 +409,7 @@ export default function CreditsPage() {
             {activeTab === 'ageing' && (
               <div key="ageing" className="space-y-4">
                 {showAgeingSkeleton ? (
-                  <div className="glass-card overflow-hidden">
-                    <TableSkeleton rows={6} columns={4} />
-                  </div>
+                  <AgeingTabSkeleton />
                 ) : (
                   <>
                 {/* Ageing Summary Cards */}
@@ -502,9 +498,7 @@ export default function CreditsPage() {
             {activeTab === 'payments' && (
               <div key="payments">
                 {showPaymentsSkeleton ? (
-                  <div className="glass-card overflow-hidden">
-                    <TableSkeleton rows={6} columns={3} />
-                  </div>
+                  <PaymentsTabSkeleton />
                 ) : recentPayments.length === 0 ? (
                   <div className="text-center py-12">
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-700 mb-4">

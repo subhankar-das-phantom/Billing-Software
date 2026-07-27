@@ -351,6 +351,16 @@
     animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 
+  /* Skeleton shimmer wave — left-to-right sweep */
+  @keyframes shimmer-wave {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+
   /* Toast Notifications */
   .toast-container {
     position: fixed;

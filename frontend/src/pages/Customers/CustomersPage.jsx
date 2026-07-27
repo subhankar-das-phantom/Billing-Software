@@ -22,7 +22,7 @@ import {
 import { customerService } from '../../services/customers/customerService';
 import { formatCurrency, formatPhone } from '../../utils/formatters';
 import { getCustomerTheme } from '../../utils/customerTheme';
-import { PageLoader } from '../../components/Common/Feedback/Loader';
+import { CustomersPageSkeleton } from './CustomersPageSkeleton';
 import Modal from '../../components/Common/Modals/Modal';
 import ConfirmDialog from '../../components/Common/Dialogs/ConfirmDialog';
 import EnhancedButton from '../../components/Common/Buttons/EnhancedButton';
@@ -402,7 +402,7 @@ export default function CustomersPage() {
   const customerGridLanes = isDesktopGrid ? 3 : isTabletGrid ? 2 : 1;
 
   if (loading) {
-    return <PageLoader />;
+    return <CustomersPageSkeleton />;
   }
 
   return (

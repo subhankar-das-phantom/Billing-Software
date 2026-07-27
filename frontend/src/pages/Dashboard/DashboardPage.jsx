@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { dashboardService } from '../../services/dashboard/dashboardService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import { PageLoader } from '../../components/Common/Feedback/Loader';
+import { DashboardPageSkeleton } from './DashboardPageSkeleton';
 import MotionCard from '../../components/Common/Motion/MotionCard';
 import { useMotionConfig, useFirstVisit, useSWR } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
@@ -189,7 +189,7 @@ export default function DashboardPage() {
 
   // Only show full page loader on first load with no cached data
   if (loading) {
-    return <PageLoader />;
+    return <DashboardPageSkeleton />;
   }
 
   // Show subtle validating indicator

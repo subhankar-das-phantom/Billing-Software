@@ -26,7 +26,7 @@ import { customerService } from '../../services/customers/customerService';
 import { invoiceService } from '../../services/invoices/invoiceService';
 import { formatCurrency } from '../../utils/formatters';
 import { calculateItemAmounts, calculateInvoiceTotals, GST_RATES, removeGST, round } from '../../utils/calculations';
-import { PageLoader } from '../../components/Common/Feedback/Loader';
+import { InvoiceCreatePageSkeleton } from './InvoiceCreatePageSkeleton';
 import Modal from '../../components/Common/Modals/Modal';
 import { useToast } from '../../contexts/ToastContext';
 import { invalidateCachePattern, useDebounce, useFirstVisit, useMediaQuery } from '../../hooks';
@@ -789,7 +789,7 @@ export default function InvoiceCreatePage() {
   };
 
   if (loading) {
-    return <PageLoader />;
+    return <InvoiceCreatePageSkeleton />;
   }
 
   return (

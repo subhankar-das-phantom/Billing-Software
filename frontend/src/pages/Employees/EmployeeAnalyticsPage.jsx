@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { employeeService } from '../../services/employees/employeeService';
 import { useMotionConfig, useFirstVisit } from '../../hooks';
+import { EmployeeAnalyticsPageSkeleton } from './EmployeesPageSkeleton';
 
 // Format duration in minutes to human readable
 const formatDuration = (minutes) => {
@@ -212,11 +213,7 @@ export default function EmployeeAnalyticsPage() {
   }, [comparisonDays]);
 
   if (loading) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <Loader2 size={32} className="animate-spin text-blue-500" />
-      </div>
-    );
+    return <EmployeeAnalyticsPageSkeleton />;
   }
 
   const employees = analytics?.employees || [];

@@ -201,29 +201,68 @@ export class SalesAnalyticsService {
    */
   static async getDailySales(tenantId: mongoose.Types.ObjectId | string, start: Date, end: Date) {
     const tenantObjectId = new mongoose.Types.ObjectId(tenantId.toString());
-    const agg = await Invoice.aggregate([
-      { 
-        $match: { 
-          tenantId: tenantObjectId, 
-          invoiceDate: { $gte: start, $lte: end },
-          status: { $ne: 'Cancelled' }
-        } 
-      },
-      {
-        $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$invoiceDate", timezone: "Asia/Kolkata" } },
-          revenue: { $sum: '$totals.netTotal' },
-          invoiceCount: { $sum: 1 }
-        }
-      },
-      { $sort: { '_id': 1 } }
+
+    // Run both aggregations in parallel
+    const [invoiceAgg, paymentAgg] = await Promise.all([
+      Invoice.aggregate([
+        { 
+          $match: { 
+            tenantId: tenantObjectId, 
+            invoiceDate: { $gte: start, $lte: end },
+            status: { $ne: 'Cancelled' }
+          } 
+        },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m-%d", date: "$invoiceDate", timezone: "Asia/Kolkata" } },
+            revenue: { $sum: '$totals.netTotal' },
+            invoiceCount: { $sum: 1 }
+          }
+        },
+        { $sort: { '_id': 1 } }
+      ]),
+      Payment.aggregate([
+        { 
+          $match: { 
+            tenantId: tenantObjectId, 
+            paymentDate: { $gte: start, $lte: end }
+          } 
+        },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m-%d", date: "$paymentDate", timezone: "Asia/Kolkata" } },
+            collections: { $sum: '$amount' }
+          }
+        },
+        { $sort: { '_id': 1 } }
+      ])
     ]);
 
-    return agg.map((a: any) => ({
-      date: a._id,
-      revenue: a.revenue,
-      invoiceCount: a.invoiceCount
-    }));
+    // Build a map of all dates from both datasets
+    const dateMap = new Map<string, { revenue: number; invoiceCount: number; collections: number }>();
+
+    invoiceAgg.forEach((a: any) => {
+      dateMap.set(a._id, { revenue: a.revenue, invoiceCount: a.invoiceCount, collections: 0 });
+    });
+
+    paymentAgg.forEach((a: any) => {
+      const existing = dateMap.get(a._id);
+      if (existing) {
+        existing.collections = a.collections;
+      } else {
+        dateMap.set(a._id, { revenue: 0, invoiceCount: 0, collections: a.collections });
+      }
+    });
+
+    // Sort by date and return
+    return Array.from(dateMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, data]) => ({
+        date,
+        revenue: data.revenue,
+        invoiceCount: data.invoiceCount,
+        collections: data.collections
+      }));
   }
 
   /**

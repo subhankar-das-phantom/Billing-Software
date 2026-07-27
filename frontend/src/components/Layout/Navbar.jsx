@@ -39,7 +39,6 @@ const navItems = [
 const adminNavItems = [
   { path: '/employees', label: 'Employees', icon: UsersRound, adminOnly: true },
   { path: '/employee-analytics', label: 'Employee Analytics', icon: BarChart3, adminOnly: true },
-  { path: '/collections', label: 'Collections', icon: Layers, adminOnly: false },
   { path: '/reports', label: 'Reports', icon: FileBarChart, adminOnly: true },
   { path: '/settings', label: 'Settings', icon: Settings, adminOnly: false },
 ];

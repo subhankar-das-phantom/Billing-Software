@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { employeeService } from '../../services/employees/employeeService';
 import { useMotionConfig, useFirstVisit } from '../../hooks';
+import { EmployeesPageSkeleton } from './EmployeesPageSkeleton';
 
 // Format currency
 const formatCurrency = (amount) => {
@@ -599,6 +600,10 @@ export default function EmployeesPage() {
     { label: 'Active', value: stats.active, icon: Activity, color: 'emerald' },
     { label: 'Total Sales', value: formatCurrency(stats.totalSales), icon: DollarSign, color: 'accent' }
   ];
+
+  if (loading && employees.length === 0 && !searchTerm && statusFilter === 'all') {
+    return <EmployeesPageSkeleton />;
+  }
 
   return (
     <div className="space-y-6">
