@@ -23,17 +23,21 @@ export default function Header({ onMenuClick, title }) {
       <div className="flex items-center justify-between px-4 md:px-6 h-16">
         {/* Left side */}
         <div className="flex items-center gap-4">
-          {/* Mobile menu button */}
-          <motion.button
+          {/* Mobile menu button - stable 44x44px touch target without hit-box distortion */}
+          <button
             onClick={onMenuClick}
-            className="lg:hidden p-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+            type="button"
+            className="lg:hidden p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl hover:bg-slate-800 active:bg-slate-800/80 text-slate-400 hover:text-white transition-colors group"
             aria-label="Open menu"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95, rotate: 90 }}
-            transition={{ type: 'spring', stiffness: 400 }}
           >
-            <Menu size={24} />
-          </motion.button>
+            <motion.div
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9, rotate: 90 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+            >
+              <Menu size={24} />
+            </motion.div>
+          </button>
 
           {/* Page title with animation */}
           <motion.h1 

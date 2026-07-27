@@ -58,23 +58,6 @@ const getQuickActions = (isAdmin) => {
   return actions;
 };
 
-// Adaptive sidebar variants - near-instant on mobile
-const createSidebarVariants = (isMobile) => ({
-  open: { 
-    x: 0, 
-    opacity: 1,
-    transition: isMobile 
-      ? { type: 'tween', duration: 0.15, ease: 'easeOut' }  // Fast!
-      : { type: 'spring', stiffness: 300, damping: 30 }
-  },
-  closed: { 
-    x: '-100%', 
-    opacity: 0,
-    transition: isMobile
-      ? { type: 'tween', duration: 0.1, ease: 'easeIn' }  // Instant close
-      : { type: 'spring', stiffness: 300, damping: 30 }
-  },
-});
 
 const createMenuContainerVariants = (isMobile, shouldStagger) => ({
   open: {
@@ -151,11 +134,6 @@ export default function Sidebar({ isOpen, onClose }) {
   // Adaptive motion configuration
   const motionConfig = useMotionConfig();
   
-  // Memoize variants based on device type
-  const sidebarVariants = useMemo(
-    () => createSidebarVariants(motionConfig.isMobile), 
-    [motionConfig.isMobile]
-  );
   const menuContainerVariants = useMemo(
     () => createMenuContainerVariants(motionConfig.isMobile, motionConfig.shouldStagger), 
     [motionConfig.isMobile, motionConfig.shouldStagger]
@@ -180,13 +158,8 @@ export default function Sidebar({ isOpen, onClose }) {
   return (
     <>
       
-      {/* Sidebar */}
-      <motion.aside 
-        initial={false}
-        animate={shouldShow ? "open" : "closed"}
-        variants={sidebarVariants}
-        className="sidebar fixed top-0 left-0 h-full w-64 bg-slate-900/95 border-r border-slate-700 flex flex-col z-40 md:translate-x-0 md:static backdrop-blur-xl"
-      >
+      {/* Sidebar - static in mobile wrapper or desktop layout */}
+      <aside className="sidebar h-full w-64 bg-slate-900/95 border-r border-slate-700 flex flex-col md:translate-x-0 md:static backdrop-blur-xl shadow-2xl">
         {/* Logo Section */}
         <motion.div 
           className="p-6 border-b border-slate-700 flex justify-between items-center"
@@ -228,15 +201,21 @@ export default function Sidebar({ isOpen, onClose }) {
             </div>
           </Link>
           
-          {/* Close button for mobile */}
-          <motion.button 
-            onClick={onClose} 
-            className="md:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-            whileHover={{ scale: 1.1, rotate: 90 }}
-            whileTap={{ scale: 0.9 }}
+          {/* Close button for mobile - stable 44x44px touch target */}
+          <button
+            onClick={onClose}
+            type="button"
+            className="md:hidden p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 active:bg-slate-800/80 transition-colors group"
+            aria-label="Close sidebar"
           >
-            <X size={20} />
-          </motion.button>
+            <motion.div
+              whileHover={{ scale: 1.1, rotate: 90 }}
+              whileTap={{ scale: 0.9 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+            >
+              <X size={20} />
+            </motion.div>
+          </button>
         </motion.div>
 
         {/* Navigation */}
@@ -481,7 +460,7 @@ export default function Sidebar({ isOpen, onClose }) {
             <span className="font-medium relative z-10">Logout</span>
           </motion.button>
         </motion.div>
-      </motion.aside>
+      </aside>
     </>
   );
 }

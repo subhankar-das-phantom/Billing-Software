@@ -45,7 +45,6 @@ export default function DashboardLayout() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={() => setSidebarOpen(false)}
-            onTouchEnd={(e) => { e.preventDefault(); setSidebarOpen(false); }}
           />
         )}
       </AnimatePresence>
