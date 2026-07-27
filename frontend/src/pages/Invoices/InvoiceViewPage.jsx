@@ -32,7 +32,7 @@ import { customerService } from '../../services/customers/customerService';
 import { manualEntryService } from '../../services/entries/manualEntryService';
 import { creditNoteService } from '../../services/credits/creditNoteService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import { PageLoader } from '../../components/Common/Feedback/Loader';
+import { InvoiceViewPageSkeleton } from './InvoiceViewPageSkeleton';
 import RecordPaymentModal from '../../components/Common/Modals/RecordPaymentModal';
 import { useToast } from '../../contexts/ToastContext';
 import { useSWR, useFirstVisit, invalidateCachePattern } from '../../hooks';
@@ -287,7 +287,7 @@ export default function InvoiceViewPage() {
   };
 
   if (loading) {
-    return <PageLoader />;
+    return <InvoiceViewPageSkeleton />;
   }
 
   if (!invoice) {

@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { productService } from '../../services/products/productService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import { PageLoader } from '../../components/Common/Feedback/Loader';
+import { ProductDetailsPageSkeleton } from './ProductDetailsPageSkeleton';
 import Modal from '../../components/Common/Modals/Modal';
 import EnhancedButton from '../../components/Common/Buttons/EnhancedButton';
 import { useToast } from '../../contexts/ToastContext';
@@ -88,7 +88,7 @@ export default function ProductDetailsPage() {
     }
   };
 
-  if (loading) return <PageLoader />;
+  if (loading) return <ProductDetailsPageSkeleton />;
   if (!product) {
     return (
       <div className="glass-card p-12 text-center">

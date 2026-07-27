@@ -33,7 +33,7 @@ import { manualEntryService, deleteManualEntry, updateManualEntry } from '../../
 import { creditNoteService } from '../../services/credits/creditNoteService';
 import { formatCurrency, formatDate, formatPhone } from '../../utils/formatters';
 import { CUSTOMER_THEMES, getCustomerTheme } from '../../utils/customerTheme';
-import { PageLoader } from '../../components/Common/Feedback/Loader';
+import { CustomerDetailsPageSkeleton } from './CustomerDetailsPageSkeleton';
 import RecordPaymentModal from '../../components/Common/Modals/RecordPaymentModal';
 import EditPaymentModal from '../../components/Common/Modals/EditPaymentModal';
 import ManualEntryModal from '../../components/ManualEntry/ManualEntryModal';
@@ -467,7 +467,7 @@ export default function CustomerDetailsPage() {
 
 
   if (isLoading) {
-    return <PageLoader />;
+    return <CustomerDetailsPageSkeleton />;
   }
 
   if (!customer) {
