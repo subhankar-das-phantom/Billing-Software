@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const { LOW_STOCK_THRESHOLD } = require('../config/constants');
 const { getAttribution } = require('../middleware/auth');
@@ -354,6 +355,177 @@ exports.getLowStock = async (req, res, next) => {
       success: true,
       count: lowStockProducts.length,
       products: lowStockProducts
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Valid stock history types from the schema
+const VALID_STOCK_HISTORY_TYPES = [
+  'invoice', 'invoice_edit', 'invoice_edit_reversal',
+  'invoice_cancelled', 'adjustment', 'opening', 'sales_return'
+];
+
+// @desc    Get paginated stock history for a product
+// @route   GET /api/products/:id/stock-history
+// @access  Private
+//
+// Cursor-based pagination using subdocument _id.
+// Assumption: _id creation order matches chronological order (entries are always
+// appended at the moment they occur, never backfilled). If historical imports
+// are introduced, revisit to sort by timestamp DESC with _id as tiebreaker.
+exports.getStockHistory = async (req, res, next) => {
+  try {
+    const tenantId = getTenantId(req);
+    const productId = req.params.id;
+
+    // --- Validate & parse query params ---
+    let limit = parseInt(req.query.limit) || 20;
+    if (limit < 1) limit = 1;
+    if (limit > 100) limit = 100;
+
+    let beforeCursor = null;
+    if (req.query.before) {
+      if (!mongoose.Types.ObjectId.isValid(req.query.before)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid cursor: "before" must be a valid ObjectId'
+        });
+      }
+      beforeCursor = new mongoose.Types.ObjectId(req.query.before);
+    }
+
+    let typeFilter = null;
+    if (req.query.type) {
+      if (!VALID_STOCK_HISTORY_TYPES.includes(req.query.type)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid type filter. Must be one of: ${VALID_STOCK_HISTORY_TYPES.join(', ')}`
+        });
+      }
+      typeFilter = req.query.type;
+    }
+
+    // --- Build aggregation pipeline ---
+    const pipeline = [
+      // Match the specific product
+      { $match: { _id: new mongoose.Types.ObjectId(productId), tenantId: new mongoose.Types.ObjectId(tenantId) } },
+
+      // Get total count of valid stock history entries before unwinding
+      {
+        $addFields: {
+          _totalValidHistory: {
+            $size: {
+              $filter: {
+                input: '$stockHistory',
+                as: 'entry',
+                cond: {
+                  $and: [
+                    { $ne: ['$$entry', null] },
+                    { $ne: ['$$entry.timestamp', null] },
+                    { $ne: ['$$entry.type', null] }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+
+      // Unwind the stock history array
+      { $unwind: '$stockHistory' },
+
+      // Filter out malformed entries (null, missing timestamp, missing type)
+      {
+        $match: {
+          'stockHistory.timestamp': { $ne: null, $exists: true },
+          'stockHistory.type': { $ne: null, $exists: true }
+        }
+      }
+    ];
+
+    // Apply cursor filter if provided
+    if (beforeCursor) {
+      pipeline.push({
+        $match: { 'stockHistory._id': { $lt: beforeCursor } }
+      });
+    }
+
+    // Apply type filter if provided
+    if (typeFilter) {
+      pipeline.push({
+        $match: { 'stockHistory.type': typeFilter }
+      });
+    }
+
+    // Sort by _id descending (newest first — ObjectIds are monotonically increasing)
+    pipeline.push({ $sort: { 'stockHistory._id': -1 } });
+
+    // Fetch limit + 1 to determine hasMore
+    pipeline.push({ $limit: limit + 1 });
+
+    // Group back into a single document with the items array and total
+    pipeline.push({
+      $group: {
+        _id: '$_id',
+        total: { $first: '$_totalValidHistory' },
+        items: {
+          $push: {
+            _id: '$stockHistory._id',
+            type: '$stockHistory.type',
+            changeQty: '$stockHistory.changeQty',
+            previousQty: '$stockHistory.previousQty',
+            newQty: '$stockHistory.newQty',
+            reference: '$stockHistory.reference',
+            invoiceId: '$stockHistory.invoiceId',
+            timestamp: '$stockHistory.timestamp',
+            adjustedBy: '$stockHistory.adjustedBy'
+          }
+        }
+      }
+    });
+
+    const result = await Product.aggregate(pipeline);
+
+    // Handle case where product not found or no stock history
+    if (!result || result.length === 0) {
+      // Check if product exists
+      const productExists = await Product.exists({ _id: productId, tenantId });
+      if (!productExists) {
+        return res.status(404).json({ success: false, message: 'Product not found' });
+      }
+
+      // Product exists but no stock history (or all filtered out)
+      return res.status(200).json({
+        items: [],
+        pagination: {
+          limit,
+          total: 0,
+          hasMore: false
+        }
+      });
+    }
+
+    const { items, total } = result[0];
+
+    // Determine hasMore by checking if we got more than `limit` items
+    const hasMore = items.length > limit;
+    const paginatedItems = hasMore ? items.slice(0, limit) : items;
+
+    // nextCursor is the _id of the last item in the current page
+    const nextCursor = hasMore && paginatedItems.length > 0
+      ? paginatedItems[paginatedItems.length - 1]._id
+      : undefined;
+
+    res.status(200).json({
+      items: paginatedItems,
+      pagination: {
+        limit,
+        total,
+        hasMore,
+        ...(nextCursor && { nextCursor })
+      }
     });
   } catch (error) {
     next(error);

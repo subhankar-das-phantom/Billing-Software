@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { manualEntryService } from '../../services/entries/manualEntryService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import { PageLoader } from '../../components/Common/Feedback/Loader';
+import { ManualEntriesPageSkeleton } from './ManualEntriesPageSkeleton';
 import ManualEntryModal from '../../components/ManualEntry/ManualEntryModal';
 import { useToast } from '../../contexts/ToastContext';
 import { invalidateCachePattern, useFirstVisit } from '../../hooks';
@@ -126,7 +126,7 @@ export default function ManualEntriesPage() {
   };
 
   if (loading && entries.length === 0) {
-    return <PageLoader />;
+    return <ManualEntriesPageSkeleton />;
   }
 
   return (
