@@ -42,16 +42,9 @@ const TermsPage = lazy(() => import('./pages/Legal/TermsPage'));
 
 // Landing page (eagerly loaded — it's the entry point for new users)
 
-// Page loading spinner
+// Page loading spinner removed as per request
 function PageLoader() {
-  return (
-    <div className="min-h-[50vh] flex items-center justify-center">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-        <span className="text-sm text-slate-400">Loading...</span>
-      </div>
-    </div>
-  );
+  return null;
 }
 
 // Protected Route Wrapper
@@ -59,11 +52,7 @@ function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
   
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="loader"></div>
-      </div>
-    );
+    return null;
   }
   
   if (!user) {
@@ -78,11 +67,7 @@ function PublicRoute({ children }) {
   const { user, loading } = useAuth();
   
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="loader"></div>
-      </div>
-    );
+    return null;
   }
   
   if (user) {
