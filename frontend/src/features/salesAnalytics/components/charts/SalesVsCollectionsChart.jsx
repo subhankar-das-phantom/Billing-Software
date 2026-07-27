@@ -21,16 +21,9 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 export const SalesVsCollectionsChart = ({ filterParams }) => {
-  // We're using DailySales data here which has revenue. We would ideally have a collections API 
-  // returning daily collections as well, but for now we'll visualize what we have or mock the collections trend 
-  // if it's not available in the payload. Let's assume daily sales payload has revenue.
   const { data, isLoading, isError, refetch } = useDailySalesQuery(filterParams);
   
-  const chartData = data?.data?.map(item => ({
-    ...item,
-    // Simulate collections slightly lower than revenue for visual effect if backend doesn't send it yet
-    collections: item.revenue * (0.7 + Math.random() * 0.3) 
-  })) || [];
+  const chartData = data?.data || [];
   
   const isEmpty = chartData.length === 0;
 
