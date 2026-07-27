@@ -7,6 +7,8 @@ import { motion } from 'framer-motion';
 export function InfiniteVirtualizedList({
   queryKey,
   queryFn,
+  getNextPageParam: getNextPageParamProp,
+  initialPageParam,
   estimateSize = () => 80,
   renderItem,
   getKey = (item, index) => item?._id ?? index,
@@ -14,7 +16,9 @@ export function InfiniteVirtualizedList({
   className = '',
   itemClassName = '',
   enabled = true,
-  rootMargin = '400px'
+  rootMargin = '400px',
+  staleTime,
+  overscan
 }) {
   const {
     data,
@@ -28,8 +32,11 @@ export function InfiniteVirtualizedList({
   } = useInfiniteQuery({
     queryKey,
     queryFn,
-    getNextPageParam: (lastPage) => lastPage.pagination?.hasMore ? lastPage.pagination.page + 1 : undefined,
-    enabled
+    getNextPageParam: getNextPageParamProp
+      ?? ((lastPage) => lastPage.pagination?.hasMore ? lastPage.pagination.page + 1 : undefined),
+    initialPageParam: initialPageParam ?? 1,
+    enabled,
+    ...(staleTime !== undefined && { staleTime })
   });
 
   const flatItems = useMemo(() => {
@@ -100,6 +107,7 @@ export function InfiniteVirtualizedList({
         getKey={getKey}
         className="w-full"
         itemClassName={itemClassName}
+        {...(overscan !== undefined && { overscan })}
       />
       
       {/* Sentinel Element for Intersection Observer */}

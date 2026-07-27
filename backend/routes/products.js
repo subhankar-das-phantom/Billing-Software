@@ -8,7 +8,8 @@ const {
   updateProduct,
   adjustStock,
   deleteProduct,
-  getLowStock
+  getLowStock,
+  getStockHistory
 } = require('../controllers/productController');
 const { protect } = require('../middleware/auth');
 const { 
@@ -27,6 +28,8 @@ router.get('/stock/low', getLowStock);
 router.route('/')
   .get(getProducts)
   .post(createProductValidator, createProduct);
+
+router.get('/:id/stock-history', mongoIdParam, getStockHistory);
 
 router.route('/:id')
   .get(mongoIdParam, getProduct)
