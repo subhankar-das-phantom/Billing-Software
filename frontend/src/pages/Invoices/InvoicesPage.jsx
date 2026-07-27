@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { invoiceService } from '../../services/invoices/invoiceService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import { PageLoader, TableSkeleton } from '../../components/Common/Feedback/Loader';
+import { InvoicesTableSkeleton } from './InvoicesPageSkeleton';
 import ExportModal from '../../components/Common/Modals/ExportModal';
 import { useToast } from '../../contexts/ToastContext';
 import { invalidateCachePattern, useDebounce, useFirstVisit, useMediaQuery, useMotionConfig, useSWR } from '../../hooks';
@@ -426,8 +426,8 @@ export default function InvoicesPage() {
       {/* Invoices Table */}
       <AnimatePresence mode="wait">
         {showTableSkeleton ? (
-          <div key="skeleton" className="glass-card overflow-hidden">
-            <TableSkeleton rows={8} columns={7} />
+          <div key="skeleton">
+            <InvoicesTableSkeleton />
           </div>
         ) : invoices.length === 0 ? (
           <div

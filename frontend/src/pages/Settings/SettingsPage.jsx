@@ -24,6 +24,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { authService } from '../../services/auth/authService';
 import { useMotionConfig } from '../../hooks';
+import SettingsPageSkeleton from './SettingsPageSkeleton';
 
 export default function SettingsPage() {
   const { user, userRole, updateAdmin, updateUserPreferences } = useAuth();
@@ -31,6 +32,15 @@ export default function SettingsPage() {
   const motionConfig = useMotionConfig();
 
   const [activeTab, setActiveTab] = useState(userRole === 'admin' ? 'general' : 'preferences');
+  const [loading, setLoading] = useState(true);
+
+  // Smooth entry transition
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 400); // Brief delay to show the beautiful skeleton transition
+    return () => clearTimeout(timer);
+  }, []);
 
   // Profile form state (Admin only)
   const [profile, setProfile] = useState({
@@ -586,6 +596,10 @@ export default function SettingsPage() {
       </div>
     </div>
   );
+
+  if (loading) {
+    return <SettingsPageSkeleton />;
+  }
 
   return (
     <div className="max-w-[1400px] mx-auto min-h-[calc(100vh-8rem)] flex flex-col">

@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { noteService } from '../../services/notes/noteService';
 import { formatDate } from '../../utils/formatters';
-import { PageLoader } from '../../components/Common/Feedback/Loader';
+import { NotesPageSkeleton } from './NotesPageSkeleton';
 import Modal from '../../components/Common/Modals/Modal';
 import ConfirmDialog from '../../components/Common/Dialogs/ConfirmDialog';
 import EnhancedButton from '../../components/Common/Buttons/EnhancedButton';
@@ -190,7 +190,7 @@ export default function NotesPage() {
   }), [motionConfig.isMobile]);
 
   if (loading && !search) {
-    return <PageLoader />;
+    return <NotesPageSkeleton />;
   }
 
   return (

@@ -29,7 +29,7 @@ import {
 import { productService } from '../../services/products/productService';
 import { formatCurrency, formatDateForInput } from '../../utils/formatters';
 import { GST_RATES } from '../../utils/calculations';
-import { PageLoader } from '../../components/Common/Feedback/Loader';
+import { ProductsPageSkeleton } from './ProductsPageSkeleton';
 import Modal from '../../components/Common/Modals/Modal';
 import ConfirmDialog from '../../components/Common/Dialogs/ConfirmDialog';
 import EnhancedButton from '../../components/Common/Buttons/EnhancedButton';
@@ -647,7 +647,7 @@ export default function ProductsPage() {
   };
 
   if (loading) {
-    return <PageLoader />;
+    return <ProductsPageSkeleton />;
   }
 
   // ✅ FIX #4: Use unique key based on filter state (excluding length to prevent infinite scroll remounts)
