@@ -17,7 +17,7 @@ import { invoiceService } from '../../services/invoices/invoiceService';
 import { creditNoteService } from '../../services/credits/creditNoteService';
 import { productService } from '../../services/products/productService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import { PageLoader } from '../../components/Common/Feedback/Loader';
+import { CreditNoteCreatePageSkeleton } from './CreditNoteCreatePageSkeleton';
 import { useToast } from '../../contexts/ToastContext';
 import { useSWR, useFirstVisit, invalidateCachePattern } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
@@ -182,7 +182,7 @@ export default function CreditNoteCreatePage() {
     }
   };
 
-  if (loading) return <PageLoader />;
+  if (loading) return <CreditNoteCreatePageSkeleton />;
   if (!invoice) {
     return (
       <div className="glass-card p-12 text-center">
