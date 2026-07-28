@@ -13,6 +13,7 @@ const CalculatorWidget = lazy(() => import('../../features/calculator/Calculator
 
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isSidebarAnimating, setIsSidebarAnimating] = useState(false);
   const location = useLocation();
   const motionConfig = useMotionConfig();
   const { user } = useAuth();
@@ -29,7 +30,7 @@ export default function DashboardLayout() {
 
   // Adaptive transition based on device
   const sidebarTransition = motionConfig.isMobile 
-    ? { type: 'tween', duration: 0.25, ease: 'easeOut' }
+    ? { type: 'tween', duration: 0.22, ease: [0.22, 1, 0.36, 1] }
     : { type: 'spring', stiffness: 300, damping: 30 };
 
   return (
@@ -39,7 +40,7 @@ export default function DashboardLayout() {
         {sidebarOpen && (
           <motion.div
             key="sidebar-overlay"
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+            className="fixed inset-0 bg-black/60 z-40 lg:hidden touch-none overscroll-contain"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -47,8 +48,6 @@ export default function DashboardLayout() {
             onClick={() => setSidebarOpen(false)}
           />
         )}
-      </AnimatePresence>
-      <AnimatePresence>
         {sidebarOpen && (
           <motion.div
             key="sidebar-panel"
@@ -57,6 +56,9 @@ export default function DashboardLayout() {
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={sidebarTransition}
+            onAnimationStart={() => setIsSidebarAnimating(true)}
+            onAnimationComplete={() => setIsSidebarAnimating(false)}
+            style={{ willChange: isSidebarAnimating ? 'transform' : 'auto' }}
           >
             <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
           </motion.div>

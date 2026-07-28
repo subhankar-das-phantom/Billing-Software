@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, memo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -104,6 +104,128 @@ function useMediaQuery(query) {
   return matches;
 }
 
+const MemoizedMenuItem = memo(({ item, index, location, onClose, hoveredItem, setHoveredItem, menuItemVariants, motionConfig }) => {
+  const isEditPage = location.pathname.includes('/edit');
+  
+  let isActive;
+  if (item.path === '/invoices/create') {
+    isActive = location.pathname === '/invoices/create' || isEditPage;
+  } else if (item.path === '/invoices') {
+    isActive = location.pathname === '/invoices' || 
+      (location.pathname.startsWith('/invoices/') && !isEditPage && !location.pathname.includes('/create'));
+  } else {
+    isActive = location.pathname === item.path || 
+      (item.path !== '/' && location.pathname.startsWith(item.path));
+  }
+  
+  return (
+    <motion.li 
+      variants={menuItemVariants}
+      onHoverStart={() => setHoveredItem(item.path)}
+      onHoverEnd={() => setHoveredItem(null)}
+      initial={motionConfig.isMobile ? false : undefined}
+      animate={motionConfig.isMobile ? false : undefined}
+    >
+      <Link
+        to={item.path}
+        onClick={onClose}
+        className="relative block"
+      >
+        {/* Active indicator background */}
+        {isActive && (
+          <motion.div
+            layoutId="activeTab"
+            className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-accent-600/20 border border-blue-500/30 rounded-xl"
+            initial={false}
+            transition={{ 
+              type: "spring", 
+              stiffness: 500, 
+              damping: 30,
+              mass: 0.8
+            }}
+          />
+        )}
+        
+        {/* Hover background */}
+        <AnimatePresence>
+          {hoveredItem === item.path && !isActive && (
+            <motion.div
+              className="absolute inset-0 bg-slate-800/50 rounded-xl"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+            />
+          )}
+        </AnimatePresence>
+
+        <div className={`relative flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+          isActive ? 'text-blue-400' : 'text-slate-400 hover:text-white'
+        }`}>
+          {/* Icon */}
+          <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+          
+          <span className="font-medium flex-1">{item.label}</span>
+          
+          {/* Badge */}
+          {item.badge && (
+            <motion.span
+              className={`${item.badgeColor || 'bg-blue-500'} text-white text-xs px-2 py-0.5 rounded-full font-semibold`}
+              initial={motionConfig.isMobile ? false : { scale: 0, opacity: 0 }}
+              animate={motionConfig.isMobile ? false : { scale: 1, opacity: 1 }}
+              transition={{ 
+                type: 'spring',
+                stiffness: 500,
+                damping: 15,
+                delay: 0.3 + index * 0.05
+              }}
+            >
+              {item.badge}
+            </motion.span>
+          )}
+          
+          {/* Hover arrow */}
+          <AnimatePresence>
+            {hoveredItem === item.path && (
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ChevronRight size={16} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </Link>
+    </motion.li>
+  );
+});
+
+const MemoizedQuickAction = memo(({ item, onClose, menuItemVariants, motionConfig }) => (
+  <motion.li 
+    variants={menuItemVariants}
+    whileHover={motionConfig.shouldHover ? { x: 4 } : undefined}
+    initial={motionConfig.isMobile ? false : undefined}
+    animate={motionConfig.isMobile ? false : undefined}
+  >
+    <Link
+      to={item.path}
+      onClick={onClose}
+      className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/50 transition-colors group"
+    >
+      <item.icon size={18} />
+      <span className="text-sm font-medium flex-1">{item.label}</span>
+      {item.badge && (
+        <span className={`${item.badgeColor || 'bg-blue-500'} text-white text-[10px] px-1.5 py-0.5 rounded font-semibold`}>
+          {item.badge}
+        </span>
+      )}
+    </Link>
+  </motion.li>
+));
+
 export default function Sidebar({ isOpen, onClose }) {
   const location = useLocation();
   const { admin, user, isAdmin, logout } = useAuth();
@@ -114,19 +236,27 @@ export default function Sidebar({ isOpen, onClose }) {
   // Lock body scroll when mobile sidebar is open
   useEffect(() => {
     if (isOpen && !isDesktop) {
-      const scrollY = window.scrollY;
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.left = '0';
-      document.body.style.right = '0';
-      document.body.style.overflow = 'hidden';
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      
+      if (isIOS) {
+        const scrollY = window.scrollY;
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${scrollY}px`;
+        document.body.style.width = '100%';
+      } else {
+        document.body.style.overflow = 'hidden';
+      }
+      
       return () => {
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.left = '';
-        document.body.style.right = '';
-        document.body.style.overflow = '';
-        window.scrollTo(0, scrollY);
+        if (isIOS) {
+          const scrollY = document.body.style.top;
+          document.body.style.position = '';
+          document.body.style.top = '';
+          document.body.style.width = '';
+          window.scrollTo(0, parseInt(scrollY || '0') * -1);
+        } else {
+          document.body.style.overflow = '';
+        }
       };
     }
   }, [isOpen, isDesktop]);
@@ -159,12 +289,12 @@ export default function Sidebar({ isOpen, onClose }) {
     <>
       
       {/* Sidebar - static in mobile wrapper or desktop layout */}
-      <aside className="sidebar h-full w-64 bg-slate-900/95 border-r border-slate-700 flex flex-col md:translate-x-0 md:static backdrop-blur-xl shadow-2xl">
+      <aside className="sidebar h-full w-64 bg-slate-900/95 border-r border-slate-700 flex flex-col md:translate-x-0 md:static md:backdrop-blur-xl backdrop-blur-none shadow-md md:shadow-2xl contain-layout contain-paint">
         {/* Logo Section */}
         <motion.div 
           className="p-6 border-b border-slate-700 flex justify-between items-center"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={motionConfig.isMobile ? false : { opacity: 0, y: -20 }}
+          animate={motionConfig.isMobile ? false : { opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
           <Link to="/" className="flex items-center gap-3 group" onClick={onClose}>
@@ -234,112 +364,26 @@ export default function Sidebar({ isOpen, onClose }) {
             </motion.div>
             
             <ul className="space-y-1">
-              {menuItems.map((item, index) => {
-                // Check if we're on an edit page
-                const isEditPage = location.pathname.includes('/edit');
-                
-                let isActive;
-                if (item.path === '/invoices/create') {
-                  // Create Invoice is active for both /invoices/create and /invoices/:id/edit
-                  isActive = location.pathname === '/invoices/create' || isEditPage;
-                } else if (item.path === '/invoices') {
-                  // All Invoices is active only for exact /invoices path (not edit pages)
-                  isActive = location.pathname === '/invoices' || 
-                    (location.pathname.startsWith('/invoices/') && !isEditPage && !location.pathname.includes('/create'));
-                } else {
-                  // Default logic for other items
-                  isActive = location.pathname === item.path || 
-                    (item.path !== '/' && location.pathname.startsWith(item.path));
-                }
-                
-                return (
-                  <motion.li 
-                    key={item.path}
-                    variants={menuItemVariants}
-                    onHoverStart={() => setHoveredItem(item.path)}
-                    onHoverEnd={() => setHoveredItem(null)}
-                  >
-                    <Link
-                      to={item.path}
-                      onClick={onClose}
-                      className="relative block"
-                    >
-                      {/* Active indicator background */}
-                      {isActive && (
-                        <motion.div
-                          layoutId="activeTab"
-                          className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-accent-600/20 border border-blue-500/30 rounded-xl"
-                          initial={false}
-                          transition={{ 
-                            type: "spring", 
-                            stiffness: 500, 
-                            damping: 30,
-                            mass: 0.8
-                          }}
-                        />
-                      )}
-                      
-                      {/* Hover background */}
-                      <AnimatePresence>
-                        {hoveredItem === item.path && !isActive && (
-                          <motion.div
-                            className="absolute inset-0 bg-slate-800/50 rounded-xl"
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            transition={{ duration: 0.15 }}
-                          />
-                        )}
-                      </AnimatePresence>
-
-                      <div className={`relative flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
-                        isActive ? 'text-blue-400' : 'text-slate-400 hover:text-white'
-                      }`}>
-                        {/* Icon - simplified on mobile, no infinite animations */}
-                        <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-                        
-                        <span className="font-medium flex-1">{item.label}</span>
-                        
-                        {/* Badge */}
-                        {item.badge && (
-                          <motion.span
-                            className={`${item.badgeColor || 'bg-blue-500'} text-white text-xs px-2 py-0.5 rounded-full font-semibold`}
-                            initial={{ scale: 0, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{ 
-                              type: 'spring',
-                              stiffness: 500,
-                              damping: 15,
-                              delay: 0.3 + index * 0.05
-                            }}
-                          >
-                            {item.badge}
-                          </motion.span>
-                        )}
-                        
-                        {/* Hover arrow */}
-                        <AnimatePresence>
-                          {hoveredItem === item.path && (
-                            <motion.div
-                              initial={{ opacity: 0, x: -10 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              exit={{ opacity: 0, x: -10 }}
-                              transition={{ duration: 0.2 }}
-                            >
-                              <ChevronRight size={16} />
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    </Link>
-                  </motion.li>
-                );
-              })}
+              {menuItems.map((item, index) => (
+                <MemoizedMenuItem 
+                  key={item.path}
+                  item={item}
+                  index={index}
+                  location={location}
+                  onClose={onClose}
+                  hoveredItem={hoveredItem}
+                  setHoveredItem={setHoveredItem}
+                  menuItemVariants={menuItemVariants}
+                  motionConfig={motionConfig}
+                />
+              ))}
             </ul>
 
             {/* Quick Actions */}
             <motion.div
               variants={menuItemVariants}
+              initial={motionConfig.isMobile ? false : undefined}
+              animate={motionConfig.isMobile ? false : undefined}
               className="mt-6"
             >
               <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 px-3">
@@ -348,26 +392,13 @@ export default function Sidebar({ isOpen, onClose }) {
               
               <ul className="space-y-1">
                 {quickActions.map((item) => (
-                  <motion.li 
+                  <MemoizedQuickAction 
                     key={item.path}
-                    variants={menuItemVariants}
-                    whileHover={motionConfig.shouldHover ? { x: 4 } : undefined}
-                  >
-                    <Link
-                      to={item.path}
-                      onClick={onClose}
-                      className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/50 transition-colors group"
-                    >
-                      {/* Icon - no rotation animation on mobile */}
-                      <item.icon size={18} />
-                      <span className="text-sm font-medium flex-1">{item.label}</span>
-                      {item.badge && (
-                        <span className={`${item.badgeColor || 'bg-blue-500'} text-white text-[10px] px-1.5 py-0.5 rounded font-semibold`}>
-                          {item.badge}
-                        </span>
-                      )}
-                    </Link>
-                  </motion.li>
+                    item={item}
+                    onClose={onClose}
+                    menuItemVariants={menuItemVariants}
+                    motionConfig={motionConfig}
+                  />
                 ))}
               </ul>
             </motion.div>
@@ -379,8 +410,8 @@ export default function Sidebar({ isOpen, onClose }) {
         {/* User Section */}
         <motion.div 
           className="p-4 border-t border-slate-700 bg-slate-900/50"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={motionConfig.isMobile ? false : { opacity: 0, y: 20 }}
+          animate={motionConfig.isMobile ? false : { opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
           <motion.div 
