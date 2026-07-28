@@ -24,7 +24,8 @@ import {
   Layers,
   Percent,
   Ruler,
-  Eye
+  Eye,
+  Download
 } from 'lucide-react';
 import { productService } from '../../services/products/productService';
 import { formatCurrency, formatDateForInput } from '../../utils/formatters';
@@ -34,6 +35,7 @@ import Modal from '../../components/Common/Modals/Modal';
 import ConfirmDialog from '../../components/Common/Dialogs/ConfirmDialog';
 import EnhancedButton from '../../components/Common/Buttons/EnhancedButton';
 import { VirtualizedList } from '../../components/Common/VirtualizedList';
+import ExportModal from '../../components/Common/Modals/ExportModal';
 import { useToast } from '../../contexts/ToastContext';
 import { useDebounce, useMotionConfig, useFirstVisit, useSWR, invalidateCachePattern, useMediaQuery, useTransitionDelay } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
@@ -416,6 +418,7 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatCurrency, obs
         <span className="text-sm font-medium text-slate-400">Loading more products...</span>
       </div>
     )}
+    )}
   </div>
 );
 
@@ -427,6 +430,8 @@ export default function ProductsPage() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [formData, setFormData] = useState(initialProductState);
   const [saving, setSaving] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, product: null });
   const [stockAdjustment, setStockAdjustment] = useState({ qty: '', reason: 'add' });
   const [filterStock, setFilterStock] = useState('all');
@@ -639,6 +644,47 @@ export default function ProductsPage() {
     return true;
   });
 
+  const handleExport = async ({ format, dateRange }) => {
+    if (isExporting) return;
+    setIsExporting(true);
+
+    try {
+      const params = { format };
+      if (search) params.search = search;
+      if (filterStock !== 'all') params.stockFilter = filterStock;
+
+      const blob = await productService.exportProducts(params);
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+
+      const extensionMap = { excel: 'xlsx', pdf: 'pdf', csv: 'csv' };
+      const extension = extensionMap[format] || 'xlsx';
+      
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      link.download = `products_export_${y}-${m}-${d}.${extension}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      setShowExportModal(false);
+      success(`Successfully exported products as ${format.toUpperCase()}`);
+    } catch (err) {
+      error(err.response?.data?.message || 'Failed to export products');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const exportStats = {
+    total: filteredProducts.length
+  };
+
   const stats = {
     total: statsData?.total || 0,
     lowStock: statsData?.lowStock || 0,
@@ -729,12 +775,21 @@ export default function ProductsPage() {
             </div>
           </div>
 
-          <EnhancedButton
-            onClick={openCreateModal}
-            icon={Plus}
-          >
-            Add Product
-          </EnhancedButton>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowExportModal(true)}
+              className="btn bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold flex items-center justify-center gap-2 px-4 shadow-lg shadow-emerald-500/30 border-0 active:scale-95 transition-transform"
+            >
+              <Download className="w-5 h-5" />
+              <span className="hidden sm:inline">Export</span>
+            </button>
+            <EnhancedButton
+              onClick={openCreateModal}
+              icon={Plus}
+            >
+              Add Product
+            </EnhancedButton>
+          </div>
         </div>
 
         {/* Search & Filters */}
@@ -1027,6 +1082,20 @@ export default function ProductsPage() {
         message={`Are you sure you want to delete "${deleteDialog.product?.productName}"? This action cannot be undone.`}
         confirmText="Delete"
         variant="danger"
+      />
+
+      {/* Export Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => {
+          if (!isExporting) setShowExportModal(false);
+        }}
+        data={filteredProducts}
+        stats={exportStats}
+        onExport={handleExport}
+        isExporting={isExporting}
+        entityType="Products"
+        showDateRange={false}
       />
     </motion.div>
   );
