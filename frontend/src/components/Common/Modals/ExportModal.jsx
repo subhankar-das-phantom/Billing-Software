@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { formatCurrency } from '../../../utils/formatters';
 
-const ExportModal = ({ isOpen, onClose, data, onExport, stats, entityType = 'invoices', isExporting = false }) => {
+const ExportModal = ({ isOpen, onClose, data, onExport, stats, entityType = 'invoices', isExporting = false, showDateRange = true }) => {
   const [exportFormat, setExportFormat] = useState('excel');
   const [exportDateRange, setExportDateRange] = useState({
     startDate: '',
@@ -163,7 +163,7 @@ const ExportModal = ({ isOpen, onClose, data, onExport, stats, entityType = 'inv
                   </motion.div>
                   <div>
                     <h2 className="text-2xl font-bold">Export {entityType}</h2>
-                    <p className="text-emerald-100 text-sm">Choose format and date range</p>
+                    <p className="text-emerald-100 text-sm">Choose format {showDateRange && 'and date range'}</p>
                   </div>
                 </div>
                 <motion.button
@@ -221,97 +221,101 @@ const ExportModal = ({ isOpen, onClose, data, onExport, stats, entityType = 'inv
               </div>
 
               {/* Date Range Presets */}
-              <div>
-                <label className="block text-sm font-semibold text-white mb-3">Quick Select Period</label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {presets.map((preset) => (
-                    <motion.button
-                      key={preset.value}
-                      onClick={() => setExportDateRange(getPresetDates(preset.value))}
-                      className={`p-3 rounded-xl border-2 transition-all ${
-                        exportDateRange.preset === preset.value
-                          ? 'border-emerald-500 bg-emerald-500/20 text-emerald-400'
-                          : 'border-slate-700 hover:border-slate-600 text-slate-300'
-                      }`}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
+              {showDateRange && (
+                <>
+                  <div>
+                    <label className="block text-sm font-semibold text-white mb-3">Quick Select Period</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {presets.map((preset) => (
+                        <motion.button
+                          key={preset.value}
+                          onClick={() => setExportDateRange(getPresetDates(preset.value))}
+                          className={`p-3 rounded-xl border-2 transition-all ${
+                            exportDateRange.preset === preset.value
+                              ? 'border-emerald-500 bg-emerald-500/20 text-emerald-400'
+                              : 'border-slate-700 hover:border-slate-600 text-slate-300'
+                          }`}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          <div className="text-2xl mb-1">{preset.icon}</div>
+                          <div className="text-sm font-medium">{preset.label}</div>
+                        </motion.button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Custom Date Range */}
+                  <div>
+                    <label className="block text-sm font-semibold text-white mb-3">Or Choose Custom Date Range</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-2">Start Date</label>
+                        <div className="relative">
+                          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                          <input
+                            type="date"
+                            value={exportDateRange.startDate}
+                            onChange={(e) =>
+                              setExportDateRange({
+                                startDate: e.target.value,
+                                endDate: exportDateRange.endDate,
+                                preset: 'custom'
+                              })
+                            }
+                            className="input pl-10 w-full"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-2">End Date</label>
+                        <div className="relative">
+                          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                          <input
+                            type="date"
+                            value={exportDateRange.endDate}
+                            onChange={(e) =>
+                              setExportDateRange({
+                                startDate: exportDateRange.startDate,
+                                endDate: e.target.value,
+                                preset: 'custom'
+                              })
+                            }
+                            min={exportDateRange.startDate}
+                            className="input pl-10 w-full"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Selected Range Display */}
+                  {exportDateRange.startDate && exportDateRange.endDate && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-blue-500/20 border border-blue-500/30 rounded-xl p-4"
                     >
-                      <div className="text-2xl mb-1">{preset.icon}</div>
-                      <div className="text-sm font-medium">{preset.label}</div>
-                    </motion.button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Custom Date Range */}
-              <div>
-                <label className="block text-sm font-semibold text-white mb-3">Or Choose Custom Date Range</label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs text-slate-400 mb-2">Start Date</label>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                      <input
-                        type="date"
-                        value={exportDateRange.startDate}
-                        onChange={(e) =>
-                          setExportDateRange({
-                            startDate: e.target.value,
-                            endDate: exportDateRange.endDate,
-                            preset: 'custom'
-                          })
-                        }
-                        className="input pl-10 w-full"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-slate-400 mb-2">End Date</label>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                      <input
-                        type="date"
-                        value={exportDateRange.endDate}
-                        onChange={(e) =>
-                          setExportDateRange({
-                            startDate: exportDateRange.startDate,
-                            endDate: e.target.value,
-                            preset: 'custom'
-                          })
-                        }
-                        min={exportDateRange.startDate}
-                        className="input pl-10 w-full"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Selected Range Display */}
-              {exportDateRange.startDate && exportDateRange.endDate && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-blue-500/20 border border-blue-500/30 rounded-xl p-4"
-                >
-                  <div className="flex items-center gap-2 text-blue-400">
-                    <Calendar className="w-5 h-5" />
-                    <span className="font-medium text-sm">
-                      Selected Period:{' '}
-                      {parseLocalYMD(exportDateRange.startDate)?.toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric'
-                      }) || exportDateRange.startDate}{' '}
-                      -{' '}
-                      {parseLocalYMD(exportDateRange.endDate)?.toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric'
-                      }) || exportDateRange.endDate}
-                    </span>
-                  </div>
-                </motion.div>
+                      <div className="flex items-center gap-2 text-blue-400">
+                        <Calendar className="w-5 h-5" />
+                        <span className="font-medium text-sm">
+                          Selected Period:{' '}
+                          {parseLocalYMD(exportDateRange.startDate)?.toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          }) || exportDateRange.startDate}{' '}
+                          -{' '}
+                          {parseLocalYMD(exportDateRange.endDate)?.toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          }) || exportDateRange.endDate}
+                        </span>
+                      </div>
+                    </motion.div>
+                  )}
+                </>
               )}
             </div>
 

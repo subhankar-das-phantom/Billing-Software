@@ -11,6 +11,7 @@ const {
   getLowStock,
   getStockHistory
 } = require('../controllers/productController');
+const { exportProducts } = require('../controllers/product/productExportController');
 const { protect } = require('../middleware/auth');
 const { 
   createProductValidator, 
@@ -24,6 +25,7 @@ router.use(protect);
 
 router.get('/stats', getProductStats);
 router.get('/stock/low', getLowStock);
+router.get('/export', exportProducts);
 
 router.route('/')
   .get(getProducts)
