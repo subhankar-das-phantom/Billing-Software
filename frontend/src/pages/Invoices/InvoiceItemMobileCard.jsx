@@ -7,7 +7,9 @@ export default function InvoiceItemMobileCard({
   item,
   index,
   updateItemQuantity,
-  removeItem
+  removeItem,
+  availableStock,
+  maxSoldQuantity
 }) {
   return (
     <motion.div
@@ -31,7 +33,7 @@ export default function InvoiceItemMobileCard({
           <div className="text-right shrink-0 space-y-1">
             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-slate-900/50 text-xs font-medium text-slate-300">
               <Package className="w-3 h-3" />
-              Stock: {item.product.currentStock}
+              Available: {availableStock}
             </span>
             {item.product.newMRP != null && (
               <p className="text-xs text-slate-500 px-1">
@@ -57,7 +59,7 @@ export default function InvoiceItemMobileCard({
               onChange={(e) => updateItemQuantity(index, 'quantitySold', e.target.value)}
               className="input w-full py-2 text-center text-sm"
               min="1"
-              max={item.product.currentStock}
+              max={maxSoldQuantity}
             />
           </div>
           <div>
