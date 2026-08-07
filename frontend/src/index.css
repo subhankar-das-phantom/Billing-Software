@@ -930,11 +930,15 @@
   #root,
   main,
   .main-content,
-  [class*="justify-center"] {
+  [class*="justify-center"]:not(.no-print) {
     margin: 0 !important;
     padding: 0 !important;
     width: 100% !important;
     display: block !important;
+  }
+
+  .no-print {
+    display: none !important;
   }
 
   /* Full width invoice */
