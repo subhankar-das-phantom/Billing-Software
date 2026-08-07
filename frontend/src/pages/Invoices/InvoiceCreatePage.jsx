@@ -29,7 +29,7 @@ import { calculateItemAmounts, calculateInvoiceTotals, GST_RATES, removeGST, rou
 import { InvoiceCreatePageSkeleton } from './InvoiceCreatePageSkeleton';
 import Modal from '../../components/Common/Modals/Modal';
 import { useToast } from '../../contexts/ToastContext';
-import { invalidateCachePattern, useDebounce, useFirstVisit, useMediaQuery } from '../../hooks';
+import { invalidateCachePattern, subscribeToInvalidation, useDebounce, useFirstVisit, useMediaQuery } from '../../hooks';
 import { useQueryClient } from '@tanstack/react-query';
 import InvoiceItemMobileCard from './InvoiceItemMobileCard';
 
@@ -189,6 +189,11 @@ export default function InvoiceCreatePage() {
   const latestProductSearchRequest = useRef(0);
   const submitInFlightRef = useRef(false);
   const originalStockAllocationsRef = useRef(new Map());
+  const invoiceItemsRef = useRef(invoiceItems);
+  const loadingRef = useRef(loading);
+  const savingRef = useRef(saving);
+  const refreshingRef = useRef(false);
+  const isMountedRef = useRef(true);
   const isRequestCanceled = (err) => err?.code === 'ERR_CANCELED' || err?.name === 'CanceledError' || err?.name === 'AbortError';
 
   const getCurrentEditStock = (currentStockQty, productId) => (
@@ -268,6 +273,66 @@ export default function InvoiceCreatePage() {
   useEffect(() => {
     loadInitialData();
   }, [editInvoiceId]);
+
+  // Keep refs in sync with state (avoids stale closures in the stock refresh effect)
+  useEffect(() => { invoiceItemsRef.current = invoiceItems; }, [invoiceItems]);
+  useEffect(() => { loadingRef.current = loading; }, [loading]);
+  useEffect(() => { savingRef.current = saving; }, [saving]);
+
+  // Refresh stock when products are invalidated (cross-tab) or tab regains focus (cross-device)
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    const refreshStock = async () => {
+      const items = invoiceItemsRef.current;
+      if (items.length === 0) return;
+      if (loadingRef.current || savingRef.current) return;
+      if (refreshingRef.current) return;
+
+      refreshingRef.current = true;
+
+      try {
+        const stockMap = await getCurrentStockByProductId(items);
+
+        if (!isMountedRef.current) return;
+
+        setInvoiceItems(prev => {
+          let changed = false;
+          const next = prev.map(item => {
+            const freshStock = stockMap.get(item.product._id);
+            if (freshStock === undefined || freshStock === item.product.currentStock) return item;
+            changed = true;
+            return {
+              ...item,
+              product: { ...item.product, currentStock: freshStock }
+            };
+          });
+          return changed ? next : prev;
+        });
+      } catch {
+        // Silent fail — stale stock is better than crashing
+      } finally {
+        refreshingRef.current = false;
+      }
+    };
+
+    // 1. Cross-tab invalidation via centralized subscription
+    const unsubscribe = subscribeToInvalidation('products', refreshStock);
+
+    // 2. Cross-device fallback: refresh on tab focus
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') refreshStock();
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', refreshStock);
+
+    return () => {
+      isMountedRef.current = false;
+      unsubscribe();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', refreshStock);
+    };
+  }, []);
 
   useEffect(() => {
     const query = debouncedCustomerSearch.trim();
