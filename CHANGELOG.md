@@ -6,6 +6,21 @@ For full release notes with implementation details, see [GitHub Releases](https:
 
 ---
 
+## [v1.21.1](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v1.21.1) — Invoice Editing Reliability & Real-Time Stock Synchronization
+
+### Added
+- **Automatic Product Stock Synchronization** — The Invoice Create page automatically refreshes product stock whenever inventory changes elsewhere (cross-tab synchronization, window focus, visibility change). Powered by BroadcastChannel and storage-event fallback.
+- **Synchronization Architecture** — Reusable cross-page communication system with duplicate invalidation prevention, concurrent refresh protection, safe unmount handling, and HMR listener protection.
+
+### Improved
+- **Correct Stock Validation During Invoice Editing** — Editing correctly restores stock originally allocated to the invoice before validating quantity changes. Centralized allocation model (`getInvoiceStockAllocations()`, `getCurrentEditStock()`, etc.) enables correct effective editable stock, multi-line invoice support, and reduced API calls.
+- **Documentation** — README synchronized through v1.21.0, comprehensive CHANGELOG added, and release history tracked.
+
+### Fixed
+- **Build Stability** — Resolved frontend syntax error caused by an extra closing brace in `ProductsPage.jsx`.
+
+---
+
 ## [v1.21.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v1.21.0) — Shared Export Engine & Mobile Performance Optimization
 
 ### Added
