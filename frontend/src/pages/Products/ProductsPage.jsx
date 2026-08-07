@@ -418,7 +418,6 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatCurrency, obs
         <span className="text-sm font-medium text-slate-400">Loading more products...</span>
       </div>
     )}
-    )}
   </div>
 );
 
