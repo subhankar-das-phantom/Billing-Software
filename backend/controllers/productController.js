@@ -255,20 +255,28 @@ exports.adjustStock = async (req, res, next) => {
         message: 'Valid type (in or out) is required' 
       });
     }
-    
-    const product = await Product.findOne({
+
+    const adjustment = type === 'in' ? quantity : -quantity;
+
+    // Build the filter — for stock-out, guard against negative stock atomically
+    const filter = {
       _id: req.params.id,
       tenantId
-    });
-    if (!product) {
+    };
+    if (type === 'out') {
+      filter.currentStockQty = { $gte: quantity };
+    }
+
+    // Read current product first to get previousQty for stockHistory
+    const currentProduct = await Product.findOne({ _id: req.params.id, tenantId });
+    if (!currentProduct) {
       return res.status(404).json({ success: false, message: 'Product not found' });
     }
 
-    const previousQty = product.currentStockQty;
-    const adjustment = type === 'in' ? quantity : -quantity;
+    const previousQty = currentProduct.currentStockQty;
     const newQty = previousQty + adjustment;
 
-    // Validate stock won't go negative
+    // Validate stock won't go negative (pre-check for better error message)
     if (newQty < 0) {
       return res.status(400).json({ 
         success: false, 
@@ -276,22 +284,35 @@ exports.adjustStock = async (req, res, next) => {
       });
     }
 
-    product.currentStockQty = newQty;
-    
-    product.stockHistory.push({
-      type: 'adjustment',
-      changeQty: adjustment,
-      previousQty,
-      newQty,
-      reference: reason || 'Stock adjustment',
-      timestamp: new Date(),
-      adjustedBy: getAttribution(req)
-    });
+    console.log('[DEBUG] Executing adjustStock with $inc:', { currentStockQty: adjustment, stockVersion: 1 });
+    // Atomic update: $inc both currentStockQty and stockVersion in the same operation
+    const product = await Product.findOneAndUpdate(
+      filter,
+      {
+        $inc: { currentStockQty: adjustment, stockVersion: 1 },
+        $push: {
+          stockHistory: {
+            type: 'adjustment',
+            changeQty: adjustment,
+            previousQty,
+            newQty,
+            reference: reason || 'Stock adjustment',
+            timestamp: new Date(),
+            adjustedBy: getAttribution(req)
+          }
+        },
+        $set: { lastUpdatedBy: getAttribution(req) }
+      },
+      { new: true, runValidators: true }
+    );
 
-    // Update lastUpdatedBy
-    product.lastUpdatedBy = getAttribution(req);
-
-    await product.save();
+    // If product is null, the guard condition failed (concurrent stock-out race)
+    if (!product) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Insufficient stock. Cannot remove more than available quantity.' 
+      });
+    }
 
     // Track employee activity
     trackActivity(req, ACTIVITY_TYPES.STOCK_ADJUSTED);

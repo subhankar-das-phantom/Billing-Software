@@ -29,7 +29,7 @@ import { calculateItemAmounts, calculateInvoiceTotals, GST_RATES, removeGST, rou
 import { InvoiceCreatePageSkeleton } from './InvoiceCreatePageSkeleton';
 import Modal from '../../components/Common/Modals/Modal';
 import { useToast } from '../../contexts/ToastContext';
-import { invalidateCachePattern, subscribeToInvalidation, useDebounce, useFirstVisit, useMediaQuery } from '../../hooks';
+import { invalidateCachePattern, subscribeToInvalidation, useDebounce, useFirstVisit, useMediaQuery, useStockSSE } from '../../hooks';
 import { useQueryClient } from '@tanstack/react-query';
 import InvoiceItemMobileCard from './InvoiceItemMobileCard';
 
@@ -223,20 +223,25 @@ export default function InvoiceCreatePage() {
 
   const getCurrentStockByProductId = async (items = []) => {
     const productIds = [...new Set(items.map(item => item?.product?._id).filter(Boolean))];
-    if (productIds.length === 0) return new Map();
+    if (productIds.length === 0) return { stockMap: new Map(), versionMap: {} };
 
-    const productResponses = await Promise.all(
+    const stockMap = new Map();
+    const versionMap = {};
+
+    await Promise.all(
       productIds.map(async (id) => {
         try {
           const data = await productService.getProduct(id, false);
-          return [id, data?.product?.currentStockQty ?? 0];
+          stockMap.set(id, data?.product?.currentStockQty ?? 0);
+          versionMap[id] = data?.product?.stockVersion ?? 0;
         } catch {
-          return [id, 0];
+          stockMap.set(id, 0);
+          versionMap[id] = 0;
         }
       })
     );
 
-    return new Map(productResponses);
+    return { stockMap, versionMap };
   };
 
   const getCustomerById = async (customerId) => {
@@ -279,7 +284,67 @@ export default function InvoiceCreatePage() {
   useEffect(() => { loadingRef.current = loading; }, [loading]);
   useEffect(() => { savingRef.current = saving; }, [saving]);
 
-  // Refresh stock when products are invalidated (cross-tab) or tab regains focus (cross-device)
+  // ── Real-time stock sync via SSE (cross-device) ──────────────────────────
+  const sseConnectionRef = useRef('disconnected');
+
+  const { connectionState: sseConnectionState, applyVersions } = useStockSSE({
+    onStockUpdate: (updates) => {
+      // Always invalidate the global products cache when ANY stock update arrives,
+      // regardless of whether the product is in the current invoice draft.
+      // This ensures the Product Search dropdown gets fresh stock data.
+      invalidateCachePattern('products');
+
+      setInvoiceItems(prev => {
+        let changed = false;
+        const next = prev.map(item => {
+          const update = updates.find(u => u.productId === item.product._id);
+          if (!update) return item;
+          if (update.currentStockQty === item.product.currentStock) return item;
+          changed = true;
+          return {
+            ...item,
+            product: { ...item.product, currentStock: update.currentStockQty }
+          };
+        });
+        return changed ? next : prev;
+      });
+    },
+    onReconnect: async () => {
+      // Version-aware reconciliation after SSE reconnect
+      const items = invoiceItemsRef.current;
+      if (items.length === 0) return;
+
+      try {
+        const { stockMap, versionMap } = await getCurrentStockByProductId(items);
+        if (!isMountedRef.current) return;
+
+        // Seed version map — applyVersions only accepts versions newer than already-known
+        applyVersions(versionMap);
+
+        setInvoiceItems(prev => {
+          let changed = false;
+          const next = prev.map(item => {
+            const freshStock = stockMap.get(item.product._id);
+            if (freshStock === undefined || freshStock === item.product.currentStock) return item;
+            changed = true;
+            return {
+              ...item,
+              product: { ...item.product, currentStock: freshStock }
+            };
+          });
+          return changed ? next : prev;
+        });
+      } catch {
+        // Silent fail — reconciliation is best-effort
+      }
+    },
+    enabled: true
+  });
+
+  // Keep a ref of connectionState for use in the refreshStock closure
+  useEffect(() => { sseConnectionRef.current = sseConnectionState; }, [sseConnectionState]);
+
+  // Refresh stock when products are invalidated (cross-tab) or tab regains focus (cross-device fallback)
   useEffect(() => {
     isMountedRef.current = true;
 
@@ -292,9 +357,12 @@ export default function InvoiceCreatePage() {
       refreshingRef.current = true;
 
       try {
-        const stockMap = await getCurrentStockByProductId(items);
+        const { stockMap, versionMap } = await getCurrentStockByProductId(items);
 
         if (!isMountedRef.current) return;
+
+        // Seed version map for SSE ordering
+        applyVersions(versionMap);
 
         setInvoiceItems(prev => {
           let changed = false;
@@ -319,18 +387,25 @@ export default function InvoiceCreatePage() {
     // 1. Cross-tab invalidation via centralized subscription
     const unsubscribe = subscribeToInvalidation('products', refreshStock);
 
-    // 2. Cross-device fallback: refresh on tab focus
+    // 2. Cross-device fallback: refresh on tab focus ONLY when SSE is disconnected
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') refreshStock();
+      if (document.visibilityState === 'visible' && sseConnectionRef.current !== 'connected') {
+        refreshStock();
+      }
+    };
+    const handleFocus = () => {
+      if (sseConnectionRef.current !== 'connected') {
+        refreshStock();
+      }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', refreshStock);
+    window.addEventListener('focus', handleFocus);
 
     return () => {
       isMountedRef.current = false;
       unsubscribe();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', refreshStock);
+      window.removeEventListener('focus', handleFocus);
     };
   }, []);
 
@@ -468,7 +543,7 @@ export default function InvoiceCreatePage() {
             setCustomerSearch(savedDraft.customerSearch || savedDraft.selectedCustomer.customerName);
           }
 
-          const stockMap = await getCurrentStockByProductId(savedDraft.invoiceItems);
+          const { stockMap } = await getCurrentStockByProductId(savedDraft.invoiceItems);
           
           const restoredItems = savedDraft.invoiceItems.map(item => {
             const currentStockQty = stockMap.get(item.product._id);
@@ -508,7 +583,7 @@ export default function InvoiceCreatePage() {
           }
           
           if (savedDraft.invoiceItems && savedDraft.invoiceItems.length > 0) {
-            const stockMap = await getCurrentStockByProductId(savedDraft.invoiceItems);
+            const { stockMap } = await getCurrentStockByProductId(savedDraft.invoiceItems);
             const validItems = savedDraft.invoiceItems.filter(item => {
               return (stockMap.get(item.product._id) ?? 0) > 0;
             }).map(item => {
@@ -533,7 +608,7 @@ export default function InvoiceCreatePage() {
           console.log('Loading invoice from database:', editInvoiceId);
           try {
             const invoice = editInvoice;
-            const stockMap = await getCurrentStockByProductId(invoice.items);
+            const { stockMap } = await getCurrentStockByProductId(invoice.items);
             
             setSelectedCustomer(invoice.customer);
             setCustomerSearch(invoice.customer.customerName);
@@ -578,7 +653,7 @@ export default function InvoiceCreatePage() {
         console.log('No draft found, loading invoice from database:', editInvoiceId);
         try {
           const invoice = editInvoice;
-          const stockMap = await getCurrentStockByProductId(invoice.items);
+          const { stockMap } = await getCurrentStockByProductId(invoice.items);
           
           setSelectedCustomer(invoice.customer);
           setCustomerSearch(invoice.customer.customerName);
@@ -1117,14 +1192,32 @@ export default function InvoiceCreatePage() {
           </motion.div>
           <h2 className="text-lg font-semibold text-white">Add Products</h2>
           {invoiceItems.length > 0 && (
-            <motion.span
-              className="ml-auto px-3 py-1 bg-blue-500/20 text-blue-400 text-sm rounded-full font-medium"
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: 'spring', stiffness: 400 }}
-            >
-              {invoiceItems.length} {invoiceItems.length === 1 ? 'item' : 'items'}
-            </motion.span>
+            <>
+              <motion.span
+                className="px-3 py-1 bg-blue-500/20 text-blue-400 text-sm rounded-full font-medium"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 400 }}
+              >
+                {invoiceItems.length} {invoiceItems.length === 1 ? 'item' : 'items'}
+              </motion.span>
+              <span className="ml-auto flex items-center gap-1.5 text-xs font-medium">
+                {sseConnectionState === 'connected' ? (
+                  <>
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                    </span>
+                    <span className="text-emerald-400">Live</span>
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="w-3 h-3 text-amber-400" />
+                    <span className="text-amber-400">Stock updates unavailable</span>
+                  </>
+                )}
+              </span>
+            </>
           )}
         </div>
         

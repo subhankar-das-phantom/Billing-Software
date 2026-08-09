@@ -597,7 +597,7 @@ exports.createInvoice = async (req, res, next) => {
         updateOne: {
           filter: { _id: product._id, tenantId },
           update: {
-            $inc: { currentStockQty: -deductedQty },
+            $inc: { currentStockQty: -deductedQty, stockVersion: 1 },
             $push: {
               stockHistory: {
                 type: 'invoice',
@@ -811,7 +811,7 @@ exports.updateInvoice = async (req, res, next) => {
         const updated = await Product.findOneAndUpdate(
           { _id: pid, tenantId, currentStockQty: { $gte: delta } },
           {
-            $inc: { currentStockQty: -delta },
+            $inc: { currentStockQty: -delta, stockVersion: 1 },
             $push: {
               stockHistory: {
                 type: 'invoice_edit',
@@ -837,7 +837,7 @@ exports.updateInvoice = async (req, res, next) => {
         await Product.findOneAndUpdate(
           { _id: pid, tenantId },
           {
-            $inc: { currentStockQty: Math.abs(delta) },
+            $inc: { currentStockQty: Math.abs(delta), stockVersion: 1 },
             $push: {
               stockHistory: {
                 type: 'invoice_edit',
@@ -1080,7 +1080,7 @@ exports.updateInvoiceStatus = async (req, res, next) => {
           await Product.findOneAndUpdate(
             { _id: item.product._id, tenantId },
             {
-              $inc: { currentStockQty: totalQty },
+              $inc: { currentStockQty: totalQty, stockVersion: 1 },
               $push: {
                 stockHistory: {
                   type: 'invoice_cancelled',
@@ -1135,7 +1135,7 @@ exports.updateInvoiceStatus = async (req, res, next) => {
             await Product.findOneAndUpdate(
               { _id: item.product._id, tenantId },
               {
-                $inc: { currentStockQty: totalQty },
+                $inc: { currentStockQty: totalQty, stockVersion: 1 },
                 $push: {
                   stockHistory: {
                     type: 'invoice_cancelled',

@@ -231,6 +231,14 @@ export const invalidateCachePattern = (pattern) => {
   }
   keysToRemove.forEach(key => localStorage.removeItem(key));
   broadcastInvalidation('pattern', pattern);
+  
+  // Also clear the api.js cache if this is a cross-tab invalidation
+  // This ensures dropdowns using cachedRequest get fresh data
+  import('../services/api').then(api => {
+    if (api && api.clearCache) {
+      api.clearCache();
+    }
+  }).catch(e => console.error('Failed to clear api.js cache:', e));
 };
 
 /**
