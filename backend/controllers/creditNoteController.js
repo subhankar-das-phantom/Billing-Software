@@ -110,7 +110,7 @@ exports.createCreditNote = async (req, res, next) => {
       await Product.findOneAndUpdate(
         { _id: invoiceItem.product._id, tenantId },
         {
-          $inc: { currentStockQty: returnItem.quantityReturned },
+          $inc: { currentStockQty: returnItem.quantityReturned, stockVersion: 1 },
           $push: {
             stockHistory: {
               type: 'sales_return',

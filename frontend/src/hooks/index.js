@@ -6,3 +6,4 @@ export { useSWR, invalidateCache, invalidateCachePattern, subscribeToInvalidatio
 export { useMediaQuery } from './useMediaQuery';
 export { useTransitionDelay } from './useTransitionDelay';
 export { useCustomerFilters, DEFAULT_FILTERS } from './useCustomerFilters';
+export { useStockSSE } from './useStockSSE';

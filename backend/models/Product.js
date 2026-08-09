@@ -92,6 +92,11 @@ const productSchema = new mongoose.Schema({
     default: 0,
     min: 0
   },
+  stockVersion: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
   unit: {
     type: String,
     default: 'Pieces'

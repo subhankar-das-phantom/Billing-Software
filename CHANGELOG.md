@@ -6,6 +6,29 @@ For full release notes with implementation details, see [GitHub Releases](https:
 
 ---
 
+## [v1.22.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v1.22.0) — Real-Time Stock Sync Stability & Caching Hardening
+
+### Fixed
+- **SSE Version Comparison Bug** — Fixed an edge case where JavaScript evaluated `"10" <= "9"` as `true`, causing real-time stock updates to be ignored after the 9th version. The system now bypasses this brittle check and relies exclusively on strict idempotence (`update.currentStockQty === item.product.currentStock`).
+- **Orphaned API Cache** — The `api.js` cache wasn't being cleared during cross-tab SSE invalidation events. Fixed `useSWR.js` to dynamically invoke `api.clearCache()`, guaranteeing the Product Search dropdown always shows fresh stock numbers instantly.
+- **Aggressive Browser Caching** — Added `Cache-Control: no-cache, no-store, must-revalidate` to the global Axios instance to prevent browsers from serving stale disk-cached `GET /api/products` responses.
+
+---
+## [v1.21.1](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v1.21.1) — Invoice Editing Reliability & Real-Time Stock Synchronization
+
+### Added
+- **Automatic Product Stock Synchronization** — The Invoice Create page automatically refreshes product stock whenever inventory changes elsewhere (cross-tab synchronization, window focus, visibility change). Powered by BroadcastChannel and storage-event fallback.
+- **Synchronization Architecture** — Reusable cross-page communication system with duplicate invalidation prevention, concurrent refresh protection, safe unmount handling, and HMR listener protection.
+
+### Improved
+- **Correct Stock Validation During Invoice Editing** — Editing correctly restores stock originally allocated to the invoice before validating quantity changes. Centralized allocation model (`getInvoiceStockAllocations()`, `getCurrentEditStock()`, etc.) enables correct effective editable stock, multi-line invoice support, and reduced API calls.
+- **Documentation** — README synchronized through v1.21.0, comprehensive CHANGELOG added, and release history tracked.
+
+### Fixed
+- **Build Stability** — Resolved frontend syntax error caused by an extra closing brace in `ProductsPage.jsx`.
+
+---
+
 ## [v1.21.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v1.21.0) — Shared Export Engine & Mobile Performance Optimization
 
 ### Added

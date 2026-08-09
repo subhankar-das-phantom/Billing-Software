@@ -3,11 +3,13 @@ import axios from 'axios';
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 const isDevelopment = import.meta.env.DEV;
 
-// Create axios instance
 const api = axios.create({
   baseURL: API_URL,
   headers: {
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
   },
   withCredentials: true, // Enable sending cookies
   timeout: 30000 // 30 seconds timeout

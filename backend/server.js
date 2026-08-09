@@ -32,8 +32,11 @@ const authLimiter = rateLimit({
   legacyHeaders: false
 });
 
-// Connect to database
-connectDB();
+// Connect to database and initialize Change Stream
+connectDB().then(() => {
+  const stockChangeStream = require('./services/stockChangeStream');
+  stockChangeStream.initialize();
+});
 
 const app = express();
 
@@ -93,6 +96,9 @@ app.use('/api/reports', generalLimiter, require('./routes/reports'));
 app.use('/api/sales-analytics', generalLimiter, require('./src/modules/salesAnalytics/routes/index'));
 app.use('/api/manual-entries', generalLimiter, require('./routes/manualEntries'));
 app.use('/api/credit-notes', generalLimiter, require('./routes/creditNotes'));
+
+// SSE route — no rate limiter (long-lived connection, protected by auth + per-user limit)
+app.use('/api/stock-events', require('./routes/stockEvents'));
 
 // Health check
 app.get('/api/health', (req, res) => {
