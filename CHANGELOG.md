@@ -6,6 +6,14 @@ For full release notes with implementation details, see [GitHub Releases](https:
 
 ---
 
+## [v1.22.1](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v1.22.1) — Production SSE Connectivity Fix
+
+### Fixed
+- **Cross-Origin SSE Authentication** — Resolved an issue where Server-Sent Events (SSE) for real-time stock sync failed to connect in production (Vercel frontend → Render backend).
+- **Absolute URLs** — SSE now connects via the absolute `VITE_API_URL` instead of relative paths, which previously caused 404s on Vercel.
+- **JWT Query Parameter Fallback** — Added token passing via query string (`?token=...`) since the native `EventSource` API cannot send cookies or custom `Authorization` headers across domains. Backend auth middleware was updated to gracefully accept this fallback for SSE endpoints.
+
+---
 ## [v1.22.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v1.22.0) — Real-Time Stock Sync Stability & Caching Hardening
 
 ### Fixed
