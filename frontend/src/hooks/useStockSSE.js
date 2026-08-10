@@ -1,5 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
+// Build the SSE base URL from the same env var that api.js uses.
+// VITE_API_URL is e.g. "https://billing-software-1-tbdx.onrender.com/api"
+// For SSE we need the stock-events path under that same origin.
+const API_URL = import.meta.env.VITE_API_URL || '/api';
+
 /**
  * useStockSSE — Real-time stock synchronization via Server-Sent Events.
  *
@@ -63,7 +68,19 @@ export function useStockSSE({ onStockUpdate, onReconnect, enabled = true }) {
 
     setConnectionState('connecting');
 
-    const eventSource = new EventSource('/api/stock-events/stream');
+    // EventSource cannot send cookies or Authorization headers cross-origin.
+    // In production (Vercel → Render) we must:
+    //   1. Use the full backend URL (not a relative path)
+    //   2. Pass the JWT as a query parameter
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.warn('[useStockSSE] No auth token found — skipping SSE connection');
+      setConnectionState('disconnected');
+      return;
+    }
+
+    const sseUrl = `${API_URL}/stock-events/stream?token=${encodeURIComponent(token)}`;
+    const eventSource = new EventSource(sseUrl, { withCredentials: true });
 
     eventSource.addEventListener('connected', (event) => {
       console.log('[useStockSSE] SSE connected', event.data);
