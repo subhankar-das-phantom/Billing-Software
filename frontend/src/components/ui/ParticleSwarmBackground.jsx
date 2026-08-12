@@ -7,12 +7,12 @@ import * as THREE from 'three';
 // Register UnrealBloomPass so <unrealBloomPass> works in JSX
 extend({ UnrealBloomPass });
 
-// ─── Particle Swarm Scene ────────────────────────────
-// Adapted from the tweet-sized p5.js "Yuruyurau Bloom" sketch.
-// Colors remapped to the app's blue → cyan → teal → emerald palette.
-// Mouse interactivity: particles are attracted/repelled by cursor position.
+// ─── Milky Way Galaxy Scene ─────────────────────────
+// A rotating barred spiral galaxy with a bright central bulge,
+// sweeping spiral arms, and a thin stellar disk.
+// Mouse interactivity: particles repel from cursor with glow effect.
 
-function ParticleSwarm({ count }) {
+function GalaxySwarm({ count }) {
   const meshRef = useRef();
   const { camera, pointer } = useThree();
   const speedMult = 1;
@@ -39,13 +39,13 @@ function ParticleSwarm({ count }) {
   const material = useMemo(() => new THREE.MeshBasicMaterial({ color: 0xffffff }), []);
   const geometry = useMemo(() => new THREE.TetrahedronGeometry(0.25), []);
 
-  // Brand color stops: blue-500, cyan-400, teal-400, emerald-400
-  const brandHues = useMemo(() => [
-    217 / 360,  // blue-500   (#3b82f6)
-    187 / 360,  // cyan-400   (#22d3ee)
-    174 / 360,  // teal-400   (#2dd4bf)
-    160 / 360,  // emerald-400 (#34d399)
-  ], []);
+  // Galaxy parameters
+  const PARAMS = useMemo(() => ({
+    radius: 150.4,
+    arms: 4,
+    twist: 4.5,
+    spin: 0.12,
+  }), []);
 
   useFrame((state) => {
     if (!meshRef.current) return;
@@ -57,55 +57,62 @@ function ParticleSwarm({ count }) {
     const dist = -camera.position.z / dir.z;
     mouseWorld.copy(camera.position).add(dir.multiplyScalar(dist));
 
-    const scale = 1.0;
-    const speed = 0.3;
-    const depth = 12;
-    const glow = 0.3;
-    const t = time * speed;
-
     // Mouse interaction params
-    const mouseRadius = 60;        // influence radius in world units
-    const mouseStrength = 18;      // max displacement force
-    const mousRadiusSq = mouseRadius * mouseRadius;
+    const mouseRadius = 60;
+    const mouseStrength = 18;
+    const mouseRadiusSq = mouseRadius * mouseRadius;
+
+    const radius = PARAMS.radius;
+    const arms = PARAMS.arms;
+    const twist = PARAMS.twist;
+    const spin = PARAMS.spin;
+    const g = 2.399963229728653; // golden angle
 
     for (let i = 0; i < count; i++) {
-      const y = (i / count) * 42.55;
+      const u = (i + 0.5) / count;
 
-      const k = (4.0 + Math.cos((i * (10000.0 / count)) / 9.0 - t * 2.0)) *
-        Math.cos((i * (10000.0 / count)) / 35.0);
-      const e = y / 7.0 - 13.0;
-      const d = Math.sqrt(k * k + e * e) + Math.sin(e / 9.0 + t / 2.0) - 4.0;
+      // More stars concentrated near the galactic center
+      const r = radius * Math.pow(u, 0.55);
 
-      const q = 2.0 * Math.sin(k * 3.0) -
-        (y / 35.0) * k * (9.0 + k * Math.sin(Math.cos(e) * 9.0 - d * 2.0 + t));
-      const c = d - t;
+      // Four major spiral arms
+      const arm = (i % arms) / arms;
+      const a = arm * 6.283185307179586 + r * twist * 0.055 + time * spin + i * g * 0.002;
 
-      let px = (q + 40.0 * Math.cos(c)) * scale;
-      let py = -((q * Math.sin(c) + d * 35.0) - 245.0) * scale;
-      let pz = depth * Math.sin(k * 2.0 + c) * scale;
+      // Dense stellar bulge
+      const bulge = 1.0 - u;
+      const spread = bulge * bulge * radius * 0.12;
 
-      target.set(px, py, pz);
+      // Spiral arm waviness
+      const wave = Math.sin(r * 0.09 + a * 2.0);
+
+      // Thin galactic disk
+      const x = Math.cos(a) * (r + spread * wave);
+      const z = Math.sin(a) * (r + spread * wave);
+      const y = radius * 0.015 * bulge * Math.sin(a * 6.0 + time * 0.8);
+
+      target.set(x, y, z);
 
       // ── Mouse interaction: repel particles away from cursor ──
       tempVec.copy(target).sub(mouseWorld);
       const distSq = tempVec.lengthSq();
-      if (distSq < mousRadiusSq && distSq > 0.01) {
-        const falloff = 1.0 - (distSq / mousRadiusSq);
-        const force = mouseStrength * falloff * falloff; // quadratic falloff
+      if (distSq < mouseRadiusSq && distSq > 0.01) {
+        const falloff = 1.0 - (distSq / mouseRadiusSq);
+        const force = mouseStrength * falloff * falloff;
         tempVec.normalize().multiplyScalar(force);
         target.add(tempVec);
       }
 
-      // Remap original 360° hue → 4 brand color stops
-      const hueDeg = ((d * 40.0 + time * 30.0) % 360.0 + 360.0) % 360.0;
-      const normalized = hueDeg / 360.0;
-      // Quantize into 4 brand hue bands
-      const bandIndex = Math.floor(normalized * brandHues.length);
-      const hue = brandHues[Math.min(bandIndex, brandHues.length - 1)];
+      // Warm yellow-white core fading to blue outer stars
+      const core = Math.exp(-r / (radius * 0.18));
+      const hue = 0.60 - 0.47 * core;
+      const sat = 0.25 + 0.75 * (1.0 - core);
+      let light = 0.45 + 0.5 * core;
 
-      // Brighten particles near the mouse for a "glow on hover" effect
-      const glowBoost = (distSq < mousRadiusSq) ? 0.15 * (1.0 - distSq / mousRadiusSq) : 0;
-      pColor.setHSL(hue, 0.85, Math.min(glow + glowBoost, 0.5));
+      // Brighten particles near the mouse
+      const glowBoost = (distSq < mouseRadiusSq) ? 0.15 * (1.0 - distSq / mouseRadiusSq) : 0;
+      light = Math.min(light + glowBoost, 0.85);
+
+      pColor.setHSL(hue, sat, light);
 
       positions[i].lerp(target, 0.1);
       dummy.position.copy(positions[i]);
@@ -131,8 +138,9 @@ function AutoRotate() {
 
   useFrame((state) => {
     const time = state.clock.getElapsedTime();
-    const angle = time * 0.03; // very slow rotation
+    const angle = time * 0.03;
     camera.position.x = Math.sin(angle) * radius;
+    camera.position.y = 25; // tilt: view from above at ~30°
     camera.position.z = Math.cos(angle) * radius;
     camera.lookAt(0, 0, 0);
   });
@@ -142,12 +150,11 @@ function AutoRotate() {
 
 // ─── Main Background Component (full-page fixed) ────
 export default function ParticleSwarmBackground() {
-  // Adaptive particle count based on GPU capability
   const count = useMemo(() => {
     if (typeof window === 'undefined') return 15000;
     const dpr = window.devicePixelRatio || 1;
-    if (dpr >= 2) return 15000;  // Retina / HiDPI
-    return 20000;                 // Standard 1080p
+    if (dpr >= 2) return 15000;
+    return 20000;
   }, []);
 
   return (
@@ -157,7 +164,7 @@ export default function ParticleSwarmBackground() {
         inset: 0,
         zIndex: 0,
         pointerEvents: 'none',
-        opacity: 0.4,  // let clicks pass through to page content
+        opacity: 0.4,
       }}
     >
       <Canvas
@@ -169,7 +176,7 @@ export default function ParticleSwarmBackground() {
         eventPrefix="client"
       >
         <fog attach="fog" args={['#000000', 80, 250]} />
-        <ParticleSwarm count={count} />
+        <GalaxySwarm count={count} />
         <AutoRotate />
         <Effects disableGamma>
           <unrealBloomPass threshold={0} strength={0.5} radius={0.4} />
