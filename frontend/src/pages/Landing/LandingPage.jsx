@@ -787,7 +787,7 @@ function CTASection({ reduceMotion, isLoggedIn }) {
 // ════════════════════════════════════════════════════
 function Footer() {
   return (
-    <footer className="border-t border-slate-800/80 bg-slate-950">
+    <footer className="border-t border-slate-800/80 bg-slate-950/95 backdrop-blur-xl relative z-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
         <div className="flex flex-col lg:flex-row items-center lg:items-start justify-between gap-8">
           {/* Brand */}
@@ -798,7 +798,7 @@ function Footer() {
               </div>
               <span className="text-white font-bold text-lg tracking-tight">Bharat Enterprise</span>
             </div>
-            <p className="text-slate-400 text-sm max-w-xs leading-relaxed">
+            <p className="text-slate-300 text-sm max-w-xs leading-relaxed">
               Fast billing, accurate stock, and clear customer balances — built for Indian shop owners and distributors.
             </p>
           </div>
@@ -807,29 +807,29 @@ function Footer() {
           <div className="flex flex-wrap justify-center gap-8 text-sm">
             <div className="space-y-3">
               <p className="font-semibold text-slate-300">Product</p>
-              <button onClick={() => scrollToSection('features')} className="block text-slate-500 hover:text-white transition-colors bg-transparent border-none cursor-pointer p-0">Features</button>
-              <button onClick={() => scrollToSection('pricing')} className="block text-slate-500 hover:text-white transition-colors bg-transparent border-none cursor-pointer p-0">Pricing</button>
-              <button onClick={() => scrollToSection('how-it-works')} className="block text-slate-500 hover:text-white transition-colors bg-transparent border-none cursor-pointer p-0">How It Works</button>
+              <button onClick={() => scrollToSection('features')} className="block text-slate-400 hover:text-white transition-colors bg-transparent border-none cursor-pointer p-0">Features</button>
+              <button onClick={() => scrollToSection('pricing')} className="block text-slate-400 hover:text-white transition-colors bg-transparent border-none cursor-pointer p-0">Pricing</button>
+              <button onClick={() => scrollToSection('how-it-works')} className="block text-slate-400 hover:text-white transition-colors bg-transparent border-none cursor-pointer p-0">How It Works</button>
             </div>
             <div className="space-y-3">
               <p className="font-semibold text-slate-300">Account</p>
-              <Link to="/login" className="block text-slate-500 hover:text-white transition-colors no-underline">Sign In</Link>
-              <Link to="/register" className="block text-slate-500 hover:text-white transition-colors no-underline">Register</Link>
+              <Link to="/login" className="block text-slate-400 hover:text-white transition-colors no-underline">Sign In</Link>
+              <Link to="/register" className="block text-slate-400 hover:text-white transition-colors no-underline">Register</Link>
             </div>
             <div className="space-y-3">
               <p className="font-semibold text-slate-300">Legal</p>
-              <Link to="/privacy-policy" className="block text-slate-500 hover:text-white transition-colors no-underline">Privacy Policy</Link>
-              <Link to="/terms" className="block text-slate-500 hover:text-white transition-colors no-underline">Terms & Conditions</Link>
+              <Link to="/privacy-policy" className="block text-slate-400 hover:text-white transition-colors no-underline">Privacy Policy</Link>
+              <Link to="/terms" className="block text-slate-400 hover:text-white transition-colors no-underline">Terms & Conditions</Link>
             </div>
           </div>
         </div>
 
         {/* Bottom */}
         <div className="mt-12 pt-8 border-t border-slate-800/60 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-400">
             © {new Date().getFullYear()} Bharat Enterprise. All rights reserved.
           </p>
-          <p className="text-xs text-slate-500 flex items-center gap-1">
+          <p className="text-xs text-slate-400 flex items-center gap-1">
             Built with <Heart className="w-3 h-3 text-red-400 fill-red-400" /> in India
           </p>
         </div>
