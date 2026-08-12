@@ -2,6 +2,64 @@ import { motion } from "framer-motion";
 import { Circle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// ─── CSS Gradient Orbs Fallback ─────────────────────
+// Lightweight animated background for mobile / loading / reduced-motion.
+// Uses GPU-composited CSS animations — zero JS overhead.
+function GradientOrbsFallback() {
+  return (
+    <div className="absolute inset-0 overflow-hidden" style={{ zIndex: 0 }}>
+      {/* Blue orb — top-left */}
+      <div
+        className="absolute rounded-full opacity-30"
+        style={{
+          width: 500,
+          height: 500,
+          top: "-10%",
+          left: "-10%",
+          background: "radial-gradient(circle, rgba(59,130,246,0.35) 0%, transparent 70%)",
+          animation: "heroOrbFloat1 8s ease-in-out infinite",
+        }}
+      />
+      {/* Cyan orb — center-right */}
+      <div
+        className="absolute rounded-full opacity-25"
+        style={{
+          width: 400,
+          height: 400,
+          top: "30%",
+          right: "-5%",
+          background: "radial-gradient(circle, rgba(34,211,238,0.30) 0%, transparent 70%)",
+          animation: "heroOrbFloat2 10s ease-in-out infinite",
+        }}
+      />
+      {/* Teal orb — bottom-left */}
+      <div
+        className="absolute rounded-full opacity-20"
+        style={{
+          width: 350,
+          height: 350,
+          bottom: "5%",
+          left: "10%",
+          background: "radial-gradient(circle, rgba(45,212,191,0.30) 0%, transparent 70%)",
+          animation: "heroOrbFloat3 12s ease-in-out infinite",
+        }}
+      />
+      {/* Emerald orb — top-right */}
+      <div
+        className="absolute rounded-full opacity-15"
+        style={{
+          width: 250,
+          height: 250,
+          top: "10%",
+          right: "15%",
+          background: "radial-gradient(circle, rgba(52,211,153,0.25) 0%, transparent 70%)",
+          animation: "heroOrbFloat1 14s ease-in-out infinite reverse",
+        }}
+      />
+    </div>
+  );
+}
+
 function ElegantShape({
   className,
   delay = 0,
@@ -108,70 +166,14 @@ function HeroGeometric({
   };
 
   return (
-    <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-slate-950 pt-16">
+    <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-transparent pt-16">
       {/* Subtle gradient wash — matches existing blue/teal palette */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-500/[0.06] via-transparent to-accent-500/[0.06] blur-3xl" />
 
       {/* Grid pattern — matches the rest of the landing page */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:60px_60px] [mask-image:radial-gradient(ellipse_80%_60%_at_50%_40%,black,transparent)]" />
 
-      <div className="absolute inset-0 overflow-hidden">
-        {/* Blue — top-left (matches primary brand color) */}
-        <ElegantShape
-          delay={0.3}
-          width={600}
-          height={140}
-          rotate={12}
-          gradient="from-blue-500/[0.22]"
-          className="left-[-10%] md:left-[-5%] top-[15%] md:top-[20%]"
-          reduceMotion={reduceMotion}
-        />
-
-        {/* Teal — bottom-right (matches secondary accent) */}
-        <ElegantShape
-          delay={0.5}
-          width={500}
-          height={120}
-          rotate={-15}
-          gradient="from-accent-500/[0.22]"
-          className="right-[-5%] md:right-[0%] top-[70%] md:top-[75%]"
-          reduceMotion={reduceMotion}
-        />
-
-        {/* Cyan — bottom-left */}
-        <ElegantShape
-          delay={0.4}
-          width={300}
-          height={80}
-          rotate={-8}
-          gradient="from-accent2-500/[0.18]"
-          className="left-[5%] md:left-[10%] bottom-[5%] md:bottom-[10%]"
-          reduceMotion={reduceMotion}
-        />
-
-        {/* Emerald — top-right (matches success/accent color) */}
-        <ElegantShape
-          delay={0.6}
-          width={200}
-          height={60}
-          rotate={20}
-          gradient="from-emerald-500/[0.18]"
-          className="right-[15%] md:right-[20%] top-[10%] md:top-[15%]"
-          reduceMotion={reduceMotion}
-        />
-
-        {/* Cyan — small accent, top-left area */}
-        <ElegantShape
-          delay={0.7}
-          width={150}
-          height={40}
-          rotate={-25}
-          gradient="from-cyan-500/[0.15]"
-          className="left-[20%] md:left-[25%] top-[5%] md:top-[10%]"
-          reduceMotion={reduceMotion}
-        />
-      </div>
-
+      {/* Text content — z-10 to stay above background layers */}
       <div className="relative z-10 container mx-auto px-4 md:px-6">
         <div className="max-w-3xl mx-auto text-center">
           {/* Badge */}
@@ -237,10 +239,13 @@ function HeroGeometric({
         </div>
       </div>
 
+      {/* Dark vignette overlay — ensures text readability over particles */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_50%,transparent_20%,rgba(2,6,23,0.6)_100%)] pointer-events-none" />
+
       {/* Bottom fade — blends into the slate-950 sections below */}
       <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-slate-950/60 pointer-events-none" />
     </div>
   );
 }
 
-export { HeroGeometric, ElegantShape };
+export { HeroGeometric, ElegantShape, GradientOrbsFallback };

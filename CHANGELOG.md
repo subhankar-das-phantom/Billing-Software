@@ -6,6 +6,20 @@ For full release notes with implementation details, see [GitHub Releases](https:
 
 ---
 
+## [v1.23.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v1.23.0) — Immersive 3D Landing Page Experience
+
+### Added
+- **3D Particle Swarm Background** — Replaced the static geometric shapes on the landing page with an interactive 3D particle swarm using React Three Fiber.
+- **Brand Theming** — The particle swarm dynamically cycles through the app's core palette (blue, cyan, teal, emerald).
+- **Mouse Interactivity** — Particles glow and smoothly repel from the user's cursor for an engaging "wow" effect.
+
+### Changed
+- **Mobile Optimization (Tiered Rendering)** — Mobile users (<= 768px) and users with `prefers-reduced-motion` are served a zero-JS CSS animated gradient fallback to preserve battery and maintain 60fps performance without downloading Three.js.
+- **Code-Splitting** — Three.js and associated libraries (~250KB gzipped) are lazy-loaded and only fetched on desktop devices to keep the initial page load blazing fast for all users.
+- **Visual Balance** — The particle swarm has been carefully dimmed with reduced bloom and opacity layers to ensure foreground text and call-to-action cards remain perfectly legible.
+
+---
+
 ## [v1.22.1](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v1.22.1) — Production SSE Connectivity Fix
 
 ### Fixed

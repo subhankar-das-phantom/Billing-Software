@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback, memo, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
 import {
@@ -9,7 +9,10 @@ import {
   Clock, Heart, Rocket, Star
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { HeroGeometric } from '@/components/ui/shape-landing-hero';
+import { HeroGeometric, GradientOrbsFallback } from '@/components/ui/shape-landing-hero';
+
+// Lazy-load Three.js — only fetched on desktop (never on mobile/reduced-motion)
+const ParticleSwarmBackground = lazy(() => import('@/components/ui/ParticleSwarmBackground'));
 
 // ─── Helpers ───────────────────────────────────────
 const getIsMobile = () => {
@@ -847,10 +850,27 @@ export default function LandingPage() {
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
   return (
-    <div className="min-h-screen bg-slate-950 overflow-x-hidden">
+    <div className="min-h-screen bg-slate-950 overflow-x-hidden relative">
+      {/* ── Full-page background: tiered rendering ── */}
+      {/* Desktop: 3D interactive particle swarm (lazy-loaded, fixed behind all content) */}
+      {/* Mobile/reduced-motion: CSS gradient orbs only (no Three.js downloaded) */}
+      {!reduceMotion ? (
+        <Suspense fallback={
+          <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+            <GradientOrbsFallback />
+          </div>
+        }>
+          <ParticleSwarmBackground />
+        </Suspense>
+      ) : (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+          <GradientOrbsFallback />
+        </div>
+      )}
+
       <FloatingNav reduceMotion={reduceMotion} isLoggedIn={isLoggedIn} />
 
-      <main>
+      <main className="relative z-[1]">
 
         <HeroSection reduceMotion={reduceMotion} isLoggedIn={isLoggedIn} />
 
