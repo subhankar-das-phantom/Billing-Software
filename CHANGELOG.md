@@ -10,13 +10,20 @@ For full release notes with implementation details, see [GitHub Releases](https:
 
 ### Added
 - **3D Particle Swarm Background** — Replaced the static geometric shapes on the landing page with an interactive 3D particle swarm using React Three Fiber.
+- **Scroll-Driven Cinematic Timeline** — Tied the 3D particle animation and camera choreography to the page scroll position, sweeping smoothly through a high-altitude cinematic drone shot as the user scrolls.
 - **Brand Theming** — The particle swarm dynamically cycles through the app's core palette (blue, cyan, teal, emerald).
-- **Mouse Interactivity** — Particles glow and smoothly repel from the user's cursor for an engaging "wow" effect.
+- **Mouse Interactivity** — Particles glow and smoothly repel from the user's cursor across the entire screen, creating a gentle rippling effect.
 
 ### Changed
 - **Mobile Optimization (Tiered Rendering)** — Mobile users (<= 768px) and users with `prefers-reduced-motion` are served a zero-JS CSS animated gradient fallback to preserve battery and maintain 60fps performance without downloading Three.js.
 - **Code-Splitting** — Three.js and associated libraries (~250KB gzipped) are lazy-loaded and only fetched on desktop devices to keep the initial page load blazing fast for all users.
-- **Visual Balance** — The particle swarm has been carefully dimmed with reduced bloom and opacity layers to ensure foreground text and call-to-action cards remain perfectly legible.
+- **Visual Balance (Frosted Glass)** — Implemented high-opacity dark backgrounds (`bg-slate-900/80`) paired with heavy CSS backdrop-blur filters across all floating cards and text sections to ensure flawless legibility against the bright 3D particles.
+
+### Fixed
+- **Procedural Timeline Integration** — Fixed an issue where dynamically changing spin speeds during scroll caused the galaxy's procedural rotation to rewind or jump violently.
+- **NaN Render Corruption** — Hardened the 3D rendering loop with strict fallback guards to prevent missing refs (like during HMR) from causing NaN propagation and hiding the entire canvas.
+- **THREE.Clock Deprecation** — Replaced R3F's deprecated global clock calls with a manually accumulated `state.delta` counter to silence internal warnings and improve stability.
+- **Particle Distortion** — Removed chaotic procedural distortion and clamped morphological parameters so the galaxy always maintains a perfect, tight spiral disc structure across all camera angles.
 
 ---
 
