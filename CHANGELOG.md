@@ -6,6 +6,35 @@ For full release notes with implementation details, see [GitHub Releases](https:
 
 ---
 
+## [v1.23.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v1.23.0) — Immersive 3D Landing Page Experience
+
+### Added
+- **3D Particle Swarm Background** — Replaced the static geometric shapes on the landing page with an interactive 3D particle swarm using React Three Fiber.
+- **Scroll-Driven Cinematic Timeline** — Tied the 3D particle animation and camera choreography to the page scroll position, sweeping smoothly through a high-altitude cinematic drone shot as the user scrolls.
+- **Brand Theming** — The particle swarm dynamically cycles through the app's core palette (blue, cyan, teal, emerald).
+- **Mouse Interactivity** — Particles glow and smoothly repel from the user's cursor across the entire screen, creating a gentle rippling effect.
+
+### Changed
+- **Mobile Optimization (Tiered Rendering)** — Mobile users (<= 768px) and users with `prefers-reduced-motion` are served a zero-JS CSS animated gradient fallback to preserve battery and maintain 60fps performance without downloading Three.js.
+- **Code-Splitting** — Three.js and associated libraries (~250KB gzipped) are lazy-loaded and only fetched on desktop devices to keep the initial page load blazing fast for all users.
+- **Visual Balance (Frosted Glass)** — Implemented high-opacity dark backgrounds (`bg-slate-900/80`) paired with heavy CSS backdrop-blur filters across all floating cards and text sections to ensure flawless legibility against the bright 3D particles.
+
+### Fixed
+- **Procedural Timeline Integration** — Fixed an issue where dynamically changing spin speeds during scroll caused the galaxy's procedural rotation to rewind or jump violently.
+- **NaN Render Corruption** — Hardened the 3D rendering loop with strict fallback guards to prevent missing refs (like during HMR) from causing NaN propagation and hiding the entire canvas.
+- **THREE.Clock Deprecation** — Replaced R3F's deprecated global clock calls with a manually accumulated `state.delta` counter to silence internal warnings and improve stability.
+- **Particle Distortion** — Removed chaotic procedural distortion and clamped morphological parameters so the galaxy always maintains a perfect, tight spiral disc structure across all camera angles.
+
+---
+
+## [v1.22.1](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v1.22.1) — Production SSE Connectivity Fix
+
+### Fixed
+- **Cross-Origin SSE Authentication** — Resolved an issue where Server-Sent Events (SSE) for real-time stock sync failed to connect in production (Vercel frontend → Render backend).
+- **Absolute URLs** — SSE now connects via the absolute `VITE_API_URL` instead of relative paths, which previously caused 404s on Vercel.
+- **JWT Query Parameter Fallback** — Added token passing via query string (`?token=...`) since the native `EventSource` API cannot send cookies or custom `Authorization` headers across domains. Backend auth middleware was updated to gracefully accept this fallback for SSE endpoints.
+
+---
 ## [v1.22.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v1.22.0) — Real-Time Stock Sync Stability & Caching Hardening
 
 ### Fixed

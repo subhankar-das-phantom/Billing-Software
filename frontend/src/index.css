@@ -315,6 +315,24 @@
     animation: float 6s ease-in-out infinite;
   }
 
+  /* Hero particle swarm — CSS gradient orb fallback animations (mobile / loading) */
+  @keyframes heroOrbFloat1 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(30px, -20px) scale(1.05); }
+    66% { transform: translate(-15px, 15px) scale(0.95); }
+  }
+
+  @keyframes heroOrbFloat2 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(-25px, 20px) scale(1.08); }
+  }
+
+  @keyframes heroOrbFloat3 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    40% { transform: translate(20px, -15px) scale(1.04); }
+    70% { transform: translate(-10px, 25px) scale(0.96); }
+  }
+
   /* Ensure minimum contrast */
   .bg-dark {
     @apply bg-slate-950;
