@@ -1,4 +1,4 @@
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useState, useCallback } from 'react';
 import { Canvas, useFrame, useThree, extend } from '@react-three/fiber';
 import { Effects } from '@react-three/drei';
 import { UnrealBloomPass } from 'three-stdlib';
@@ -528,6 +528,7 @@ function GalaxyController({ scrollRef, velocityRef, count, containerRef }) {
 
 export default function ParticleSwarmBackground({ scrollRef, velocityRef }) {
   const containerRef = useRef(null);
+  const [contextLost, setContextLost] = useState(false);
 
   const count = useMemo(() => {
     if (typeof window === 'undefined') return 15000;
@@ -545,6 +546,25 @@ export default function ParticleSwarmBackground({ scrollRef, velocityRef }) {
     []
   );
 
+  // Handle WebGL context loss/restore gracefully
+  const handleCreated = useCallback(({ gl }) => {
+    const canvas = gl.domElement;
+
+    const onContextLost = (event) => {
+      event.preventDefault(); // Signal to browser we want to recover
+      console.warn('[ParticleSwarmBackground] WebGL context lost — hiding canvas');
+      setContextLost(true);
+    };
+
+    const onContextRestored = () => {
+      console.log('[ParticleSwarmBackground] WebGL context restored — showing canvas');
+      setContextLost(false);
+    };
+
+    canvas.addEventListener('webglcontextlost', onContextLost);
+    canvas.addEventListener('webglcontextrestored', onContextRestored);
+  }, []);
+
   return (
     <div
       ref={containerRef}
@@ -553,7 +573,8 @@ export default function ParticleSwarmBackground({ scrollRef, velocityRef }) {
         inset: 0,
         zIndex: 0,
         pointerEvents: 'none',
-        opacity: 0.4, // Initial, updated by GalaxyController via DOM mutation
+        opacity: contextLost ? 0 : 0.4, // Hide on context loss, GalaxyController updates otherwise
+        transition: contextLost ? 'opacity 0.3s ease-out' : 'none',
       }}
     >
       <Canvas
@@ -563,6 +584,7 @@ export default function ParticleSwarmBackground({ scrollRef, velocityRef }) {
         style={{ background: 'transparent', pointerEvents: 'auto' }}
         eventSource={eventSource}
         eventPrefix="client"
+        onCreated={handleCreated}
       >
         <fog attach="fog" args={['#000000', 80, 250]} />
         <GalaxyController
@@ -575,3 +597,4 @@ export default function ParticleSwarmBackground({ scrollRef, velocityRef }) {
     </div>
   );
 }
+
