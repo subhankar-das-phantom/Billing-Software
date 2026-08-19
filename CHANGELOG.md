@@ -6,6 +6,14 @@ For full release notes with implementation details, see [GitHub Releases](https:
 
 ---
 
+## [v1.23.2](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v1.23.2) — Backend Stability & Dependency Fixes
+
+### Fixed
+- **Backend Change Stream Backoff** — Fixed a bug in the exponential backoff logic for the MongoDB stock change stream. The `reconnectAttempts` counter was prematurely resetting to 0 right before reconnecting, defeating the backoff entirely and causing the server to aggressively spam reconnect attempts every 1 second when the database connection failed. The delay now properly doubles up to a maximum of 30 seconds.
+- **Missing Dependency** — Fixed a backend crash during startup where the `date-fns` module could not be found due to it missing from `node_modules`.
+
+---
+
 ## [v1.23.1](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v1.23.1) — SSE Stability & WebGL Resilience
 
 ### Fixed

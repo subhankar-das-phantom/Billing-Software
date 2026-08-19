@@ -176,6 +176,9 @@ function initialize() {
  */
 function handleChangeEvent(change) {
   try {
+    // Reset reconnect attempts on a successful event
+    reconnectAttempts = 0;
+
     // Only handle update operations (insert/delete/replace are not stock mutations)
     if (change.operationType !== 'update') return;
 
@@ -245,7 +248,6 @@ function scheduleReconnect() {
   setTimeout(() => {
     if (mongoose.connection.readyState === 1) {
       console.log('[StockChangeStream] Attempting to re-open change stream...');
-      reconnectAttempts = 0;
       initialize();
     } else {
       console.log('[StockChangeStream] MongoDB not connected — waiting...');
