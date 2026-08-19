@@ -6,6 +6,14 @@ For full release notes with implementation details, see [GitHub Releases](https:
 
 ---
 
+## [v1.23.1](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v1.23.1) — SSE Stability & WebGL Resilience
+
+### Fixed
+- **SSE Infinite Reconnect Loop** — Replaced `EventSource`'s uncontrolled built-in auto-reconnect with manual reconnection featuring exponential backoff (2s → 4s → 8s → 16s → 30s cap) and a 10-attempt retry limit. After max retries, logs a single warning and stops — eliminating the infinite `[useStockSSE] SSE error/disconnected` console spam when the backend is unreachable.
+- **WebGL Context Loss Crash** — Added `webglcontextlost` / `webglcontextrestored` event handlers to the 3D particle galaxy background. On context loss (common on mobile or GPU-stressed devices), the canvas now fades out gracefully instead of showing a broken black screen with `THREE.WebGLRenderer: Context Lost` errors. Recovery is automatic when the browser restores the context.
+
+---
+
 ## [v1.23.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v1.23.0) — Immersive 3D Landing Page Experience
 
 ### Added

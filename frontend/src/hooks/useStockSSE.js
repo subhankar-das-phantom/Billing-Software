@@ -5,12 +5,17 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 // For SSE we need the stock-events path under that same origin.
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
+// ── Reconnection constants ──────────────────────────────────────────────────
+const MAX_RETRIES = 10;
+const BASE_DELAY_MS = 2000;
+const MAX_DELAY_MS = 30000;
+
 /**
  * useStockSSE — Real-time stock synchronization via Server-Sent Events.
  *
  * Manages the EventSource connection lifecycle, version tracking, and
- * reconnection handling. The SSE connection is independent of invoice items —
- * it represents an authenticated application session, not a product set.
+ * reconnection handling. Uses manual reconnection with exponential backoff
+ * instead of EventSource's uncontrolled built-in retry.
  *
  * Client-side product filtering happens in the consumer (InvoiceCreatePage),
  * NOT in this hook.
@@ -32,6 +37,12 @@ export function useStockSSE({ onStockUpdate, onReconnect, enabled = true }) {
 
   // Track whether we've ever been connected (to detect reconnections)
   const wasConnectedRef = useRef(false);
+
+  // Reconnection tracking refs
+  const retryCountRef = useRef(0);
+  const retryTimerRef = useRef(null);
+  const eventSourceRef = useRef(null);
+  const gaveUpRef = useRef(false);
 
   // Stable refs for callbacks so the EventSource listeners don't go stale
   const onStockUpdateRef = useRef(onStockUpdate);
@@ -66,73 +77,125 @@ export function useStockSSE({ onStockUpdate, onReconnect, enabled = true }) {
       return;
     }
 
-    setConnectionState('connecting');
+    // Track whether this effect is still active (for cleanup races)
+    let cancelled = false;
 
-    // EventSource cannot send cookies or Authorization headers cross-origin.
-    // In production (Vercel → Render) we must:
-    //   1. Use the full backend URL (not a relative path)
-    //   2. Pass the JWT as a query parameter
-    const token = localStorage.getItem('token');
-    if (!token) {
-      console.warn('[useStockSSE] No auth token found — skipping SSE connection');
-      setConnectionState('disconnected');
-      return;
-    }
+    /**
+     * Create and wire up a new EventSource connection.
+     * Closes itself on error and schedules a manual reconnect with backoff.
+     */
+    function connect() {
+      if (cancelled) return;
 
-    const sseUrl = `${API_URL}/stock-events/stream?token=${encodeURIComponent(token)}`;
-    const eventSource = new EventSource(sseUrl, { withCredentials: true });
-
-    eventSource.addEventListener('connected', (event) => {
-      console.log('[useStockSSE] SSE connected', event.data);
-      const isReconnect = wasConnectedRef.current;
-      wasConnectedRef.current = true;
-      setConnectionState('connected');
-
-      if (isReconnect && onReconnectRef.current) {
-        onReconnectRef.current();
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.warn('[useStockSSE] No auth token found — skipping SSE connection');
+        setConnectionState('disconnected');
+        return;
       }
-    });
 
-    eventSource.addEventListener('stock-updated', (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        const updates = data.updates;
-        if (!Array.isArray(updates) || updates.length === 0) return;
+      setConnectionState('connecting');
 
-        console.log('[useStockSSE] Received stock update:', updates);
+      const sseUrl = `${API_URL}/stock-events/stream?token=${encodeURIComponent(token)}`;
+      const es = new EventSource(sseUrl, { withCredentials: true });
+      eventSourceRef.current = es;
 
-        // Version filtering: only pass through updates newer than last applied
-        const map = versionMapRef.current;
-        // Bypassing version check for diagnosis
-        const validUpdates = updates;
+      es.addEventListener('connected', (event) => {
+        if (cancelled) return;
+        console.log('[useStockSSE] SSE connected', event.data);
 
-        if (validUpdates.length > 0 && onStockUpdateRef.current) {
-          onStockUpdateRef.current(validUpdates);
-        }
-      } catch (err) {
-        console.error('[useStockSSE] Error parsing stock-updated event:', err);
-      }
-    });
+        // Reset retry state on successful connection
+        retryCountRef.current = 0;
+        gaveUpRef.current = false;
 
-    // EventSource fires 'open' on initial connect AND on every reconnect
-    eventSource.addEventListener('open', () => {
-      if (wasConnectedRef.current) {
-        // This is a reconnect by the EventSource's built-in retry
+        const isReconnect = wasConnectedRef.current;
+        wasConnectedRef.current = true;
         setConnectionState('connected');
-        if (onReconnectRef.current) {
+
+        if (isReconnect && onReconnectRef.current) {
           onReconnectRef.current();
         }
+      });
+
+      es.addEventListener('stock-updated', (event) => {
+        if (cancelled) return;
+        try {
+          const data = JSON.parse(event.data);
+          const updates = data.updates;
+          if (!Array.isArray(updates) || updates.length === 0) return;
+
+          console.log('[useStockSSE] Received stock update:', updates);
+
+          // Pass all updates (version filtering bypassed for now)
+          if (onStockUpdateRef.current) {
+            onStockUpdateRef.current(updates);
+          }
+        } catch (err) {
+          console.error('[useStockSSE] Error parsing stock-updated event:', err);
+        }
+      });
+
+      es.addEventListener('error', () => {
+        if (cancelled) return;
+
+        // Close immediately to prevent EventSource's built-in auto-reconnect
+        es.close();
+        eventSourceRef.current = null;
+        setConnectionState('disconnected');
+
+        // Schedule manual reconnect with exponential backoff
+        scheduleReconnect();
+      });
+    }
+
+    /**
+     * Schedule a reconnect attempt with exponential backoff.
+     * Gives up after MAX_RETRIES to prevent infinite console spam.
+     */
+    function scheduleReconnect() {
+      if (cancelled) return;
+
+      const attempt = retryCountRef.current;
+
+      if (attempt >= MAX_RETRIES) {
+        if (!gaveUpRef.current) {
+          console.warn(
+            `[useStockSSE] Gave up after ${MAX_RETRIES} failed attempts. ` +
+            'Stock updates will not be real-time until page reload.'
+          );
+          gaveUpRef.current = true;
+        }
+        return;
       }
-    });
 
-    eventSource.addEventListener('error', (e) => {
-      console.warn('[useStockSSE] SSE error/disconnected, readyState:', eventSource.readyState);
-      // EventSource automatically reconnects on errors
-      setConnectionState('disconnected');
-    });
+      const delay = Math.min(BASE_DELAY_MS * Math.pow(2, attempt), MAX_DELAY_MS);
+      retryCountRef.current = attempt + 1;
 
+      console.log(
+        `[useStockSSE] Reconnecting in ${(delay / 1000).toFixed(1)}s ` +
+        `(attempt ${attempt + 1}/${MAX_RETRIES})`
+      );
+
+      retryTimerRef.current = setTimeout(() => {
+        retryTimerRef.current = null;
+        connect();
+      }, delay);
+    }
+
+    // Start the initial connection
+    connect();
+
+    // Cleanup: close EventSource and cancel any pending retry timer
     return () => {
-      eventSource.close();
+      cancelled = true;
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
       setConnectionState('disconnected');
     };
   }, [enabled]);
