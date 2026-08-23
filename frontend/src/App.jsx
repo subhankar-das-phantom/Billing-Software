@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { AuthProvider, useAuth, AdminRoute } from './contexts/AuthContext';
+import { SubscriptionProvider } from './contexts/SubscriptionContext';
 import { ToastProvider } from './contexts/ToastContext';
 
 // Eager load - needed immediately
@@ -22,6 +23,8 @@ const CreditsPage = lazy(() => import('./pages/CreditNotes/CreditsPage'));
 const SettingsPage = lazy(() => import('./pages/Settings/SettingsPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const CollectionsPage = lazy(() => import('./pages/Collections/CollectionsPage'));
+const SubscriptionPage = lazy(() => import('./pages/Subscription/SubscriptionPage'));
+const ReferralPage = lazy(() => import('./pages/Referral/ReferralPage'));
 
 // Admin-only pages
 const EmployeesPage = lazy(() => import('./pages/Employees/EmployeesPage'));
@@ -128,6 +131,8 @@ function AppRoutes() {
           <Route path="/collections" element={<CollectionsPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/reports/gst" element={<Navigate to="/reports" replace />} />
+          <Route path="/subscription" element={<SubscriptionPage />} />
+          <Route path="/referral" element={<ReferralPage />} />
           <Route 
             path="/settings" 
             element={
@@ -191,9 +196,11 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <ToastProvider>
-          <AppRoutes />
-        </ToastProvider>
+        <SubscriptionProvider>
+          <ToastProvider>
+            <AppRoutes />
+          </ToastProvider>
+        </SubscriptionProvider>
       </AuthProvider>
     </BrowserRouter>
   );

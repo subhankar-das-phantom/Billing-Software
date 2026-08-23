@@ -20,9 +20,12 @@ import {
   Banknote,
   UsersRound,
   Shield,
-  FileBarChart
+  FileBarChart,
+  Gift
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSubscription } from '../../contexts/SubscriptionContext';
+import UpgradeBadge from '../Subscription/UpgradeBadge';
 import { invoiceService } from '../../services/invoices/invoiceService';
 import { useMotionConfig, useSWR } from '../../hooks';
 
@@ -46,6 +49,7 @@ const getQuickActions = (isAdmin) => {
   if (isAdmin) {
     actions.push(
       { path: '/settings', label: 'Settings', icon: Settings },
+      { path: '/referral', label: 'Refer & Earn', icon: Gift, badge: 'Free Days', badgeColor: 'bg-emerald-500' },
       { path: '/employees', label: 'Employees', icon: UsersRound, badge: 'Admin', badgeColor: 'bg-accent-500' },
       { path: '/employee-analytics', label: 'Employee Analytics', icon: BarChart3 },
       { path: '/manual-entries', label: 'Manual Entries', icon: Shield, badge: 'Admin', badgeColor: 'bg-accent-500' },
@@ -104,7 +108,7 @@ function useMediaQuery(query) {
   return matches;
 }
 
-const MemoizedMenuItem = memo(({ item, index, location, onClose, hoveredItem, setHoveredItem, menuItemVariants, motionConfig }) => {
+const MemoizedMenuItem = memo(({ item, index, location, onClose, hoveredItem, setHoveredItem, menuItemVariants, motionConfig, canAccessRoute }) => {
   const isEditPage = location.pathname.includes('/edit');
   
   let isActive;
@@ -184,6 +188,10 @@ const MemoizedMenuItem = memo(({ item, index, location, onClose, hoveredItem, se
             </motion.span>
           )}
           
+          {canAccessRoute && !canAccessRoute(item.path) && (
+            <UpgradeBadge variant="lock" />
+          )}
+          
           {/* Hover arrow */}
           <AnimatePresence>
             {hoveredItem === item.path && (
@@ -203,7 +211,7 @@ const MemoizedMenuItem = memo(({ item, index, location, onClose, hoveredItem, se
   );
 });
 
-const MemoizedQuickAction = memo(({ item, onClose, menuItemVariants, motionConfig }) => (
+const MemoizedQuickAction = memo(({ item, onClose, menuItemVariants, motionConfig, canAccessRoute }) => (
   <motion.li 
     variants={menuItemVariants}
     whileHover={motionConfig.shouldHover ? { x: 4 } : undefined}
@@ -222,6 +230,9 @@ const MemoizedQuickAction = memo(({ item, onClose, menuItemVariants, motionConfi
           {item.badge}
         </span>
       )}
+      {canAccessRoute && !canAccessRoute(item.path) && (
+        <UpgradeBadge variant="lock" />
+      )}
     </Link>
   </motion.li>
 ));
@@ -229,6 +240,7 @@ const MemoizedQuickAction = memo(({ item, onClose, menuItemVariants, motionConfi
 export default function Sidebar({ isOpen, onClose }) {
   const location = useLocation();
   const { admin, user, isAdmin, logout } = useAuth();
+  const { canAccessRoute } = useSubscription();
   const isDesktop = useMediaQuery('(min-width: 1024px)');
   const shouldShow = isOpen || isDesktop;
   const [hoveredItem, setHoveredItem] = useState(null);
@@ -375,6 +387,7 @@ export default function Sidebar({ isOpen, onClose }) {
                   setHoveredItem={setHoveredItem}
                   menuItemVariants={menuItemVariants}
                   motionConfig={motionConfig}
+                  canAccessRoute={canAccessRoute}
                 />
               ))}
             </ul>
@@ -398,6 +411,7 @@ export default function Sidebar({ isOpen, onClose }) {
                     onClose={onClose}
                     menuItemVariants={menuItemVariants}
                     motionConfig={motionConfig}
+                    canAccessRoute={canAccessRoute}
                   />
                 ))}
               </ul>
