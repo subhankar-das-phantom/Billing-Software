@@ -23,8 +23,10 @@ import { processReferralReward } from '../services/referralService';
 import { createNotification } from '../services/notificationService';
 
 const getTenantId = require('../../utils/getTenantId');
-const Razorpay = require('razorpay');
-const { validatePaymentVerification, validateWebhookSignature } = Razorpay;
+const {
+  validatePaymentVerification,
+  validateWebhookSignature,
+} = require('razorpay/dist/utils/razorpay-utils.js');
 
 // ─── Razorpay SDK (lazy-loaded) ──────────────────────────────────
 
