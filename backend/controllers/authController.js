@@ -182,7 +182,7 @@ exports.login = async (req, res, next) => {
     }
 
     // If not an Admin, try Employee
-    const employee = await Employee.findOne({ email: email.toLowerCase() }).select('+password');
+    const employee = await Employee.findOne({ email: email.toLowerCase() }).select('+password').populate('createdByAdmin', 'firmName');
 
     if (employee) {
       // Check if employee is active
@@ -219,7 +219,7 @@ exports.login = async (req, res, next) => {
         success: true,
         role: 'employee',
         token,
-        employee: employee.getPublicProfile()
+        employee: { ...employee.getPublicProfile(), firmName: employee.createdByAdmin?.firmName || 'Your firm' }
       });
     }
 
@@ -251,7 +251,7 @@ exports.employeeLogin = async (req, res, next) => {
     // Find employee by email
     const employee = await Employee.findOne({ 
       email: email.toLowerCase() 
-    }).select('+password');
+    }).select('+password').populate('createdByAdmin', 'firmName');
 
     if (!employee) {
       return res.status(401).json({
@@ -294,7 +294,7 @@ exports.employeeLogin = async (req, res, next) => {
       success: true,
       role: 'employee',
       token,
-      employee: employee.getPublicProfile()
+      employee: { ...employee.getPublicProfile(), firmName: employee.createdByAdmin?.firmName || 'Your firm' }
     });
   } catch (error) {
     next(error);
@@ -308,10 +308,11 @@ exports.getMe = async (req, res, next) => {
   try {
     if (req.userRole === 'employee') {
       // Return employee profile
+      const employee = await Employee.findById(req.user._id).populate('createdByAdmin', 'firmName');
       res.status(200).json({
         success: true,
         role: 'employee',
-        user: req.user.getPublicProfile()
+        user: { ...employee.getPublicProfile(), firmName: employee.createdByAdmin?.firmName || 'Your firm' }
       });
     } else {
       // Return admin profile

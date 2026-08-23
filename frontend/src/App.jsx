@@ -75,7 +75,7 @@ function ProtectedRoute({ children }) {
           </div>
           <h2 className="text-2xl font-bold text-white mb-4">Access Restricted</h2>
           <p className="text-slate-400 mb-8">
-            Your firm's subscription does not include employee access. Please ask your administrator to upgrade to the Professional plan to use this account.
+            {user.firmName ? `${user.firmName}'s` : "Your firm's"} subscription does not include employee access. Please ask your administrator to upgrade to the Professional plan to use this account.
           </p>
           <button
             onClick={logout}
