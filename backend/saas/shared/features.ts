@@ -26,6 +26,7 @@ export enum Feature {
   ACTIVITY_LOGS      = 'ACTIVITY_LOGS',
   GST_REPORTS        = 'GST_REPORTS',
   ADVANCED_REPORTING = 'ADVANCED_REPORTING',
+  REPORTS            = 'REPORTS',
 }
 
 // ─── Plan Codes ──────────────────────────────────────────────────
@@ -134,6 +135,7 @@ const PROFESSIONAL_FEATURES: Feature[] = [
   Feature.ACTIVITY_LOGS,
   Feature.GST_REPORTS,
   Feature.ADVANCED_REPORTING,
+  Feature.REPORTS,
 ];
 
 export const DEFAULT_PLAN_FEATURES: Record<PlanCode, Feature[]> = {

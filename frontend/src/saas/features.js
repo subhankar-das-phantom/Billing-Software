@@ -25,6 +25,7 @@ export const Feature = {
   ACTIVITY_LOGS:       'ACTIVITY_LOGS',
   GST_REPORTS:         'GST_REPORTS',
   ADVANCED_REPORTING:  'ADVANCED_REPORTING',
+  REPORTS:             'REPORTS',
 };
 
 // ─── Feature Labels ──────────────────────────────────────────────
@@ -48,6 +49,7 @@ export const FEATURE_LABELS = {
   [Feature.ACTIVITY_LOGS]: 'Activity Logs',
   [Feature.GST_REPORTS]: 'GST Reports & Filing',
   [Feature.ADVANCED_REPORTING]: 'Advanced Reporting',
+  [Feature.REPORTS]: 'Business Reports',
 };
 
 // ─── Route → Feature mapping ────────────────────────────────────
@@ -67,6 +69,7 @@ export const ROUTE_FEATURE_MAP = {
   '/employee-analytics': Feature.EMPLOYEE_ANALYTICS,
   '/activity-log':       Feature.ACTIVITY_LOGS,
   '/reports/gst':        Feature.GST_REPORTS,
+  '/reports':            Feature.REPORTS,
 };
 
 // ─── Subscription Statuses ───────────────────────────────────────
