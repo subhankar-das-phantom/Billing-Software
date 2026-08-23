@@ -40,13 +40,6 @@ connectDB().then(() => {
 
 const app = express();
 
-// Razorpay webhooks must receive the raw body for signature validation.
-app.post(
-  '/api/saas/subscription/webhook',
-  express.raw({ type: 'application/json' }),
-  require('./saas/controllers/subscriptionController').handleRazorpayWebhook
-);
-
 // Body parser
 app.use(express.json());
 
@@ -64,12 +57,11 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://checkout.razorpay.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "blob:", "https://*.razorpay.com"],
-      connectSrc: ["'self'", "https://api.razorpay.com", "https://lumberjack.razorpay.com"],
-      frameSrc: ["'self'", "https://checkout.razorpay.com"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      connectSrc: ["'self'"],
       frameAncestors: ["'none'"],
       baseUri: ["'self'"],
       formAction: ["'self'"]
@@ -104,7 +96,6 @@ app.use('/api/reports', generalLimiter, require('./routes/reports'));
 app.use('/api/sales-analytics', generalLimiter, require('./src/modules/salesAnalytics/routes/index'));
 app.use('/api/manual-entries', generalLimiter, require('./routes/manualEntries'));
 app.use('/api/credit-notes', generalLimiter, require('./routes/creditNotes'));
-app.use('/api/saas', generalLimiter, require('./saas/routes'));
 
 // SSE route — no rate limiter (long-lived connection, protected by auth + per-user limit)
 app.use('/api/stock-events', require('./routes/stockEvents'));

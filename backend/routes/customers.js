@@ -15,26 +15,22 @@ const {
   updateCustomerValidator, 
   mongoIdParam 
 } = require('../middleware/validators');
-const { checkSubscription, checkFeatureAccess, checkWriteAccess } = require('../saas/middleware');
-const { Feature } = require('../saas/shared/features');
 
-// Apply protection and subscription check to all routes
+// Apply protection to all routes
 router.use(protect);
-router.use(checkSubscription);
-router.use(checkFeatureAccess(Feature.CUSTOMERS));
 
 router.get('/search', searchCustomers);
 
 router.route('/')
   .get(getCustomers)
-  .post(checkWriteAccess, createCustomerValidator, createCustomer);
+  .post(createCustomerValidator, createCustomer);
 
 // Ledger route (must be before /:id to avoid param collision)
 router.get('/:id/ledger', mongoIdParam, getCustomerLedger);
 
 router.route('/:id')
   .get(mongoIdParam, getCustomer)
-  .put(checkWriteAccess, updateCustomerValidator, updateCustomer)
-  .delete(checkWriteAccess, mongoIdParam, deleteCustomer);
+  .put(updateCustomerValidator, updateCustomer)
+  .delete(mongoIdParam, deleteCustomer);
 
 module.exports = router;

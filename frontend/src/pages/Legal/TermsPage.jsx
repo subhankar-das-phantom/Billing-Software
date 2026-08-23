@@ -4,7 +4,7 @@ import {
   ArrowLeft, Shield, FileText, Users, Eye, Lock, Scale,
   UserCheck, ShieldCheck, HardDrive, Trash2, Bell, Mail,
   Heart, Gavel, Globe, CreditCard, Laptop, BookOpen,
-  AlertTriangle, Rocket, Ban, Server, ScrollText, Gift
+  AlertTriangle, Rocket, Ban, Server, ScrollText
 } from 'lucide-react';
 
 const sections = [
@@ -256,9 +256,9 @@ const sections = [
       <>
         <ul>
           <li>The Platform relies on <strong>MongoDB Atlas</strong>, <strong>Vercel</strong>, and <strong>Render</strong> for infrastructure.</li>
-          <li>We use <strong>Razorpay</strong> as our secure third-party payment gateway for processing subscription payments.</li>
           <li>We are not responsible for availability or security of third-party services.</li>
-          <li>No current integration with social logins or ad networks.</li>
+          <li>No current integration with payment gateways, social logins, or ad networks.</li>
+          <li>Future integrations will be reflected in updated Terms.</li>
         </ul>
       </>
     )
@@ -328,72 +328,27 @@ const sections = [
   {
     id: 'tc-subscription',
     num: '18',
-    title: 'Subscription & Billing Terms',
+    title: 'Future Subscription & Billing Terms',
     icon: Rocket,
     color: 'from-pink-500 to-rose-500',
     content: (
       <>
-        <p>The Platform operates on a <strong>Subscription SaaS model</strong> with three tiers:</p>
-        <div className="pp-table-wrap">
-          <table>
-            <thead>
-              <tr><th>Plan</th><th>Price</th><th>Highlights</th></tr>
-            </thead>
-            <tbody>
-              <tr><td>Starter</td><td>₹299/mo</td><td>Up to 100 invoices, 1 employee, basic GST billing</td></tr>
-              <tr><td>Business</td><td>₹499/mo</td><td>Unlimited invoices, 3 employees, payments & collections</td></tr>
-              <tr><td>Professional</td><td>₹699/mo</td><td>Unlimited employees, analytics, GST reports, activity logs</td></tr>
-            </tbody>
-          </table>
-        </div>
         <ul>
-          <li><strong>14-Day Free Trial</strong> — New accounts receive a 14-day free trial on the Professional plan with full feature access. No credit card required.</li>
-          <li><strong>Billing Cycles</strong> — Subscriptions are billed in advance: 1 month, 3 months (5% off), 6 months (10% off), or 1 year (20% off).</li>
-          <li><strong>Proration</strong> — When switching plans, your remaining balance is prorated and converted into days on the new plan based on the price difference.
-            <br/><span className="text-sm text-slate-400 mt-2 block border-l-2 border-blue-500 pl-3">
-              <em>Example:</em> Upgrading from Starter (₹299/mo) to Professional (₹699/mo) with 30 days remaining:<br/>
-              • 30 days × (299 / 699) = ~12.8 converted days.<br/>
-              • You receive the 30 days of Professional you purchased, plus the converted 12.8 days = 42.8 days total.
-            </span>
-          </li>
-          <li><strong>Grace Period</strong> — After subscription expiry, a 7-day grace period allows continued access. After the grace period, your account enters read-only mode until renewed.</li>
-          <li><strong>No Refunds</strong> — All subscription payments are final and non-refundable, except where required by law.</li>
-          <li><strong>Payment Processing</strong> — Subscriptions are securely processed via Razorpay. We do not store your payment credentials.</li>
+          <li>The Platform is currently offered <strong>free of charge</strong> during its launch phase.</li>
+          <li><strong>Paid plans</strong> or premium features may be introduced in the future.</li>
+          <li>Existing users will receive advance notice of pricing changes.</li>
+          <li>Early adopters may receive preferential pricing.</li>
+          <li>We will never charge without explicit consent and prior notification.</li>
         </ul>
         <div className="pp-callout">
-          <strong>Note:</strong> Failure to renew an expired subscription will result in your account entering a grace period, followed by restricted read-only access until renewed.
-        </div>
-      </>
-    )
-  },
-  {
-    id: 'tc-referral',
-    num: '19',
-    title: 'Referral Program',
-    icon: Gift,
-    color: 'from-emerald-500 to-cyan-500',
-    content: (
-      <>
-        <p>The Platform offers a <strong>Referral Program</strong> that rewards users for inviting new businesses to the Platform.</p>
-        <ul>
-          <li><strong>How It Works</strong> — Each user receives a unique referral code and shareable link. When a new user signs up using that link and makes their first paid subscription purchase, both parties earn rewards.</li>
-          <li><strong>Rewards</strong> — The referrer receives <strong>+30 free days</strong> added to their subscription, and the referred user receives <strong>+15 free days</strong>. Reward amounts may vary by active campaign.</li>
-          <li><strong>Eligibility</strong> — Rewards are granted only when the referred user completes a paid subscription purchase. Signing up alone does not trigger rewards.</li>
-          <li><strong>One-Time Use</strong> — Each referral code can only be applied once per referred account. Users who already have an active subscription or have previously applied a referral code cannot apply another.</li>
-          <li><strong>No Self-Referral</strong> — Users may not use their own referral code. Self-referral attempts will be rejected.</li>
-          <li><strong>Campaign Limits</strong> — Referral campaigns may have maximum referral limits per user. Once the limit is reached, no further referral rewards will be issued.</li>
-          <li><strong>Modification & Termination</strong> — We reserve the right to modify, suspend, or terminate the Referral Program at any time. Existing earned rewards will be honored.</li>
-          <li><strong>Abuse Prevention</strong> — Fraudulent or abusive use of the Referral Program (e.g., creating fake accounts) may result in forfeiture of rewards and account suspension.</li>
-        </ul>
-        <div className="pp-callout">
-          <strong>Note:</strong> Referral rewards are applied as subscription day extensions and have no cash value. They cannot be transferred, exchanged, or refunded.
+          <strong>Note:</strong> Any future paid plans will include detailed terms covering billing cycles, refund policies, and cancellation procedures.
         </div>
       </>
     )
   },
   {
     id: 'tc-governing-law',
-    num: '20',
+    num: '19',
     title: 'Governing Law',
     icon: Gavel,
     color: 'from-accent2-500 to-blue-500',
@@ -410,7 +365,7 @@ const sections = [
   },
   {
     id: 'tc-contact',
-    num: '21',
+    num: '20',
     title: 'Contact Information',
     icon: Mail,
     color: 'from-emerald-500 to-teal-500',
@@ -458,7 +413,7 @@ export default function TermsPage() {
             </div>
             <h1 className="pp-title">Terms & Conditions</h1>
             <p className="pp-subtitle">Bharat Enterprise Billing System</p>
-            <p className="pp-last-updated">Last Updated: June 16, 2026</p>
+            <p className="pp-last-updated">Last Updated: May 17, 2026</p>
           </div>
         </div>
       </header>
@@ -525,13 +480,12 @@ export default function TermsPage() {
                     <tr><td>Employee Access</td><td>Admin-managed; employees don't own data</td></tr>
                     <tr><td>Financial Data</td><td>Users responsible for accuracy</td></tr>
                     <tr><td>GST Compliance</td><td>Users must verify compliance in their jurisdiction</td></tr>
-                    <tr><td>Payment Data</td><td>Subscription payments handled securely by Razorpay; no cards stored</td></tr>
+                    <tr><td>Payment Data</td><td>No card/UPI data stored</td></tr>
                     <tr><td>Service Availability</td><td>Best effort; no 100% uptime guarantee</td></tr>
                     <tr><td>Backups</td><td>For disaster recovery; may persist temporarily</td></tr>
                     <tr><td>Acceptable Use</td><td>No abuse, reverse engineering, or resale</td></tr>
                     <tr><td>Intellectual Property</td><td>Platform IP belongs to Bharat Enterprise</td></tr>
-                    <tr><td>Subscriptions</td><td>3 tiers (Starter/Business/Professional); 14-day free trial; prorated plan changes</td></tr>
-                    <tr><td>Referral Program</td><td>Earn free days by referring new users; one-time use; no cash value</td></tr>
+                    <tr><td>Future Pricing</td><td>Paid plans may come with advance notice</td></tr>
                     <tr><td>Governing Law</td><td>Indian law; Indian courts</td></tr>
                     <tr><td>Target Market</td><td>Indian businesses (pharma, retail, SMBs)</td></tr>
                   </tbody>
@@ -545,7 +499,7 @@ export default function TermsPage() {
       {/* Footer */}
       <footer className="pp-footer">
         <div className="pp-footer-inner">
-          <p>These Terms & Conditions are effective as of June 16, 2026.</p>
+          <p>These Terms & Conditions are effective as of May 17, 2026.</p>
           <p className="pp-footer-copyright">
             © {new Date().getFullYear()} Bharat Enterprise Billing System. All rights reserved.
           </p>

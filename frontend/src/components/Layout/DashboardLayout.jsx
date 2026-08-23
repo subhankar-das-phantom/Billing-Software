@@ -5,7 +5,6 @@ import { ChevronRight } from 'lucide-react';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 import Header from './Header';
-import SubscriptionBanner from '../Subscription/SubscriptionBanner';
 import { RouteTransition } from '../Common/Motion/PageTransition';
 import { useMotionConfig } from '../../hooks';
 import { useAuth } from '../../contexts/AuthContext';
@@ -88,7 +87,6 @@ export default function DashboardLayout() {
         {/* Main content area */}
         <main className="flex-1 p-6 lg:p-8 lg:pt-24 xl:p-10 xl:pt-24 overflow-y-auto overflow-x-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 max-w-full">
           <div className="max-w-[1600px] mx-auto w-full">
-            <SubscriptionBanner />
             <RouteTransition 
               location={location}
               variant={getTransitionVariant()}

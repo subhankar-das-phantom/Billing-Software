@@ -14,23 +14,19 @@ const {
   updateNoteValidator, 
   mongoIdParam 
 } = require('../middleware/validators');
-const { checkSubscription, checkFeatureAccess, checkWriteAccess } = require('../saas/middleware');
-const { Feature } = require('../saas/shared/features');
 
-// Apply protection and subscription check to all routes
+// Apply protection to all routes
 router.use(protect);
-router.use(checkSubscription);
-router.use(checkFeatureAccess(Feature.NOTES));
 
 router.route('/')
   .get(getNotes)
-  .post(checkWriteAccess, createNoteValidator, createNote);
+  .post(createNoteValidator, createNote);
 
 router.route('/:id')
   .get(mongoIdParam, getNote)
-  .put(checkWriteAccess, updateNoteValidator, updateNote)
-  .delete(checkWriteAccess, mongoIdParam, deleteNote);
+  .put(updateNoteValidator, updateNote)
+  .delete(mongoIdParam, deleteNote);
 
-router.patch('/:id/pin', checkWriteAccess, mongoIdParam, togglePin);
+router.patch('/:id/pin', mongoIdParam, togglePin);
 
 module.exports = router;

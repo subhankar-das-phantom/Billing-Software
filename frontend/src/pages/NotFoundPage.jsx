@@ -255,15 +255,15 @@ export default function NotFoundPage() {
         </motion.div>
 
         {/* Fun Message */}
-        <motion.div
+        <motion.p
           variants={springItem}
           className="mt-8 text-slate-500 text-sm flex items-center justify-center gap-2"
         >
-          <motion.span animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 2, repeat: Infinity }}>
+          <motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 2, repeat: Infinity }}>
             🚀
-          </motion.span>
+          </motion.div>
           Lost in space? Don't worry, we'll help you find your way!
-        </motion.div>
+        </motion.p>
       </motion.div>
 
       {/* Floating Particles */}

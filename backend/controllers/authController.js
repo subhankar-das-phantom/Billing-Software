@@ -85,15 +85,6 @@ exports.register = async (req, res, next) => {
       firmGSTIN: firmGSTIN || ''
     });
 
-    // Automatically provision a Free Trial subscription for the new user!
-    try {
-      const { createTrialSubscription } = require('../saas/services/subscriptionService');
-      await createTrialSubscription(admin._id.toString());
-    } catch (trialErr) {
-      console.error('Failed to create trial subscription:', trialErr);
-      // We don't block registration, but this should ideally be logged to an error tracker
-    }
-
     // Generate token with admin role
     const token = generateToken(admin._id, 'admin');
 
