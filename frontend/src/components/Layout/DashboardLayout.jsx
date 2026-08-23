@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { lazy, Suspense, useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight } from 'lucide-react';
@@ -8,11 +8,16 @@ import Header from './Header';
 import SubscriptionBanner from '../Subscription/SubscriptionBanner';
 import { RouteTransition } from '../Common/Motion/PageTransition';
 import { useMotionConfig } from '../../hooks';
+import { useAuth } from '../../contexts/AuthContext';
+
+const CalculatorWidget = lazy(() => import('../../features/calculator/CalculatorWidget'));
 
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isSidebarAnimating, setIsSidebarAnimating] = useState(false);
   const location = useLocation();
   const motionConfig = useMotionConfig();
+  const { user } = useAuth();
 
   useEffect(() => {
     // Close sidebar on route change (mobile)
@@ -26,35 +31,38 @@ export default function DashboardLayout() {
 
   // Adaptive transition based on device
   const sidebarTransition = motionConfig.isMobile 
-    ? { type: 'tween', duration: 0.25, ease: 'easeOut' }
+    ? { type: 'tween', duration: 0.22, ease: [0.22, 1, 0.36, 1] }
     : { type: 'spring', stiffness: 300, damping: 30 };
 
   return (
     <div className="flex min-h-screen bg-slate-950">
       {/* Mobile Sidebar - only visible on small screens */}
-      <AnimatePresence mode="wait">
+      <AnimatePresence>
         {sidebarOpen && (
-          <>
-            <motion.div
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              onClick={() => setSidebarOpen(false)}
-            />
-            
-            {/* Sidebar panel */}
-            <motion.div
-              className="fixed inset-y-0 left-0 z-50 lg:hidden"
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={sidebarTransition}
-            >
-              <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-            </motion.div>
-          </>
+          <motion.div
+            key="sidebar-overlay"
+            className="fixed inset-0 bg-black/60 z-40 lg:hidden touch-none overscroll-contain"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+        {sidebarOpen && (
+          <motion.div
+            key="sidebar-panel"
+            className="fixed inset-y-0 left-0 z-50 lg:hidden"
+            initial={{ x: '-100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
+            transition={sidebarTransition}
+            onAnimationStart={() => setIsSidebarAnimating(true)}
+            onAnimationComplete={() => setIsSidebarAnimating(false)}
+            style={{ willChange: isSidebarAnimating ? 'transform' : 'auto' }}
+          >
+            <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          </motion.div>
         )}
       </AnimatePresence>
       
@@ -139,6 +147,10 @@ export default function DashboardLayout() {
       >
         <ChevronRight className="w-5 h-5 -rotate-90" />
       </motion.button>
+
+      <Suspense fallback={null}>
+        {user?.preferences?.showCalculator !== false && <CalculatorWidget />}
+      </Suspense>
     </div>
   );
 }

@@ -45,9 +45,10 @@ export const creditNoteService = {
   /**
    * Get credit notes for a specific customer
    * @param {string} customerId
+   * @param {object} params
    */
-  getCreditNotesByCustomer: async (customerId) => {
-    const response = await api.get(`/credit-notes/customer/${customerId}`);
+  getCreditNotesByCustomer: async (customerId, params = {}) => {
+    const response = await api.get(`/credit-notes/customer/${customerId}`, { params });
     return response.data;
   }
 };

@@ -47,9 +47,11 @@ export const getPayment = async (paymentId) => {
 /**
  * Get payments by customer
  * @param {string} customerId - Customer ID
+ * @param {Object} params - Query parameters (e.g. page, limit)
  */
-export const getPaymentsByCustomer = async (customerId) => {
-  const response = await api.get(`/payments/customer/${customerId}`);
+export const getPaymentsByCustomer = async (customerId, params = {}) => {
+  const query = new URLSearchParams(params).toString();
+  const response = await api.get(`/payments/customer/${customerId}${query ? `?${query}` : ''}`);
   return response.data;
 };
 

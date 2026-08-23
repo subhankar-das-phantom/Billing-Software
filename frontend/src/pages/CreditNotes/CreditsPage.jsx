@@ -22,9 +22,10 @@ import {
   getRecentPayments
 } from '../../services/credits/creditService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import { TableSkeleton } from '../../components/Common/Feedback/Loader';
+import { OutstandingTabSkeleton, AgeingTabSkeleton, PaymentsTabSkeleton } from './CreditsPageSkeleton';
 import { useSWR, useFirstVisit } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
+import { VirtualizedList } from '../../components/Common/VirtualizedList';
 
 // Animated counter component
 const AnimatedCounter = ({ value, prefix = '', suffix = '', decimals = 0 }) => {
@@ -265,12 +266,12 @@ export default function CreditsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-amber-500/20 rounded-xl">
-            <Wallet className="w-6 h-6 text-amber-400" />
+          <div className="p-2 sm:p-3 bg-amber-500/20 rounded-xl">
+            <Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">Credit Management</h1>
-            <p className="text-slate-400 text-sm">Track receivables and payments</p>
+            <h1 className="text-lg sm:text-2xl font-bold text-white">Credit Management</h1>
+            <p className="text-slate-400 text-xs sm:text-sm">Track receivables and payments</p>
           </div>
         </div>
 
@@ -280,21 +281,21 @@ export default function CreditsPage() {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {statCards.map((card, index) => {
           const colors = colorClasses[card.color];
           const Icon = card.icon;
           return (
             <div
               key={card.label}
-              className={`glass-card p-5 border ${colors.border} hover:shadow-lg ${colors.glow} transition-all hover:-translate-y-0.5 hover:scale-[1.01]`}
+              className={`glass-card p-3 sm:p-5 border ${colors.border} hover:shadow-lg ${colors.glow} transition-all hover:-translate-y-0.5 hover:scale-[1.01]`}
             >
-              <div className="flex items-center justify-between mb-3">
-                <div className={`p-2.5 rounded-lg ${colors.bg}`}>
-                  <Icon className={`w-5 h-5 ${colors.text}`} />
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <div className={`p-1.5 sm:p-2.5 rounded-lg ${colors.bg}`}>
+                  <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${colors.text}`} />
                 </div>
               </div>
-              <p className={`text-2xl font-bold ${colors.text} mb-1`}>
+              <p className={`text-base sm:text-2xl font-bold ${colors.text} mb-1`}>
                 <AnimatedCounter
                   value={card.value}
                   prefix={card.prefix || ''}
@@ -315,27 +316,25 @@ export default function CreditsPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 px-4 py-3 flex items-center justify-center gap-2 transition-all ${activeTab === tab.id
+                className={`flex-1 px-2 sm:px-4 py-2.5 sm:py-3 flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm transition-all ${activeTab === tab.id
                   ? 'bg-slate-700/50 text-white border-b-2 border-amber-500'
                   : 'text-slate-400 hover:text-white hover:bg-slate-700/30'
                   }`}
               >
-                <Icon className="w-4 h-4" />
+                <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 {tab.label}
               </button>
             );
           })}
         </div>
 
-        <div className="p-5">
+        <div className="p-3 sm:p-5">
           <AnimatePresence mode="wait">
             {/* Outstanding Tab */}
             {activeTab === 'outstanding' && (
               <div key="outstanding">
                 {showOutstandingSkeleton ? (
-                  <div className="glass-card overflow-hidden">
-                    <TableSkeleton rows={6} columns={3} />
-                  </div>
+                  <OutstandingTabSkeleton />
                 ) : activeOutstandingCustomers.length === 0 && !outstandingValidating ? (
                   <div className="text-center py-12">
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/20 mb-4">
@@ -345,19 +344,24 @@ export default function CreditsPage() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {activeOutstandingCustomers.map((customer, index) => (
-                      <div key={customer._id}>
+                    <VirtualizedList
+                      items={activeOutstandingCustomers}
+                      estimateSize={() => 88}
+                      getKey={(customer) => customer._id}
+                      gap={12}
+                      className="min-h-[88px]"
+                      renderItem={(customer) => (
                         <Link
                           to={`/customers/${customer._id}`}
-                          className="block p-4 bg-slate-800/50 rounded-xl border border-slate-700/50 hover:border-amber-500/50 transition-all group"
+                          className="block p-3 sm:p-4 bg-slate-800/50 rounded-xl border border-slate-700/50 hover:border-amber-500/50 transition-all group"
                         >
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white font-bold">
+                            <div className="flex items-center gap-2.5 sm:gap-4">
+                              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white text-sm sm:text-base font-bold">
                                 {customer.customerName?.charAt(0)}
                               </div>
                               <div>
-                                <h3 className="font-medium text-white group-hover:text-amber-400 transition-colors">
+                                <h3 className="text-sm sm:text-base font-medium text-white group-hover:text-amber-400 transition-colors">
                                   {customer.customerName}
                                 </h3>
                                 {customer.phone && (
@@ -368,9 +372,9 @@ export default function CreditsPage() {
                                 )}
                               </div>
                             </div>
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2 sm:gap-4">
                               <div className="text-right">
-                                <p className="text-lg font-semibold text-amber-400">
+                                <p className="text-sm sm:text-lg font-semibold text-amber-400">
                                   {formatCurrency(customer.outstandingBalance)}
                                 </p>
                                 {customer.creditLimit > 0 && (
@@ -379,12 +383,12 @@ export default function CreditsPage() {
                                   </p>
                                 )}
                               </div>
-                              <ChevronRight className="w-5 h-5 text-slate-500 group-hover:text-amber-400 group-hover:translate-x-1 transition-all" />
+                              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-slate-500 group-hover:text-amber-400 group-hover:translate-x-1 transition-all" />
                             </div>
                           </div>
                         </Link>
-                      </div>
-                    ))}
+                      )}
+                    />
                     {/* Infinite scroll sentinel */}
                     {outstandingHasMore && (
                       <div ref={outstandingLastRef} className="p-3 flex items-center justify-center h-12">
@@ -405,9 +409,7 @@ export default function CreditsPage() {
             {activeTab === 'ageing' && (
               <div key="ageing" className="space-y-4">
                 {showAgeingSkeleton ? (
-                  <div className="glass-card overflow-hidden">
-                    <TableSkeleton rows={6} columns={4} />
-                  </div>
+                  <AgeingTabSkeleton />
                 ) : (
                   <>
                 {/* Ageing Summary Cards */}
@@ -446,27 +448,33 @@ export default function CreditsPage() {
                       <span className="text-slate-500 ml-2">({activeAgeingInvoices.length} of {ageing.summary.totalCount})</span>
                     </h3>
                     <div className="space-y-2">
-                      {activeAgeingInvoices.map((inv) => (
-                        <Link
-                          key={inv._id}
-                          to={`/invoices/${inv._id}`}
-                          className="block p-3 bg-slate-800/30 rounded-lg hover:bg-slate-700/50 transition-colors"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <FileText className="w-4 h-4 text-slate-500" />
-                              <div>
-                                <span className="text-white font-medium">{inv.invoiceNumber}</span>
-                                <span className="text-slate-400 ml-2">{inv.customerName}</span>
+                      <VirtualizedList
+                        items={activeAgeingInvoices}
+                        estimateSize={() => 72}
+                        getKey={(inv) => inv._id}
+                        gap={8}
+                        className="min-h-[72px]"
+                        renderItem={(inv) => (
+                          <Link
+                            to={`/invoices/${inv._id}`}
+                            className="block p-3 bg-slate-800/30 rounded-lg hover:bg-slate-700/50 transition-colors"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <FileText className="w-4 h-4 text-slate-500" />
+                                <div>
+                                  <span className="text-white font-medium">{inv.invoiceNumber}</span>
+                                  <span className="text-slate-400 ml-2">{inv.customerName}</span>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-amber-400 font-medium">{formatCurrency(inv.remainingAmount)}</p>
+                                <p className="text-xs text-slate-500">{formatDate(inv.invoiceDate)}</p>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <p className="text-amber-400 font-medium">{formatCurrency(inv.remainingAmount)}</p>
-                              <p className="text-xs text-slate-500">{formatDate(inv.invoiceDate)}</p>
-                            </div>
-                          </div>
-                        </Link>
-                      ))}
+                          </Link>
+                        )}
+                      />
                       {/* Infinite scroll sentinel */}
                       {ageingHasMore && (
                         <div ref={ageingLastRef} className="p-3 flex items-center justify-center h-12">
@@ -490,9 +498,7 @@ export default function CreditsPage() {
             {activeTab === 'payments' && (
               <div key="payments">
                 {showPaymentsSkeleton ? (
-                  <div className="glass-card overflow-hidden">
-                    <TableSkeleton rows={6} columns={3} />
-                  </div>
+                  <PaymentsTabSkeleton />
                 ) : recentPayments.length === 0 ? (
                   <div className="text-center py-12">
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-700 mb-4">
@@ -505,18 +511,18 @@ export default function CreditsPage() {
                     {recentPayments.map((payment, index) => (
                       <div
                         key={payment._id}
-                        className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50"
+                        className="p-3 sm:p-4 bg-slate-800/50 rounded-xl border border-slate-700/50"
                       >
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className="p-2.5 bg-emerald-500/20 rounded-lg">
-                              <CreditCard className="w-5 h-5 text-emerald-400" />
+                          <div className="flex items-center gap-2.5 sm:gap-4 min-w-0">
+                            <div className="p-2 sm:p-2.5 bg-emerald-500/20 rounded-lg shrink-0">
+                              <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
                             </div>
-                            <div>
-                              <p className="font-medium text-white">
+                            <div className="min-w-0">
+                              <p className="text-sm sm:text-base font-medium text-white truncate">
                                 {payment.customer?.customerName || 'Unknown Customer'}
                               </p>
-                              <div className="flex items-center gap-2 text-sm text-slate-400">
+                              <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs sm:text-sm text-slate-400">
                                 <span>{payment.invoiceSnapshot?.invoiceNumber}</span>
                                 <span>•</span>
                                 <span>{payment.paymentMethod}</span>
@@ -530,7 +536,7 @@ export default function CreditsPage() {
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="text-lg font-semibold text-emerald-400">
+                            <p className="text-sm sm:text-lg font-semibold text-emerald-400">
                               +{formatCurrency(payment.amount)}
                             </p>
                             <p className="text-xs text-slate-500 flex items-center gap-1 justify-end">

@@ -24,15 +24,18 @@ import {
   Layers,
   Percent,
   Ruler,
-  Eye
+  Eye,
+  Download
 } from 'lucide-react';
 import { productService } from '../../services/products/productService';
-import { formatCurrency, formatDate, formatDateForInput } from '../../utils/formatters';
+import { formatCurrency, formatDateForInput } from '../../utils/formatters';
 import { GST_RATES } from '../../utils/calculations';
-import { PageLoader } from '../../components/Common/Feedback/Loader';
+import { ProductsPageSkeleton } from './ProductsPageSkeleton';
 import Modal from '../../components/Common/Modals/Modal';
 import ConfirmDialog from '../../components/Common/Dialogs/ConfirmDialog';
 import EnhancedButton from '../../components/Common/Buttons/EnhancedButton';
+import { VirtualizedList } from '../../components/Common/VirtualizedList';
+import ExportModal from '../../components/Common/Modals/ExportModal';
 import { useToast } from '../../contexts/ToastContext';
 import { useDebounce, useMotionConfig, useFirstVisit, useSWR, invalidateCachePattern, useMediaQuery, useTransitionDelay } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
@@ -199,123 +202,129 @@ const EmptyProductsState = ({ search, onAddClick }) => (
 );
 
 // ✅ FIX #2: Separate component for table - simplified for mobile
-const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatDate, formatCurrency, observerTarget, hasMore, isLoadingMore, isDesktop }) => (
+const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatCurrency, observerTarget, hasMore, isLoadingMore, isDesktop }) => (
   <div className="space-y-4">
     {/* Desktop/Tablet Table View */}
     {isDesktop ? (
-    <div className="glass-card overflow-hidden">
-      <div className="table-container">
-        <table className="table">
-          <thead>
-            <tr className="border-b border-slate-700">
-              <th>Product Name</th>
-              <th className="text-center">HSN</th>
-              <th className="text-right">MRP</th>
-              <th className="text-center">GST</th>
-              <th className="text-center">Stock</th>
-              <th className="text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredProducts.map((product, index) => {
-              const lowStock = product.currentStockQty <= 30;
-              const outOfStock = product.currentStockQty === 0;
+    <div className="glass-card overflow-x-auto">
+      {/* Header Row */}
+      <div className="grid grid-cols-[minmax(260px,2fr)_120px_180px_120px_100px_150px_130px] items-center px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-700/50 bg-slate-800/50">
+        <div>Product Name</div>
+        <div className="text-center">HSN</div>
+        <div className="text-right">MRP</div>
+        <div className="text-right">Rate</div>
+        <div className="text-center">GST</div>
+        <div className="text-center">Stock</div>
+        <div className="text-center">Actions</div>
+      </div>
+      {/* Data Rows */}
+      <div>
+                <VirtualizedList
+                  items={filteredProducts}
+                  estimateSize={() => 72}
+                  getKey={(product) => product._id}
+                  className="min-h-[72px]"
+                  itemClassName="border-b border-slate-700/50"
+                  renderItem={(product) => {
+                    const lowStock = product.currentStockQty <= 30;
+                    const outOfStock = product.currentStockQty === 0;
 
-              return (
-                <tr
-                  key={product._id}
-                  className="hover:bg-slate-700/50 transition-colors"
-                >
-                  <td>
-                    <Link to={`/products/${product._id}`} className="flex items-center gap-3 group">
-                      <div className="p-2 bg-blue-500/20 rounded-lg">
-                        <Package className="w-4 h-4 text-blue-400" />
+                    return (
+                      <div className="grid grid-cols-[minmax(260px,2fr)_120px_180px_120px_100px_150px_130px] items-center px-4 py-3 hover:bg-slate-700/50 transition-colors">
+                        <div>
+                          <Link to={`/products/${product._id}`} className="flex items-center gap-3 group">
+                            <div className="p-2 bg-blue-500/20 rounded-lg">
+                              <Package className="w-4 h-4 text-blue-400" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-white group-hover:text-blue-400 transition-colors">{product.productName}</p>
+                              <p className="text-xs text-slate-400 flex items-center gap-1.5">
+                                <Building2 className="w-3 h-3" />
+                                {product.manufacturer}
+                              </p>
+                            </div>
+                          </Link>
+                        </div>
+                        <div className="text-slate-300 font-mono text-sm text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <Barcode className="w-4 h-4 text-slate-500" />
+                            {product.hsnCode}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {product.oldMRP > 0 && product.oldMRP !== product.newMRP && (
+                              <span className="text-slate-500 line-through text-sm flex items-center gap-1">
+                                {product.oldMRP > product.newMRP ? (
+                                  <TrendingDown className="w-3 h-3 text-emerald-400" />
+                                ) : (
+                                  <TrendingUp className="w-3 h-3 text-red-400" />
+                                )}
+                                {formatCurrency(product.oldMRP)}
+                              </span>
+                            )}
+                            <span className="text-emerald-400 font-medium">
+                              {formatCurrency(product.newMRP)}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-blue-400 font-medium">
+                            {formatCurrency(product.rate)}
+                          </span>
+                        </div>
+                        <div className="text-center">
+                          <span className="inline-flex items-center px-2 py-1 bg-blue-500/20 rounded text-blue-400 text-sm font-medium">
+                            {product.gstPercentage}%
+                          </span>
+                        </div>
+                        <div className="text-center">
+                          <span
+                            className={`badge inline-flex items-center gap-1.5 ${outOfStock ? 'badge-danger' :
+                              lowStock ? 'badge-warning' :
+                                'badge-success'
+                              }`}
+                          >
+                            <Layers className="w-3 h-3" />
+                            {product.currentStockQty} {product.unit}
+                          </span>
+                        </div>
+                        <div className="flex justify-center gap-2">
+                          <button
+                            onClick={() => onEdit(product)}
+                            className="p-2.5 rounded-lg bg-slate-800/40 hover:bg-slate-700 hover:text-blue-400 border border-transparent hover:border-slate-600 transition-all hover:scale-110 active:scale-95 tooltip-trigger relative"
+                            title="Edit Product"
+                          >
+                            <Edit2 className="w-4 h-4 text-slate-400 hover:text-blue-400" />
+                          </button>
+                          <button
+                            onClick={() => onDelete(product)}
+                            className="p-2.5 rounded-lg bg-slate-800/40 hover:bg-slate-700 hover:text-red-400 border border-transparent hover:border-slate-600 transition-all hover:scale-110 active:scale-95 tooltip-trigger relative"
+                            title="Delete Product"
+                          >
+                            <Trash2 className="w-4 h-4 text-slate-400 hover:text-red-400" />
+                          </button>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-white group-hover:text-blue-400 transition-colors">{product.productName}</p>
-                        <p className="text-xs text-slate-400 flex items-center gap-1.5">
-                          <Building2 className="w-3 h-3" />
-                          {product.manufacturer}
-                        </p>
-                      </div>
-                    </Link>
-                  </td>
-                  <td className="text-slate-300 font-mono text-sm text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <Barcode className="w-4 h-4 text-slate-500" />
-                      {product.hsnCode}
-                    </div>
-                  </td>
-                  <td className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      {product.oldMRP > 0 && product.oldMRP !== product.newMRP && (
-                        <span className="text-slate-500 line-through text-sm flex items-center gap-1">
-                          {product.oldMRP > product.newMRP ? (
-                            <TrendingDown className="w-3 h-3 text-emerald-400" />
-                          ) : (
-                            <TrendingUp className="w-3 h-3 text-red-400" />
-                          )}
-                          {formatCurrency(product.oldMRP)}
-                        </span>
-                      )}
-                      <span className="text-emerald-400 font-medium">
-                        {formatCurrency(product.newMRP)}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="text-center">
-                    <span className="inline-flex items-center px-2 py-1 bg-blue-500/20 rounded text-blue-400 text-sm font-medium">
-                      {product.gstPercentage}%
-                    </span>
-                  </td>
-                  <td className="text-center">
-                    <span
-                      className={`badge inline-flex items-center gap-1.5 ${outOfStock ? 'badge-danger' :
-                        lowStock ? 'badge-warning' :
-                          'badge-success'
-                        }`}
-                    >
-                      <Layers className="w-3 h-3" />
-                      {product.currentStockQty} {product.unit}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="flex justify-center gap-2">
-                      <button
-                        onClick={() => onEdit(product)}
-                        className="p-2.5 rounded-lg bg-slate-800/40 hover:bg-slate-700 hover:text-blue-400 border border-transparent hover:border-slate-600 transition-all hover:scale-110 active:scale-95 tooltip-trigger relative"
-                        title="Edit Product"
-                      >
-                        <Edit2 className="w-4 h-4 text-slate-400 hover:text-blue-400" />
-                      </button>
-                      <button
-                        onClick={() => onDelete(product)}
-                        className="p-2.5 rounded-lg bg-slate-800/40 hover:bg-slate-700 hover:text-red-400 border border-transparent hover:border-slate-600 transition-all hover:scale-110 active:scale-95 tooltip-trigger relative"
-                        title="Delete Product"
-                      >
-                        <Trash2 className="w-4 h-4 text-slate-400 hover:text-red-400" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                    );
+                  }}
+                />
       </div>
     </div>
     ) : (
     /* Mobile Card View */
-    <div className="space-y-4">
-      {filteredProducts.map((product) => {
+    <VirtualizedList
+      items={filteredProducts}
+      estimateSize={() => 220}
+      getKey={(product) => product._id}
+      gap={16}
+      className="min-h-[220px]"
+      renderItem={(product) => {
         const lowStock = product.currentStockQty <= 30;
         const outOfStock = product.currentStockQty === 0;
 
         return (
-          <div
-            key={`mobile-${product._id}`}
-            className="glass-card p-4 flex flex-col gap-4 relative overflow-hidden"
-          >
+          <div className="glass-card p-4 flex flex-col gap-4 relative overflow-hidden">
             {/* Product Info Section */}
             <div className="flex justify-between items-start gap-3">
               <Link to={`/products/${product._id}`} className="flex gap-3 flex-1 group">
@@ -354,6 +363,9 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatDate, formatC
                         {formatCurrency(product.oldMRP)}
                       </span>
                     )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-400">Rate: <span className="text-blue-400 font-medium">{formatCurrency(product.rate)}</span></span>
                   </div>
                   <div>
                     <span className="inline-flex items-center px-1.5 py-0.5 bg-blue-500/20 rounded text-blue-400 text-[10px] font-medium border border-blue-500/20">
@@ -395,8 +407,8 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatDate, formatC
             </div>
           </div>
         );
-      })}
-    </div>
+      }}
+    />
     )}
 
     {/* Infinite Scroll Loading Indicator */}
@@ -417,6 +429,8 @@ export default function ProductsPage() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [formData, setFormData] = useState(initialProductState);
   const [saving, setSaving] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, product: null });
   const [stockAdjustment, setStockAdjustment] = useState({ qty: '', reason: 'add' });
   const [filterStock, setFilterStock] = useState('all');
@@ -629,6 +643,47 @@ export default function ProductsPage() {
     return true;
   });
 
+  const handleExport = async ({ format, dateRange }) => {
+    if (isExporting) return;
+    setIsExporting(true);
+
+    try {
+      const params = { format };
+      if (search) params.search = search;
+      if (filterStock !== 'all') params.stockFilter = filterStock;
+
+      const blob = await productService.exportProducts(params);
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+
+      const extensionMap = { excel: 'xlsx', pdf: 'pdf', csv: 'csv' };
+      const extension = extensionMap[format] || 'xlsx';
+      
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      link.download = `products_export_${y}-${m}-${d}.${extension}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      setShowExportModal(false);
+      success(`Successfully exported products as ${format.toUpperCase()}`);
+    } catch (err) {
+      error(err.response?.data?.message || 'Failed to export products');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const exportStats = {
+    total: filteredProducts.length
+  };
+
   const stats = {
     total: statsData?.total || 0,
     lowStock: statsData?.lowStock || 0,
@@ -637,7 +692,7 @@ export default function ProductsPage() {
   };
 
   if (loading) {
-    return <PageLoader />;
+    return <ProductsPageSkeleton />;
   }
 
   // ✅ FIX #4: Use unique key based on filter state (excluding length to prevent infinite scroll remounts)
@@ -719,12 +774,21 @@ export default function ProductsPage() {
             </div>
           </div>
 
-          <EnhancedButton
-            onClick={openCreateModal}
-            icon={Plus}
-          >
-            Add Product
-          </EnhancedButton>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowExportModal(true)}
+              className="btn bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold flex items-center justify-center gap-2 px-4 shadow-lg shadow-emerald-500/30 border-0 active:scale-95 transition-transform"
+            >
+              <Download className="w-5 h-5" />
+              <span className="hidden sm:inline">Export</span>
+            </button>
+            <EnhancedButton
+              onClick={openCreateModal}
+              icon={Plus}
+            >
+              Add Product
+            </EnhancedButton>
+          </div>
         </div>
 
         {/* Search & Filters */}
@@ -815,7 +879,6 @@ export default function ProductsPage() {
             filteredProducts={filteredProducts}
             onEdit={openEditModal}
             onDelete={(product) => setDeleteDialog({ open: true, product })}
-            formatDate={formatDate}
             formatCurrency={formatCurrency}
             observerTarget={lastElementRef}
             hasMore={hasMore}
@@ -1018,6 +1081,20 @@ export default function ProductsPage() {
         message={`Are you sure you want to delete "${deleteDialog.product?.productName}"? This action cannot be undone.`}
         confirmText="Delete"
         variant="danger"
+      />
+
+      {/* Export Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => {
+          if (!isExporting) setShowExportModal(false);
+        }}
+        data={filteredProducts}
+        stats={exportStats}
+        onExport={handleExport}
+        isExporting={isExporting}
+        entityType="Products"
+        showDateRange={false}
       />
     </motion.div>
   );

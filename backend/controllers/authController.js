@@ -113,7 +113,9 @@ exports.register = async (req, res, next) => {
         firmName: admin.firmName,
         firmAddress: admin.firmAddress,
         firmPhone: admin.firmPhone,
-        firmGSTIN: admin.firmGSTIN
+        firmGSTIN: admin.firmGSTIN,
+        preferences: admin.preferences,
+        paymentInformation: admin.paymentInformation
       }
     });
   } catch (error) {
@@ -172,7 +174,9 @@ exports.login = async (req, res, next) => {
           firmName: admin.firmName,
           firmAddress: admin.firmAddress,
           firmPhone: admin.firmPhone,
-          firmGSTIN: admin.firmGSTIN
+          firmGSTIN: admin.firmGSTIN,
+          preferences: admin.preferences,
+          paymentInformation: admin.paymentInformation
         }
       });
     }
@@ -323,7 +327,9 @@ exports.getMe = async (req, res, next) => {
           firmAddress: admin.firmAddress,
           firmPhone: admin.firmPhone,
           firmGSTIN: admin.firmGSTIN,
-          lastLogin: admin.lastLogin
+          lastLogin: admin.lastLogin,
+          preferences: admin.preferences,
+          paymentInformation: admin.paymentInformation
         }
       });
     }
@@ -345,11 +351,11 @@ exports.updateProfile = async (req, res, next) => {
       });
     }
 
-    const { firmName, firmAddress, firmPhone, firmGSTIN } = req.body;
+    const { firmName, firmAddress, firmPhone, firmGSTIN, paymentInformation } = req.body;
 
     const admin = await Admin.findByIdAndUpdate(
       req.user._id,
-      { firmName, firmAddress, firmPhone, firmGSTIN },
+      { firmName, firmAddress, firmPhone, firmGSTIN, paymentInformation },
       { new: true, runValidators: true }
     );
 
@@ -361,7 +367,9 @@ exports.updateProfile = async (req, res, next) => {
         firmName: admin.firmName,
         firmAddress: admin.firmAddress,
         firmPhone: admin.firmPhone,
-        firmGSTIN: admin.firmGSTIN
+        firmGSTIN: admin.firmGSTIN,
+        preferences: admin.preferences,
+        paymentInformation: admin.paymentInformation
       }
     });
   } catch (error) {
@@ -468,6 +476,43 @@ exports.heartbeat = async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: 'Activity updated'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Update user preferences (Admin or Employee)
+// @route   PUT /api/auth/preferences
+// @access  Private
+exports.updatePreferences = async (req, res, next) => {
+  try {
+    const { showCalculator } = req.body;
+    
+    let user;
+    if (req.userRole === 'employee') {
+      user = await Employee.findById(req.user._id);
+    } else {
+      user = await Admin.findById(req.user._id);
+    }
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Update preferences if provided
+    if (showCalculator !== undefined) {
+      user.set('preferences.showCalculator', showCalculator);
+    }
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      preferences: user.preferences
     });
   } catch (error) {
     next(error);

@@ -17,6 +17,7 @@ async function fixStock() {
     if (product.currentStockQty !== totalBatchStock) {
       console.log(`Fixing ${product.productName}: ${product.currentStockQty} -> ${totalBatchStock}`);
       product.currentStockQty = totalBatchStock;
+      product.stockVersion = (product.stockVersion || 0) + 1;
       await product.save({ validateBeforeSave: false });
       fixed++;
     }

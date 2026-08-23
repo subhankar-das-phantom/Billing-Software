@@ -37,6 +37,18 @@ const adminSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  preferences: {
+    showCalculator: {
+      type: Boolean,
+      default: true
+    }
+  },
+  paymentInformation: {
+    enabled: { type: Boolean, default: false },
+    upiId: { type: String, trim: true },
+    accountNumber: { type: String, trim: true },
+    ifscCode: { type: String, uppercase: true, trim: true }
   }
 }, {
   timestamps: true

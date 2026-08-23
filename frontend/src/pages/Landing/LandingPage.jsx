@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback, memo, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
 import {
@@ -9,7 +9,10 @@ import {
   Clock, Heart, Rocket, Star
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { HeroGeometric } from '@/components/ui/shape-landing-hero';
+import { HeroGeometric, GradientOrbsFallback } from '@/components/ui/shape-landing-hero';
+
+// Lazy-load Three.js — only fetched on desktop (never on mobile/reduced-motion)
+const ParticleSwarmBackground = lazy(() => import('@/components/ui/ParticleSwarmBackground'));
 
 // ─── Helpers ───────────────────────────────────────
 const getIsMobile = () => {
@@ -404,7 +407,7 @@ function FeaturesSection({ reduceMotion }) {
               <motion.div
                 whileHover={reduceMotion ? undefined : { y: -8, scale: 1.02 }}
                 transition={{ duration: 0.3 }}
-                className={`group relative bg-slate-800/60 border border-slate-700/50 rounded-2xl p-8 hover:border-slate-600/80 transition-all duration-300 cursor-pointer h-full shadow-lg hover:shadow-2xl ${f.glow}`}
+                className={`group relative bg-slate-900/80 backdrop-blur-md border border-slate-700/50 rounded-2xl p-8 hover:border-slate-600/80 hover:bg-slate-800/90 transition-all duration-300 cursor-pointer h-full shadow-lg hover:shadow-2xl ${f.glow}`}
               >
                 {/* Gradient overlay on hover */}
                 <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${f.color} opacity-0 group-hover:opacity-[0.04] transition-opacity duration-300`} />
@@ -455,8 +458,8 @@ const steps = [
 function HowItWorksSection({ reduceMotion }) {
   return (
     <Reveal id="how-it-works" className="py-20 lg:py-32 relative scroll-mt-20" reduceMotion={reduceMotion}>
-      {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-slate-900/50 to-transparent pointer-events-none" />
+      {/* Background overlay to dim particles under the text */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-slate-950/90 to-transparent pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Header */}
@@ -546,7 +549,7 @@ function StatsSection({ reduceMotion }) {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
           {stats.map((s, i) => (
             <StaggerCard key={s.label} index={i} reduceMotion={reduceMotion}>
-              <div className="text-center p-6 lg:p-8 rounded-2xl bg-slate-800/50 border border-slate-700/40 hover:border-slate-600/60 transition-colors">
+              <div className="text-center p-6 lg:p-8 rounded-2xl bg-slate-900/80 backdrop-blur-md border border-slate-700/50 hover:border-slate-600/70 hover:bg-slate-800/90 transition-colors">
                 <p className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-2 tracking-tight">
                   <AnimatedStat value={s.value} suffix={s.suffix} prefix={s.prefix || ''} reduceMotion={reduceMotion} />
                 </p>
@@ -603,7 +606,7 @@ function WhyChooseSection({ reduceMotion }) {
             <StaggerCard key={r.title} index={i} reduceMotion={reduceMotion}>
               <motion.div
                 whileHover={reduceMotion ? undefined : { y: -4 }}
-                className="flex items-start gap-4 p-6 rounded-2xl bg-slate-800/30 border border-slate-700/30 hover:border-slate-600/50 hover:bg-slate-800/50 transition-all cursor-default"
+                className="flex items-start gap-4 p-6 rounded-2xl bg-slate-900/80 backdrop-blur-md border border-slate-700/50 hover:border-slate-600/70 hover:bg-slate-800/90 transition-all cursor-default"
               >
                 <div className={`flex-shrink-0 w-12 h-12 rounded-xl ${r.bg} flex items-center justify-center`}>
                   <r.icon className={`w-6 h-6 ${r.color}`} />
@@ -814,7 +817,7 @@ function CTASection({ reduceMotion, isLoggedIn }) {
 // ════════════════════════════════════════════════════
 function Footer() {
   return (
-    <footer className="border-t border-slate-800/80 bg-slate-950">
+    <footer className="border-t border-slate-800/80 bg-slate-950/95 backdrop-blur-xl relative z-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
         <div className="flex flex-col lg:flex-row items-center lg:items-start justify-between gap-8">
           {/* Brand */}
@@ -825,7 +828,7 @@ function Footer() {
               </div>
               <span className="text-white font-bold text-lg tracking-tight">Bharat Enterprise</span>
             </div>
-            <p className="text-slate-400 text-sm max-w-xs leading-relaxed">
+            <p className="text-slate-300 text-sm max-w-xs leading-relaxed">
               Fast billing, accurate stock, and clear customer balances — built for Indian shop owners and distributors.
             </p>
           </div>
@@ -834,29 +837,29 @@ function Footer() {
           <div className="flex flex-wrap justify-center gap-8 text-sm">
             <div className="space-y-3">
               <p className="font-semibold text-slate-300">Product</p>
-              <button onClick={() => scrollToSection('features')} className="block text-slate-500 hover:text-white transition-colors bg-transparent border-none cursor-pointer p-0">Features</button>
-              <button onClick={() => scrollToSection('pricing')} className="block text-slate-500 hover:text-white transition-colors bg-transparent border-none cursor-pointer p-0">Pricing</button>
-              <button onClick={() => scrollToSection('how-it-works')} className="block text-slate-500 hover:text-white transition-colors bg-transparent border-none cursor-pointer p-0">How It Works</button>
+              <button onClick={() => scrollToSection('features')} className="block text-slate-400 hover:text-white transition-colors bg-transparent border-none cursor-pointer p-0">Features</button>
+              <button onClick={() => scrollToSection('pricing')} className="block text-slate-400 hover:text-white transition-colors bg-transparent border-none cursor-pointer p-0">Pricing</button>
+              <button onClick={() => scrollToSection('how-it-works')} className="block text-slate-400 hover:text-white transition-colors bg-transparent border-none cursor-pointer p-0">How It Works</button>
             </div>
             <div className="space-y-3">
               <p className="font-semibold text-slate-300">Account</p>
-              <Link to="/login" className="block text-slate-500 hover:text-white transition-colors no-underline">Sign In</Link>
-              <Link to="/register" className="block text-slate-500 hover:text-white transition-colors no-underline">Register</Link>
+              <Link to="/login" className="block text-slate-400 hover:text-white transition-colors no-underline">Sign In</Link>
+              <Link to="/register" className="block text-slate-400 hover:text-white transition-colors no-underline">Register</Link>
             </div>
             <div className="space-y-3">
               <p className="font-semibold text-slate-300">Legal</p>
-              <Link to="/privacy-policy" className="block text-slate-500 hover:text-white transition-colors no-underline">Privacy Policy</Link>
-              <Link to="/terms" className="block text-slate-500 hover:text-white transition-colors no-underline">Terms & Conditions</Link>
+              <Link to="/privacy-policy" className="block text-slate-400 hover:text-white transition-colors no-underline">Privacy Policy</Link>
+              <Link to="/terms" className="block text-slate-400 hover:text-white transition-colors no-underline">Terms & Conditions</Link>
             </div>
           </div>
         </div>
 
         {/* Bottom */}
         <div className="mt-12 pt-8 border-t border-slate-800/60 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-400">
             © {new Date().getFullYear()} Bharat Enterprise. All rights reserved.
           </p>
-          <p className="text-xs text-slate-500 flex items-center gap-1">
+          <p className="text-xs text-slate-400 flex items-center gap-1">
             Built with <Heart className="w-3 h-3 text-red-400 fill-red-400" /> in India
           </p>
         </div>
@@ -873,14 +876,75 @@ export default function LandingPage() {
   const { user } = useAuth();
   const isLoggedIn = !!user;
 
+  // ── Scroll tracking (zero re-renders — refs only) ──
+  const scrollRef = useRef(0);
+  const velocityRef = useRef(0);
+
+  useEffect(() => {
+    // Scroll progress helper
+    const getScrollProgress = () => {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      return max > 0 ? window.scrollY / max : 0;
+    };
+
+    // Initialize immediately (handles browser scroll restore)
+    let lastScroll = getScrollProgress();
+    let lastTime = performance.now();
+    scrollRef.current = lastScroll;
+
+    const updateScroll = () => {
+      const now = performance.now();
+      const dt = (now - lastTime) / 1000;
+      const current = getScrollProgress();
+
+      // Guard against zero/tiny dt (prevents velocity spikes)
+      if (dt > 0.004) {
+        const rawVelocity = (current - lastScroll) / dt;
+        // Clamp before storing to prevent anomalous browser events
+        // from poisoning the smoothing filter
+        velocityRef.current = Math.max(-10, Math.min(10, rawVelocity));
+      }
+
+      scrollRef.current = current;
+      lastScroll = current;
+      lastTime = now;
+    };
+
+    window.addEventListener('scroll', updateScroll, { passive: true });
+    // Resize can change page height, recalculating scroll progress
+    window.addEventListener('resize', updateScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', updateScroll);
+      window.removeEventListener('resize', updateScroll);
+    };
+  }, []);
+
   // Scroll to top on mount
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
   return (
-    <div className="min-h-screen bg-slate-950 overflow-x-hidden">
+    <div className="min-h-screen bg-slate-950 overflow-x-hidden relative">
+      {/* ── Full-page background: tiered rendering ── */}
+      {/* Desktop: 3D scroll-reactive galaxy (lazy-loaded, fixed behind all content) */}
+      {/* Mobile/reduced-motion: CSS gradient orbs only (no Three.js downloaded) */}
+      {!reduceMotion ? (
+        <Suspense fallback={
+          <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+            <GradientOrbsFallback />
+          </div>
+        }>
+          <ParticleSwarmBackground scrollRef={scrollRef} velocityRef={velocityRef} />
+        </Suspense>
+      ) : (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+          <GradientOrbsFallback />
+        </div>
+      )}
+
       <FloatingNav reduceMotion={reduceMotion} isLoggedIn={isLoggedIn} />
 
-      <main>
+      <main className="relative z-[1]">
 
         <HeroSection reduceMotion={reduceMotion} isLoggedIn={isLoggedIn} />
 

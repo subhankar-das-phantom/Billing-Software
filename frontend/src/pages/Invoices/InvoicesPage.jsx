@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileText,
@@ -21,11 +21,12 @@ import {
 } from 'lucide-react';
 import { invoiceService } from '../../services/invoices/invoiceService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import { PageLoader, TableSkeleton } from '../../components/Common/Feedback/Loader';
+import { InvoicesTableSkeleton } from './InvoicesPageSkeleton';
 import ExportModal from '../../components/Common/Modals/ExportModal';
 import { useToast } from '../../contexts/ToastContext';
-import { invalidateCachePattern, useDebounce, useFirstVisit, useMotionConfig, useSWR } from '../../hooks';
+import { invalidateCachePattern, useDebounce, useFirstVisit, useMediaQuery, useMotionConfig, useSWR } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
+import { VirtualizedList } from '../../components/Common/VirtualizedList';
 
 // Factory functions for adaptive variants
 const createPageVariants = (isMobile, shouldStagger) => ({
@@ -78,6 +79,8 @@ export default function InvoicesPage() {
   const [isExporting, setIsExporting] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState({});
   const { success, error } = useToast();
+  const navigate = useNavigate();
+  const isDesktop = useMediaQuery('(min-width: 768px)');
 
   // Adaptive motion configuration
   const motionConfig = useMotionConfig();
@@ -114,9 +117,9 @@ export default function InvoicesPage() {
     { ttl: 5 * 60 * 1000 }
   );
 
-  // Derive invoices synchronously when on page 1 to prevent a 1-render-frame gap
-  // caused by useEffect, which was making the table visually remount on revisits.
-  const invoices = (page === 1 && data?.invoices) ? data.invoices : accumulatedInvoices;
+  // Use accumulatedInvoices once populated (after first useEffect run).
+  // Fall back to data.invoices only on the very first render before useEffect seeds the list.
+  const invoices = accumulatedInvoices.length > 0 ? accumulatedInvoices : (data?.invoices || []);
   const totalMatched = data?.total || 0;
   const hasMore = data?.hasMore ?? (data?.pages ? page < data.pages : false);
 
@@ -423,8 +426,8 @@ export default function InvoicesPage() {
       {/* Invoices Table */}
       <AnimatePresence mode="wait">
         {showTableSkeleton ? (
-          <div key="skeleton" className="glass-card overflow-hidden">
-            <TableSkeleton rows={8} columns={7} />
+          <div key="skeleton">
+            <InvoicesTableSkeleton />
           </div>
         ) : invoices.length === 0 ? (
           <div
@@ -455,119 +458,222 @@ export default function InvoicesPage() {
             )}
           </div>
         ) : (
-          <div className="glass-card overflow-x-auto">
-            <table className="table min-w-[800px]">
-              <thead>
-                <tr>
-                  <th>Invoice #</th>
-                  <th>Date</th>
-                  <th>Customer</th>
-                  <th>Items</th>
-                  <th>Amount</th>
-                  <th>Payment</th>
-                  <th>Status</th>
-                  <th className="text-center w-20">Printed</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {invoices.map((invoice, index) => {
-                  const StatusIcon = statusConfig[invoice.status]?.icon || FileText;
-                  const PaymentIcon = paymentConfig[invoice.paymentType]?.icon || CreditCard;
+          <div className="space-y-4">
+            {/* Desktop Table View */}
+            {isDesktop ? (
+            <div className="glass-card overflow-x-auto min-w-[800px]">
+              {/* Header Row */}
+              <div className="grid grid-cols-[120px_125px_minmax(210px,1.5fr)_100px_120px_115px_120px_90px_100px] items-center px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-700/50 bg-slate-800/50">
+                <div>Invoice #</div>
+                <div>Date</div>
+                <div>Customer</div>
+                <div>Items</div>
+                <div>Amount</div>
+                <div>Payment</div>
+                <div>Status</div>
+                <div className="text-center">Printed</div>
+                <div>Action</div>
+              </div>
+              {/* Data Rows */}
+              <div>
+                      <VirtualizedList
+                        items={invoices}
+                        estimateSize={() => 76}
+                        getKey={(invoice) => invoice._id}
+                        className="min-h-[76px]"
+                        itemClassName="border-b border-slate-700/50"
+                        renderItem={(invoice) => {
+                          const StatusIcon = statusConfig[invoice.status]?.icon || FileText;
+                          const PaymentIcon = paymentConfig[invoice.paymentType]?.icon || CreditCard;
+                          const isCancelled = invoice.status === 'Cancelled';
 
-                  const isCancelled = invoice.status === 'Cancelled';
+                          return (
+                            <div className={`grid grid-cols-[120px_125px_minmax(210px,1.5fr)_100px_120px_115px_120px_90px_100px] items-center px-4 py-3 text-sm transition-colors ${isCancelled ? 'bg-red-500/10 hover:bg-red-500/20' : 'hover:bg-slate-700/50'}`}>
+                              <div onClick={() => navigate(`/invoices/${invoice._id}`)} className={`font-medium cursor-pointer hover:underline ${isCancelled ? 'text-red-400' : 'text-blue-400 hover:text-blue-300'}`}>
+                                <div className="flex items-center gap-2">
+                                  <FileText className={`w-4 h-4 ${isCancelled ? 'text-red-400' : 'text-blue-400'}`} />
+                                  {invoice.invoiceNumber}
+                                </div>
+                              </div>
+                              <div className={isCancelled ? 'text-red-400' : 'text-slate-300'}>
+                                <div className="flex items-center gap-2">
+                                  <Calendar className={`w-4 h-4 ${isCancelled ? 'text-red-400' : 'text-slate-500'}`} />
+                                  {formatDate(invoice.invoiceDate)}
+                                </div>
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className={`w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-lg ${isCancelled ? 'bg-red-500/20 text-red-400 shadow-red-500/20' : 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/30'}`}
+                                  >
+                                    {invoice.customer?.customerName?.charAt(0)}
+                                  </div>
+                                  <div>
+                                    <p className={`font-medium ${isCancelled ? 'text-red-400' : 'text-white'}`}>{invoice.customer?.customerName}</p>
+                                    <p className={`text-xs flex items-center gap-1 ${isCancelled ? 'text-red-400 opacity-80' : 'text-slate-400'}`}>
+                                      <User className="w-3 h-3" />
+                                      {invoice.customer?.phone}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className={isCancelled ? 'text-red-400' : 'text-slate-300'}>
+                                <div className="flex items-center gap-2">
+                                  <Package className={`w-4 h-4 ${isCancelled ? 'text-red-400' : 'text-slate-500'}`} />
+                                  {invoice.items?.length || 0} items
+                                </div>
+                              </div>
+                              <div className={`font-medium ${isCancelled ? 'text-red-400 font-bold' : 'text-emerald-400'}`}>
+                                {formatCurrency(invoice.totals?.netTotal)}
+                              </div>
+                              <div>
+                                <span
+                                  className={`badge ${paymentConfig[invoice.paymentType]?.class || 'badge-info'} inline-flex items-center gap-1.5`}
+                                >
+                                  <PaymentIcon className="w-3 h-3" />
+                                  {invoice.paymentType}
+                                </span>
+                              </div>
+                              <div>
+                                <span
+                                  className={`badge ${statusConfig[invoice.status]?.class || 'badge-info'} inline-flex items-center gap-1.5`}
+                                >
+                                  <StatusIcon className="w-3 h-3" />
+                                  {invoice.status}
+                                </span>
+                              </div>
+                              <div className="text-center">
+                                <label className={`inline-flex items-center justify-center ${isCancelled || statusUpdating[invoice._id] ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+                                  <input
+                                    type="checkbox"
+                                    aria-label={`Mark invoice ${invoice.invoiceNumber} as printed`}
+                                    className="sr-only"
+                                    checked={invoice.status === 'Printed'}
+                                    disabled={isCancelled || statusUpdating[invoice._id]}
+                                    onChange={(e) => handlePrintedToggle(invoice._id, e.target.checked)}
+                                  />
+                                  <div className={`relative w-10 h-5 rounded-full transition-colors shadow-inner ${invoice.status === 'Printed' ? 'bg-emerald-500' : 'bg-slate-700'}`}>
+                                    <span className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${invoice.status === 'Printed' ? 'translate-x-5' : 'translate-x-0'}`} />
+                                  </div>
+                                </label>
+                              </div>
+                              <div>
+                                <Link
+                                  to={`/invoices/${invoice._id}`}
+                                  className="btn btn-secondary py-1.5 px-3 text-sm inline-flex items-center gap-2 group"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                  View
+                                </Link>
+                              </div>
+                            </div>
+                          );
+                        }}
+                      />
+              </div>
+            </div>
+            ) : (
+            /* Mobile Card View */
+            <VirtualizedList
+              items={invoices}
+              estimateSize={() => 220}
+              getKey={(invoice) => invoice._id}
+              gap={16}
+              className="min-h-[220px]"
+              renderItem={(invoice) => {
+                const StatusIcon = statusConfig[invoice.status]?.icon || FileText;
+                const PaymentIcon = paymentConfig[invoice.paymentType]?.icon || CreditCard;
+                const isCancelled = invoice.status === 'Cancelled';
 
-                  return (
-                    <tr
-                      key={invoice._id}
-                      className={`transition-colors ${isCancelled ? 'bg-red-500/10 hover:bg-red-500/20' : 'hover:bg-slate-700/50'}`}
-                    >
-                      <td className={`font-medium ${isCancelled ? 'text-red-400' : 'text-white'}`}>
-                        <div className="flex items-center gap-2">
-                          <FileText className={`w-4 h-4 ${isCancelled ? 'text-red-400' : 'text-blue-400'}`} />
-                          {invoice.invoiceNumber}
+                return (
+                  <div className={`glass-card p-4 flex flex-col gap-4 relative overflow-hidden transition-colors ${isCancelled ? 'bg-red-500/10 border-red-500/20' : ''}`}>
+                    {/* Header: Invoice # + Date — clickable */}
+                    <div onClick={() => navigate(`/invoices/${invoice._id}`)} className="flex justify-between items-start gap-3 cursor-pointer rounded-lg -m-1 p-1 hover:bg-slate-700/30 transition-colors">
+                      <div className="flex gap-3 flex-1">
+                        <div className={`p-2.5 rounded-xl shrink-0 h-fit ${isCancelled ? 'bg-red-500/20' : 'bg-blue-500/20'}`}>
+                          <FileText className={`w-5 h-5 ${isCancelled ? 'text-red-400' : 'text-blue-400'}`} />
                         </div>
-                      </td>
-                      <td className={isCancelled ? 'text-red-400' : 'text-slate-300'}>
-                        <div className="flex items-center gap-2">
-                          <Calendar className={`w-4 h-4 ${isCancelled ? 'text-red-400' : 'text-slate-500'}`} />
-                          {formatDate(invoice.invoiceDate)}
+                        <div className="min-w-0">
+                          <h3 className={`font-semibold text-base mb-1 ${isCancelled ? 'text-red-400' : 'text-white'}`}>
+                            {invoice.invoiceNumber}
+                          </h3>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
+                            <span className={`flex items-center gap-1.5 shrink-0 ${isCancelled ? 'text-red-400' : ''}`}>
+                              <Calendar className="w-3.5 h-3.5" />
+                              {formatDate(invoice.invoiceDate)}
+                            </span>
+                            <span className={`flex items-center gap-1.5 shrink-0 ${isCancelled ? 'text-red-400' : ''}`}>
+                              <Package className="w-3.5 h-3.5" />
+                              {invoice.items?.length || 0} items
+                            </span>
+                          </div>
                         </div>
-                      </td>
-                      <td>
+                      </div>
+                      {/* Status Badge */}
+                      <span className={`badge ${statusConfig[invoice.status]?.class || 'badge-info'} inline-flex items-center gap-1.5 shrink-0`}>
+                        <StatusIcon className="w-3 h-3" />
+                        {invoice.status}
+                      </span>
+                    </div>
+
+                    {/* Customer + Amount Grid */}
+                    <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-700/50 bg-slate-800/30 -mx-4 px-4 pb-1">
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Customer</p>
                         <div className="flex items-center gap-2">
-                          <div
-                            className={`w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-lg ${isCancelled ? 'bg-red-500/20 text-red-400 shadow-red-500/20' : 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/30'}`}
-                          >
+                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-lg ${isCancelled ? 'bg-red-500/20 text-red-400 shadow-red-500/20' : 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/30'}`}>
                             {invoice.customer?.customerName?.charAt(0)}
                           </div>
-                          <div>
-                            <p className={`font-medium ${isCancelled ? 'text-red-400' : 'text-white'}`}>{invoice.customer?.customerName}</p>
-                            <p className={`text-xs flex items-center gap-1 ${isCancelled ? 'text-red-400 opacity-80' : 'text-slate-400'}`}>
-                              <User className="w-3 h-3" />
+                          <div className="min-w-0">
+                            <p className={`font-medium text-sm truncate ${isCancelled ? 'text-red-400' : 'text-white'}`}>
+                              {invoice.customer?.customerName}
+                            </p>
+                            <p className={`text-[10px] flex items-center gap-1 ${isCancelled ? 'text-red-400 opacity-80' : 'text-slate-400'}`}>
+                              <User className="w-2.5 h-2.5" />
                               {invoice.customer?.phone}
                             </p>
                           </div>
                         </div>
-                      </td>
-                      <td className={isCancelled ? 'text-red-400' : 'text-slate-300'}>
-                        <div className="flex items-center gap-2">
-                          <Package className={`w-4 h-4 ${isCancelled ? 'text-red-400' : 'text-slate-500'}`} />
-                          {invoice.items?.length || 0} items
-                        </div>
-                      </td>
-                      <td className={`font-medium ${isCancelled ? 'text-red-400 font-bold' : 'text-emerald-400'}`}>
-                        {formatCurrency(invoice.totals?.netTotal)}
-                      </td>
-                      <td>
-                        <span
-                          className={`badge ${paymentConfig[invoice.paymentType]?.class || 'badge-info'} inline-flex items-center gap-1.5`}
-                        >
+                      </div>
+
+                      <div className="space-y-1.5 flex flex-col items-end">
+                        <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Amount</p>
+                        <p className={`font-semibold text-sm ${isCancelled ? 'text-red-400' : 'text-emerald-400'}`}>
+                          {formatCurrency(invoice.totals?.netTotal)}
+                        </p>
+                        <span className={`badge ${paymentConfig[invoice.paymentType]?.class || 'badge-info'} inline-flex items-center gap-1.5 px-2 py-0.5 text-xs`}>
                           <PaymentIcon className="w-3 h-3" />
                           {invoice.paymentType}
                         </span>
-                      </td>
-                      <td>
-                        <span
-                          className={`badge ${statusConfig[invoice.status]?.class || 'badge-info'} inline-flex items-center gap-1.5`}
-                        >
-                          <StatusIcon className="w-3 h-3" />
-                          {invoice.status}
-                        </span>
-                      </td>
-                      <td className="text-center">
-                        <label className={`inline-flex items-center justify-center ${isCancelled || statusUpdating[invoice._id] ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
-                          <input
-                            type="checkbox"
-                            aria-label={`Mark invoice ${invoice.invoiceNumber} as printed`}
-                            className="sr-only"
-                            checked={invoice.status === 'Printed'}
-                            disabled={isCancelled || statusUpdating[invoice._id]}
-                            onChange={(e) => handlePrintedToggle(invoice._id, e.target.checked)}
-                          />
-                          <div className={`relative w-10 h-5 rounded-full transition-colors shadow-inner ${invoice.status === 'Printed' ? 'bg-emerald-500' : 'bg-slate-700'}`}>
-                            <span className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${invoice.status === 'Printed' ? 'translate-x-5' : 'translate-x-0'}`} />
-                          </div>
-                        </label>
-                      </td>
-                      <td>
-                        <Link
-                          to={`/invoices/${invoice._id}`}
-                          className="btn btn-secondary py-1.5 px-3 text-sm inline-flex items-center gap-2 group"
-                        >
-                          <Eye className="w-4 h-4" />
-                          View
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      </div>
+                    </div>
+
+                    {/* Printed Toggle Row */}
+                    <div className="flex items-center justify-between pt-1 border-t border-slate-700/50 mt-1">
+                      <span className="text-xs text-slate-400 font-medium">Mark as Printed</span>
+                      <label className={`inline-flex items-center ${isCancelled || statusUpdating[invoice._id] ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+                        <input
+                          type="checkbox"
+                          aria-label={`Mark invoice ${invoice.invoiceNumber} as printed`}
+                          className="sr-only"
+                          checked={invoice.status === 'Printed'}
+                          disabled={isCancelled || statusUpdating[invoice._id]}
+                          onChange={(e) => handlePrintedToggle(invoice._id, e.target.checked)}
+                        />
+                        <div className={`relative w-10 h-5 rounded-full transition-colors shadow-inner ${invoice.status === 'Printed' ? 'bg-emerald-500' : 'bg-slate-700'}`}>
+                          <span className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${invoice.status === 'Printed' ? 'translate-x-5' : 'translate-x-0'}`} />
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+                );
+              }}
+            />
+            )}
 
             {/* Infinite Scroll Loader */}
             {(hasMore || isValidating) && (
-              <div ref={lastElementRef} className="p-4 border-t border-slate-700 flex items-center justify-center gap-2 text-slate-400">
+              <div ref={lastElementRef} className="p-4 glass-card flex items-center justify-center gap-2 text-slate-400">
                 <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
                 <span className="text-sm">Loading more invoices...</span>
               </div>

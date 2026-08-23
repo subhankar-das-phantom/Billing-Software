@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { creditNoteService } from '../../services/credits/creditNoteService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import { PageLoader } from '../../components/Common/Feedback/Loader';
+import { CreditNoteViewPageSkeleton } from './CreditNoteViewPageSkeleton';
 import { useToast } from '../../contexts/ToastContext';
 import { useSWR, useFirstVisit } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
@@ -60,7 +60,7 @@ export default function CreditNoteViewPage() {
 
   const handlePrint = () => window.print();
 
-  if (loading) return <PageLoader />;
+  if (loading) return <CreditNoteViewPageSkeleton />;
   if (!creditNote) {
     return (
       <motion.div

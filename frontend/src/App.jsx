@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { AuthProvider, useAuth, AdminRoute } from './contexts/AuthContext';
 import { SubscriptionProvider } from './contexts/SubscriptionContext';
@@ -20,7 +20,7 @@ const InvoiceCreatePage = lazy(() => import('./pages/Invoices/InvoiceCreatePage'
 const InvoiceViewPage = lazy(() => import('./pages/Invoices/InvoiceViewPage'));
 const NotesPage = lazy(() => import('./pages/Notes/NotesPage'));
 const CreditsPage = lazy(() => import('./pages/CreditNotes/CreditsPage'));
-const ProfilePage = lazy(() => import('./pages/Profile/ProfilePage'));
+const SettingsPage = lazy(() => import('./pages/Settings/SettingsPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const CollectionsPage = lazy(() => import('./pages/Collections/CollectionsPage'));
 const SubscriptionPage = lazy(() => import('./pages/Subscription/SubscriptionPage'));
@@ -39,22 +39,15 @@ const CreditNoteCreatePage = lazy(() => import('./pages/CreditNotes/CreditNoteCr
 const CreditNoteViewPage = lazy(() => import('./pages/CreditNotes/CreditNoteViewPage'));
 
 // Report pages
-const GstReportPage = lazy(() => import('./pages/Reports/GstReportPage'));
+const ReportsPage = lazy(() => import('./pages/Reports/ReportsPage'));
 const PrivacyPolicyPage = lazy(() => import('./pages/Legal/PrivacyPolicyPage'));
 const TermsPage = lazy(() => import('./pages/Legal/TermsPage'));
 
 // Landing page (eagerly loaded — it's the entry point for new users)
 
-// Page loading spinner
+// Page loading spinner removed as per request
 function PageLoader() {
-  return (
-    <div className="min-h-[50vh] flex items-center justify-center">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-        <span className="text-sm text-slate-400">Loading...</span>
-      </div>
-    </div>
-  );
+  return null;
 }
 
 // Protected Route Wrapper
@@ -62,11 +55,7 @@ function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
   
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="loader"></div>
-      </div>
-    );
+    return null;
   }
   
   if (!user) {
@@ -81,11 +70,7 @@ function PublicRoute({ children }) {
   const { user, loading } = useAuth();
   
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="loader"></div>
-      </div>
-    );
+    return null;
   }
   
   if (user) {
@@ -144,10 +129,18 @@ function AppRoutes() {
           <Route path="/notes" element={<NotesPage />} />
           <Route path="/credits" element={<CreditsPage />} />
           <Route path="/collections" element={<CollectionsPage />} />
-          <Route path="/reports/gst" element={<GstReportPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/reports/gst" element={<Navigate to="/reports" replace />} />
           <Route path="/subscription" element={<SubscriptionPage />} />
           <Route path="/referral" element={<ReferralPage />} />
+          <Route 
+            path="/settings" 
+            element={
+              <AdminRoute>
+                <SettingsPage />
+              </AdminRoute>
+            } 
+          />
           
           {/* Admin-only routes */}
           <Route 
@@ -201,7 +194,7 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <HashRouter>
+    <BrowserRouter>
       <AuthProvider>
         <SubscriptionProvider>
           <ToastProvider>
@@ -209,6 +202,6 @@ export default function App() {
           </ToastProvider>
         </SubscriptionProvider>
       </AuthProvider>
-    </HashRouter>
+    </BrowserRouter>
   );
 }

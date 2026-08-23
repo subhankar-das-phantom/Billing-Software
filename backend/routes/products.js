@@ -8,8 +8,10 @@ const {
   updateProduct,
   adjustStock,
   deleteProduct,
-  getLowStock
+  getLowStock,
+  getStockHistory
 } = require('../controllers/productController');
+const { exportProducts } = require('../controllers/product/productExportController');
 const { protect } = require('../middleware/auth');
 const { 
   createProductValidator, 
@@ -27,10 +29,13 @@ router.use(checkFeatureAccess(Feature.PRODUCTS));
 
 router.get('/stats', getProductStats);
 router.get('/stock/low', getLowStock);
+router.get('/export', exportProducts);
 
 router.route('/')
   .get(getProducts)
   .post(checkWriteAccess, createProductValidator, createProduct);
+
+router.get('/:id/stock-history', mongoIdParam, getStockHistory);
 
 router.route('/:id')
   .get(mongoIdParam, getProduct)

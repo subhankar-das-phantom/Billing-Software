@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, memo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -14,6 +14,7 @@ import {
   BarChart3,
   Sparkles,
   User,
+  Settings,
   StickyNote,
   Wallet,
   Banknote,
@@ -47,12 +48,12 @@ const getQuickActions = (isAdmin) => {
   // Admin-only menu items
   if (isAdmin) {
     actions.push(
-      { path: '/profile', label: 'Profile', icon: User },
+      { path: '/settings', label: 'Settings', icon: Settings },
       { path: '/referral', label: 'Refer & Earn', icon: Gift, badge: 'Free Days', badgeColor: 'bg-emerald-500' },
       { path: '/employees', label: 'Employees', icon: UsersRound, badge: 'Admin', badgeColor: 'bg-accent-500' },
       { path: '/employee-analytics', label: 'Employee Analytics', icon: BarChart3 },
       { path: '/manual-entries', label: 'Manual Entries', icon: Shield, badge: 'Admin', badgeColor: 'bg-accent-500' },
-      { path: '/reports/gst', label: 'GST Report', icon: FileBarChart }
+      { path: '/reports', label: 'Reports', icon: FileBarChart }
     );
   }
   
@@ -61,23 +62,6 @@ const getQuickActions = (isAdmin) => {
   return actions;
 };
 
-// Adaptive sidebar variants - near-instant on mobile
-const createSidebarVariants = (isMobile) => ({
-  open: { 
-    x: 0, 
-    opacity: 1,
-    transition: isMobile 
-      ? { type: 'tween', duration: 0.15, ease: 'easeOut' }  // Fast!
-      : { type: 'spring', stiffness: 300, damping: 30 }
-  },
-  closed: { 
-    x: '-100%', 
-    opacity: 0,
-    transition: isMobile
-      ? { type: 'tween', duration: 0.1, ease: 'easeIn' }  // Instant close
-      : { type: 'spring', stiffness: 300, damping: 30 }
-  },
-});
 
 const createMenuContainerVariants = (isMobile, shouldStagger) => ({
   open: {
@@ -124,22 +108,174 @@ function useMediaQuery(query) {
   return matches;
 }
 
+const MemoizedMenuItem = memo(({ item, index, location, onClose, hoveredItem, setHoveredItem, menuItemVariants, motionConfig, canAccessRoute }) => {
+  const isEditPage = location.pathname.includes('/edit');
+  
+  let isActive;
+  if (item.path === '/invoices/create') {
+    isActive = location.pathname === '/invoices/create' || isEditPage;
+  } else if (item.path === '/invoices') {
+    isActive = location.pathname === '/invoices' || 
+      (location.pathname.startsWith('/invoices/') && !isEditPage && !location.pathname.includes('/create'));
+  } else {
+    isActive = location.pathname === item.path || 
+      (item.path !== '/' && location.pathname.startsWith(item.path));
+  }
+  
+  return (
+    <motion.li 
+      variants={menuItemVariants}
+      onHoverStart={() => setHoveredItem(item.path)}
+      onHoverEnd={() => setHoveredItem(null)}
+      initial={motionConfig.isMobile ? false : undefined}
+      animate={motionConfig.isMobile ? false : undefined}
+    >
+      <Link
+        to={item.path}
+        onClick={onClose}
+        className="relative block"
+      >
+        {/* Active indicator background */}
+        {isActive && (
+          <motion.div
+            layoutId="activeTab"
+            className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-accent-600/20 border border-blue-500/30 rounded-xl"
+            initial={false}
+            transition={{ 
+              type: "spring", 
+              stiffness: 500, 
+              damping: 30,
+              mass: 0.8
+            }}
+          />
+        )}
+        
+        {/* Hover background */}
+        <AnimatePresence>
+          {hoveredItem === item.path && !isActive && (
+            <motion.div
+              className="absolute inset-0 bg-slate-800/50 rounded-xl"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+            />
+          )}
+        </AnimatePresence>
+
+        <div className={`relative flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+          isActive ? 'text-blue-400' : 'text-slate-400 hover:text-white'
+        }`}>
+          {/* Icon */}
+          <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+          
+          <span className="font-medium flex-1">{item.label}</span>
+          
+          {/* Badge */}
+          {item.badge && (
+            <motion.span
+              className={`${item.badgeColor || 'bg-blue-500'} text-white text-xs px-2 py-0.5 rounded-full font-semibold`}
+              initial={motionConfig.isMobile ? false : { scale: 0, opacity: 0 }}
+              animate={motionConfig.isMobile ? false : { scale: 1, opacity: 1 }}
+              transition={{ 
+                type: 'spring',
+                stiffness: 500,
+                damping: 15,
+                delay: 0.3 + index * 0.05
+              }}
+            >
+              {item.badge}
+            </motion.span>
+          )}
+          
+          {canAccessRoute && !canAccessRoute(item.path) && (
+            <UpgradeBadge variant="lock" />
+          )}
+          
+          {/* Hover arrow */}
+          <AnimatePresence>
+            {hoveredItem === item.path && (
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ChevronRight size={16} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </Link>
+    </motion.li>
+  );
+});
+
+const MemoizedQuickAction = memo(({ item, onClose, menuItemVariants, motionConfig, canAccessRoute }) => (
+  <motion.li 
+    variants={menuItemVariants}
+    whileHover={motionConfig.shouldHover ? { x: 4 } : undefined}
+    initial={motionConfig.isMobile ? false : undefined}
+    animate={motionConfig.isMobile ? false : undefined}
+  >
+    <Link
+      to={item.path}
+      onClick={onClose}
+      className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/50 transition-colors group"
+    >
+      <item.icon size={18} />
+      <span className="text-sm font-medium flex-1">{item.label}</span>
+      {item.badge && (
+        <span className={`${item.badgeColor || 'bg-blue-500'} text-white text-[10px] px-1.5 py-0.5 rounded font-semibold`}>
+          {item.badge}
+        </span>
+      )}
+      {canAccessRoute && !canAccessRoute(item.path) && (
+        <UpgradeBadge variant="lock" />
+      )}
+    </Link>
+  </motion.li>
+));
+
 export default function Sidebar({ isOpen, onClose }) {
   const location = useLocation();
   const { admin, user, isAdmin, logout } = useAuth();
   const { canAccessRoute } = useSubscription();
-  const isDesktop = useMediaQuery('(min-width: 768px)');
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
   const shouldShow = isOpen || isDesktop;
   const [hoveredItem, setHoveredItem] = useState(null);
+
+  // Lock body scroll when mobile sidebar is open
+  useEffect(() => {
+    if (isOpen && !isDesktop) {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      
+      if (isIOS) {
+        const scrollY = window.scrollY;
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${scrollY}px`;
+        document.body.style.width = '100%';
+      } else {
+        document.body.style.overflow = 'hidden';
+      }
+      
+      return () => {
+        if (isIOS) {
+          const scrollY = document.body.style.top;
+          document.body.style.position = '';
+          document.body.style.top = '';
+          document.body.style.width = '';
+          window.scrollTo(0, parseInt(scrollY || '0') * -1);
+        } else {
+          document.body.style.overflow = '';
+        }
+      };
+    }
+  }, [isOpen, isDesktop]);
   
   // Adaptive motion configuration
   const motionConfig = useMotionConfig();
   
-  // Memoize variants based on device type
-  const sidebarVariants = useMemo(
-    () => createSidebarVariants(motionConfig.isMobile), 
-    [motionConfig.isMobile]
-  );
   const menuContainerVariants = useMemo(
     () => createMenuContainerVariants(motionConfig.isMobile, motionConfig.shouldStagger), 
     [motionConfig.isMobile, motionConfig.shouldStagger]
@@ -163,31 +299,14 @@ export default function Sidebar({ isOpen, onClose }) {
 
   return (
     <>
-      {/* Overlay for mobile */}
-      <AnimatePresence>
-        {isOpen && !isDesktop && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0, transition: { delay: 0.15 } }}
-            className="sidebar-overlay fixed inset-0 bg-black/50 z-30 md:hidden backdrop-blur-sm" 
-            onClick={onClose}
-          />
-        )}
-      </AnimatePresence>
       
-      {/* Sidebar */}
-      <motion.aside 
-        initial={false}
-        animate={shouldShow ? "open" : "closed"}
-        variants={sidebarVariants}
-        className="sidebar fixed top-0 left-0 h-full w-64 bg-slate-900/95 border-r border-slate-700 flex flex-col z-40 md:translate-x-0 md:static backdrop-blur-xl"
-      >
+      {/* Sidebar - static in mobile wrapper or desktop layout */}
+      <aside className="sidebar h-full w-64 bg-slate-900/95 border-r border-slate-700 flex flex-col md:translate-x-0 md:static md:backdrop-blur-xl backdrop-blur-none shadow-md md:shadow-2xl contain-layout contain-paint">
         {/* Logo Section */}
         <motion.div 
           className="p-6 border-b border-slate-700 flex justify-between items-center"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={motionConfig.isMobile ? false : { opacity: 0, y: -20 }}
+          animate={motionConfig.isMobile ? false : { opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
           <Link to="/" className="flex items-center gap-3 group" onClick={onClose}>
@@ -224,15 +343,21 @@ export default function Sidebar({ isOpen, onClose }) {
             </div>
           </Link>
           
-          {/* Close button for mobile */}
-          <motion.button 
-            onClick={onClose} 
-            className="md:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-            whileHover={{ scale: 1.1, rotate: 90 }}
-            whileTap={{ scale: 0.9 }}
+          {/* Close button for mobile - stable 44x44px touch target */}
+          <button
+            onClick={onClose}
+            type="button"
+            className="md:hidden p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 active:bg-slate-800/80 transition-colors group"
+            aria-label="Close sidebar"
           >
-            <X size={20} />
-          </motion.button>
+            <motion.div
+              whileHover={{ scale: 1.1, rotate: 90 }}
+              whileTap={{ scale: 0.9 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+            >
+              <X size={20} />
+            </motion.div>
+          </button>
         </motion.div>
 
         {/* Navigation */}
@@ -251,117 +376,27 @@ export default function Sidebar({ isOpen, onClose }) {
             </motion.div>
             
             <ul className="space-y-1">
-              {menuItems.map((item, index) => {
-                // Check if we're on an edit page
-                const isEditPage = location.pathname.includes('/edit');
-                
-                let isActive;
-                if (item.path === '/invoices/create') {
-                  // Create Invoice is active for both /invoices/create and /invoices/:id/edit
-                  isActive = location.pathname === '/invoices/create' || isEditPage;
-                } else if (item.path === '/invoices') {
-                  // All Invoices is active only for exact /invoices path (not edit pages)
-                  isActive = location.pathname === '/invoices' || 
-                    (location.pathname.startsWith('/invoices/') && !isEditPage && !location.pathname.includes('/create'));
-                } else {
-                  // Default logic for other items
-                  isActive = location.pathname === item.path || 
-                    (item.path !== '/' && location.pathname.startsWith(item.path));
-                }
-                
-                return (
-                  <motion.li 
-                    key={item.path}
-                    variants={menuItemVariants}
-                    onHoverStart={() => setHoveredItem(item.path)}
-                    onHoverEnd={() => setHoveredItem(null)}
-                  >
-                    <Link
-                      to={item.path}
-                      onClick={onClose}
-                      className="relative block"
-                    >
-                      {/* Active indicator background */}
-                      {isActive && (
-                        <motion.div
-                          layoutId="activeTab"
-                          className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-accent-600/20 border border-blue-500/30 rounded-xl"
-                          initial={false}
-                          transition={{ 
-                            type: "spring", 
-                            stiffness: 500, 
-                            damping: 30,
-                            mass: 0.8
-                          }}
-                        />
-                      )}
-                      
-                      {/* Hover background */}
-                      <AnimatePresence>
-                        {hoveredItem === item.path && !isActive && (
-                          <motion.div
-                            className="absolute inset-0 bg-slate-800/50 rounded-xl"
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            transition={{ duration: 0.15 }}
-                          />
-                        )}
-                      </AnimatePresence>
-
-                      <div className={`relative flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
-                        isActive ? 'text-blue-400' : 'text-slate-400 hover:text-white'
-                      }`}>
-                        {/* Icon - simplified on mobile, no infinite animations */}
-                        <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-                        
-                        <span className="font-medium flex-1">{item.label}</span>
-                        
-                        {/* Badge */}
-                        {item.badge && (
-                          <motion.span
-                            className={`${item.badgeColor || 'bg-blue-500'} text-white text-xs px-2 py-0.5 rounded-full font-semibold`}
-                            initial={{ scale: 0, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{ 
-                              type: 'spring',
-                              stiffness: 500,
-                              damping: 15,
-                              delay: 0.3 + index * 0.05
-                            }}
-                          >
-                            {item.badge}
-                          </motion.span>
-                        )}
-                        
-                        {/* Upgrade badge for locked features */}
-                        {!canAccessRoute(item.path) && (
-                          <UpgradeBadge variant="lock" />
-                        )}
-                        
-                        {/* Hover arrow */}
-                        <AnimatePresence>
-                          {hoveredItem === item.path && (
-                            <motion.div
-                              initial={{ opacity: 0, x: -10 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              exit={{ opacity: 0, x: -10 }}
-                              transition={{ duration: 0.2 }}
-                            >
-                              <ChevronRight size={16} />
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    </Link>
-                  </motion.li>
-                );
-              })}
+              {menuItems.map((item, index) => (
+                <MemoizedMenuItem 
+                  key={item.path}
+                  item={item}
+                  index={index}
+                  location={location}
+                  onClose={onClose}
+                  hoveredItem={hoveredItem}
+                  setHoveredItem={setHoveredItem}
+                  menuItemVariants={menuItemVariants}
+                  motionConfig={motionConfig}
+                  canAccessRoute={canAccessRoute}
+                />
+              ))}
             </ul>
 
             {/* Quick Actions */}
             <motion.div
               variants={menuItemVariants}
+              initial={motionConfig.isMobile ? false : undefined}
+              animate={motionConfig.isMobile ? false : undefined}
               className="mt-6"
             >
               <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 px-3">
@@ -370,29 +405,14 @@ export default function Sidebar({ isOpen, onClose }) {
               
               <ul className="space-y-1">
                 {quickActions.map((item) => (
-                  <motion.li 
+                  <MemoizedQuickAction 
                     key={item.path}
-                    variants={menuItemVariants}
-                    whileHover={motionConfig.shouldHover ? { x: 4 } : undefined}
-                  >
-                    <Link
-                      to={item.path}
-                      onClick={onClose}
-                      className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/50 transition-colors group"
-                    >
-                      {/* Icon - no rotation animation on mobile */}
-                      <item.icon size={18} />
-                      <span className="text-sm font-medium flex-1">{item.label}</span>
-                      {item.badge && (
-                        <span className={`${item.badgeColor || 'bg-blue-500'} text-white text-[10px] px-1.5 py-0.5 rounded font-semibold`}>
-                          {item.badge}
-                        </span>
-                      )}
-                      {!canAccessRoute(item.path) && (
-                        <UpgradeBadge variant="lock" />
-                      )}
-                    </Link>
-                  </motion.li>
+                    item={item}
+                    onClose={onClose}
+                    menuItemVariants={menuItemVariants}
+                    motionConfig={motionConfig}
+                    canAccessRoute={canAccessRoute}
+                  />
                 ))}
               </ul>
             </motion.div>
@@ -404,8 +424,8 @@ export default function Sidebar({ isOpen, onClose }) {
         {/* User Section */}
         <motion.div 
           className="p-4 border-t border-slate-700 bg-slate-900/50"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={motionConfig.isMobile ? false : { opacity: 0, y: 20 }}
+          animate={motionConfig.isMobile ? false : { opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
           <motion.div 
@@ -485,7 +505,7 @@ export default function Sidebar({ isOpen, onClose }) {
             <span className="font-medium relative z-10">Logout</span>
           </motion.button>
         </motion.div>
-      </motion.aside>
+      </aside>
     </>
   );
 }

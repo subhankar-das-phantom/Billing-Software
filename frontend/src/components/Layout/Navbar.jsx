@@ -9,6 +9,7 @@ import {
   FilePlus,
   LogOut,
   User,
+  Settings,
   ChevronDown,
   Sparkles,
   StickyNote,
@@ -19,7 +20,8 @@ import {
   Shield,
   Clock,
   FileBarChart,
-  Gift
+  Gift,
+  Layers
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSubscription } from '../../contexts/SubscriptionContext';
@@ -40,9 +42,8 @@ const navItems = [
 const adminNavItems = [
   { path: '/employees', label: 'Employees', icon: UsersRound, adminOnly: true },
   { path: '/employee-analytics', label: 'Employee Analytics', icon: BarChart3, adminOnly: true },
-  { path: '/activity-log', label: 'Activity Log', icon: Clock, adminOnly: true },
-  { path: '/manual-entries', label: 'Manual Entries', icon: FileText, adminOnly: true },
-  { path: '/reports/gst', label: 'GST Report', icon: FileBarChart, adminOnly: true },
+  { path: '/reports', label: 'Reports', icon: FileBarChart, adminOnly: true },
+  { path: '/settings', label: 'Settings', icon: Settings, adminOnly: false },
 ];
 
 export default function Navbar() {
@@ -307,17 +308,20 @@ export default function Navbar() {
                     
                     <div className="p-2">
                       {isAdmin && (
-                        <motion.button
+                        <button
                           onClick={() => {
                             setUserMenuOpen(false);
-                            navigate('/profile');
+                            navigate('/settings');
                           }}
-                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 transition-colors text-left"
-                          whileHover={{ x: 4 }}
+                          className={`flex items-center gap-3 w-full p-3 rounded-lg transition-colors ${
+                            location.pathname === '/settings'
+                              ? 'bg-blue-500/10 text-blue-400' 
+                              : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                          }`}
                         >
-                          <User size={18} />
-                          <span className="text-sm font-medium">Profile</span>
-                        </motion.button>
+                          <Settings size={20} className={location.pathname === '/settings' ? 'text-blue-400' : 'text-slate-400'} />
+                          <span className="text-sm font-medium">Settings</span>
+                        </button>
                       )}
                       
                       <motion.button

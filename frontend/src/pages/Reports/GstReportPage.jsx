@@ -24,6 +24,7 @@ import {
 import { reportService } from '../../services/reports/reportService';
 import { formatCurrency } from '../../utils/formatters';
 import { useDebounce, useFirstVisit } from '../../hooks';
+import { GstReportSkeleton as GstReportLoadingSkeleton } from './GstReportSkeleton';
 
 // ─── Animation variants ───────────────────────────────────────────────
 const containerVariants = {
@@ -412,13 +413,8 @@ export default function GstReportPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="glass-card p-12 sm:p-16 flex flex-col items-center justify-center gap-4"
           >
-            <div className="relative">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 border-4 border-slate-700 border-t-accent2-500 rounded-full animate-spin" />
-              <div className="absolute inset-0 w-12 h-12 sm:w-14 sm:h-14 border-4 border-transparent border-b-accent-500/50 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }} />
-            </div>
-            <p className="text-sm sm:text-base text-slate-400 font-medium">Crunching the numbers...</p>
+            <GstReportLoadingSkeleton />
           </motion.div>
         )}
 

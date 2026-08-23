@@ -110,7 +110,7 @@ exports.createCreditNote = async (req, res, next) => {
       await Product.findOneAndUpdate(
         { _id: invoiceItem.product._id, tenantId },
         {
-          $inc: { currentStockQty: returnItem.quantityReturned },
+          $inc: { currentStockQty: returnItem.quantityReturned, stockVersion: 1 },
           $push: {
             stockHistory: {
               type: 'sales_return',
@@ -278,14 +278,31 @@ exports.getCreditNotesByInvoice = async (req, res, next) => {
 // @access  Private
 exports.getCreditNotesByCustomer = async (req, res, next) => {
   try {
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+    const skip = (page - 1) * limit;
     const tenantId = getTenantId(req);
-    const creditNotes = await CreditNote.find({
-      tenantId,
-      'customer._id': req.params.customerId
-    }).sort({ createdAt: -1 });
+
+    const query = { tenantId, 'customer._id': req.params.customerId };
+
+    const creditNotes = await CreditNote.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await CreditNote.countDocuments(query);
+    const pages = Math.ceil(total / limit);
 
     res.status(200).json({
       success: true,
+      items: creditNotes,
+      pagination: {
+        page,
+        limit,
+        total,
+        hasMore: page < pages
+      },
+      // Backward compatibility
       count: creditNotes.length,
       creditNotes
     });

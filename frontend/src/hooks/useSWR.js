@@ -18,12 +18,18 @@ const inFlightRequests = new Map();
 const recentFetchTimestamps = new Map();
 const invalidationSubscribers = new Map();
 
+// Pattern-based subscribers for non-useSWR consumers (e.g. InvoiceCreatePage local state)
+const patternSubscribers = new Map(); // Map<pattern, Set<callback>>
+const seenInvalidationIds = new Set();
+const MAX_SEEN_IDS = 100;
+
+
 let broadcastChannel = null;
 try {
   if (typeof BroadcastChannel !== 'undefined') {
     broadcastChannel = new BroadcastChannel(BROADCAST_CHANNEL);
     broadcastChannel.onmessage = (event) => {
-      const { type, pattern, key } = event.data;
+      const { type, pattern, key, invalidationId } = event.data;
       if (type === 'invalidate') {
         if (pattern) {
           for (const cacheKey of memoryCache.keys()) {
@@ -36,11 +42,13 @@ try {
               callback();
             }
           }
+          notifyPatternSubscribers(pattern, invalidationId);
         } else if (key) {
           memoryCache.delete(key);
           if (invalidationSubscribers.has(key)) {
             invalidationSubscribers.get(key)();
           }
+          notifyPatternSubscribers(key, invalidationId);
         }
       }
     };
@@ -61,6 +69,46 @@ const isPatternMatch = (cacheKey, pattern) =>
   typeof cacheKey === 'string'
   && typeof pattern === 'string'
   && cacheKey.includes(pattern);
+
+// Single dispatch function with ID-based dedup.
+// Both BroadcastChannel and storage handlers call this instead of
+// notifying subscribers directly, preventing double notifications.
+const notifyPatternSubscribers = (matchValue, invalidationId) => {
+  if (invalidationId) {
+    if (seenInvalidationIds.has(invalidationId)) return;
+    seenInvalidationIds.add(invalidationId);
+    if (seenInvalidationIds.size > MAX_SEEN_IDS) {
+      seenInvalidationIds.delete(seenInvalidationIds.values().next().value);
+    }
+  }
+
+  for (const [pattern, callbacks] of patternSubscribers) {
+    if (!isPatternMatch(matchValue, pattern)) continue;
+    for (const cb of callbacks) cb();
+  }
+};
+
+// HMR-safe global storage listener for pattern subscribers.
+// The per-hook storage listener (inside useSWR) handles invalidationSubscribers;
+// this global one handles only patternSubscribers — no overlap.
+let storageListenerInitialized = false;
+
+if (!storageListenerInitialized) {
+  storageListenerInitialized = true;
+  try {
+    window.addEventListener('storage', (event) => {
+      if (!event.key?.startsWith('swr_cache__invalidate_')) return;
+      try {
+        const signal = safeJSONParse(event.newValue);
+        if (!signal) return;
+        const matchValue = signal.value;
+        if (matchValue && (signal.type === 'pattern' || signal.type === 'key')) {
+          notifyPatternSubscribers(matchValue, signal.invalidationId);
+        }
+      } catch {}
+    });
+  } catch {}
+}
 
 const hasOwn = (obj, key) =>
   obj != null && Object.prototype.hasOwnProperty.call(obj, key);
@@ -118,15 +166,17 @@ const clearOldCache = () => {
 };
 
 const broadcastInvalidation = (type, keyOrPattern) => {
+  const invalidationId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   if (broadcastChannel) {
     broadcastChannel.postMessage({
       type: 'invalidate',
-      [type === 'pattern' ? 'pattern' : 'key']: keyOrPattern
+      [type === 'pattern' ? 'pattern' : 'key']: keyOrPattern,
+      invalidationId
     });
   }
   try {
     const signalKey = `${CACHE_PREFIX}_invalidate_${Date.now()}`;
-    localStorage.setItem(signalKey, JSON.stringify({ type, value: keyOrPattern }));
+    localStorage.setItem(signalKey, JSON.stringify({ type, value: keyOrPattern, invalidationId }));
     setTimeout(() => localStorage.removeItem(signalKey), 100);
   } catch {}
 };
@@ -181,6 +231,38 @@ export const invalidateCachePattern = (pattern) => {
   }
   keysToRemove.forEach(key => localStorage.removeItem(key));
   broadcastInvalidation('pattern', pattern);
+  
+  // Also clear the api.js cache if this is a cross-tab invalidation
+  // This ensures dropdowns using cachedRequest get fresh data
+  import('../services/api').then(api => {
+    if (api && api.clearCache) {
+      api.clearCache();
+    }
+  }).catch(e => console.error('Failed to clear api.js cache:', e));
+};
+
+/**
+ * Subscribe to cache invalidation events matching a pattern.
+ * Works across tabs via BroadcastChannel + storage fallback.
+ * Returns an unsubscribe function.
+ *
+ * @example
+ *   const unsub = subscribeToInvalidation('products', () => refreshStock());
+ *   return unsub; // in useEffect cleanup
+ */
+export const subscribeToInvalidation = (pattern, callback) => {
+  if (!patternSubscribers.has(pattern)) {
+    patternSubscribers.set(pattern, new Set());
+  }
+  patternSubscribers.get(pattern).add(callback);
+
+  return () => {
+    const callbacks = patternSubscribers.get(pattern);
+    if (callbacks) {
+      callbacks.delete(callback);
+      if (callbacks.size === 0) patternSubscribers.delete(pattern);
+    }
+  };
 };
 
 /**

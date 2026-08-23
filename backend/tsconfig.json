@@ -12,5 +12,5 @@
     "noEmit": true,
     "types": ["node", "express"]
   },
-  "include": ["server.js", "controllers/**/*.js", "controllers/**/*.ts", "routes/**/*.js", "models/**/*.js", "utils/**/*.js", "utils/**/*.ts", "saas/**/*.ts"]
+  "include": ["server.js", "controllers/**/*.js", "controllers/**/*.ts", "routes/**/*.js", "models/**/*.js", "utils/**/*.js", "utils/**/*.ts", "saas/**/*.ts", "src/**/*.ts"]
 }

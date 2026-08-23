@@ -9,7 +9,8 @@
     "seed:admin": "node scripts/seedAdmin.js",
     "migrate:customer-phone-index": "node scripts/migrateCustomerPhoneIndex.js",
     "migrate:credit-note-number-index": "node scripts/migrateCreditNoteNumberIndex.js",
-    "migrate:invoice-number-index": "node scripts/migrateInvoiceNumberIndex.js"
+    "migrate:invoice-number-index": "node scripts/migrateInvoiceNumberIndex.js",
+    "migrate:stock-version": "node scripts/migrateStockVersion.js"
   },
   "keywords": [
     "billing",
@@ -23,6 +24,7 @@
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "date-fns": "^4.4.0",
     "dotenv": "^17.2.3",
     "exceljs": "^4.4.0",
     "express": "^5.2.1",

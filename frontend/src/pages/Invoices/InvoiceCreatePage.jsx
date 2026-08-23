@@ -26,10 +26,12 @@ import { customerService } from '../../services/customers/customerService';
 import { invoiceService } from '../../services/invoices/invoiceService';
 import { formatCurrency } from '../../utils/formatters';
 import { calculateItemAmounts, calculateInvoiceTotals, GST_RATES, removeGST, round } from '../../utils/calculations';
-import { PageLoader } from '../../components/Common/Feedback/Loader';
+import { InvoiceCreatePageSkeleton } from './InvoiceCreatePageSkeleton';
 import Modal from '../../components/Common/Modals/Modal';
 import { useToast } from '../../contexts/ToastContext';
-import { invalidateCachePattern, useDebounce, useFirstVisit } from '../../hooks';
+import { invalidateCachePattern, subscribeToInvalidation, useDebounce, useFirstVisit, useMediaQuery, useStockSSE } from '../../hooks';
+import { useQueryClient } from '@tanstack/react-query';
+import InvoiceItemMobileCard from './InvoiceItemMobileCard';
 
 const pageVariants = {
   hidden: { opacity: 0 },
@@ -137,13 +139,26 @@ const clearDraftFromStorage = () => {
 // Helper to get storage key (for debugging)
 const getDraftStorageKey = () => DRAFT_STORAGE_KEY;
 
+const getInvoiceStockAllocations = (invoice) => {
+  const allocations = new Map();
+  for (const item of invoice?.items || []) {
+    const productId = String(item.product?._id || '');
+    if (!productId) continue;
+    const quantity = (Number(item.quantitySold) || 0) + (Number(item.freeQuantity) || 0);
+    allocations.set(productId, (allocations.get(productId) || 0) + quantity);
+  }
+  return allocations;
+};
+
 export default function InvoiceCreatePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { id: editInvoiceId } = useParams();
   const location = useLocation();
   const { success, error } = useToast();
+  const queryClient = useQueryClient();
   const isFirstVisit = useFirstVisit('invoice-create');
+  const isDesktop = useMediaQuery('(min-width: 950px)');
 
   // Detect if we're in edit mode
   const isEditMode = Boolean(editInvoiceId && location.pathname.includes('/edit'));
@@ -173,24 +188,60 @@ export default function InvoiceCreatePage() {
   const latestCustomerSearchRequest = useRef(0);
   const latestProductSearchRequest = useRef(0);
   const submitInFlightRef = useRef(false);
+  const originalStockAllocationsRef = useRef(new Map());
+  const invoiceItemsRef = useRef(invoiceItems);
+  const loadingRef = useRef(loading);
+  const savingRef = useRef(saving);
+  const refreshingRef = useRef(false);
+  const isMountedRef = useRef(true);
   const isRequestCanceled = (err) => err?.code === 'ERR_CANCELED' || err?.name === 'CanceledError' || err?.name === 'AbortError';
+
+  const getCurrentEditStock = (currentStockQty, productId) => (
+    Math.max(0, Number(currentStockQty) || 0)
+      + (originalStockAllocationsRef.current.get(String(productId)) || 0)
+  );
+
+  const getDraftQuantityForProduct = (productId, excludedIndex = null) => (
+    invoiceItems.reduce((total, item, index) => {
+      if (index === excludedIndex || String(item.product._id) !== String(productId)) return total;
+      return total + (Number(item.quantitySold) || 0) + (Number(item.freeQuantity) || 0);
+    }, 0)
+  );
+
+  const getRemainingStockForItem = (item) => Math.max(
+    0,
+    getCurrentEditStock(item.product.currentStock, item.product._id)
+      - getDraftQuantityForProduct(item.product._id)
+  );
+
+  const getMaxSoldQuantityForItem = (item, index) => Math.max(
+    0,
+    getCurrentEditStock(item.product.currentStock, item.product._id)
+      - getDraftQuantityForProduct(item.product._id, index)
+      - (Number(item.freeQuantity) || 0)
+  );
 
   const getCurrentStockByProductId = async (items = []) => {
     const productIds = [...new Set(items.map(item => item?.product?._id).filter(Boolean))];
-    if (productIds.length === 0) return new Map();
+    if (productIds.length === 0) return { stockMap: new Map(), versionMap: {} };
 
-    const productResponses = await Promise.all(
+    const stockMap = new Map();
+    const versionMap = {};
+
+    await Promise.all(
       productIds.map(async (id) => {
         try {
           const data = await productService.getProduct(id, false);
-          return [id, data?.product?.currentStockQty ?? 0];
+          stockMap.set(id, data?.product?.currentStockQty ?? 0);
+          versionMap[id] = data?.product?.stockVersion ?? 0;
         } catch {
-          return [id, 0];
+          stockMap.set(id, 0);
+          versionMap[id] = 0;
         }
       })
     );
 
-    return new Map(productResponses);
+    return { stockMap, versionMap };
   };
 
   const getCustomerById = async (customerId) => {
@@ -227,6 +278,136 @@ export default function InvoiceCreatePage() {
   useEffect(() => {
     loadInitialData();
   }, [editInvoiceId]);
+
+  // Keep refs in sync with state (avoids stale closures in the stock refresh effect)
+  useEffect(() => { invoiceItemsRef.current = invoiceItems; }, [invoiceItems]);
+  useEffect(() => { loadingRef.current = loading; }, [loading]);
+  useEffect(() => { savingRef.current = saving; }, [saving]);
+
+  // ── Real-time stock sync via SSE (cross-device) ──────────────────────────
+  const sseConnectionRef = useRef('disconnected');
+
+  const { connectionState: sseConnectionState, applyVersions } = useStockSSE({
+    onStockUpdate: (updates) => {
+      // Always invalidate the global products cache when ANY stock update arrives,
+      // regardless of whether the product is in the current invoice draft.
+      // This ensures the Product Search dropdown gets fresh stock data.
+      invalidateCachePattern('products');
+
+      setInvoiceItems(prev => {
+        let changed = false;
+        const next = prev.map(item => {
+          const update = updates.find(u => u.productId === item.product._id);
+          if (!update) return item;
+          if (update.currentStockQty === item.product.currentStock) return item;
+          changed = true;
+          return {
+            ...item,
+            product: { ...item.product, currentStock: update.currentStockQty }
+          };
+        });
+        return changed ? next : prev;
+      });
+    },
+    onReconnect: async () => {
+      // Version-aware reconciliation after SSE reconnect
+      const items = invoiceItemsRef.current;
+      if (items.length === 0) return;
+
+      try {
+        const { stockMap, versionMap } = await getCurrentStockByProductId(items);
+        if (!isMountedRef.current) return;
+
+        // Seed version map — applyVersions only accepts versions newer than already-known
+        applyVersions(versionMap);
+
+        setInvoiceItems(prev => {
+          let changed = false;
+          const next = prev.map(item => {
+            const freshStock = stockMap.get(item.product._id);
+            if (freshStock === undefined || freshStock === item.product.currentStock) return item;
+            changed = true;
+            return {
+              ...item,
+              product: { ...item.product, currentStock: freshStock }
+            };
+          });
+          return changed ? next : prev;
+        });
+      } catch {
+        // Silent fail — reconciliation is best-effort
+      }
+    },
+    enabled: true
+  });
+
+  // Keep a ref of connectionState for use in the refreshStock closure
+  useEffect(() => { sseConnectionRef.current = sseConnectionState; }, [sseConnectionState]);
+
+  // Refresh stock when products are invalidated (cross-tab) or tab regains focus (cross-device fallback)
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    const refreshStock = async () => {
+      const items = invoiceItemsRef.current;
+      if (items.length === 0) return;
+      if (loadingRef.current || savingRef.current) return;
+      if (refreshingRef.current) return;
+
+      refreshingRef.current = true;
+
+      try {
+        const { stockMap, versionMap } = await getCurrentStockByProductId(items);
+
+        if (!isMountedRef.current) return;
+
+        // Seed version map for SSE ordering
+        applyVersions(versionMap);
+
+        setInvoiceItems(prev => {
+          let changed = false;
+          const next = prev.map(item => {
+            const freshStock = stockMap.get(item.product._id);
+            if (freshStock === undefined || freshStock === item.product.currentStock) return item;
+            changed = true;
+            return {
+              ...item,
+              product: { ...item.product, currentStock: freshStock }
+            };
+          });
+          return changed ? next : prev;
+        });
+      } catch {
+        // Silent fail — stale stock is better than crashing
+      } finally {
+        refreshingRef.current = false;
+      }
+    };
+
+    // 1. Cross-tab invalidation via centralized subscription
+    const unsubscribe = subscribeToInvalidation('products', refreshStock);
+
+    // 2. Cross-device fallback: refresh on tab focus ONLY when SSE is disconnected
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && sseConnectionRef.current !== 'connected') {
+        refreshStock();
+      }
+    };
+    const handleFocus = () => {
+      if (sseConnectionRef.current !== 'connected') {
+        refreshStock();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      isMountedRef.current = false;
+      unsubscribe();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
 
   useEffect(() => {
     const query = debouncedCustomerSearch.trim();
@@ -319,6 +500,25 @@ export default function InvoiceCreatePage() {
 
   const loadInitialData = async () => {
     try {
+      // During an edit, product.currentStockQty already excludes this invoice's
+      // original allocation. Keep that allocation as the edit-session baseline.
+      let editInvoice = null;
+      if (isEditMode) {
+        try {
+          const invoiceData = await invoiceService.getInvoice(editInvoiceId, false);
+          editInvoice = invoiceData.invoice;
+          originalStockAllocationsRef.current = getInvoiceStockAllocations(editInvoice);
+          setOriginalInvoice(editInvoice);
+        } catch {
+          error('Failed to load invoice for editing');
+          navigate('/invoices');
+          return;
+        }
+      } else {
+        originalStockAllocationsRef.current = new Map();
+        setOriginalInvoice(null);
+      }
+
       // Load saved draft (works for both create and edit modes)
       const savedDraft = loadDraftFromStorage();
       console.log('Draft key:', getDraftStorageKey());
@@ -343,7 +543,7 @@ export default function InvoiceCreatePage() {
             setCustomerSearch(savedDraft.customerSearch || savedDraft.selectedCustomer.customerName);
           }
 
-          const stockMap = await getCurrentStockByProductId(savedDraft.invoiceItems);
+          const { stockMap } = await getCurrentStockByProductId(savedDraft.invoiceItems);
           
           const restoredItems = savedDraft.invoiceItems.map(item => {
             const currentStockQty = stockMap.get(item.product._id);
@@ -351,8 +551,9 @@ export default function InvoiceCreatePage() {
               ...item,
               product: {
                 ...item.product,
-                // Add back the quantities already allocated in this invoice, just like the DB-load path
-                currentStock: (currentStockQty ?? item.product.currentStock ?? 0) + (item.quantitySold || 0) + (item.freeQuantity || 0)
+                // Keep live database stock separate from the original invoice
+                // allocation. The available quantity is derived while editing.
+                currentStock: currentStockQty ?? 0
               }
             };
           });
@@ -382,7 +583,7 @@ export default function InvoiceCreatePage() {
           }
           
           if (savedDraft.invoiceItems && savedDraft.invoiceItems.length > 0) {
-            const stockMap = await getCurrentStockByProductId(savedDraft.invoiceItems);
+            const { stockMap } = await getCurrentStockByProductId(savedDraft.invoiceItems);
             const validItems = savedDraft.invoiceItems.filter(item => {
               return (stockMap.get(item.product._id) ?? 0) > 0;
             }).map(item => {
@@ -406,10 +607,8 @@ export default function InvoiceCreatePage() {
           // Edit mode but draft is for different invoice or is a create draft - load from database
           console.log('Loading invoice from database:', editInvoiceId);
           try {
-            const invoiceData = await invoiceService.getInvoice(editInvoiceId, false);
-            const invoice = invoiceData.invoice;
-            setOriginalInvoice(invoice);
-            const stockMap = await getCurrentStockByProductId(invoice.items);
+            const invoice = editInvoice;
+            const { stockMap } = await getCurrentStockByProductId(invoice.items);
             
             setSelectedCustomer(invoice.customer);
             setCustomerSearch(invoice.customer.customerName);
@@ -428,7 +627,7 @@ export default function InvoiceCreatePage() {
                 product: {
                   ...item.product,
                   rate: item.product.newMRP,
-                  currentStock: currentStockQty + item.quantitySold + (item.freeQuantity || 0)
+                  currentStock: currentStockQty
                 },
                 quantitySold: item.quantitySold,
                 freeQuantity: item.freeQuantity || 0,
@@ -453,10 +652,8 @@ export default function InvoiceCreatePage() {
         // Edit mode with no draft at all - load from database
         console.log('No draft found, loading invoice from database:', editInvoiceId);
         try {
-          const invoiceData = await invoiceService.getInvoice(editInvoiceId, false);
-          const invoice = invoiceData.invoice;
-          setOriginalInvoice(invoice);
-          const stockMap = await getCurrentStockByProductId(invoice.items);
+          const invoice = editInvoice;
+          const { stockMap } = await getCurrentStockByProductId(invoice.items);
           
           setSelectedCustomer(invoice.customer);
           setCustomerSearch(invoice.customer.customerName);
@@ -475,7 +672,7 @@ export default function InvoiceCreatePage() {
               product: {
                 ...item.product,
                 rate: item.product.newMRP,
-                currentStock: currentStockQty + item.quantitySold + (item.freeQuantity || 0)
+                currentStock: currentStockQty
               },
               quantitySold: item.quantitySold,
               freeQuantity: item.freeQuantity || 0,
@@ -533,7 +730,7 @@ export default function InvoiceCreatePage() {
     const amounts = calculateItemAmounts(1, baseRate, product.gstPercentage, 0);
     const netRate = round(baseRate * (1 + product.gstPercentage / 100), 2);
     
-    setInvoiceItems(prev => [...prev, {
+    setInvoiceItems(prev => [{
       product: {
         _id: product._id,
         productName: product.productName,
@@ -549,7 +746,7 @@ export default function InvoiceCreatePage() {
       netRate: netRate,
       schemeDiscount: 0,
       ...amounts
-    }]);
+    }, ...prev]);
 
     setProductSearch('');
     setProductResults([]);
@@ -562,13 +759,20 @@ export default function InvoiceCreatePage() {
       const item = { ...updated[index] };
       let newValue = parseFloat(value) || 0;
       
-      // Validate against available stock
-      const maxStock = item.product.currentStock;
+      // A line can use the database stock plus this invoice's original allocation.
+      // Recalculate it from the current draft so decreasing a line immediately
+      // releases that stock for the rest of the edit session.
+      const maxStock = getCurrentEditStock(item.product.currentStock, item.product._id);
+      const quantityInOtherLines = updated.reduce((total, existingItem, existingIndex) => {
+        if (existingIndex === index || String(existingItem.product._id) !== String(item.product._id)) return total;
+        return total + (Number(existingItem.quantitySold) || 0) + (Number(existingItem.freeQuantity) || 0);
+      }, 0);
+      const remainingForLine = Math.max(0, maxStock - quantityInOtherLines);
       if (field === 'quantitySold') {
-        const maxAllowed = maxStock - item.freeQuantity;
+        const maxAllowed = remainingForLine - item.freeQuantity;
         newValue = Math.min(Math.max(0, newValue), Math.max(0, maxAllowed));
       } else if (field === 'freeQuantity') {
-        const maxAllowed = maxStock - item.quantitySold;
+        const maxAllowed = remainingForLine - item.quantitySold;
         newValue = Math.min(Math.max(0, newValue), Math.max(0, maxAllowed));
       }
       
@@ -683,12 +887,17 @@ export default function InvoiceCreatePage() {
       error('Please add at least one product');
       return false;
     }
+    const allocatedByProduct = new Map();
     for (const item of invoiceItems) {
-      const totalQty = item.quantitySold + item.freeQuantity;
-      if (totalQty > item.product.currentStock) {
+      const productId = String(item.product._id);
+      const totalQty = (Number(item.quantitySold) || 0) + (Number(item.freeQuantity) || 0);
+      const allocated = (allocatedByProduct.get(productId) || 0) + totalQty;
+      const maximumForProduct = getCurrentEditStock(item.product.currentStock, productId);
+      if (allocated > maximumForProduct) {
         error(`Insufficient stock for ${item.product.productName}`);
         return false;
       }
+      allocatedByProduct.set(productId, allocated);
     }
     return true;
   };
@@ -733,6 +942,11 @@ export default function InvoiceCreatePage() {
         invalidateCachePattern('invoices');
         invalidateCachePattern('dashboard');
         invalidateCachePattern('products'); // Stock changed
+        invalidateCachePattern('customers'); // Customer summary changed
+        // Also invalidate React Query customer caches so CustomerDetailsPage shows fresh data
+        queryClient.invalidateQueries({ queryKey: ['customer-summary'] });
+        queryClient.invalidateQueries({ queryKey: ['customer-invoices'] });
+        queryClient.invalidateQueries({ queryKey: ['customer-payments'] });
         success('Invoice updated successfully!');
       } else {
         result = await invoiceService.createInvoice(invoiceData);
@@ -742,6 +956,11 @@ export default function InvoiceCreatePage() {
         invalidateCachePattern('invoices');
         invalidateCachePattern('dashboard');
         invalidateCachePattern('products'); // Stock changed
+        invalidateCachePattern('customers'); // Customer summary changed
+        // Also invalidate React Query customer caches so CustomerDetailsPage shows fresh data
+        queryClient.invalidateQueries({ queryKey: ['customer-summary'] });
+        queryClient.invalidateQueries({ queryKey: ['customer-invoices'] });
+        queryClient.invalidateQueries({ queryKey: ['customer-payments'] });
         success('Invoice created successfully!');
       }
 
@@ -763,12 +982,20 @@ export default function InvoiceCreatePage() {
     setPaymentType('Credit');
     setNotes('');
     setCreateRequestId(generateCreateRequestId());
+    setOriginalInvoice(null);
+    originalStockAllocationsRef.current = new Map();
     clearDraftFromStorage();
     success('Draft cleared');
+
+    // If we're on an edit URL, navigate to the create page so isEditMode
+    // (derived from the URL) becomes false and the form behaves as "Create Invoice"
+    if (isEditMode) {
+      navigate('/invoices/create', { replace: true });
+    }
   };
 
   if (loading) {
-    return <PageLoader />;
+    return <InvoiceCreatePageSkeleton />;
   }
 
   return (
@@ -965,14 +1192,32 @@ export default function InvoiceCreatePage() {
           </motion.div>
           <h2 className="text-lg font-semibold text-white">Add Products</h2>
           {invoiceItems.length > 0 && (
-            <motion.span
-              className="ml-auto px-3 py-1 bg-blue-500/20 text-blue-400 text-sm rounded-full font-medium"
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: 'spring', stiffness: 400 }}
-            >
-              {invoiceItems.length} {invoiceItems.length === 1 ? 'item' : 'items'}
-            </motion.span>
+            <>
+              <motion.span
+                className="px-3 py-1 bg-blue-500/20 text-blue-400 text-sm rounded-full font-medium"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 400 }}
+              >
+                {invoiceItems.length} {invoiceItems.length === 1 ? 'item' : 'items'}
+              </motion.span>
+              <span className="ml-auto flex items-center gap-1.5 text-xs font-medium">
+                {sseConnectionState === 'connected' ? (
+                  <>
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                    </span>
+                    <span className="text-emerald-400">Live</span>
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="w-3 h-3 text-amber-400" />
+                    <span className="text-amber-400">Stock updates unavailable</span>
+                  </>
+                )}
+              </span>
+            </>
           )}
         </div>
         
@@ -1018,23 +1263,28 @@ export default function InvoiceCreatePage() {
                   </div>
                 )}
 
-                {!isProductSearchLoading && productSearch.trim().length >= 1 && productResults.map((product, index) => (
+                {!isProductSearchLoading && productSearch.trim().length >= 1 && productResults.map((product, index) => {
+                  const availableStock = isEditMode
+                    ? getCurrentEditStock(product.currentStockQty, product._id)
+                    : product.currentStockQty;
+
+                  return (
                   <motion.button
                     key={product._id}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleProductSelect(product);
                     }}
-                    disabled={product.currentStockQty <= 0}
+                    disabled={availableStock <= 0}
                     className={`w-full px-4 py-3 text-left transition-colors first:rounded-t-xl last:rounded-b-xl ${
-                      product.currentStockQty <= 0 
+                      availableStock <= 0
                         ? 'opacity-50 cursor-not-allowed' 
                         : 'hover:bg-slate-700'
                     }`}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.03 }}
-                    whileHover={product.currentStockQty > 0 ? { x: 4 } : {}}
+                    whileHover={availableStock > 0 ? { x: 4 } : {}}
                   >
                     <div className="flex justify-between gap-4">
                       <div className="flex-1">
@@ -1049,15 +1299,16 @@ export default function InvoiceCreatePage() {
                       <div className="text-right flex-shrink-0">
                         <p className="font-medium text-emerald-400">{formatCurrency(product.rate)}</p>
                         <p className={`text-sm mt-1 flex items-center gap-1 ${
-                          product.currentStockQty <= 10 ? 'text-red-400' : 'text-slate-400'
+                          availableStock <= 10 ? 'text-red-400' : 'text-slate-400'
                         }`}>
                           <Package className="w-3 h-3" />
-                          {product.currentStockQty}
+                          {availableStock}
                         </p>
                       </div>
                     </div>
                   </motion.button>
-                ))}
+                  );
+                })}
               </motion.div>
             )}
           </AnimatePresence>
@@ -1073,7 +1324,8 @@ export default function InvoiceCreatePage() {
               transition={{ duration: 0.3 }}
               className="overflow-hidden"
             >
-              <div className="table-container">
+              {isDesktop ? (
+                <div className="table-container">
                 <table className="table">
                   <thead>
                     <motion.tr
@@ -1093,7 +1345,11 @@ export default function InvoiceCreatePage() {
                   </thead>
                   <tbody>
                     <AnimatePresence mode="popLayout">
-                      {invoiceItems.map((item, index) => (
+                      {invoiceItems.map((item, index) => {
+                        const availableStock = getRemainingStockForItem(item);
+                        const maxSoldQuantity = getMaxSoldQuantityForItem(item, index);
+
+                        return (
                         <motion.tr
                           key={item.product._id}
                           custom={index}
@@ -1108,7 +1364,10 @@ export default function InvoiceCreatePage() {
                             <div>
                               <p className="font-medium text-white">{item.product.productName}</p>
                               <p className="text-xs text-slate-400">
-                                Stock: {item.product.currentStock}
+                                Available: {availableStock}
+                                {item.product.newMRP != null && (
+                                  <span className="text-slate-500"> • MRP: {formatCurrency(item.product.newMRP)}</span>
+                                )}
                               </p>
                             </div>
                           </td>
@@ -1119,7 +1378,7 @@ export default function InvoiceCreatePage() {
                               onChange={(e) => updateItemQuantity(index, 'quantitySold', e.target.value)}
                               className="input py-1.5 text-center"
                               min="1"
-                              max={item.product.currentStock}
+                              max={maxSoldQuantity}
                             />
                           </td>
                           <td>
@@ -1198,11 +1457,29 @@ export default function InvoiceCreatePage() {
                             </motion.button>
                           </td>
                         </motion.tr>
-                      ))}
+                        );
+                      })}
                     </AnimatePresence>
                   </tbody>
                 </table>
               </div>
+              ) : (
+                <div className="space-y-4">
+                  <AnimatePresence mode="popLayout">
+                    {invoiceItems.map((item, index) => (
+                      <InvoiceItemMobileCard
+                        key={item.product._id}
+                        item={item}
+                        index={index}
+                        updateItemQuantity={updateItemQuantity}
+                        removeItem={removeItem}
+                        availableStock={getRemainingStockForItem(item)}
+                        maxSoldQuantity={getMaxSoldQuantityForItem(item, index)}
+                      />
+                    ))}
+                  </AnimatePresence>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

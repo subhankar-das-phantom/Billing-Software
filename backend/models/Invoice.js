@@ -91,7 +91,13 @@ const invoiceSchema = new mongoose.Schema({
     firmName: String,
     firmAddress: String,
     firmPhone: String,
-    firmGSTIN: String
+    firmGSTIN: String,
+    paymentInformation: {
+      enabled: Boolean,
+      upiId: String,
+      accountNumber: String,
+      ifscCode: String
+    }
   },
   // Invoice items
   items: [invoiceItemSchema],
@@ -191,6 +197,12 @@ invoiceSchema.index({ tenantId: 1, status: 1, paymentStatus: 1, invoiceDate: -1 
 invoiceSchema.index(
   { tenantId: 1, createRequestId: 1 },
   { unique: true, partialFilterExpression: { createRequestId: { $exists: true, $type: 'string' } } }
+);
+
+// Ledger optimization index (Partial index ignoring Cancelled invoices)
+invoiceSchema.index(
+  { tenantId: 1, 'customer._id': 1, invoiceDate: -1 },
+  { partialFilterExpression: { status: { $ne: 'Cancelled' } } }
 );
 
 module.exports = mongoose.model('Invoice', invoiceSchema);

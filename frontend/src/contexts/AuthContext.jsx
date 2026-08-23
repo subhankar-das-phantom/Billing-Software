@@ -10,6 +10,7 @@ import {
   LogOut as LogOutIcon,
   UserCircle
 } from 'lucide-react';
+import AppShellSkeleton from '../components/Layout/AppShellSkeleton';
 import { authService } from '../services/auth/authService';
 import { clearCache as clearApiCache } from '../services/api';
 
@@ -67,38 +68,16 @@ const Toast = ({ message, type = 'success', onClose }) => {
   );
 };
 
-// Loading screen component - Simplified for iOS Safari performance
+// Premium App Shell skeleton shown during initial load
 const AuthLoadingScreen = () => {
   return (
     <motion.div
-      className="fixed inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 z-50 flex items-center justify-center"
+      className="fixed inset-0 z-50 bg-slate-950"
       initial={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <div className="text-center">
-        {/* Logo - static on mobile, subtle animation on desktop */}
-        <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-blue-500 to-accent-600 flex items-center justify-center shadow-2xl shadow-blue-500/30">
-          <Shield className="w-10 h-10 text-white" strokeWidth={2.5} />
-        </div>
-
-        {/* Simple CSS-based spinner - much better iOS performance */}
-        <div className="inline-block mb-4">
-          <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-        </div>
-
-        {/* Loading text - simple fade in, no infinite animations */}
-        <motion.div
-          initial={{ opacity: 1 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3 }}
-        >
-          <h2 className="text-xl font-semibold text-white mb-2">
-            Authenticating
-          </h2>
-          <p className="text-sm text-slate-400">Please wait...</p>
-        </motion.div>
-      </div>
+      <AppShellSkeleton />
     </motion.div>
   );
 };
@@ -287,6 +266,22 @@ export const AuthProvider = ({ children }) => {
     // Removed showToast here to prevent duplicate success toast in ProfilePage and RegisterPage
   };
 
+  const updateUserPreferences = (newPreferences) => {
+    setUser(prev => ({
+      ...prev,
+      preferences: { ...prev?.preferences, ...newPreferences }
+    }));
+    
+    if (userRole === 'admin') {
+      const updatedAdmin = { ...admin, preferences: { ...admin?.preferences, ...newPreferences } };
+      localStorage.setItem('admin', JSON.stringify(updatedAdmin));
+      setAdmin(updatedAdmin);
+    } else if (userRole === 'employee') {
+      const updatedEmployee = { ...user, preferences: { ...user?.preferences, ...newPreferences } };
+      localStorage.setItem('user', JSON.stringify(updatedEmployee));
+    }
+  };
+
   // Check if current user is admin
   const isAdmin = () => userRole === 'admin';
 
@@ -305,6 +300,7 @@ export const AuthProvider = ({ children }) => {
         login, 
         logout, 
         updateAdmin, 
+        updateUserPreferences,
         loading,
         showToast,
         authTransition
@@ -436,7 +432,7 @@ export const ProtectedRoute = ({ children }) => {
             className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => window.location.href = '/#/login'}
+            onClick={() => window.location.href = '/login'}
           >
             Go to Login
           </motion.button>
@@ -494,7 +490,7 @@ export const AdminRoute = ({ children }) => {
             className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => window.location.href = '/#/'}
+            onClick={() => window.location.href = '/'}
           >
             Go to Dashboard
           </motion.button>

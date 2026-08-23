@@ -16,17 +16,20 @@ import {
   Loader2,
   User,
   CreditCard,
-  AlertCircle
+  AlertCircle,
+  SlidersHorizontal
 } from 'lucide-react';
 import { customerService } from '../../services/customers/customerService';
 import { formatCurrency, formatPhone } from '../../utils/formatters';
 import { getCustomerTheme } from '../../utils/customerTheme';
-import { PageLoader } from '../../components/Common/Feedback/Loader';
+import { CustomersPageSkeleton } from './CustomersPageSkeleton';
 import Modal from '../../components/Common/Modals/Modal';
 import ConfirmDialog from '../../components/Common/Dialogs/ConfirmDialog';
 import EnhancedButton from '../../components/Common/Buttons/EnhancedButton';
+import { VirtualizedGrid } from '../../components/Common/VirtualizedList';
 import { useToast } from '../../contexts/ToastContext';
-import { useDebounce, useMotionConfig, useFirstVisit, useSWR, invalidateCachePattern, useTransitionDelay } from '../../hooks';
+import { useDebounce, useMotionConfig, useFirstVisit, useSWR, invalidateCachePattern, useTransitionDelay, useMediaQuery, useCustomerFilters } from '../../hooks';
+import CustomerFilterPanel from './CustomerFilterPanel';
 
 const initialCustomerState = {
   customerName: '',
@@ -35,7 +38,8 @@ const initialCustomerState = {
   email: '',
   gstin: '',
   dlNo: '',
-  customerCode: ''
+  customerCode: '',
+  isActive: true
 };
 
 const LARGE_CUSTOMER_LIST_THRESHOLD = 24;
@@ -54,7 +58,7 @@ const CustomerCard = memo(function CustomerCard({
   return (
     <div
       className={`glass-card p-5 group ${shouldHover ? 'cursor-pointer hover:bg-slate-800/80 transition-colors hover:-translate-y-1' : ''
-        }`}
+        } ${customer.isActive === false ? 'opacity-75 grayscale-[0.2] border-red-500/20' : ''}`}
     >
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -65,9 +69,16 @@ const CustomerCard = memo(function CustomerCard({
           </div>
 
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-white truncate">
-              {customer.customerName}
-            </h3>
+            <div className="flex items-center gap-2 mb-0.5">
+              <h3 className="font-semibold text-white truncate">
+                {customer.customerName}
+              </h3>
+              {customer.isActive === false && (
+                <span className="px-2 py-0.5 rounded flex items-center gap-1 bg-red-500/10 text-red-400 text-[10px] font-semibold tracking-wider uppercase border border-red-500/20">
+                  Inactive
+                </span>
+              )}
+            </div>
             <p className="text-sm text-slate-400 flex items-center gap-1">
               <Phone className="w-3 h-3" />
               {formatPhone(customer.phone)}
@@ -154,10 +165,23 @@ const CustomerCard = memo(function CustomerCard({
 });
 
 export default function CustomersPage() {
-  const [searchInput, setSearchInput] = useState('');
-  const [search, flushSearch] = useDebounce(searchInput);
+  // ── Filter state (URL-synced) ─────────────────────────────────
+  const {
+    filters,
+    apiParams,
+    activeFilterCount,
+    isFiltered,
+    applyFilters,
+    resetFilters,
+    setSearch,
+    search,
+  } = useCustomerFilters();
+
+  const [searchInput, setSearchInput] = useState(search);
+  const [debouncedSearch, flushSearch] = useDebounce(searchInput);
   const [page, setPage] = useState(1);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [formData, setFormData] = useState(initialCustomerState);
@@ -165,6 +189,16 @@ export default function CustomersPage() {
   const [deleteDialog, setDeleteDialog] = useState({ open: false, customer: null });
   const { success, error } = useToast();
   const observer = useRef(null);
+
+  // Sync debounced search to URL params
+  useEffect(() => {
+    setSearch(debouncedSearch);
+  }, [debouncedSearch, setSearch]);
+
+  // Sync searchInput when URL search changes externally (e.g. browser back)
+  useEffect(() => {
+    setSearchInput(prev => prev !== search ? search : prev);
+  }, [search]);
 
   // Track which SWR key the latest accumulated data belongs to,
   // so we can discard stale responses from previous search terms.
@@ -174,14 +208,17 @@ export default function CustomersPage() {
   const motionConfig = useMotionConfig();
   const isFirstVisit = useFirstVisit('customers');
   const transitionReady = useTransitionDelay(250, isFirstVisit);
+  const isDesktopGrid = useMediaQuery('(min-width: 1024px)');
+  const isTabletGrid = useMediaQuery('(min-width: 768px)');
 
-  // Build the SWR cache key
-  const swrKey = `customers-${search}-${page}`;
+  // Build the SWR cache key — includes all filter params for correct caching
+  const filterKey = JSON.stringify(apiParams);
+  const swrKey = `customers-${filterKey}-${page}`;
 
   // SWR: Instant cached data + background revalidation
   const { data, isLoading, isValidating, mutate } = useSWR(
     swrKey,
-    () => customerService.getCustomers({ search, page, limit: 25, includeOutstanding: true, fuzzy: true }),
+    () => customerService.getCustomers({ ...apiParams, page, limit: 25, includeOutstanding: true }),
     { ttl: 5 * 60 * 1000 } // 5 minute cache
   );
 
@@ -221,15 +258,15 @@ export default function CustomersPage() {
     setDataReady(true);
   }, [data, page, swrKey]);
 
-  // Reset pagination when search changes.
+  // Reset pagination when filters change.
   // DON'T clear accumulatedCustomers here — that creates a window where
   // customers.length === 0 and the empty-state flashes. Instead, let
   // the data-arrival effect above replace accumulatedCustomers atomically.
   useEffect(() => {
     setPage(1);
     setDataReady(false);
-    activeSWRKeyRef.current = `customers-${search}-1`;
-  }, [search]);
+    activeSWRKeyRef.current = `customers-${filterKey}-1`;
+  }, [filterKey]);
 
   // Also update the active key when page increments (infinite scroll)
   useEffect(() => {
@@ -258,7 +295,7 @@ export default function CustomersPage() {
   const customers = accumulatedCustomers;
   // Only show full-page loader on the very first load — never during search
   // (PageLoader replaces the entire UI including the search input, eating keystrokes)
-  const loading = isLoading && customers.length === 0 && page === 1 && !search && !searchInput;
+  const loading = isLoading && customers.length === 0 && page === 1 && !search && !searchInput && !isFiltered;
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -286,14 +323,15 @@ export default function CustomersPage() {
       email: customer.email || '',
       gstin: customer.gstin || '',
       dlNo: customer.dlNo || '',
-      customerCode: customer.customerCode || ''
+      customerCode: customer.customerCode || '',
+      isActive: customer.isActive ?? true
     });
     setModalOpen(true);
   };
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
   };
 
   const handleSubmit = async (e) => {
@@ -361,9 +399,10 @@ export default function CustomersPage() {
   const denseMode = customers.length > LARGE_CUSTOMER_LIST_THRESHOLD;
   const shouldStaggerCards = motionConfig.shouldStagger && !denseMode;
   const shouldHoverCards = motionConfig.shouldHover && !denseMode;
+  const customerGridLanes = isDesktopGrid ? 3 : isTabletGrid ? 2 : 1;
 
   if (loading) {
-    return <PageLoader />;
+    return <CustomersPageSkeleton />;
   }
 
   return (
@@ -431,12 +470,38 @@ export default function CustomersPage() {
           </motion.button>
         </motion.form>
 
-        {/* Add Customer Button */}
+        {/* Filter & Add buttons */}
         <motion.div
           initial={isFirstVisit ? { opacity: 0, x: 20 } : false}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2 }}
+          className="flex items-center gap-2"
         >
+          {/* Filter Button */}
+          <motion.button
+            type="button"
+            onClick={() => setFilterPanelOpen(true)}
+            className={`relative btn ${
+              isFiltered
+                ? 'bg-blue-500/15 text-blue-300 border-blue-500/30 hover:bg-blue-500/25'
+                : 'btn-secondary'
+            } flex items-center gap-2`}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            <span className="hidden sm:inline">Filters</span>
+            {activeFilterCount > 0 && (
+              <motion.span
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-blue-500 text-white text-[10px] font-bold flex items-center justify-center shadow-lg shadow-blue-500/40"
+              >
+                {activeFilterCount}
+              </motion.span>
+            )}
+          </motion.button>
+
           <EnhancedButton
             onClick={openCreateModal}
             icon={Plus}
@@ -493,13 +558,15 @@ export default function CustomersPage() {
             </motion.div>
           </motion.div>
         ) : customers.length > 0 ? (
-          <div
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-          >
-            {/* Removed AnimatePresence and motion for performance with large lists */}
-            {customers.map((customer, index) => (
+          <VirtualizedGrid
+            items={customers}
+            lanes={customerGridLanes}
+            gap={16}
+            estimateSize={() => 245}
+            getKey={(customer) => customer._id}
+            className="min-h-[245px]"
+            renderItem={(customer, index) => (
               <CustomerCard
-                key={customer._id}
                 customer={customer}
                 index={index}
                 denseMode={denseMode}
@@ -508,8 +575,8 @@ export default function CustomersPage() {
                 openEditModal={openEditModal}
                 setDeleteDialog={setDeleteDialog}
               />
-            ))}
-          </div>
+            )}
+          />
         ) : null}
       </AnimatePresence>
 
@@ -667,6 +734,26 @@ export default function CustomersPage() {
                 placeholder="Internal code (optional)"
               />
             </motion.div>
+
+            {/* Active Status (Only when editing) */}
+            {editingCustomer && (
+              <motion.div custom={7} variants={formItemVariants} className="md:col-span-2 flex items-center justify-between p-4 glass-card mt-2">
+                <div>
+                  <h4 className="text-sm font-medium text-slate-200">Active Customer</h4>
+                  <p className="text-xs text-slate-400 mt-1">Inactive customers cannot have new invoices, payments, or manual entries created.</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="isActive"
+                    checked={formData.isActive}
+                    onChange={handleInputChange}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                </label>
+              </motion.div>
+            )}
           </motion.div>
 
           {/* Form Actions */}
@@ -705,6 +792,15 @@ export default function CustomersPage() {
         message={`Are you sure you want to delete "${deleteDialog.customer?.customerName}"? This action cannot be undone.`}
         confirmText="Delete"
         variant="danger"
+      />
+
+      {/* Filter Panel */}
+      <CustomerFilterPanel
+        isOpen={filterPanelOpen}
+        onClose={() => setFilterPanelOpen(false)}
+        onApply={applyFilters}
+        onReset={resetFilters}
+        currentFilters={filters}
       />
     </motion.div>
   );
