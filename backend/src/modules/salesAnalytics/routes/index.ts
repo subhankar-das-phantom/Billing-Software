@@ -1,12 +1,17 @@
 import { Router } from 'express';
 import { SalesAnalyticsController } from '../controllers/salesAnalyticsController';
 import { validateDateRange, validateLimit, validateYear } from '../validators/salesAnalyticsValidators';
-const { protect } = require('../../../../middleware/auth');
+const { protect, adminOnly } = require('../../../../middleware/auth');
+const { checkSubscription, checkFeatureAccess } = require('../../../../saas/middleware');
+import { Feature } from '../../../../saas/shared/features';
 
 const router = Router();
 
-// Apply auth middleware to all routes
+// Apply auth and subscription middleware to all routes
 router.use(protect);
+router.use(adminOnly);
+router.use(checkSubscription);
+router.use(checkFeatureAccess(Feature.REPORTS));
 
 router.get('/overview', validateDateRange, SalesAnalyticsController.getOverview as any);
 router.get('/monthly', validateYear, SalesAnalyticsController.getMonthlySales as any);

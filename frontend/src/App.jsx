@@ -156,10 +156,38 @@ function AppRoutes() {
           <Route path="/notes" element={<NotesPage />} />
           <Route path="/credits" element={<CreditsPage />} />
           <Route path="/collections" element={<CollectionsPage />} />
-          <Route path="/reports" element={<ReportsPage />} />
-          <Route path="/reports/gst" element={<Navigate to="/reports" replace />} />
-          <Route path="/subscription" element={<SubscriptionPage />} />
-          <Route path="/referral" element={<ReferralPage />} />
+          <Route 
+            path="/reports" 
+            element={
+              <AdminRoute>
+                <ReportsPage />
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="/reports/gst" 
+            element={
+              <AdminRoute>
+                <Navigate to="/reports" replace />
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="/subscription" 
+            element={
+              <AdminRoute>
+                <SubscriptionPage />
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="/referral" 
+            element={
+              <AdminRoute>
+                <ReferralPage />
+              </AdminRoute>
+            } 
+          />
           <Route 
             path="/settings" 
             element={

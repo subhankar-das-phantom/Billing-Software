@@ -7,12 +7,13 @@ const {
   getRecentPayments
 } = require('../controllers/reportsController');
 const { getGstReport } = require('../controllers/gstReportController');
-const { protect } = require('../middleware/auth');
+const { protect, adminOnly } = require('../middleware/auth');
 const { checkSubscription, checkFeatureAccess } = require('../saas/middleware');
 const { Feature } = require('../saas/shared/features');
 
 // All routes require authentication
 router.use(protect);
+router.use(adminOnly);
 router.use(checkSubscription);
 
 // Credit reports

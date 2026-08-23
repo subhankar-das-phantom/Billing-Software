@@ -6,7 +6,7 @@ import {
   getHistory,
 } from '../controllers/subscriptionController';
 
-const { protect } = require('../../middleware/auth');
+const { protect, adminOnly } = require('../../middleware/auth');
 
 const router = express.Router();
 
@@ -14,8 +14,8 @@ const router = express.Router();
 router.use(protect);
 
 router.get('/', getSubscription);
-router.post('/checkout', checkout);
-router.post('/verify', verifyPayment);
-router.get('/history', getHistory);
+router.post('/checkout', adminOnly, checkout);
+router.post('/verify', adminOnly, verifyPayment);
+router.get('/history', adminOnly, getHistory);
 
 export default router;
