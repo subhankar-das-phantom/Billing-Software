@@ -96,9 +96,7 @@ const subscriptionPaymentSchema = new Schema(
 // Indexes
 subscriptionPaymentSchema.index({ tenantId: 1, createdAt: -1 });
 subscriptionPaymentSchema.index({ paymentStatus: 1 });
-subscriptionPaymentSchema.index({ gatewaySubscriptionId: 1 });
-subscriptionPaymentSchema.index({ gatewayPaymentId: 1 });
-subscriptionPaymentSchema.index({ gatewayEventId: 1 });
+
 
 
 export default mongoose.model('SubscriptionPayment', subscriptionPaymentSchema);

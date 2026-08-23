@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, Clock, X, ArrowRight } from 'lucide-react';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useSubscription } from '../../contexts/SubscriptionContext';
 
 /**
@@ -10,6 +11,7 @@ import { useSubscription } from '../../contexts/SubscriptionContext';
 export default function SubscriptionBanner() {
   const { isGrace, isExpired, isTrial, daysRemaining, planName, subscription } = useSubscription();
   const [dismissed, setDismissed] = useState(false);
+  const navigate = useNavigate();
 
   // Don't show if subscription is healthy or dismissed
   if (dismissed) return null;
@@ -71,8 +73,7 @@ export default function SubscriptionBanner() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => {
-                // TODO: Navigate to subscription/pricing page
-                window.location.href = '/#/subscription';
+                navigate('/subscription');
               }}
             >
               <span>{isExpired ? 'Renew Now' : 'Subscribe'}</span>

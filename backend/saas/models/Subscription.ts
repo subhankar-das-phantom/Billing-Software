@@ -101,6 +101,6 @@ subscriptionSchema.index({ tenantId: 1, status: 1 });
 subscriptionSchema.index({ expiresAt: 1 });
 subscriptionSchema.index({ graceUntil: 1 });
 subscriptionSchema.index({ tenantId: 1, createdAt: -1 });
-subscriptionSchema.index({ gatewaySubscriptionId: 1 });
+
 
 export default mongoose.model('Subscription', subscriptionSchema);
