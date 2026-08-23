@@ -115,7 +115,7 @@ export default function Navbar() {
               return (
                 <Link
                   key={item.path}
-                  to={item.path}
+                  to={(canAccessRoute && !canAccessRoute(item.path)) ? '/subscription' : item.path}
                   className="relative"
                 >
                   {/* Active indicator */}
@@ -212,7 +212,7 @@ export default function Navbar() {
                         {adminNavItems.map((item) => (
                           <Link
                             key={item.path}
-                            to={item.path}
+                            to={(canAccessRoute && !canAccessRoute(item.path)) ? '/subscription' : item.path}
                             onClick={() => setAdminMenuOpen(false)}
                             className={`flex items-center gap-3 px-4 py-3 hover:bg-slate-800/50 transition-colors ${
                               location.pathname === item.path ? 'text-blue-400 bg-blue-500/5' : 'text-slate-400 hover:text-white'

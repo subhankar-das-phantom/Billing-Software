@@ -1,11 +1,42 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileBarChart, TrendingUp } from 'lucide-react';
+import { FileBarChart, TrendingUp, Lock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import GstReportPage from './GstReportPage';
 import { SalesAnalyticsSection } from '../../features/salesAnalytics/components/SalesAnalyticsSection';
+import { useSubscription } from '../../contexts/SubscriptionContext';
+import { Feature } from '../../saas/features';
 
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState('sales-analytics');
+  const { canAccess } = useSubscription();
+  const navigate = useNavigate();
+
+  if (canAccess && !canAccess(Feature.REPORTS)) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 px-4 text-center h-full">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="glass-card p-10 max-w-md w-full border-accent-500/30 shadow-2xl shadow-accent-500/10"
+        >
+          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-accent-500/20 to-blue-500/20 flex items-center justify-center mx-auto mb-6 border border-accent-500/30">
+            <Lock className="w-8 h-8 text-accent-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-3">Premium Feature</h2>
+          <p className="text-slate-400 mb-8">
+            Detailed business reports and sales analytics are only available on higher plans. Upgrade to unlock powerful insights.
+          </p>
+          <button
+            onClick={() => navigate('/subscription')}
+            className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-accent-600 hover:from-blue-500 hover:to-accent-500 text-white rounded-xl font-semibold shadow-lg shadow-blue-500/25 transition-all hover:scale-[1.02] active:scale-95"
+          >
+            Upgrade Plan
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 sm:space-y-8">
