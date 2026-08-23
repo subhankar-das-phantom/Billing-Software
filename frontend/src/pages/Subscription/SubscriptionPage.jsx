@@ -323,24 +323,45 @@ export default function SubscriptionPage() {
               </button>
 
               <div className="space-y-3 flex-1 mt-4">
-                <p className="text-sm font-medium text-slate-300 mb-4">What's included:</p>
-                {plan.features?.map((featureCode, i) => {
-                  const label = FEATURE_LABELS[featureCode] || featureCode;
+                {(() => {
+                  const previousPlan = index > 0 ? plans[index - 1] : null;
+                  let featuresToDisplay = plan.features || [];
+                  let prefixMessage = "What's included:";
+                  
+                  if (previousPlan && previousPlan.features) {
+                    featuresToDisplay = featuresToDisplay.filter(f => !previousPlan.features.includes(f));
+                    prefixMessage = `Everything in ${previousPlan.name}, plus:`;
+                  }
+
+                  const titleColor = isPro ? 'text-indigo-400' : 
+                                     plan.code?.toLowerCase() === 'business' ? 'text-emerald-400' : 
+                                     'text-slate-300';
+
                   return (
-                    <div key={i} className="flex items-start gap-2">
-                      <div className={`mt-0.5 p-0.5 rounded-full ${
-                        isPro ? 'bg-indigo-500/20' : 
-                        plan.code?.toLowerCase() === 'business' ? 'bg-emerald-500/20' : 'bg-blue-500/20'
-                      }`}>
-                        <Check className={`w-3 h-3 ${
-                          isPro ? 'text-indigo-400' :
-                          plan.code?.toLowerCase() === 'business' ? 'text-emerald-400' : 'text-blue-400'
-                        }`} />
-                      </div>
-                      <span className="text-sm text-slate-400">{label}</span>
-                    </div>
+                    <>
+                      <p className={`text-sm mb-4 ${previousPlan ? 'font-semibold' : 'font-medium'} ${titleColor}`}>
+                        {prefixMessage}
+                      </p>
+                      {featuresToDisplay.map((featureCode, i) => {
+                        const label = FEATURE_LABELS[featureCode] || featureCode;
+                        return (
+                          <div key={i} className="flex items-start gap-2">
+                            <div className={`mt-0.5 p-0.5 rounded-full ${
+                              isPro ? 'bg-indigo-500/20' : 
+                              plan.code?.toLowerCase() === 'business' ? 'bg-emerald-500/20' : 'bg-blue-500/20'
+                            }`}>
+                              <Check className={`w-3 h-3 ${
+                                isPro ? 'text-indigo-400' :
+                                plan.code?.toLowerCase() === 'business' ? 'text-emerald-400' : 'text-blue-400'
+                              }`} />
+                            </div>
+                            <span className="text-sm text-slate-400">{label}</span>
+                          </div>
+                        );
+                      })}
+                    </>
                   );
-                })}
+                })()}
               </div>
             </motion.div>
           );
