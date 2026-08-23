@@ -1,8 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { AuthProvider, useAuth, AdminRoute } from './contexts/AuthContext';
-import { SubscriptionProvider } from './contexts/SubscriptionContext';
+import { SubscriptionProvider, useSubscription } from './contexts/SubscriptionContext';
 import { ToastProvider } from './contexts/ToastContext';
+import { Feature } from './saas/features';
+import { ShieldAlert, LogOut } from 'lucide-react';
 
 // Eager load - needed immediately
 import DashboardLayout from './components/Layout/DashboardLayout';
@@ -52,14 +54,39 @@ function PageLoader() {
 
 // Protected Route Wrapper
 function ProtectedRoute({ children }) {
-  const { user, loading } = useAuth();
+  const { user, loading, isAdmin, logout } = useAuth();
+  const { canAccess, loading: subLoading } = useSubscription();
   
-  if (loading) {
+  if (loading || subLoading) {
     return null;
   }
   
   if (!user) {
     return <Navigate to="/landing" replace />;
+  }
+
+  // Check if employee has access based on tenant's subscription
+  if (!isAdmin && canAccess && !canAccess(Feature.EMPLOYEES)) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
+        <div className="glass-card p-10 max-w-md w-full text-center border-accent-500/30 shadow-2xl shadow-accent-500/10">
+          <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-6 border border-red-500/30">
+            <ShieldAlert className="w-8 h-8 text-red-500" />
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-4">Access Restricted</h2>
+          <p className="text-slate-400 mb-8">
+            Your firm's subscription does not include employee access. Please ask your administrator to upgrade to the Professional plan to use this account.
+          </p>
+          <button
+            onClick={logout}
+            className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 text-white rounded-xl transition-colors font-medium border border-slate-700 hover:border-slate-600"
+          >
+            <LogOut size={18} />
+            Sign Out
+          </button>
+        </div>
+      </div>
+    );
   }
   
   return children;
