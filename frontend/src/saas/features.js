@@ -27,6 +27,29 @@ export const Feature = {
   ADVANCED_REPORTING:  'ADVANCED_REPORTING',
 };
 
+// ─── Feature Labels ──────────────────────────────────────────────
+// Friendly names for displaying in UI (e.g. pricing tables)
+export const FEATURE_LABELS = {
+  [Feature.DASHBOARD]: 'Dashboard Access',
+  [Feature.CUSTOMERS]: 'Customer Management',
+  [Feature.PRODUCTS]: 'Product Catalog',
+  [Feature.INVOICE_CREATE]: 'Create Invoices',
+  [Feature.INVOICE_HISTORY]: 'Invoice History',
+  [Feature.INVOICE_PRINT]: 'Print & Export Invoices',
+  [Feature.PAYMENTS]: 'Payment Tracking',
+  [Feature.COLLECTIONS]: 'Collections Management',
+  [Feature.CREDIT_NOTES]: 'Credit Notes & Returns',
+  [Feature.NOTES]: 'Notes & Reminders',
+  [Feature.MANUAL_ENTRIES]: 'Manual Journal Entries',
+  [Feature.LEDGER]: 'Ledger Tracking',
+  [Feature.OUTSTANDING_TRACKING]: 'Outstanding Balance Tracking',
+  [Feature.EMPLOYEES]: 'Employee Management',
+  [Feature.EMPLOYEE_ANALYTICS]: 'Employee Analytics',
+  [Feature.ACTIVITY_LOGS]: 'Activity Logs',
+  [Feature.GST_REPORTS]: 'GST Reports & Filing',
+  [Feature.ADVANCED_REPORTING]: 'Advanced Reporting',
+};
+
 // ─── Route → Feature mapping ────────────────────────────────────
 // Maps frontend routes to the feature they require.
 // Used by Sidebar/Navbar to show/hide/lock items.

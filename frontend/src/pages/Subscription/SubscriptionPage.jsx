@@ -5,6 +5,7 @@ import { useSubscription } from '../../contexts/SubscriptionContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { subscriptionService } from '../../services/saas/subscriptionService';
+import { FEATURE_LABELS } from '../../saas/features';
 
 export default function SubscriptionPage() {
   const { subscription, activeDbSub, isExpired, isGrace, isTrial, planName, daysRemaining, refreshSubscription } = useSubscription();
@@ -321,46 +322,25 @@ export default function SubscriptionPage() {
                 )}
               </button>
 
-              <div className="space-y-3 flex-1">
-                {plan.code?.toLowerCase() === 'starter' && (
-                  <>
-                    <p className="text-sm font-medium text-slate-300 mb-4">What's included:</p>
-                    {['Up to 100 invoices/mo', '1 Admin + 1 Employee', 'Basic GST Billing', 'Customer Management', 'Product Catalog'].map((f, i) => (
-                      <div key={i} className="flex items-start gap-2">
-                        <div className="mt-0.5 bg-blue-500/20 p-0.5 rounded-full">
-                          <Check className="w-3 h-3 text-blue-400" />
-                        </div>
-                        <span className="text-sm text-slate-400">{f}</span>
+              <div className="space-y-3 flex-1 mt-4">
+                <p className="text-sm font-medium text-slate-300 mb-4">What's included:</p>
+                {plan.features?.map((featureCode, i) => {
+                  const label = FEATURE_LABELS[featureCode] || featureCode;
+                  return (
+                    <div key={i} className="flex items-start gap-2">
+                      <div className={`mt-0.5 p-0.5 rounded-full ${
+                        isPro ? 'bg-indigo-500/20' : 
+                        plan.code?.toLowerCase() === 'business' ? 'bg-emerald-500/20' : 'bg-blue-500/20'
+                      }`}>
+                        <Check className={`w-3 h-3 ${
+                          isPro ? 'text-indigo-400' :
+                          plan.code?.toLowerCase() === 'business' ? 'text-emerald-400' : 'text-blue-400'
+                        }`} />
                       </div>
-                    ))}
-                  </>
-                )}
-                {plan.code?.toLowerCase() === 'business' && (
-                  <>
-                    <p className="text-sm font-semibold text-emerald-400 mb-2">Everything in Starter, plus:</p>
-                    {['Unlimited Invoices', 'Up to 3 Employees', 'Payments & Collections', 'Credit Notes & Returns', 'Notes & Reminders'].map((f, i) => (
-                      <div key={i} className="flex items-start gap-2">
-                        <div className="mt-0.5 bg-emerald-500/20 p-0.5 rounded-full">
-                          <Check className="w-3 h-3 text-emerald-400" />
-                        </div>
-                        <span className="text-sm text-slate-400">{f}</span>
-                      </div>
-                    ))}
-                  </>
-                )}
-                {plan.code?.toLowerCase() === 'professional' && (
-                  <>
-                    <p className="text-sm font-semibold text-indigo-400 mb-2">Everything in Business, plus:</p>
-                    {['Unlimited Employees', 'Advanced Analytics', 'GST Reports & Filing', 'Activity Logs', 'Priority Support'].map((f, i) => (
-                      <div key={i} className="flex items-start gap-2">
-                        <div className="mt-0.5 bg-indigo-500/20 p-0.5 rounded-full">
-                          <Check className="w-3 h-3 text-indigo-400" />
-                        </div>
-                        <span className="text-sm text-slate-400">{f}</span>
-                      </div>
-                    ))}
-                  </>
-                )}
+                      <span className="text-sm text-slate-400">{label}</span>
+                    </div>
+                  );
+                })}
               </div>
             </motion.div>
           );
