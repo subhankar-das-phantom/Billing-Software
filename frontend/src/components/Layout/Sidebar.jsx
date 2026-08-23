@@ -131,7 +131,7 @@ const MemoizedMenuItem = memo(({ item, index, location, onClose, hoveredItem, se
       animate={motionConfig.isMobile ? false : undefined}
     >
       <Link
-        to={item.path}
+        to={(canAccessRoute && !canAccessRoute(item.path)) ? '/subscription' : item.path}
         onClick={onClose}
         className="relative block"
       >
@@ -219,7 +219,7 @@ const MemoizedQuickAction = memo(({ item, onClose, menuItemVariants, motionConfi
     animate={motionConfig.isMobile ? false : undefined}
   >
     <Link
-      to={item.path}
+      to={(canAccessRoute && !canAccessRoute(item.path)) ? '/subscription' : item.path}
       onClick={onClose}
       className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/50 transition-colors group"
     >
