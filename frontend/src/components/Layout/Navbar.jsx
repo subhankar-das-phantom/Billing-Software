@@ -219,7 +219,10 @@ export default function Navbar() {
                             }`}
                           >
                             <item.icon size={18} />
-                            <span className="text-sm font-medium">{item.label}</span>
+                            <span className="text-sm font-medium flex-1">{item.label}</span>
+                            {!canAccessRoute(item.path) && (
+                              <UpgradeBadge variant="lock" />
+                            )}
                           </Link>
                         ))}
                       </motion.div>
