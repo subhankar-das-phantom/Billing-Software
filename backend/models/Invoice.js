@@ -7,6 +7,8 @@ const invoiceItemSchema = new mongoose.Schema({
     productName: String,
     hsnCode: String,
     pack: String,
+    batchNo: String,
+    expiryDate: Date,
     newMRP: Number,
     gstPercentage: Number
   },

@@ -476,9 +476,15 @@ exports.heartbeat = async (req, res, next) => {
 // @desc    Update user preferences (Admin or Employee)
 // @route   PUT /api/auth/preferences
 // @access  Private
+// Valid invoice column keys — authoritative whitelist
+const VALID_INVOICE_COLUMNS = new Set([
+  'qty', 'free', 'productName', 'hsn', 'batchNo', 'expiry',
+  'mrp', 'rate', 'net', 'disc', 'gst', 'amount'
+]);
+
 exports.updatePreferences = async (req, res, next) => {
   try {
-    const { showCalculator } = req.body;
+    const { showCalculator, invoiceColumns } = req.body;
     
     let user;
     if (req.userRole === 'employee') {
@@ -497,6 +503,29 @@ exports.updatePreferences = async (req, res, next) => {
     // Update preferences if provided
     if (showCalculator !== undefined) {
       user.set('preferences.showCalculator', showCalculator);
+    }
+
+    if (invoiceColumns !== undefined) {
+      // Validate: must be an array
+      if (!Array.isArray(invoiceColumns)) {
+        return res.status(400).json({
+          success: false,
+          message: 'invoiceColumns must be an array'
+        });
+      }
+
+      // Validate: every value must be a known column key
+      const invalid = invoiceColumns.filter(col => !VALID_INVOICE_COLUMNS.has(col));
+      if (invalid.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid invoice column(s): ${invalid.join(', ')}`
+        });
+      }
+
+      // Deduplicate while preserving order
+      const deduplicated = [...new Set(invoiceColumns)];
+      user.set('preferences.invoiceColumns', deduplicated);
     }
 
     await user.save();

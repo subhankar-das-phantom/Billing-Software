@@ -101,6 +101,15 @@ const productSchema = new mongoose.Schema({
     type: String,
     default: 'Pieces'
   },
+  batchNo: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  expiryDate: {
+    type: Date,
+    default: null
+  },
   isActive: {
     type: Boolean,
     default: true
@@ -137,5 +146,6 @@ productSchema.index({ tenantId: 1, productName: 1 });
 productSchema.index({ tenantId: 1, isActive: 1 });
 productSchema.index({ isActive: 1 });
 productSchema.index({ currentStockQty: 1 });
+productSchema.index({ tenantId: 1, expiryDate: 1 });
 
 module.exports = mongoose.model('Product', productSchema);
