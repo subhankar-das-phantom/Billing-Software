@@ -111,7 +111,7 @@ export default function InvoiceViewPage() {
     { key: 'amount', label: 'Amount', width: '9%', align: 'right', render: (item) => (item.quantitySold * item.ratePerUnit).toFixed(2) },
   ];
 
-  const DEFAULT_VISIBLE = ['qty', 'free', 'productName', 'hsn', 'mrp', 'rate', 'net', 'disc', 'gst', 'amount'];
+  const DEFAULT_VISIBLE = ['qty', 'free', 'productName', 'hsn', 'batchNo', 'expiry', 'mrp', 'rate', 'net', 'disc', 'gst', 'amount'];
 
   const [visibleColumns, setVisibleColumns] = useState(() => {
     try {
