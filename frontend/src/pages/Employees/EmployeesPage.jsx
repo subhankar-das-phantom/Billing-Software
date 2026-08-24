@@ -644,9 +644,9 @@ export default function EmployeesPage() {
   const { isMobile } = motionConfig;
   const isFirstVisit = useFirstVisit('employees');
 
-  const fetchEmployees = async () => {
+  const fetchEmployees = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const data = await employeeService.getEmployees({ search: searchTerm, status: statusFilter });
       setEmployees(data.employees || []);
       
@@ -668,9 +668,9 @@ export default function EmployeesPage() {
   useEffect(() => {
     fetchEmployees();
     
-    // Auto-refresh every 30 seconds to update online status
+    // Auto-refresh every 30 seconds to update online status silently
     const refreshInterval = setInterval(() => {
-      fetchEmployees();
+      fetchEmployees(true);
     }, 30 * 1000); // 30 seconds
 
     return () => clearInterval(refreshInterval);
