@@ -541,6 +541,8 @@ exports.createInvoice = async (req, res, next) => {
           productName: product.productName,
           hsnCode: product.hsnCode,
           pack: product.pack,
+          batchNo: product.batchNo || '',
+          expiryDate: product.expiryDate || null,
           newMRP: product.newMRP,
           gstPercentage: product.gstPercentage
         },
@@ -907,6 +909,8 @@ exports.updateInvoice = async (req, res, next) => {
           productName: product.productName,
           hsnCode: product.hsnCode,
           pack: product.pack,
+          batchNo: product.batchNo || '',
+          expiryDate: product.expiryDate || null,
           newMRP: product.newMRP,
           gstPercentage: product.gstPercentage
         },
