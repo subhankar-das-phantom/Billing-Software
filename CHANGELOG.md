@@ -6,6 +6,18 @@ For full release notes with implementation details, see [GitHub Releases](https:
 
 ---
 
+## [v1.24.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v1.24.0) — Product Batch Tracking & Cross-Device Invoice Preferences
+
+### Added
+- **Product Batch Tracking** — Added proper end-to-end support for product batch numbers (`batchNo`) and expiry dates (`expiryDate`), preserving this information from product creation through invoice product snapshots.
+- **Server-Side Preferences** — Upgraded Invoice View column preferences (including batch and expiry columns) from browser-only `localStorage` to validated server-side preferences, allowing settings to persist seamlessly across browsers and devices.
+
+### Improved
+- **Optimistic UI Updates** — Invoice column preference toggling now uses optimistic UI updates with a 500ms debounced server sync for a smoother user experience, complete with failure state reversion.
+- **Migration & Cleanup** — Automatically cleans up legacy `localStorage` preferences and falls back safely to default configurations for existing users without requiring database migrations.
+
+---
+
 ## [v1.23.2](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v1.23.2) — Backend Stability & Dependency Fixes
 
 ### Fixed

@@ -31,6 +31,10 @@ const adminSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  firmDL: {
+    type: String,
+    default: ''
+  },
   lastLogin: {
     type: Date
   },

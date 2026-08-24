@@ -65,7 +65,7 @@ const closeActiveSession = async (userId, userModel) => {
 // @access  Public
 exports.register = async (req, res, next) => {
   try {
-    const { email, password, firmName, firmAddress, firmPhone, firmGSTIN } = req.body;
+    const { email, password, firmName, firmAddress, firmPhone, firmGSTIN, firmDL } = req.body;
 
     // Check if admin with email already exists
     const existingAdmin = await Admin.findOne({ email });
@@ -83,7 +83,8 @@ exports.register = async (req, res, next) => {
       firmName: firmName || 'My Enterprise',
       firmAddress: firmAddress || '',
       firmPhone: firmPhone || '',
-      firmGSTIN: firmGSTIN || ''
+      firmGSTIN: firmGSTIN || '',
+      firmDL: firmDL || ''
     });
 
     // Generate token with admin role
@@ -106,6 +107,7 @@ exports.register = async (req, res, next) => {
         firmAddress: admin.firmAddress,
         firmPhone: admin.firmPhone,
         firmGSTIN: admin.firmGSTIN,
+        firmDL: admin.firmDL,
         preferences: admin.preferences,
         paymentInformation: admin.paymentInformation
       }
@@ -167,6 +169,7 @@ exports.login = async (req, res, next) => {
           firmAddress: admin.firmAddress,
           firmPhone: admin.firmPhone,
           firmGSTIN: admin.firmGSTIN,
+          firmDL: admin.firmDL,
           preferences: admin.preferences,
           paymentInformation: admin.paymentInformation
         }
@@ -338,6 +341,7 @@ exports.getMe = async (req, res, next) => {
           firmAddress: admin.firmAddress,
           firmPhone: admin.firmPhone,
           firmGSTIN: admin.firmGSTIN,
+          firmDL: admin.firmDL,
           lastLogin: admin.lastLogin,
           preferences: admin.preferences,
           paymentInformation: admin.paymentInformation
@@ -362,11 +366,11 @@ exports.updateProfile = async (req, res, next) => {
       });
     }
 
-    const { firmName, firmAddress, firmPhone, firmGSTIN, paymentInformation } = req.body;
+    const { firmName, firmAddress, firmPhone, firmGSTIN, firmDL, paymentInformation } = req.body;
 
     const admin = await Admin.findByIdAndUpdate(
       req.user._id,
-      { firmName, firmAddress, firmPhone, firmGSTIN, paymentInformation },
+      { firmName, firmAddress, firmPhone, firmGSTIN, firmDL, paymentInformation },
       { new: true, runValidators: true }
     );
 
@@ -379,6 +383,7 @@ exports.updateProfile = async (req, res, next) => {
         firmAddress: admin.firmAddress,
         firmPhone: admin.firmPhone,
         firmGSTIN: admin.firmGSTIN,
+        firmDL: admin.firmDL,
         preferences: admin.preferences,
         paymentInformation: admin.paymentInformation
       }

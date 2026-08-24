@@ -48,6 +48,7 @@ export default function SettingsPage() {
     firmAddress: '',
     firmPhone: '',
     firmGSTIN: '',
+    firmDL: '',
     paymentInformation: {
       enabled: false,
       upiId: '',
@@ -81,6 +82,7 @@ export default function SettingsPage() {
         firmAddress: user.firmAddress || '',
         firmPhone: user.firmPhone || '',
         firmGSTIN: user.firmGSTIN || '',
+        firmDL: user.firmDL || '',
         paymentInformation: {
           enabled: user.paymentInformation?.enabled || false,
           upiId: user.paymentInformation?.upiId || '',
@@ -219,6 +221,8 @@ export default function SettingsPage() {
               </div>
             </div>
 
+
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {/* Firm Name */}
               <div className="group">
@@ -259,23 +263,44 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Firm GSTIN */}
-            <div className="group">
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block group-focus-within:text-blue-400 transition-colors">
-                GSTIN Number
-              </label>
-              <div className="relative flex items-center">
-                <div className="absolute left-4 text-slate-500 group-focus-within:text-blue-400 transition-colors">
-                  <FileText size={18} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Firm GSTIN */}
+              <div className="group">
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block group-focus-within:text-blue-400 transition-colors">
+                  GSTIN Number
+                </label>
+                <div className="relative flex items-center">
+                  <div className="absolute left-4 text-slate-500 group-focus-within:text-blue-400 transition-colors">
+                    <FileText size={18} />
+                  </div>
+                  <input
+                    type="text"
+                    value={profile.firmGSTIN}
+                    onChange={(e) => setProfile({ ...profile, firmGSTIN: e.target.value.toUpperCase() })}
+                    className="w-full bg-slate-800/40 border border-white/5 text-white focus:bg-slate-800/80 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 pl-12 pr-4 py-3 rounded-xl transition-all outline-none uppercase font-mono placeholder:text-slate-600"
+                    placeholder="22AAAAA0000A1Z5"
+                    maxLength={15}
+                  />
                 </div>
-                <input
-                  type="text"
-                  value={profile.firmGSTIN}
-                  onChange={(e) => setProfile({ ...profile, firmGSTIN: e.target.value.toUpperCase() })}
-                  className="w-full bg-slate-800/40 border border-white/5 text-white focus:bg-slate-800/80 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 pl-12 pr-4 py-3 rounded-xl transition-all outline-none uppercase font-mono placeholder:text-slate-600"
-                  placeholder="22AAAAA0000A1Z5"
-                  maxLength={15}
-                />
+              </div>
+
+              {/* Firm DL */}
+              <div className="group">
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block group-focus-within:text-blue-400 transition-colors">
+                  Drug License (DL) Number
+                </label>
+                <div className="relative flex items-center">
+                  <div className="absolute left-4 text-slate-500 group-focus-within:text-blue-400 transition-colors">
+                    <FileText size={18} />
+                  </div>
+                  <input
+                    type="text"
+                    value={profile.firmDL}
+                    onChange={(e) => setProfile({ ...profile, firmDL: e.target.value.toUpperCase() })}
+                    className="w-full bg-slate-800/40 border border-white/5 text-white focus:bg-slate-800/80 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 pl-12 pr-4 py-3 rounded-xl transition-all outline-none uppercase font-mono placeholder:text-slate-600"
+                    placeholder="DL-12345"
+                  />
+                </div>
               </div>
             </div>
 
