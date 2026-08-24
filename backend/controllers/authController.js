@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const Admin = require('../models/Admin');
 const Employee = require('../models/Employee');
 const Session = require('../models/Session');
+const { ROLE_PRESETS } = require('../utils/permissions');
 
 /**
  * Cookie options helper
@@ -194,6 +195,12 @@ exports.login = async (req, res, next) => {
         });
       }
 
+      // Backward compatibility for legacy employees
+      if (!employee.role || !employee.permissions || (employee.permissions instanceof Map ? employee.permissions.size === 0 : Object.keys(employee.permissions).length === 0)) {
+        employee.role = 'full_access';
+        employee.permissions = ROLE_PRESETS.full_access;
+      }
+
       // Update last login
       employee.lastLogin = new Date();
       await employee.save();
@@ -269,6 +276,12 @@ exports.employeeLogin = async (req, res, next) => {
       });
     }
 
+    // Backward compatibility for legacy employees
+    if (!employee.role || !employee.permissions || (employee.permissions instanceof Map ? employee.permissions.size === 0 : Object.keys(employee.permissions).length === 0)) {
+      employee.role = 'full_access';
+      employee.permissions = ROLE_PRESETS.full_access;
+    }
+
     // Update last login
     employee.lastLogin = new Date();
     await employee.save();
@@ -298,6 +311,13 @@ exports.employeeLogin = async (req, res, next) => {
 exports.getMe = async (req, res, next) => {
   try {
     if (req.userRole === 'employee') {
+      // Backward compatibility for legacy employees fetching me
+      if (!req.user.role || !req.user.permissions || (req.user.permissions instanceof Map ? req.user.permissions.size === 0 : Object.keys(req.user.permissions).length === 0)) {
+        req.user.role = 'full_access';
+        req.user.permissions = ROLE_PRESETS.full_access;
+        await req.user.save();
+      }
+
       // Return employee profile
       res.status(200).json({
         success: true,

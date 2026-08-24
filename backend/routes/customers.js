@@ -9,7 +9,7 @@ const {
   deleteCustomer,
   searchCustomers
 } = require('../controllers/customerController');
-const { protect } = require('../middleware/auth');
+const { protect, requirePermission } = require('../middleware/auth');
 const { 
   createCustomerValidator, 
   updateCustomerValidator, 
@@ -19,18 +19,18 @@ const {
 // Apply protection to all routes
 router.use(protect);
 
-router.get('/search', searchCustomers);
+router.get('/search', requirePermission('customers', 'view'), searchCustomers);
 
 router.route('/')
-  .get(getCustomers)
-  .post(createCustomerValidator, createCustomer);
+  .get(requirePermission('customers', 'view'), getCustomers)
+  .post(requirePermission('customers', 'create'), createCustomerValidator, createCustomer);
 
 // Ledger route (must be before /:id to avoid param collision)
-router.get('/:id/ledger', mongoIdParam, getCustomerLedger);
+router.get('/:id/ledger', requirePermission('ledger', 'view'), mongoIdParam, getCustomerLedger);
 
 router.route('/:id')
-  .get(mongoIdParam, getCustomer)
-  .put(updateCustomerValidator, updateCustomer)
-  .delete(mongoIdParam, deleteCustomer);
+  .get(requirePermission('customers', 'view'), mongoIdParam, getCustomer)
+  .put(requirePermission('customers', 'edit'), updateCustomerValidator, updateCustomer)
+  .delete(requirePermission('customers', 'delete'), mongoIdParam, deleteCustomer);
 
 module.exports = router;

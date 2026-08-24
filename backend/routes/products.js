@@ -12,7 +12,7 @@ const {
   getStockHistory
 } = require('../controllers/productController');
 const { exportProducts } = require('../controllers/product/productExportController');
-const { protect } = require('../middleware/auth');
+const { protect, requirePermission } = require('../middleware/auth');
 const { 
   createProductValidator, 
   updateProductValidator, 
@@ -23,21 +23,21 @@ const {
 // Apply protection to all routes
 router.use(protect);
 
-router.get('/stats', getProductStats);
-router.get('/stock/low', getLowStock);
-router.get('/export', exportProducts);
+router.get('/stats', requirePermission('products', 'view'), getProductStats);
+router.get('/stock/low', requirePermission('inventory', 'view'), getLowStock);
+router.get('/export', requirePermission('reports', 'view'), exportProducts);
 
 router.route('/')
-  .get(getProducts)
-  .post(createProductValidator, createProduct);
+  .get(requirePermission('products', 'view'), getProducts)
+  .post(requirePermission('products', 'create'), createProductValidator, createProduct);
 
-router.get('/:id/stock-history', mongoIdParam, getStockHistory);
+router.get('/:id/stock-history', requirePermission('inventory', 'view'), mongoIdParam, getStockHistory);
 
 router.route('/:id')
-  .get(mongoIdParam, getProduct)
-  .put(updateProductValidator, updateProduct)
-  .delete(mongoIdParam, deleteProduct);
+  .get(requirePermission('products', 'view'), mongoIdParam, getProduct)
+  .put(requirePermission('products', 'edit'), updateProductValidator, updateProduct)
+  .delete(requirePermission('products', 'delete'), mongoIdParam, deleteProduct);
 
-router.put('/:id/stock', adjustStockValidator, adjustStock);
+router.put('/:id/stock', requirePermission('inventory', 'create'), adjustStockValidator, adjustStock);
 
 module.exports = router;

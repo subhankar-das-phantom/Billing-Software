@@ -7,18 +7,18 @@ const {
   getCreditNotesByCustomer,
   getCreditNote
 } = require('../controllers/creditNoteController');
-const { protect } = require('../middleware/auth');
+const { protect, requirePermission } = require('../middleware/auth');
 const { mongoIdParam } = require('../middleware/validators');
 
 // Apply protection to all routes
 router.use(protect);
 
 router.route('/')
-  .get(getCreditNotes)
-  .post(createCreditNote);
+  .get(requirePermission('creditNotes', 'view'), getCreditNotes)
+  .post(requirePermission('creditNotes', 'create'), createCreditNote);
 
-router.get('/invoice/:invoiceId', getCreditNotesByInvoice);
-router.get('/customer/:customerId', getCreditNotesByCustomer);
-router.get('/:id', getCreditNote);
+router.get('/invoice/:invoiceId', requirePermission('creditNotes', 'view'), getCreditNotesByInvoice);
+router.get('/customer/:customerId', requirePermission('creditNotes', 'view'), getCreditNotesByCustomer);
+router.get('/:id', requirePermission('creditNotes', 'view'), getCreditNote);
 
 module.exports = router;

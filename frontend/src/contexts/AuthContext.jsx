@@ -285,6 +285,14 @@ export const AuthProvider = ({ children }) => {
   // Check if current user is admin
   const isAdmin = () => userRole === 'admin';
 
+  // Check if user has permission
+  const hasPermission = (moduleName, action) => {
+    if (userRole === 'admin') return true;
+    if (!user || !user.permissions) return false;
+    const modulePerms = user.permissions[moduleName];
+    return !!(modulePerms && modulePerms[action]);
+  };
+
   return (
     <AuthContext.Provider 
       value={{ 
@@ -301,6 +309,7 @@ export const AuthProvider = ({ children }) => {
         logout, 
         updateAdmin, 
         updateUserPreferences,
+        hasPermission,
         loading,
         showToast,
         authTransition
@@ -500,4 +509,19 @@ export const AdminRoute = ({ children }) => {
   }
 
   return children;
+};
+
+// Component for conditional rendering based on permissions
+export const Can = ({ resource, action, children, fallback = null }) => {
+  const { hasPermission, loading } = useAuth();
+
+  if (loading) {
+    return null;
+  }
+
+  if (hasPermission(resource, action)) {
+    return children;
+  }
+
+  return fallback;
 };

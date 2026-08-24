@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middleware/auth');
+const { protect, requirePermission } = require('../middleware/auth');
 const getTenantId = require('../utils/getTenantId');
 const stockChangeStream = require('../services/stockChangeStream');
 
@@ -19,7 +19,7 @@ const stockChangeStream = require('../services/stockChangeStream');
  *   event: stock-updated   — { updates: [{ productId, currentStockQty, stockVersion }] }
  *   event: heartbeat       — keepalive every 30s
  */
-router.get('/stream', protect, (req, res) => {
+router.get('/stream', protect, requirePermission('inventory', 'view'), (req, res) => {
   const tenantId = getTenantId(req).toString();
   const userId = req.user._id.toString();
 
