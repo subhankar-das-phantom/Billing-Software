@@ -42,6 +42,10 @@ const adminSchema = new mongoose.Schema({
     showCalculator: {
       type: Boolean,
       default: true
+    },
+    invoiceColumns: {
+      type: [String],
+      default: ['qty', 'free', 'productName', 'hsn', 'batchNo', 'expiry', 'mrp', 'rate', 'net', 'disc', 'gst', 'amount']
     }
   },
   paymentInformation: {

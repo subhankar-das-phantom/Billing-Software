@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -35,6 +35,8 @@ import { formatCurrency, formatDate } from '../../utils/formatters';
 import { InvoiceViewPageSkeleton } from './InvoiceViewPageSkeleton';
 import RecordPaymentModal from '../../components/Common/Modals/RecordPaymentModal';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { authService } from '../../services/auth/authService';
 import { useSWR, useFirstVisit, invalidateCachePattern } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 
@@ -111,21 +113,56 @@ export default function InvoiceViewPage() {
     { key: 'amount', label: 'Amount', width: '9%', align: 'right', render: (item) => (item.quantitySold * item.ratePerUnit).toFixed(2) },
   ];
 
-  const DEFAULT_VISIBLE = ['qty', 'free', 'productName', 'hsn', 'batchNo', 'expiry', 'mrp', 'rate', 'net', 'disc', 'gst', 'amount'];
+  const DEFAULT_INVOICE_COLUMNS = [
+    'qty', 'free', 'productName', 'hsn', 'batchNo',
+    'expiry', 'mrp', 'rate', 'net', 'disc',
+    'gst', 'amount'
+  ];
 
-  const [visibleColumns, setVisibleColumns] = useState(() => {
-    try {
-      const saved = localStorage.getItem('invoiceColumns');
-      return saved ? JSON.parse(saved) : DEFAULT_VISIBLE;
-    } catch { return DEFAULT_VISIBLE; }
-  });
+  // Clean up legacy localStorage key — DB is the single source of truth
+  localStorage.removeItem('invoiceColumns');
+
+  const { user, updateUserPreferences } = useAuth();
+
+  const visibleColumns = user?.preferences?.invoiceColumns ?? DEFAULT_INVOICE_COLUMNS;
+
+  // Debounced API save — ref persists across renders, cleanup on unmount
+  const saveTimerRef = useRef(null);
+  const lastConfirmedRef = useRef(visibleColumns);
+
+  useEffect(() => {
+    // Sync confirmed state when server data loads/changes
+    lastConfirmedRef.current = visibleColumns;
+  }, [visibleColumns]);
+
+  useEffect(() => {
+    return () => {
+      // Cancel pending debounced save on unmount
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, []);
 
   const toggleColumn = (key) => {
-    setVisibleColumns(prev => {
-      const next = prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key];
-      localStorage.setItem('invoiceColumns', JSON.stringify(next));
-      return next;
-    });
+    const newColumns = visibleColumns.includes(key)
+      ? visibleColumns.filter(k => k !== key)
+      : [...visibleColumns, key];
+
+    // Optimistic update — UI updates immediately
+    updateUserPreferences({ invoiceColumns: newColumns });
+
+    // Debounced API save — only the final state is persisted
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      try {
+        await authService.updatePreferences({ invoiceColumns: newColumns });
+        lastConfirmedRef.current = newColumns;
+      } catch (err) {
+        // Revert to last confirmed state on failure
+        console.error('Failed to save column preferences:', err);
+        updateUserPreferences({ invoiceColumns: lastConfirmedRef.current });
+        error('Failed to save column preferences');
+      }
+    }, 500);
   };
 
   const activeColumns = ALL_COLUMNS.filter(c => visibleColumns.includes(c.key));
