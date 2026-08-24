@@ -262,17 +262,7 @@ exports.getEmployeeDetails = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      employee: {
-        id: employee._id,
-        name: employee.name,
-        email: employee.email,
-        userId: employee.userId,
-        phone: employee.phone,
-        isActive: employee.isActive,
-        lastLogin: employee.lastLogin,
-        createdAt: employee.createdAt,
-        metrics: employee.metrics
-      },
+      employee: employee.getFullProfile(),
       sessionStats: {
         today: dailyStats,
         thisWeek: weeklyStats,

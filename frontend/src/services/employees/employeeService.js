@@ -68,6 +68,21 @@ export const employeeService = {
   },
 
   /**
+   * Update employee permissions
+   * @param {string} id - Employee ID
+   * @param {object} data - { role, permissions }
+   * @returns {Promise<{success: boolean, employee: object}>}
+   */
+  updatePermissions: async (id, data) => {
+    try {
+      const response = await api.put(`/employees/${id}/permissions`, data);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
    * Reset employee password
    * @param {string} id - Employee ID
    * @param {string} newPassword - New password
