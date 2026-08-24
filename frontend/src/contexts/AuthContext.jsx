@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Loader2, 
@@ -102,9 +102,9 @@ export const AuthProvider = ({ children }) => {
     }
   }, [toast]);
 
-  const showToast = (message, type = 'success') => {
+  const showToast = useCallback((message, type = 'success') => {
     setToast({ message, type });
-  };
+  }, []);
 
   const clearSWRCache = () => {
     const keysToRemove = [];
@@ -286,12 +286,12 @@ export const AuthProvider = ({ children }) => {
   const isAdmin = () => userRole === 'admin';
 
   // Check if user has permission
-  const hasPermission = (moduleName, action) => {
+  const hasPermission = useCallback((moduleName, action) => {
     if (userRole === 'admin') return true;
     if (!user || !user.permissions) return false;
     const modulePerms = user.permissions[moduleName];
     return !!(modulePerms && modulePerms[action]);
-  };
+  }, [userRole, user]);
 
   return (
     <AuthContext.Provider 
