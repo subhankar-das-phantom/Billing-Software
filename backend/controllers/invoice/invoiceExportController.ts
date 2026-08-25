@@ -307,7 +307,7 @@ function drawSingleInvoicePDF(doc: PDFKit.PDFDocument, invoice: IInvoice, distri
     .fontSize(8)
     .fillColor('#334155')
     .text(safeText(distributor.firmAddress, ''), pageLeft + 14, doc.y + 4, { width: contentWidth - 28 });
-  let phoneGstinText = `Phone: ${safeText(distributor.firmPhone, '')}   GSTIN: ${safeText(distributor.firmGSTIN, '')}`;
+  let phoneGstinText = `Phone: ${safeText(distributor.firmPhone, '')}   DL No: ${safeText(distributor.firmDL, '')}   GSTIN: ${safeText(distributor.firmGSTIN, '')}`;
   if (distributor.paymentInformation?.enabled) {
     const payInfo = `UPI: ${safeText(distributor.paymentInformation.upiId, '')} | A/C: ${safeText(distributor.paymentInformation.accountNumber, '')} | IFSC: ${safeText(distributor.paymentInformation.ifscCode, '')}`;
     phoneGstinText = `|  ${payInfo}  |  ${phoneGstinText}`;
@@ -476,16 +476,18 @@ function drawSingleInvoicePDF(doc: PDFKit.PDFDocument, invoice: IInvoice, distri
 }
 
 async function getDistributor(invoice: IInvoice, req: AuthenticatedRequest): Promise<IDistributorSnapshot> {
-  if (invoice.distributor?.firmName) return invoice.distributor;
-
   const tenantId = getTenantId(req);
-  const admin = await Admin.findById(tenantId).lean();
+  const admin = await Admin.findById(tenantId).lean() as any;
+  
+  const snap = invoice.distributor || {};
+  
   return {
-    firmName: admin?.firmName,
-    firmAddress: admin?.firmAddress,
-    firmPhone: admin?.firmPhone,
-    firmGSTIN: admin?.firmGSTIN,
-    paymentInformation: admin?.paymentInformation
+    firmName: admin?.firmName || snap.firmName,
+    firmAddress: admin?.firmAddress || snap.firmAddress,
+    firmPhone: admin?.firmPhone || snap.firmPhone,
+    firmGSTIN: admin?.firmGSTIN || snap.firmGSTIN,
+    firmDL: admin?.firmDL || snap.firmDL,
+    paymentInformation: snap.paymentInformation?.enabled ? snap.paymentInformation : admin?.paymentInformation
   };
 }
 

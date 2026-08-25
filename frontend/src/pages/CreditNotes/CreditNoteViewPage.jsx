@@ -16,6 +16,7 @@ import { creditNoteService } from '../../services/credits/creditNoteService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { CreditNoteViewPageSkeleton } from './CreditNoteViewPageSkeleton';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { useSWR, useFirstVisit } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 
@@ -41,6 +42,7 @@ export default function CreditNoteViewPage() {
   const { id } = useParams();
   const printRef = useRef();
   const { error } = useToast();
+  const { user, admin } = useAuth();
   const isFirstVisit = useFirstVisit('credit-note-view');
 
   const { data: creditNoteData, isLoading: loading, isValidating } = useSWR(
@@ -96,16 +98,16 @@ export default function CreditNoteViewPage() {
           <div className="grid grid-cols-2 gap-2">
             <div className="text-left">
               <h1 className="font-bold mb-0.5" style={{ fontSize: '14px' }}>
-                {creditNote.distributor?.firmName || 'BHARAT ENTERPRISES'}
+                {admin?.firmName || creditNote.distributor?.firmName || 'BHARAT ENTERPRISES'}
               </h1>
               <p className="text-[9px] leading-tight">
-                {creditNote.distributor?.firmAddress || 'North Bazar, Andal, Paschim Bardhaman, 713321 (W.B.)'}
+                {admin?.firmAddress || creditNote.distributor?.firmAddress || 'North Bazar, Andal, Paschim Bardhaman, 713321 (W.B.)'}
               </p>
             </div>
             <div className="text-right text-[9px] leading-tight">
-              <p>Phone: {creditNote.distributor?.firmPhone || '+918906830790'}</p>
-              <p>DL No: DL-XXXXX-XXXXX</p>
-              <p>GSTIN: {creditNote.distributor?.firmGSTIN || '19BHVPG9900N1ZG'}</p>
+              <p>Phone: {admin?.firmPhone || creditNote.distributor?.firmPhone || '+918906830790'}</p>
+              <p>DL No: {admin?.firmDL || creditNote.distributor?.firmDL || user?.firmDL || 'XXXXXXXXXX'}</p>
+              <p>GSTIN: {admin?.firmGSTIN || creditNote.distributor?.firmGSTIN || '19BHVPG9900N1ZG'}</p>
             </div>
           </div>
           <div className="text-center mt-1">
