@@ -117,7 +117,7 @@ export default function ProductDetailsPage() {
       queryClient.invalidateQueries({ queryKey: ['products', id] });
       loadProduct();
     } catch (err) {
-      error(err.response?.data?.message || 'Failed to adjust stock');
+      error(err.message || 'Failed to adjust stock');
     } finally {
       setSaving(false);
     }

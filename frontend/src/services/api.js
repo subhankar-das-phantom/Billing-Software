@@ -224,7 +224,9 @@ api.interceptors.response.use(
       isNetworkError: !error.response,
       isServerError: error.response?.status >= 500,
       isClientError: error.response?.status >= 400 && error.response?.status < 500,
-      message: error.response?.data?.message || error.message || 'An error occurred',
+      message: error.response?.data?.errors?.length > 0 
+        ? error.response.data.errors[0].message 
+        : (error.response?.data?.message || error.message || 'An error occurred'),
       statusCode: error.response?.status,
       requestId: config?.metadata?.requestId
     };

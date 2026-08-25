@@ -121,7 +121,7 @@ export default function SettingsPage() {
         showSuccess('Business details updated successfully!');
       }
     } catch (err) {
-      showError(err.response?.data?.message || 'Failed to update business details');
+      showError(err.message || 'Failed to update business details');
     } finally {
       setProfileLoading(false);
     }
@@ -141,7 +141,7 @@ export default function SettingsPage() {
     } catch (err) {
       // Revert if failed
       setPreferences({ ...preferences, showCalculator: !newShowCalculator });
-      showError(err.response?.data?.message || 'Failed to update preferences');
+      showError(err.message || 'Failed to update preferences');
     } finally {
       setPreferencesLoading(false);
     }
@@ -176,7 +176,7 @@ export default function SettingsPage() {
         });
       }
     } catch (err) {
-      showError(err.response?.data?.message || 'Failed to change password');
+      showError(err.message || 'Failed to change password');
     } finally {
       setPasswordLoading(false);
     }

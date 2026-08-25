@@ -163,7 +163,7 @@ export default function GstReportPage() {
       });
       setReportData(data);
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Failed to generate report');
+      setError(err.message || err.message || 'Failed to generate report');
       setReportData(null);
     } finally {
       setLoading(false);

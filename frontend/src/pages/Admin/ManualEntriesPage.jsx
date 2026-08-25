@@ -76,7 +76,7 @@ export default function ManualEntriesPage() {
       invalidateCachePattern('dashboard');
       loadEntries();
     } catch (error) {
-      addToast(error.response?.data?.message || 'Failed to delete entry', 'error');
+      addToast(error.message || 'Failed to delete entry', 'error');
     } finally {
       setDeleting(false);
     }

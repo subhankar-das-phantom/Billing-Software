@@ -58,10 +58,10 @@ const registerValidator = [
     .matches(/^[0-9+\-\s()]*$/)
     .withMessage('Invalid phone format'),
   body('firmGSTIN')
-    .optional()
+    .optional({ checkFalsy: true })
     .trim()
-    .matches(/^[0-9A-Z]{15}$|^$/)
-    .withMessage('GSTIN must be 15 alphanumeric characters'),
+    .matches(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]Z[0-9A-Z]$/i)
+    .withMessage('Invalid GSTIN format (e.g., 19ABCDE1234F1Z5)'),
   validate
 ];
 
@@ -82,10 +82,10 @@ const updateProfileValidator = [
     .matches(/^[0-9+\-\s()]*$/)
     .withMessage('Invalid phone format'),
   body('firmGSTIN')
-    .optional()
+    .optional({ checkFalsy: true })
     .trim()
-    .matches(/^[0-9A-Z]{15}$|^$/)
-    .withMessage('GSTIN must be 15 alphanumeric characters'),
+    .matches(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]Z[0-9A-Z]$/i)
+    .withMessage('Invalid GSTIN format (e.g., 19ABCDE1234F1Z5)'),
   validate
 ];
 
@@ -193,10 +193,10 @@ const createCustomerValidator = [
     .matches(/^[0-9+\-\s()]*$/)
     .withMessage('Invalid phone format'),
   body('gstin')
-    .optional()
+    .optional({ checkFalsy: true })
     .trim()
-    .matches(/^[0-9A-Z]{15}$|^$/)
-    .withMessage('GSTIN must be 15 alphanumeric characters'),
+    .matches(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]Z[0-9A-Z]$/i)
+    .withMessage('Invalid GSTIN format (e.g., 19ABCDE1234F1Z5)'),
   body('dlNo')
     .optional()
     .trim()

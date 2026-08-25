@@ -79,6 +79,7 @@ const creditNoteSchema = new mongoose.Schema({
   distributor: {
     firmName: String,
     firmAddress: String,
+    firmGSTIN: String,
     firmDL: String
   },
   items: [creditNoteItemSchema],
