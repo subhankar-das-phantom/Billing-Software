@@ -6,6 +6,22 @@ For full release notes with implementation details, see [GitHub Releases](https:
 
 ---
 
+## [v1.26.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v1.26.0) — Employee Enhancements & Validation Fixes
+
+### Added
+- **Employee Date of Birth (DOB)** — Added a dedicated Date of Birth field to the Employee profile, seamlessly integrated into the backend schema, the employee creation/edit modal, and the employee details page.
+
+### Improved
+- **Employee Details Mobile Responsiveness** — Refactored flexbox layouts on the Employee Details page and Permissions Editor to flawlessly wrap buttons and long names on mobile screens.
+- **Dynamic Document Headers** — Invoices and Credit Notes now fetch the most up-to-date Admin profile details dynamically, ensuring that any modifications to business phone numbers or GSTIN are immediately reflected on new PDFs.
+- **Enhanced Toast Messaging** — Increased the visibility duration of toast notifications to give users ample time to read system alerts.
+
+### Fixed
+- **Inactive Customer Search Leak** — Fixed an issue where inactive customers were showing up in the "Create Invoice" search dropdown. The backend now strictly ignores `includeInactive` flags when querying customers for invoices.
+- **GSTIN Validation** — Implemented strict backend and frontend validation for GSTIN inputs to guarantee data integrity.
+
+---
+
 ## [v1.25.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v1.25.0) — Tenant-Controlled RBAC & Employee Compliance
 
 ### Added
