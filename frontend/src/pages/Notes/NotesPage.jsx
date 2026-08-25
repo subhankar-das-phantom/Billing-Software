@@ -110,7 +110,7 @@ export default function NotesPage() {
       invalidateCachePattern('notes');
       mutate();
     } catch (err) {
-      error(err.response?.data?.message || 'Failed to save note');
+      error(err.message || 'Failed to save note');
     } finally {
       setSaving(false);
     }
@@ -125,7 +125,7 @@ export default function NotesPage() {
       invalidateCachePattern('notes');
       mutate();
     } catch (err) {
-      error(err.response?.data?.message || 'Failed to delete note');
+      error(err.message || 'Failed to delete note');
     }
   };
 

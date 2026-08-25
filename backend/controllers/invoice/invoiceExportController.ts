@@ -482,11 +482,11 @@ async function getDistributor(invoice: IInvoice, req: AuthenticatedRequest): Pro
   const snap = invoice.distributor || {};
   
   return {
-    firmName: admin?.firmName || snap.firmName,
-    firmAddress: admin?.firmAddress || snap.firmAddress,
+    firmName: snap.firmName || admin?.firmName,
+    firmAddress: snap.firmAddress || admin?.firmAddress,
     firmPhone: admin?.firmPhone || snap.firmPhone,
-    firmGSTIN: admin?.firmGSTIN || snap.firmGSTIN,
-    firmDL: admin?.firmDL || snap.firmDL,
+    firmGSTIN: snap.firmGSTIN || admin?.firmGSTIN,
+    firmDL: snap.firmDL || admin?.firmDL,
     paymentInformation: snap.paymentInformation?.enabled ? snap.paymentInformation : admin?.paymentInformation
   };
 }

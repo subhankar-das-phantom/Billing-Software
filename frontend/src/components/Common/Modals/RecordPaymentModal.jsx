@@ -388,7 +388,7 @@ export default function RecordPaymentModal({
               successCount,
               totalCount: fifoAllocations.length,
               failedLabel: allocation.label,
-              failedError: err.response?.data?.message || err.message || 'Payment failed',
+              failedError: err.message || err.message || 'Payment failed',
               totalAmount: roundCurrency(amount)
             });
             setFifoProgress(null);
@@ -505,7 +505,7 @@ export default function RecordPaymentModal({
           }
         }, 800);
       } catch (err) {
-        setError(err.response?.data?.message || 'Failed to record payment');
+        setError(err.message || 'Failed to record payment');
       } finally {
         setLoading(false);
       }

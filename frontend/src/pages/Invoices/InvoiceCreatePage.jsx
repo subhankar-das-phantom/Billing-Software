@@ -967,7 +967,7 @@ export default function InvoiceCreatePage() {
       const invoiceIdToNavigate = result?.invoice?._id || editInvoiceId;
       navigate(invoiceIdToNavigate ? `/invoices/${invoiceIdToNavigate}` : '/invoices');
     } catch (err) {
-      error(err.response?.data?.message || err.message || `Failed to ${isEditMode ? 'update' : 'create'} invoice`);
+      error(err.message || err.message || `Failed to ${isEditMode ? 'update' : 'create'} invoice`);
     } finally {
       setSaving(false);
       submitInFlightRef.current = false;

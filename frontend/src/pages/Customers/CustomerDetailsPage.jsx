@@ -1283,7 +1283,7 @@ export default function CustomerDetailsPage() {
                                             success('Manual entry deleted and reversed');
                                             handlePaymentSuccess();
                                           } catch (err) {
-                                            error(err.response?.data?.message || 'Failed to delete manual entry');
+                                            error(err.message || 'Failed to delete manual entry');
                                           } finally {
                                             setDeletingPaymentId(null);
                                           }
@@ -1295,7 +1295,7 @@ export default function CustomerDetailsPage() {
                                             success('Payment deleted and reversed');
                                             handlePaymentSuccess();
                                           } catch (err) {
-                                            error(err.response?.data?.message || 'Failed to delete payment');
+                                            error(err.message || 'Failed to delete payment');
                                           } finally {
                                             setDeletingPaymentId(null);
                                           }
@@ -1368,7 +1368,7 @@ export default function CustomerDetailsPage() {
                                             success('Manual entry deleted');
                                             handlePaymentSuccess();
                                           } catch (err) {
-                                            error(err.response?.data?.message || 'Failed to delete manual entry');
+                                            error(err.message || 'Failed to delete manual entry');
                                           } finally {
                                             setDeletingPaymentId(null);
                                           }
@@ -1380,7 +1380,7 @@ export default function CustomerDetailsPage() {
                                             success('Payment deleted');
                                             handlePaymentSuccess();
                                           } catch (err) {
-                                            error(err.response?.data?.message || 'Failed to delete payment');
+                                            error(err.message || 'Failed to delete payment');
                                           } finally {
                                             setDeletingPaymentId(null);
                                           }
