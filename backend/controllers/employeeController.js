@@ -120,7 +120,7 @@ exports.getEmployee = async (req, res, next) => {
 exports.createEmployee = async (req, res, next) => {
   try {
     const tenantId = getTenantId(req);
-    const { email, password, name, phone, address, govId } = req.body;
+    const { email, password, name, phone, address, dob, govId } = req.body;
 
     // Validate required fields
     if (!email || !password || !name) {
@@ -156,6 +156,7 @@ exports.createEmployee = async (req, res, next) => {
       name,
       phone: phone || '',
       address: address || '',
+      dob: dob || undefined,
       govId: (govId && govId.type && govId.number) ? govId : undefined,
       createdByAdmin: tenantId
     });
@@ -163,7 +164,7 @@ exports.createEmployee = async (req, res, next) => {
     res.status(201).json({
       success: true,
       message: 'Employee created successfully',
-      employee: employee.getPublicProfile()
+      employee: employee.getFullProfile()
     });
   } catch (error) {
     next(error);
@@ -176,7 +177,7 @@ exports.createEmployee = async (req, res, next) => {
 exports.updateEmployee = async (req, res, next) => {
   try {
     const tenantId = getTenantId(req);
-    const { email, name, phone, address, govId } = req.body;
+    const { email, name, phone, address, dob, govId } = req.body;
 
     const employee = await Employee.findOne({
       _id: req.params.id,
@@ -219,6 +220,7 @@ exports.updateEmployee = async (req, res, next) => {
     if (name) employee.name = name;
     if (phone !== undefined) employee.phone = phone;
     if (address !== undefined) employee.address = address;
+    if (dob !== undefined) employee.dob = dob || null;
     if (govId) {
       if (govId.type && govId.number) {
         employee.govId = govId;
@@ -232,7 +234,7 @@ exports.updateEmployee = async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: 'Employee updated successfully',
-      employee: employee.getPublicProfile()
+      employee: employee.getFullProfile()
     });
   } catch (error) {
     next(error);
@@ -320,7 +322,7 @@ exports.toggleStatus = async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: isActive ? 'Employee activated successfully' : 'Employee deactivated successfully',
-      employee: employee.getPublicProfile()
+      employee: employee.getFullProfile()
     });
   } catch (error) {
     next(error);
@@ -400,7 +402,7 @@ exports.updatePermissions = async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: 'Employee permissions updated successfully',
-      employee: employee.getPublicProfile()
+      employee: employee.getFullProfile()
     });
   } catch (error) {
     next(error);

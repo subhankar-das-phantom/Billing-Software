@@ -69,6 +69,7 @@ const EmployeeModal = ({ isOpen, onClose, employee, onSave }) => {
     password: '',
     phone: '',
     address: '',
+    dob: '',
     govIdType: '',
     govIdCustomType: '',
     govIdNumber: ''
@@ -94,6 +95,7 @@ const EmployeeModal = ({ isOpen, onClose, employee, onSave }) => {
         password: '',
         phone: employee.phone || '',
         address: employee.address || '',
+        dob: employee.dob ? new Date(employee.dob).toISOString().split('T')[0] : '',
         govIdType: gType,
         govIdCustomType: gCustom,
         govIdNumber: employee.govId?.number || ''
@@ -106,6 +108,7 @@ const EmployeeModal = ({ isOpen, onClose, employee, onSave }) => {
         password: '',
         phone: '',
         address: '',
+        dob: '',
         govIdType: '',
         govIdCustomType: '',
         govIdNumber: ''
@@ -273,6 +276,20 @@ const EmployeeModal = ({ isOpen, onClose, employee, onSave }) => {
                 onChange={e => setFormData({ ...formData, phone: e.target.value })}
                 className="w-full px-4 py-2.5 rounded-lg bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
                 placeholder="Optional"
+                autoComplete="off"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-400 mb-1">
+                Date of Birth
+              </label>
+              <input
+                type="date"
+                name="emp_dob_new"
+                value={formData.dob}
+                onChange={e => setFormData({ ...formData, dob: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-lg bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
                 autoComplete="off"
               />
             </div>
