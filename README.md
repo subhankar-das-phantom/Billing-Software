@@ -60,7 +60,7 @@ Test Credentials:
 - ✅ **Advanced Customer Filtering** — Server-side filtering with URL-synchronized state, supporting status, GSTIN, drug license, phone, date range, and sorting
 - ✅ **Customizable Invoices** — Toggle which columns appear on printed invoices with server-side preferences that persist seamlessly across all browsers and devices
 - ✅ **Product Batch Tracking** — End-to-end support for product batch numbers and expiry dates through the entire inventory and billing lifecycle
-- ✅ **Business Compliance** — Built-in support for Drug License (DL) numbers alongside GSTIN for pharmacy workflows, plus strict Aadhar/PAN Government ID validation for employee records
+- ✅ **Business Compliance** — Built-in support for Drug License (DL) numbers alongside GSTIN for pharmacy workflows, plus strict Aadhar/PAN Government ID validation and Date of Birth tracking for employee records
 - ✅ **Continuous Integration** — Automated GitHub Actions pipeline for continuous validation
 
 ## 📘 Documentation
