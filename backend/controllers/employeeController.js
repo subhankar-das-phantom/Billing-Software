@@ -1,6 +1,7 @@
 const Employee = require('../models/Employee');
 const Session = require('../models/Session');
 const getTenantId = require('../utils/getTenantId');
+const { ROLE_PRESETS } = require('../utils/permissions');
 
 const { escapeRegex } = require('../utils/searchUtils');
 
@@ -119,7 +120,7 @@ exports.getEmployee = async (req, res, next) => {
 exports.createEmployee = async (req, res, next) => {
   try {
     const tenantId = getTenantId(req);
-    const { email, password, name, phone } = req.body;
+    const { email, password, name, phone, address, govId } = req.body;
 
     // Validate required fields
     if (!email || !password || !name) {
@@ -127,6 +128,16 @@ exports.createEmployee = async (req, res, next) => {
         success: false,
         message: 'Please provide email, password, and name'
       });
+    }
+
+    // Validate Gov ID if provided
+    if (govId && govId.type && govId.number) {
+      if (govId.type === 'Aadhar' && !/^\d{12}$/.test(govId.number)) {
+        return res.status(400).json({ success: false, message: 'Aadhar must be exactly 12 digits' });
+      }
+      if (govId.type === 'PAN' && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i.test(govId.number)) {
+        return res.status(400).json({ success: false, message: 'Invalid PAN format' });
+      }
     }
 
     // Check if email already exists
@@ -144,6 +155,8 @@ exports.createEmployee = async (req, res, next) => {
       password,
       name,
       phone: phone || '',
+      address: address || '',
+      govId: (govId && govId.type && govId.number) ? govId : undefined,
       createdByAdmin: tenantId
     });
 
@@ -163,7 +176,7 @@ exports.createEmployee = async (req, res, next) => {
 exports.updateEmployee = async (req, res, next) => {
   try {
     const tenantId = getTenantId(req);
-    const { email, name, phone } = req.body;
+    const { email, name, phone, address, govId } = req.body;
 
     const employee = await Employee.findOne({
       _id: req.params.id,
@@ -175,6 +188,16 @@ exports.updateEmployee = async (req, res, next) => {
         success: false,
         message: 'Employee not found'
       });
+    }
+
+    // Validate Gov ID if provided
+    if (govId && govId.type && govId.number) {
+      if (govId.type === 'Aadhar' && !/^\d{12}$/.test(govId.number)) {
+        return res.status(400).json({ success: false, message: 'Aadhar must be exactly 12 digits' });
+      }
+      if (govId.type === 'PAN' && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i.test(govId.number)) {
+        return res.status(400).json({ success: false, message: 'Invalid PAN format' });
+      }
     }
 
     // Check if new email conflicts with existing
@@ -195,6 +218,14 @@ exports.updateEmployee = async (req, res, next) => {
     // Update other fields
     if (name) employee.name = name;
     if (phone !== undefined) employee.phone = phone;
+    if (address !== undefined) employee.address = address;
+    if (govId) {
+      if (govId.type && govId.number) {
+        employee.govId = govId;
+      } else {
+        employee.govId = undefined; // clear if empty or invalid
+      }
+    }
 
     await employee.save();
 
@@ -324,6 +355,52 @@ exports.deleteEmployee = async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: 'Employee deactivated successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Update employee permissions
+// @route   PUT /api/employees/:id/permissions
+// @access  Private (Admin only)
+exports.updatePermissions = async (req, res, next) => {
+  try {
+    const tenantId = getTenantId(req);
+    const { role, permissions } = req.body;
+
+    const employee = await Employee.findOne({
+      _id: req.params.id,
+      createdByAdmin: tenantId
+    });
+
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Employee not found'
+      });
+    }
+
+    if (role) {
+      employee.role = role;
+    }
+
+    if (permissions) {
+      employee.permissions = permissions;
+    } else if (role && ROLE_PRESETS[role]) {
+      // Auto-fill from preset if only role is provided
+      employee.permissions = ROLE_PRESETS[role];
+    }
+
+    await employee.save();
+
+    // Do NOT close sessions on permission change to allow seamless updates,
+    // or maybe close them if needed. For now, let's keep it seamless.
+
+    res.status(200).json({
+      success: true,
+      message: 'Employee permissions updated successfully',
+      employee: employee.getPublicProfile()
     });
   } catch (error) {
     next(error);

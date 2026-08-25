@@ -7,7 +7,7 @@ const {
   getCreditNotesByCustomer,
   getCreditNote
 } = require('../controllers/creditNoteController');
-const { protect } = require('../middleware/auth');
+const { protect, requirePermission } = require('../middleware/auth');
 const { mongoIdParam } = require('../middleware/validators');
 const { checkSubscription, checkFeatureAccess, checkWriteAccess } = require('../saas/middleware');
 const { Feature } = require('../saas/shared/features');
@@ -18,11 +18,11 @@ router.use(checkSubscription);
 router.use(checkFeatureAccess(Feature.CREDIT_NOTES));
 
 router.route('/')
-  .get(getCreditNotes)
-  .post(checkWriteAccess, createCreditNote);
+  .get(requirePermission('creditNotes', 'view'), getCreditNotes)
+  .post(checkWriteAccess, requirePermission('creditNotes', 'create'), createCreditNote);
 
-router.get('/invoice/:invoiceId', getCreditNotesByInvoice);
-router.get('/customer/:customerId', getCreditNotesByCustomer);
-router.get('/:id', getCreditNote);
+router.get('/invoice/:invoiceId', requirePermission('creditNotes', 'view'), getCreditNotesByInvoice);
+router.get('/customer/:customerId', requirePermission('creditNotes', 'view'), getCreditNotesByCustomer);
+router.get('/:id', requirePermission('creditNotes', 'view'), getCreditNote);
 
 module.exports = router;

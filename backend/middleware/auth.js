@@ -147,4 +147,36 @@ const getAttribution = (req) => {
   };
 };
 
-module.exports = { protect, adminOnly, getAttribution };
+/**
+ * Require permission for a specific module and action
+ * Must be used AFTER protect middleware
+ */
+const requirePermission = (moduleName, action) => {
+  return (req, res, next) => {
+    // Admins have full access
+    if (req.userRole === 'admin') {
+      return next();
+    }
+
+    // Check if employee has the requested permission
+    try {
+      const perms = req.user.permissions?.get(moduleName);
+      
+      if (!perms || !perms[action]) {
+        return res.status(403).json({
+          success: false,
+          message: `Access denied. Requires '${action}' permission for '${moduleName}'.`
+        });
+      }
+      
+      next();
+    } catch (error) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Error checking permissions.'
+      });
+    }
+  };
+};
+
+module.exports = { protect, adminOnly, getAttribution, requirePermission };

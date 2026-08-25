@@ -12,7 +12,7 @@ const {
   getStockHistory
 } = require('../controllers/productController');
 const { exportProducts } = require('../controllers/product/productExportController');
-const { protect } = require('../middleware/auth');
+const { protect, requirePermission } = require('../middleware/auth');
 const { 
   createProductValidator, 
   updateProductValidator, 
@@ -27,21 +27,21 @@ router.use(protect);
 router.use(checkSubscription);
 router.use(checkFeatureAccess(Feature.PRODUCTS));
 
-router.get('/stats', getProductStats);
-router.get('/stock/low', getLowStock);
-router.get('/export', exportProducts);
+router.get('/stats', requirePermission('products', 'view'), getProductStats);
+router.get('/stock/low', requirePermission('inventory', 'view'), getLowStock);
+router.get('/export', requirePermission('reports', 'view'), exportProducts);
 
 router.route('/')
-  .get(getProducts)
-  .post(checkWriteAccess, createProductValidator, createProduct);
+  .get(requirePermission('products', 'view'), getProducts)
+  .post(checkWriteAccess, requirePermission('products', 'create'), createProductValidator, createProduct);
 
-router.get('/:id/stock-history', mongoIdParam, getStockHistory);
+router.get('/:id/stock-history', requirePermission('inventory', 'view'), mongoIdParam, getStockHistory);
 
 router.route('/:id')
-  .get(mongoIdParam, getProduct)
-  .put(checkWriteAccess, updateProductValidator, updateProduct)
-  .delete(checkWriteAccess, mongoIdParam, deleteProduct);
+  .get(requirePermission('products', 'view'), mongoIdParam, getProduct)
+  .put(checkWriteAccess, requirePermission('products', 'edit'), updateProductValidator, updateProduct)
+  .delete(checkWriteAccess, requirePermission('products', 'delete'), mongoIdParam, deleteProduct);
 
-router.put('/:id/stock', checkWriteAccess, adjustStockValidator, adjustStock);
+router.put('/:id/stock', checkWriteAccess, requirePermission('inventory', 'create'), adjustStockValidator, adjustStock);
 
 module.exports = router;

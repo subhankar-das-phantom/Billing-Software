@@ -6,6 +6,39 @@ For full release notes with implementation details, see [GitHub Releases](https:
 
 ---
 
+## [v1.25.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v1.25.0) — Tenant-Controlled RBAC & Employee Compliance
+
+### Added
+- **Tenant-Controlled RBAC Architecture** — Introduced granular employee authorization with a permissions registry. Admins can now control employee access to view, create, edit, delete, or cancel across modules (Customers, Products, Invoices, Payments, etc.).
+- **Employee Permissions Editor** — New dedicated interface for administrators to seamlessly manage and toggle employee permissions directly from the frontend.
+- **Backend Permission Middleware** — Added `requirePermission()` to strictly protect backend API routes based on tenant-configured employee permissions, ensuring true end-to-end security.
+- **Employee Profile Expansion** — Added support for Government IDs (with strict Aadhar/PAN regex validation and a "custom document" fallback) and Address storage.
+- **Drug License (DL) Number** — Added a DL number field alongside GSTIN in the Admin Business Details settings for medical and pharmacy billing workflows.
+
+### Improved
+- **Frontend Route Protection** — Upgraded `App.jsx` with `<PermissionRoute>` logic that gracefully intercepts unauthorized navigation and displays clear "Access denied by admin" toast notifications.
+- **Dynamic Employee Add/Edit Interface** — Improved the `EmployeeModal` layout to support responsive two-column structures and dynamically adapting custom ID document inputs.
+- **Employee Details Grid** — Upgraded the employee details administrative interface to display the new address and Government ID fields using intuitive `MapPin` and `CreditCard` icons.
+
+### Fixed
+- **Infinite Render Loop (`Maximum update depth exceeded`)** — Fixed a severe React crash during unauthorized routing by properly stabilizing the `showToast` and `hasPermission` references in `AuthContext` using `useCallback()`.
+- **Employee Detail Page Crash** — Fixed a blank-screen crash on the employee details page by restoring a missing `RefreshCw` Lucide-react import.
+- **ProtectedRoute Rendering Failure** — Fixed a bug where `ProtectedRoute` was missing a crucial `return children;` statement, causing authorized content to silently fail to render.
+
+---
+
+## [v1.24.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v1.24.0) — Product Batch Tracking & Cross-Device Invoice Preferences
+
+### Added
+- **Product Batch Tracking** — Added proper end-to-end support for product batch numbers (`batchNo`) and expiry dates (`expiryDate`), preserving this information from product creation through invoice product snapshots.
+- **Server-Side Preferences** — Upgraded Invoice View column preferences (including batch and expiry columns) from browser-only `localStorage` to validated server-side preferences, allowing settings to persist seamlessly across browsers and devices.
+
+### Improved
+- **Optimistic UI Updates** — Invoice column preference toggling now uses optimistic UI updates with a 500ms debounced server sync for a smoother user experience, complete with failure state reversion.
+- **Migration & Cleanup** — Automatically cleans up legacy `localStorage` preferences and falls back safely to default configurations for existing users without requiring database migrations.
+
+---
+
 ## [v1.23.2](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v1.23.2) — Backend Stability & Dependency Fixes
 
 ### Fixed

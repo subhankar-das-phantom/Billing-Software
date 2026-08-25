@@ -67,7 +67,11 @@ const EmployeeModal = ({ isOpen, onClose, employee, onSave }) => {
     name: '',
     email: '',
     password: '',
-    phone: ''
+    phone: '',
+    address: '',
+    govIdType: '',
+    govIdCustomType: '',
+    govIdNumber: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -75,11 +79,24 @@ const EmployeeModal = ({ isOpen, onClose, employee, onSave }) => {
 
   useEffect(() => {
     if (employee) {
+      const knownGovIdTypes = ['Aadhar', 'PAN', 'Driving License', 'Voter Card'];
+      let gType = employee.govId?.type || '';
+      let gCustom = '';
+      
+      if (gType && !knownGovIdTypes.includes(gType)) {
+        gCustom = gType;
+        gType = 'Other';
+      }
+
       setFormData({
         name: employee.name || '',
         email: employee.email || '',
         password: '',
-        phone: employee.phone || ''
+        phone: employee.phone || '',
+        address: employee.address || '',
+        govIdType: gType,
+        govIdCustomType: gCustom,
+        govIdNumber: employee.govId?.number || ''
       });
     } else {
       // Reset form completely for new employee
@@ -87,7 +104,11 @@ const EmployeeModal = ({ isOpen, onClose, employee, onSave }) => {
         name: '',
         email: '',
         password: '',
-        phone: ''
+        phone: '',
+        address: '',
+        govIdType: '',
+        govIdCustomType: '',
+        govIdNumber: ''
       });
     }
     setError('');
@@ -103,7 +124,17 @@ const EmployeeModal = ({ isOpen, onClose, employee, onSave }) => {
       if (employee) {
         // Update existing employee (don't send password if empty)
         const updateData = { ...formData };
+        if (updateData.govIdType && updateData.govIdNumber) {
+          const type = updateData.govIdType === 'Other' ? updateData.govIdCustomType : updateData.govIdType;
+          updateData.govId = { type, number: updateData.govIdNumber };
+        } else {
+          updateData.govId = null; // Clear if empty
+        }
         delete updateData.password;
+        delete updateData.govIdType;
+        delete updateData.govIdCustomType;
+        delete updateData.govIdNumber;
+        
         await employeeService.updateEmployee(employee.id, updateData);
       } else {
         // Create new employee
@@ -112,7 +143,16 @@ const EmployeeModal = ({ isOpen, onClose, employee, onSave }) => {
           setLoading(false);
           return;
         }
-        await employeeService.createEmployee(formData);
+        const createData = { ...formData };
+        if (createData.govIdType && createData.govIdNumber) {
+          const type = createData.govIdType === 'Other' ? createData.govIdCustomType : createData.govIdType;
+          createData.govId = { type, number: createData.govIdNumber };
+        }
+        delete createData.govIdType;
+        delete createData.govIdCustomType;
+        delete createData.govIdNumber;
+
+        await employeeService.createEmployee(createData);
       }
       onSave();
       onClose();
@@ -235,6 +275,72 @@ const EmployeeModal = ({ isOpen, onClose, employee, onSave }) => {
                 placeholder="Optional"
                 autoComplete="off"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-400 mb-1">
+                Address
+              </label>
+              <textarea
+                name="emp_address_new"
+                value={formData.address}
+                onChange={e => setFormData({ ...formData, address: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-lg bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors resize-none h-20"
+                placeholder="Optional"
+                autoComplete="off"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-slate-400 mb-1">
+                  Gov ID Type
+                </label>
+                <select
+                  value={formData.govIdType}
+                  onChange={e => setFormData({ ...formData, govIdType: e.target.value, govIdNumber: '', govIdCustomType: '' })}
+                  className="w-full px-4 py-2.5 rounded-lg bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                >
+                  <option value="">None</option>
+                  <option value="Aadhar">Aadhar</option>
+                  <option value="PAN">PAN</option>
+                  <option value="Driving License">Driving License</option>
+                  <option value="Voter Card">Voter Card</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              {formData.govIdType === 'Other' && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-400 mb-1">
+                    Specify Type
+                  </label>
+                  <input
+                    type="text"
+                    name="emp_govid_custom"
+                    value={formData.govIdCustomType}
+                    onChange={e => setFormData({ ...formData, govIdCustomType: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-lg bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                    placeholder="E.g. Passport"
+                    autoComplete="off"
+                    required
+                  />
+                </div>
+              )}
+              <div className={formData.govIdType === 'Other' ? "sm:col-span-2" : ""}>
+                <label className="block text-sm font-medium text-slate-400 mb-1">
+                  ID Number
+                </label>
+                <input
+                  type="text"
+                  name="emp_govid_new"
+                  value={formData.govIdNumber}
+                  onChange={e => setFormData({ ...formData, govIdNumber: e.target.value })}
+                  disabled={!formData.govIdType}
+                  className="w-full px-4 py-2.5 rounded-lg bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50"
+                  placeholder={formData.govIdType ? 'Enter ID number' : 'Select ID type first'}
+                  autoComplete="off"
+                />
+              </div>
             </div>
 
             <div className="flex gap-3 pt-4">
@@ -538,9 +644,9 @@ export default function EmployeesPage() {
   const { isMobile } = motionConfig;
   const isFirstVisit = useFirstVisit('employees');
 
-  const fetchEmployees = async () => {
+  const fetchEmployees = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const data = await employeeService.getEmployees({ search: searchTerm, status: statusFilter });
       setEmployees(data.employees || []);
       
@@ -562,9 +668,9 @@ export default function EmployeesPage() {
   useEffect(() => {
     fetchEmployees();
     
-    // Auto-refresh every 30 seconds to update online status
+    // Auto-refresh every 30 seconds to update online status silently
     const refreshInterval = setInterval(() => {
-      fetchEmployees();
+      fetchEmployees(true);
     }, 30 * 1000); // 30 seconds
 
     return () => clearInterval(refreshInterval);

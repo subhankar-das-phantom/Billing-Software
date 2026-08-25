@@ -7,7 +7,8 @@ const {
   updateEmployee,
   resetPassword,
   toggleStatus,
-  deleteEmployee
+  deleteEmployee,
+  updatePermissions
 } = require('../controllers/employeeController');
 const { protect, adminOnly } = require('../middleware/auth');
 const { checkSubscription, checkFeatureAccess, checkWriteAccess } = require('../saas/middleware');
@@ -32,5 +33,6 @@ router.route('/:id')
 // Special actions
 router.put('/:id/password', checkWriteAccess, resetPassword);
 router.put('/:id/status', checkWriteAccess, toggleStatus);
+router.put('/:id/permissions', checkWriteAccess, updatePermissions);
 
 module.exports = router;

@@ -12,10 +12,13 @@ import {
   Wallet,
   TrendingUp,
   Activity,
-  RefreshCw
+  RefreshCw,
+  MapPin,
+  CreditCard
 } from 'lucide-react';
 import { employeeService } from '../../services/employees/employeeService';
 import { useMotionConfig, useFirstVisit } from '../../hooks';
+import EmployeePermissionsEditor from '../../components/Employees/EmployeePermissionsEditor';
 
 // Format currency
 const formatCurrency = (amount) => {
@@ -180,33 +183,49 @@ export default function EmployeeDetailPage() {
       </div>
 
       {/* Employee Info */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-slate-800/50 rounded-xl border border-slate-700 p-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 bg-slate-800/50 rounded-xl border border-slate-700 p-5">
         <div className="flex items-center gap-3">
           <Mail size={18} className="text-slate-500" />
-          <div>
+          <div className="overflow-hidden">
             <p className="text-xs text-slate-500">Email</p>
-            <p className="text-white">{employee.email}</p>
+            <p className="text-white truncate" title={employee.email}>{employee.email}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <Phone size={18} className="text-slate-500" />
-          <div>
+          <div className="overflow-hidden">
             <p className="text-xs text-slate-500">Phone</p>
-            <p className="text-white">{employee.phone || 'Not provided'}</p>
+            <p className="text-white truncate" title={employee.phone || 'Not provided'}>{employee.phone || 'Not provided'}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <MapPin size={18} className="text-slate-500" />
+          <div className="overflow-hidden">
+            <p className="text-xs text-slate-500">Address</p>
+            <p className="text-white truncate" title={employee.address || 'Not provided'}>{employee.address || 'Not provided'}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <CreditCard size={18} className="text-slate-500" />
+          <div className="overflow-hidden">
+            <p className="text-xs text-slate-500">Gov ID</p>
+            <p className="text-white truncate" title={employee.govId?.number ? `${employee.govId.type} - ${employee.govId.number}` : 'Not provided'}>
+              {employee.govId?.number ? `${employee.govId.type} - ${employee.govId.number}` : 'Not provided'}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <Calendar size={18} className="text-slate-500" />
-          <div>
+          <div className="overflow-hidden">
             <p className="text-xs text-slate-500">Joined</p>
-            <p className="text-white">{formatDate(employee.createdAt)}</p>
+            <p className="text-white truncate">{formatDate(employee.createdAt)}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <Clock size={18} className="text-slate-500" />
-          <div>
+          <div className="overflow-hidden">
             <p className="text-xs text-slate-500">Last Login</p>
-            <p className="text-white">{formatDateTime(employee.lastLogin)}</p>
+            <p className="text-white truncate">{formatDate(employee.lastLogin)}</p>
           </div>
         </div>
       </div>
@@ -235,6 +254,12 @@ export default function EmployeeDetailPage() {
           </motion.div>
         ))}
       </div>
+
+      {/* Permissions Editor */}
+      <EmployeePermissionsEditor 
+        employee={employee} 
+        onUpdate={(updatedEmployee) => setEmployee(updatedEmployee)} 
+      />
 
       {/* Session Stats */}
       <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-5">

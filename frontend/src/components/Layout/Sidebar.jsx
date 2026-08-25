@@ -29,21 +29,39 @@ import UpgradeBadge from '../Subscription/UpgradeBadge';
 import { invoiceService } from '../../services/invoices/invoiceService';
 import { useMotionConfig, useSWR } from '../../hooks';
 
-const getMenuItems = (invoiceCount) => [
-  { path: '/', label: 'Dashboard', icon: LayoutDashboard, badge: null },
-  { path: '/products', label: 'Products', icon: Package, badge: null },
-  { path: '/customers', label: 'Customers', icon: Users, badge: null },
-  { path: '/invoices/create', label: 'Create Invoice', icon: FilePlus, badge: 'New', badgeColor: 'bg-emerald-500' },
-  { path: '/invoices', label: 'All Invoices', icon: FileText, badge: invoiceCount > 0 ? String(invoiceCount) : null, badgeColor: 'bg-blue-500' },
-  { path: '/credits', label: 'Credits', icon: Wallet, badge: null },
-  { path: '/collections', label: 'Collections', icon: Banknote, badge: null },
-];
+const getMenuItems = (invoiceCount, hasPermission, isAdmin) => {
+  const items = [];
+  items.push({ path: '/', label: 'Dashboard', icon: LayoutDashboard, badge: null });
+
+  if (isAdmin || hasPermission('products', 'view')) {
+    items.push({ path: '/products', label: 'Products', icon: Package, badge: null });
+  }
+  if (isAdmin || hasPermission('customers', 'view')) {
+    items.push({ path: '/customers', label: 'Customers', icon: Users, badge: null });
+  }
+  if (isAdmin || hasPermission('invoices', 'create')) {
+    items.push({ path: '/invoices/create', label: 'Create Invoice', icon: FilePlus, badge: 'New', badgeColor: 'bg-emerald-500' });
+  }
+  if (isAdmin || hasPermission('invoices', 'view')) {
+    items.push({ path: '/invoices', label: 'All Invoices', icon: FileText, badge: invoiceCount > 0 ? String(invoiceCount) : null, badgeColor: 'bg-blue-500' });
+  }
+  if (isAdmin || hasPermission('creditNotes', 'view')) {
+    items.push({ path: '/credits', label: 'Credits', icon: Wallet, badge: null });
+  }
+  if (isAdmin || hasPermission('payments', 'view')) {
+    items.push({ path: '/collections', label: 'Collections', icon: Banknote, badge: null });
+  }
+
+  return items;
+};
 
 // Quick actions - some are admin only
-const getQuickActions = (isAdmin) => {
-  const actions = [
-    { path: '/notes', label: 'Notes', icon: StickyNote },
-  ];
+const getQuickActions = (isAdmin, hasPermission) => {
+  const actions = [];
+  
+  if (isAdmin || hasPermission('notes', 'view')) {
+    actions.push({ path: '/notes', label: 'Notes', icon: StickyNote });
+  }
   
   // Admin-only menu items
   if (isAdmin) {
@@ -56,8 +74,6 @@ const getQuickActions = (isAdmin) => {
       { path: '/reports', label: 'Reports', icon: FileBarChart }
     );
   }
-  
-
   
   return actions;
 };
@@ -239,7 +255,7 @@ const MemoizedQuickAction = memo(({ item, onClose, menuItemVariants, motionConfi
 
 export default function Sidebar({ isOpen, onClose }) {
   const location = useLocation();
-  const { admin, user, isAdmin, logout } = useAuth();
+  const { admin, user, isAdmin, hasPermission, logout } = useAuth();
   const { canAccessRoute } = useSubscription();
   const isDesktop = useMediaQuery('(min-width: 1024px)');
   const shouldShow = isOpen || isDesktop;
@@ -294,8 +310,8 @@ export default function Sidebar({ isOpen, onClose }) {
     { ttl: 60 * 1000 }
   );
 
-  const menuItems = getMenuItems(invoiceCount);
-  const quickActions = getQuickActions(isAdmin);
+  const menuItems = getMenuItems(invoiceCount, hasPermission, isAdmin);
+  const quickActions = getQuickActions(isAdmin, hasPermission);
 
   return (
     <>

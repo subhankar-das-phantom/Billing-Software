@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const Admin = require('../models/Admin');
 const Employee = require('../models/Employee');
 const Session = require('../models/Session');
+const { ROLE_PRESETS } = require('../utils/permissions');
 
 /**
  * Cookie options helper
@@ -64,7 +65,7 @@ const closeActiveSession = async (userId, userModel) => {
 // @access  Public
 exports.register = async (req, res, next) => {
   try {
-    const { email, password, firmName, firmAddress, firmPhone, firmGSTIN } = req.body;
+    const { email, password, firmName, firmAddress, firmPhone, firmGSTIN, firmDL } = req.body;
 
     // Check if admin with email already exists
     const existingAdmin = await Admin.findOne({ email });
@@ -82,7 +83,8 @@ exports.register = async (req, res, next) => {
       firmName: firmName || 'My Enterprise',
       firmAddress: firmAddress || '',
       firmPhone: firmPhone || '',
-      firmGSTIN: firmGSTIN || ''
+      firmGSTIN: firmGSTIN || '',
+      firmDL: firmDL || ''
     });
 
     // Automatically provision a Free Trial subscription for the new user!
@@ -114,6 +116,7 @@ exports.register = async (req, res, next) => {
         firmAddress: admin.firmAddress,
         firmPhone: admin.firmPhone,
         firmGSTIN: admin.firmGSTIN,
+        firmDL: admin.firmDL,
         preferences: admin.preferences,
         paymentInformation: admin.paymentInformation
       }
@@ -175,6 +178,7 @@ exports.login = async (req, res, next) => {
           firmAddress: admin.firmAddress,
           firmPhone: admin.firmPhone,
           firmGSTIN: admin.firmGSTIN,
+          firmDL: admin.firmDL,
           preferences: admin.preferences,
           paymentInformation: admin.paymentInformation
         }
@@ -201,6 +205,12 @@ exports.login = async (req, res, next) => {
           success: false,
           message: 'Invalid credentials'
         });
+      }
+
+      // Backward compatibility for legacy employees
+      if (!employee.role || !employee.permissions || (employee.permissions instanceof Map ? employee.permissions.size === 0 : Object.keys(employee.permissions).length === 0)) {
+        employee.role = 'full_access';
+        employee.permissions = ROLE_PRESETS.full_access;
       }
 
       // Update last login
@@ -278,6 +288,12 @@ exports.employeeLogin = async (req, res, next) => {
       });
     }
 
+    // Backward compatibility for legacy employees
+    if (!employee.role || !employee.permissions || (employee.permissions instanceof Map ? employee.permissions.size === 0 : Object.keys(employee.permissions).length === 0)) {
+      employee.role = 'full_access';
+      employee.permissions = ROLE_PRESETS.full_access;
+    }
+
     // Update last login
     employee.lastLogin = new Date();
     await employee.save();
@@ -307,6 +323,13 @@ exports.employeeLogin = async (req, res, next) => {
 exports.getMe = async (req, res, next) => {
   try {
     if (req.userRole === 'employee') {
+      // Backward compatibility for legacy employees fetching me
+      if (!req.user.role || !req.user.permissions || (req.user.permissions instanceof Map ? req.user.permissions.size === 0 : Object.keys(req.user.permissions).length === 0)) {
+        req.user.role = 'full_access';
+        req.user.permissions = ROLE_PRESETS.full_access;
+        await req.user.save();
+      }
+
       // Return employee profile
       const employee = await Employee.findById(req.user._id).populate('createdByAdmin', 'firmName');
       res.status(200).json({
@@ -328,6 +351,7 @@ exports.getMe = async (req, res, next) => {
           firmAddress: admin.firmAddress,
           firmPhone: admin.firmPhone,
           firmGSTIN: admin.firmGSTIN,
+          firmDL: admin.firmDL,
           lastLogin: admin.lastLogin,
           preferences: admin.preferences,
           paymentInformation: admin.paymentInformation
@@ -352,11 +376,11 @@ exports.updateProfile = async (req, res, next) => {
       });
     }
 
-    const { firmName, firmAddress, firmPhone, firmGSTIN, paymentInformation } = req.body;
+    const { firmName, firmAddress, firmPhone, firmGSTIN, firmDL, paymentInformation } = req.body;
 
     const admin = await Admin.findByIdAndUpdate(
       req.user._id,
-      { firmName, firmAddress, firmPhone, firmGSTIN, paymentInformation },
+      { firmName, firmAddress, firmPhone, firmGSTIN, firmDL, paymentInformation },
       { new: true, runValidators: true }
     );
 
@@ -369,6 +393,7 @@ exports.updateProfile = async (req, res, next) => {
         firmAddress: admin.firmAddress,
         firmPhone: admin.firmPhone,
         firmGSTIN: admin.firmGSTIN,
+        firmDL: admin.firmDL,
         preferences: admin.preferences,
         paymentInformation: admin.paymentInformation
       }

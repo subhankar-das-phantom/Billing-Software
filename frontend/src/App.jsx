@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { AuthProvider, useAuth, AdminRoute } from './contexts/AuthContext';
 import { SubscriptionProvider, useSubscription } from './contexts/SubscriptionContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -92,6 +92,27 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
+// Permission Route Wrapper
+function PermissionRoute({ resource, action = 'view', children }) {
+  const { hasPermission, loading, showToast } = useAuth();
+  
+  useEffect(() => {
+    if (!loading && !hasPermission(resource, action)) {
+      showToast('Access denied by admin', 'error');
+    }
+  }, [loading, hasPermission, resource, action, showToast]);
+
+  if (loading) {
+    return null;
+  }
+  
+  if (!hasPermission(resource, action)) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return children;
+}
+
 // Public Route Wrapper (redirect if logged in)
 function PublicRoute({ children }) {
   const { user, loading } = useAuth();
@@ -143,35 +164,21 @@ function AppRoutes() {
           }
         >
           <Route path="/" element={<DashboardPage />} />
-          <Route path="/products" element={<ProductsPage />} />
-          <Route path="/products/:id" element={<ProductDetailsPage />} />
-          <Route path="/customers" element={<CustomersPage />} />
-          <Route path="/customers/:id" element={<CustomerDetailsPage />} />
-          <Route path="/invoices" element={<InvoicesPage />} />
-          <Route path="/invoices/create" element={<InvoiceCreatePage />} />
-          <Route path="/invoices/:id/edit" element={<InvoiceCreatePage />} />
-          <Route path="/invoices/:id/return" element={<CreditNoteCreatePage />} />
-          <Route path="/invoices/:id" element={<InvoiceViewPage />} />
-          <Route path="/credit-notes/:id" element={<CreditNoteViewPage />} />
-          <Route path="/notes" element={<NotesPage />} />
-          <Route path="/credits" element={<CreditsPage />} />
-          <Route path="/collections" element={<CollectionsPage />} />
-          <Route 
-            path="/reports" 
-            element={
-              <AdminRoute>
-                <ReportsPage />
-              </AdminRoute>
-            } 
-          />
-          <Route 
-            path="/reports/gst" 
-            element={
-              <AdminRoute>
-                <Navigate to="/reports" replace />
-              </AdminRoute>
-            } 
-          />
+          <Route path="/products" element={<PermissionRoute resource="products"><ProductsPage /></PermissionRoute>} />
+          <Route path="/products/:id" element={<PermissionRoute resource="products"><ProductDetailsPage /></PermissionRoute>} />
+          <Route path="/customers" element={<PermissionRoute resource="customers"><CustomersPage /></PermissionRoute>} />
+          <Route path="/customers/:id" element={<PermissionRoute resource="customers"><CustomerDetailsPage /></PermissionRoute>} />
+          <Route path="/invoices" element={<PermissionRoute resource="invoices"><InvoicesPage /></PermissionRoute>} />
+          <Route path="/invoices/create" element={<PermissionRoute resource="invoices" action="create"><InvoiceCreatePage /></PermissionRoute>} />
+          <Route path="/invoices/:id/edit" element={<PermissionRoute resource="invoices" action="edit"><InvoiceCreatePage /></PermissionRoute>} />
+          <Route path="/invoices/:id/return" element={<PermissionRoute resource="creditNotes" action="create"><CreditNoteCreatePage /></PermissionRoute>} />
+          <Route path="/invoices/:id" element={<PermissionRoute resource="invoices"><InvoiceViewPage /></PermissionRoute>} />
+          <Route path="/credit-notes/:id" element={<PermissionRoute resource="creditNotes"><CreditNoteViewPage /></PermissionRoute>} />
+          <Route path="/notes" element={<PermissionRoute resource="notes"><NotesPage /></PermissionRoute>} />
+          <Route path="/credits" element={<PermissionRoute resource="creditNotes"><CreditsPage /></PermissionRoute>} />
+          <Route path="/collections" element={<PermissionRoute resource="payments"><CollectionsPage /></PermissionRoute>} />
+          <Route path="/reports" element={<PermissionRoute resource="reports"><ReportsPage /></PermissionRoute>} />
+          <Route path="/reports/gst" element={<Navigate to="/reports" replace />} />
           <Route 
             path="/subscription" 
             element={

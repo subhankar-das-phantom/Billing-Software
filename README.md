@@ -48,7 +48,7 @@ Test Credentials:
 - ✅ **Manual Entries & Opening Balances** — Record and manage legacy debts with payment tracking and FIFO queue integration
 - ✅ **Sales Analytics Engine** — Real revenue vs collections, monthly/daily/yearly trends, top products and customers with IST timezone consistency
 - ✅ **Analytics & Reporting** — Monthly sales trends, top customers, credit aging dashboards (30/60/90+ days), and employee performance
-- ✅ **Secure Authentication** — JWT-based login with admin-controlled employee accounts (No self-signup)
+- ✅ **Secure Authentication & RBAC** — JWT-based login with a tenant-controlled Role-Based Access Control (RBAC) architecture, allowing granular employee permissions across all business modules with end-to-end frontend and backend middleware protection
 
 ### Advanced Capabilities
 - ✅ **Shared Export Engine** — Reusable Excel, CSV, and PDF export infrastructure with strongly typed definitions and 50,000-row safety limits
@@ -58,10 +58,12 @@ Test Credentials:
 - ✅ **SWR & TanStack Query Caching** — Dual caching strategy with SWR for data fetching and TanStack Query for infinite scroll, background revalidation, and cache synchronization
 - ✅ **Virtualized Lists** — TanStack Virtual for efficient rendering of large datasets (stock history, payment timelines)
 - ✅ **Real-Time Global Statistics** — Dedicated aggregations calculate true database metrics instantly, independent of frontend pagination limits
-- ✅ **Snapshot-Based Invoices** — Invoice data is captured at creation time for audit-safe historical integrity, including payment information snapshots
+- ✅ **Snapshot-Based Invoices** — Invoice data is captured at creation time for audit-safe historical integrity, including payment information, batch numbers, and expiry dates
 - ✅ **Cross-Device Optimization** — Responsive invoice creation with dedicated mobile cards, optimized sidebar animations, and touch-friendly interfaces
 - ✅ **Advanced Customer Filtering** — Server-side filtering with URL-synchronized state, supporting status, GSTIN, drug license, phone, date range, and sorting
-- ✅ **Customisable Invoice** — Toggle which columns appear on printed invoices with preferences persisting via localStorage, including payment information display
+- ✅ **Customizable Invoices** — Toggle which columns appear on printed invoices with server-side preferences that persist seamlessly across all browsers and devices
+- ✅ **Product Batch Tracking** — End-to-end support for product batch numbers and expiry dates through the entire inventory and billing lifecycle
+- ✅ **Business Compliance** — Built-in support for Drug License (DL) numbers alongside GSTIN for pharmacy workflows, plus strict Aadhar/PAN Government ID validation for employee records
 - ✅ **Continuous Integration** — Automated GitHub Actions pipeline for continuous validation
 
 ## 📘 Documentation

@@ -30,6 +30,21 @@ const employeeSchema = new mongoose.Schema({
     trim: true,
     default: ''
   },
+  address: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  govId: {
+    type: {
+      type: String,
+      trim: true
+    },
+    number: {
+      type: String,
+      trim: true
+    }
+  },
 
   // Status
   isActive: {
@@ -93,6 +108,24 @@ const employeeSchema = new mongoose.Schema({
       type: Boolean,
       default: true
     }
+  },
+
+  // Role and Permissions
+  role: {
+    type: String,
+    enum: ['custom', 'payment_collector', 'billing_operator', 'inventory_manager', 'viewer', 'full_access'],
+    default: 'full_access'
+  },
+  permissions: {
+    type: Map,
+    of: new mongoose.Schema({
+      view: { type: Boolean, default: false },
+      create: { type: Boolean, default: false },
+      edit: { type: Boolean, default: false },
+      delete: { type: Boolean, default: false },
+      cancel: { type: Boolean, default: false }
+    }, { _id: false }),
+    default: {}
   }
 }, {
   timestamps: true
@@ -126,6 +159,8 @@ employeeSchema.methods.getPublicProfile = function() {
     isActive: this.isActive,
     lastLogin: this.lastLogin,
     preferences: this.preferences,
+    role: this.role,
+    permissions: this.permissions,
     createdAt: this.createdAt
   };
 };
@@ -139,7 +174,11 @@ employeeSchema.methods.getFullProfile = function() {
     phone: this.phone,
     isActive: this.isActive,
     lastLogin: this.lastLogin,
+    address: this.address,
+    govId: this.govId,
     preferences: this.preferences,
+    role: this.role,
+    permissions: this.permissions,
     metrics: this.metrics,
     createdAt: this.createdAt,
     updatedAt: this.updatedAt

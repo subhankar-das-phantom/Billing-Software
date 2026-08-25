@@ -8,7 +8,7 @@ const {
   deleteNote,
   togglePin
 } = require('../controllers/noteController');
-const { protect } = require('../middleware/auth');
+const { protect, requirePermission } = require('../middleware/auth');
 const { 
   createNoteValidator, 
   updateNoteValidator, 
@@ -23,14 +23,14 @@ router.use(checkSubscription);
 router.use(checkFeatureAccess(Feature.NOTES));
 
 router.route('/')
-  .get(getNotes)
-  .post(checkWriteAccess, createNoteValidator, createNote);
+  .get(requirePermission('notes', 'view'), getNotes)
+  .post(checkWriteAccess, requirePermission('notes', 'create'), createNoteValidator, createNote);
 
 router.route('/:id')
-  .get(mongoIdParam, getNote)
-  .put(checkWriteAccess, updateNoteValidator, updateNote)
-  .delete(checkWriteAccess, mongoIdParam, deleteNote);
+  .get(requirePermission('notes', 'view'), mongoIdParam, getNote)
+  .put(checkWriteAccess, requirePermission('notes', 'edit'), updateNoteValidator, updateNote)
+  .delete(checkWriteAccess, requirePermission('notes', 'delete'), mongoIdParam, deleteNote);
 
-router.patch('/:id/pin', checkWriteAccess, mongoIdParam, togglePin);
+router.patch('/:id/pin', checkWriteAccess, requirePermission('notes', 'edit'), mongoIdParam, togglePin);
 
 module.exports = router;
