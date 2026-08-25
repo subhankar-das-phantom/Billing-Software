@@ -75,6 +75,13 @@ const creditNoteSchema = new mongoose.Schema({
     phone: String,
     gstin: String
   },
+  // Distributor/Firm snapshot
+  distributor: {
+    firmName: String,
+    firmAddress: String,
+    firmGSTIN: String,
+    firmDL: String
+  },
   items: [creditNoteItemSchema],
   // Credit note totals
   totals: {

@@ -132,7 +132,7 @@ export default function RegisterPage() {
       }
     } catch (err) {
       // Show the specific error message from the server
-      const errorMessage = err.response?.data?.message || 'Registration failed. Please try again.';
+      const errorMessage = err.message || 'Registration failed. Please try again.';
       showError(errorMessage);
     } finally {
       setLoading(false);

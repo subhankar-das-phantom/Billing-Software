@@ -632,7 +632,7 @@ export default function ProductsPage() {
       mutate();
       mutateStats();
     } catch (err) {
-      error(err.response?.data?.message || 'Failed to delete product');
+      error(err.message || 'Failed to delete product');
     }
   };
 
@@ -674,7 +674,7 @@ export default function ProductsPage() {
       setShowExportModal(false);
       success(`Successfully exported products as ${format.toUpperCase()}`);
     } catch (err) {
-      error(err.response?.data?.message || 'Failed to export products');
+      error(err.message || 'Failed to export products');
     } finally {
       setIsExporting(false);
     }

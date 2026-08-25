@@ -3,6 +3,7 @@ const CreditNote = require('../models/CreditNote');
 const Invoice = require('../models/Invoice');
 const Product = require('../models/Product');
 const Customer = require('../models/Customer');
+const Admin = require('../models/Admin');
 const { calculateItemAmounts, round } = require('../utils/invoiceCalculator');
 const { getAttribution } = require('../middleware/auth');
 const getTenantId = require('../utils/getTenantId');
@@ -166,7 +167,9 @@ exports.createCreditNote = async (req, res, next) => {
         );
     }
 
-    // 7. Create credit note
+    // 7. Get admin info and create credit note
+    const adminInfo = await Admin.findById(tenantId).session(session);
+    
     const creditNote = await CreditNote.create([{
       tenantId,
       creditNoteNumber,
@@ -178,6 +181,12 @@ exports.createCreditNote = async (req, res, next) => {
         phone: invoice.customer.phone,
         gstin: invoice.customer.gstin
       },
+      distributor: adminInfo ? {
+        firmName: adminInfo.firmName,
+        firmAddress: adminInfo.firmAddress,
+        firmGSTIN: adminInfo.firmGSTIN,
+        firmDL: adminInfo.firmDL
+      } : undefined,
       items: processedItems,
       totals,
       reason: reason || '',

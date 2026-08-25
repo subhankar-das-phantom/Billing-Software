@@ -176,7 +176,7 @@ export default function CreditNoteCreatePage() {
         navigate(`/invoices/${invoiceId}`);
       }
     } catch (err) {
-      error(err.response?.data?.message || 'Failed to create credit note');
+      error(err.message || 'Failed to create credit note');
     } finally {
       setSubmitting(false);
     }

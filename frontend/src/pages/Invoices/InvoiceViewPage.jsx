@@ -122,7 +122,7 @@ export default function InvoiceViewPage() {
   // Clean up legacy localStorage key — DB is the single source of truth
   localStorage.removeItem('invoiceColumns');
 
-  const { user, updateUserPreferences } = useAuth();
+  const { user, admin, updateUserPreferences } = useAuth();
 
   const visibleColumns = user?.preferences?.invoiceColumns ?? DEFAULT_INVOICE_COLUMNS;
 
@@ -390,8 +390,8 @@ export default function InvoiceViewPage() {
         {/* Header */}
         <div className="grid grid-cols-2 gap-2 border-b border-black pb-1 mb-1">
           <div className="text-left">
-            <h1 className="font-bold mb-0.5" style={{ fontSize: '18px' }}>{invoice.distributor?.firmName || 'BHARAT ENTERPRISES'}</h1>
-            <p className="text-[11px] leading-tight">{invoice.distributor?.firmAddress || 'Address Line 1, City, State - PIN'}</p>
+            <h1 className="font-bold mb-0.5" style={{ fontSize: '18px' }}>{admin?.firmName || invoice.distributor?.firmName || 'BHARAT ENTERPRISES'}</h1>
+            <p className="text-[11px] leading-tight">{admin?.firmAddress || invoice.distributor?.firmAddress || 'Address Line 1, City, State - PIN'}</p>
           </div>
           <div className="flex justify-end text-[11px] leading-tight">
             {invoice.distributor?.paymentInformation?.enabled && (
@@ -402,9 +402,9 @@ export default function InvoiceViewPage() {
               </div>
             )}
             <div className="text-left">
-              <p>Phone: {invoice.distributor?.firmPhone || 'XXXXXXXXXX'}</p>
-              <p>DL No: DL-XXXXX-XXXXX</p>
-              <p>GSTIN: {invoice.distributor?.firmGSTIN || 'XXXXXXXXXXXX'}</p>
+              <p>Phone: {admin?.firmPhone || invoice.distributor?.firmPhone || 'XXXXXXXXXX'}</p>
+              <p>DL No: {admin?.firmDL || invoice.distributor?.firmDL || user?.firmDL || 'XXXXXXXXXX'}</p>
+              <p>GSTIN: {admin?.firmGSTIN || invoice.distributor?.firmGSTIN || 'XXXXXXXXXXXX'}</p>
             </div>
           </div>
         </div>

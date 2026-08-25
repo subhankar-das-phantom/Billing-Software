@@ -35,6 +35,9 @@ const employeeSchema = new mongoose.Schema({
     trim: true,
     default: ''
   },
+  dob: {
+    type: Date
+  },
   govId: {
     type: {
       type: String,
@@ -175,6 +178,7 @@ employeeSchema.methods.getFullProfile = function() {
     isActive: this.isActive,
     lastLogin: this.lastLogin,
     address: this.address,
+    dob: this.dob,
     govId: this.govId,
     preferences: this.preferences,
     role: this.role,

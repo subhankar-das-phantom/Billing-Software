@@ -144,24 +144,24 @@ export default function EmployeeDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <motion.button
-          whileHover={isMobile ? {} : { scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => navigate('/employees')}
-          className="p-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-white transition-colors"
-        >
-          <ArrowLeft size={20} />
-        </motion.button>
-        
-        <div className="flex items-center gap-4 flex-1">
-          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-accent-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-500/20">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
+          <motion.button
+            whileHover={isMobile ? {} : { scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => navigate('/employees')}
+            className="p-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-white transition-colors shrink-0"
+          >
+            <ArrowLeft size={20} />
+          </motion.button>
+          
+          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-accent-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-500/20 shrink-0">
             {employee.name?.charAt(0)?.toUpperCase() || 'E'}
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-              {employee.name}
-              <span className={`text-sm px-2 py-0.5 rounded-full font-medium ${
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-white flex flex-wrap items-center gap-2">
+              <span className="truncate max-w-full">{employee.name}</span>
+              <span className={`text-xs sm:text-sm px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${
                 employee.isActive 
                   ? 'bg-emerald-500/20 text-emerald-400' 
                   : 'bg-slate-500/20 text-slate-400'
@@ -169,16 +169,16 @@ export default function EmployeeDetailPage() {
                 {employee.isActive ? 'Active' : 'Inactive'}
               </span>
             </h1>
-            <p className="text-slate-400">{employee.email}</p>
+            <p className="text-slate-400 truncate">{employee.email}</p>
           </div>
         </div>
 
         <Link
           to={`/activity-log?employee=${id}`}
-          className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center gap-2"
+          className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 w-full sm:w-auto shrink-0"
         >
           <Activity size={18} />
-          <span className="hidden sm:inline">View Activity Log</span>
+          <span>View Activity Log</span>
         </Link>
       </div>
 
@@ -212,6 +212,13 @@ export default function EmployeeDetailPage() {
             <p className="text-white truncate" title={employee.govId?.number ? `${employee.govId.type} - ${employee.govId.number}` : 'Not provided'}>
               {employee.govId?.number ? `${employee.govId.type} - ${employee.govId.number}` : 'Not provided'}
             </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <Calendar size={18} className="text-slate-500" />
+          <div className="overflow-hidden">
+            <p className="text-xs text-slate-500">Date of Birth</p>
+            <p className="text-white truncate">{formatDate(employee.dob)}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">

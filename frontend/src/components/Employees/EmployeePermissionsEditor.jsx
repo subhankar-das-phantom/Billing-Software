@@ -88,16 +88,16 @@ export default function EmployeePermissionsEditor({ employee, onUpdate }) {
 
   return (
     <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-5 mt-6">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-          <Shield size={20} className="text-accent-400" />
+          <Shield size={20} className="text-accent-400 shrink-0" />
           Access & Permissions
         </h3>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
           <select 
             value={role} 
             onChange={handleRoleChange}
-            className="bg-slate-900 border border-slate-700 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2"
+            className="bg-slate-900 border border-slate-700 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 w-full sm:w-auto"
           >
             {ROLES.map(r => (
               <option key={r.id} value={r.id}>{r.label}</option>
@@ -108,7 +108,7 @@ export default function EmployeePermissionsEditor({ employee, onUpdate }) {
             whileTap={{ scale: 0.95 }}
             onClick={savePermissions}
             disabled={isSaving}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+            className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 w-full sm:w-auto shrink-0"
           >
             {isSaving ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
             Save Changes
