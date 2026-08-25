@@ -25,7 +25,6 @@ interface CustomerQuery {
   prefix?: string;
   fuzzy?: string;
   status?: 'active' | 'inactive' | 'all';
-  includeInactive?: string;
   hasGstin?: 'yes' | 'no';
   hasDlNo?: 'yes' | 'no';
   hasPhone?: 'yes';
@@ -69,11 +68,11 @@ function buildCustomerFilter(tenantId: unknown, query: CustomerQuery = {}): Cust
 
   // ── Status ──────────────────────────────────────────────────
   // Default: only active customers
-  // status=all or includeInactive=true → no isActive filter
+  // status=all → no isActive filter
   // status=inactive → only inactive
   if (query.status === 'inactive') {
     filter.isActive = false;
-  } else if (query.status === 'all' || query.includeInactive === 'true') {
+  } else if (query.status === 'all') {
     // No isActive filter — return both active and inactive
   } else {
     filter.isActive = true;
