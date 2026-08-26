@@ -81,6 +81,23 @@ const tableRowVariants = {
   })
 };
 
+const getBatchGroups = (allocations) => {
+  const groupsMap = allocations.reduce((acc, alloc) => {
+    const displayName = alloc.batchNo && alloc.batchNo !== 'UNNAMED' ? alloc.batchNo : 'No Batch #';
+    const expiryStr = alloc.expiryDate 
+      ? new Date(alloc.expiryDate).toLocaleDateString('en-IN', { month: '2-digit', year: '2-digit' }) 
+      : '-';
+    
+    const key = `${displayName}|${expiryStr}`;
+    if (!acc[key]) {
+      acc[key] = { name: displayName, expiry: expiryStr, qtys: [] };
+    }
+    acc[key].qtys.push(alloc.quantity);
+    return acc;
+  }, {});
+  return Object.values(groupsMap);
+};
+
 export default function InvoiceViewPage() {
   const { id } = useParams();
   const [updating, setUpdating] = useState(false);
@@ -108,19 +125,37 @@ export default function InvoiceViewPage() {
     { key: 'hsn', label: 'HSN', width: '7%', align: 'center', render: (item) => item.product?.hsnCode },
     { key: 'batchNo', label: 'Batch', width: '10%', align: 'center', render: (item) => {
         if (enableBatchTracking && item.batchAllocations?.length > 0) {
+          const groups = getBatchGroups(item.batchAllocations);
+
           return (
-            <div className="flex flex-col gap-1 items-center">
-              {item.batchAllocations.map((alloc, idx) => (
-                <span key={idx} className="text-xs whitespace-nowrap bg-slate-800 px-1.5 py-0.5 rounded">
-                  {alloc.batchNo || 'N/A'} ({alloc.quantity})
-                </span>
+            <div className="flex flex-col gap-0.5">
+              {groups.map((g, idx) => {
+                const displayQty = g.name === 'No Batch #' ? g.qtys.join('+') : g.qtys.reduce((sum, q) => sum + q, 0);
+                return (
+                  <span key={idx} className="whitespace-nowrap">
+                    {g.name} ({displayQty})
+                  </span>
+                );
+              })}
+            </div>
+          );
+        }
+        const bNo = item.product?.batchNo;
+        return bNo && bNo !== 'UNNAMED' ? bNo : 'No Batch #';
+    }},
+    { key: 'expiry', label: 'Expiry', width: '7%', align: 'center', render: (item) => {
+        if (enableBatchTracking && item.batchAllocations?.length > 0) {
+          const groups = getBatchGroups(item.batchAllocations);
+          return (
+            <div className="flex flex-col gap-0.5">
+              {groups.map((g, idx) => (
+                <span key={idx} className="whitespace-nowrap">{g.expiry}</span>
               ))}
             </div>
           );
         }
-        return item.product?.batchNo || '-';
+        return item.product?.expiryDate ? new Date(item.product.expiryDate).toLocaleDateString('en-IN', { month: '2-digit', year: '2-digit' }) : '-';
     }},
-    { key: 'expiry', label: 'Expiry', width: '7%', align: 'center', render: (item) => item.product?.expiryDate ? new Date(item.product.expiryDate).toLocaleDateString('en-IN', { month: '2-digit', year: '2-digit' }) : '-' },
     { key: 'mrp', label: 'MRP', width: '8%', align: 'right', render: (item) => item.product?.newMRP?.toFixed(2) || '-' },
     { key: 'rate', label: 'Rate', width: '7%', align: 'right', render: (item) => item.ratePerUnit.toFixed(2) },
     { key: 'net', label: 'Net', width: '7%', align: 'right', render: (item) => (item.ratePerUnit * (1 + (item.product?.gstPercentage || 0) / 100)).toFixed(2) },

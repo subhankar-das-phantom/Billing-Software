@@ -1,5 +1,7 @@
 const Invoice = require('../models/Invoice');
 const Product = require('../models/Product');
+const Admin = require('../models/Admin');
+const { buildEffectiveStockAggregation } = require('../services/inventoryService');
 const Customer = require('../models/Customer');
 const { LOW_STOCK_THRESHOLD } = require('../config/constants');
 const getTenantId = require('../utils/getTenantId');
@@ -59,6 +61,8 @@ const getDateFilter = (range) => {
 exports.getStats = async (req, res, next) => {
   try {
     const tenantId = getTenantId(req);
+    const tenant = await Admin.findById(tenantId).select('preferences').lean();
+    const enableBatchTracking = tenant?.preferences?.enableBatchTracking === true;
     const dateFilter = getDateFilter(req.query.range);
 
     const matchStage = {
@@ -99,7 +103,7 @@ exports.getStats = async (req, res, next) => {
       prevMonthSalesAgg,
       prevMonthProducts,
       prevMonthCustomers,
-      lowStockCount,
+      lowStockCountAgg,
       recentInvoices
     ] = await Promise.all([
       // Total counts
@@ -146,7 +150,12 @@ exports.getStats = async (req, res, next) => {
       Customer.countDocuments({ tenantId, isActive: true, createdAt: { $lte: prevMonthEnd } }),
       
       // Low stock count
-      Product.countDocuments({ tenantId, isActive: true, currentStockQty: { $lte: LOW_STOCK_THRESHOLD } }),
+      Product.aggregate([
+        { $match: { tenantId, isActive: true } },
+        ...buildEffectiveStockAggregation(tenantId, enableBatchTracking),
+        { $match: { effectiveStockQty: { $lte: LOW_STOCK_THRESHOLD } } },
+        { $count: 'count' }
+      ]),
       
       // Recent invoices
       Invoice.find(nonCancelledInvoiceQuery)
@@ -156,6 +165,7 @@ exports.getStats = async (req, res, next) => {
     ]);
 
     // Extract aggregation results
+    const lowStockCount = lowStockCountAgg[0]?.count || 0;
     const totalInvoiceAmount = totalInvoiceAmountAgg[0]?.total || 0;
     const todaySales = todaySalesAgg[0]?.total || 0;
     const yesterdaySales = yesterdaySalesAgg[0]?.total || 0;
@@ -198,15 +208,17 @@ exports.getLowStock = async (req, res, next) => {
   try {
     const threshold = parseInt(req.query.threshold) || LOW_STOCK_THRESHOLD;
     const tenantId = getTenantId(req);
+    const tenant = await Admin.findById(tenantId).select('preferences').lean();
+    const enableBatchTracking = tenant?.preferences?.enableBatchTracking === true;
 
-    const products = await Product.find({
-      tenantId,
-      isActive: true,
-      currentStockQty: { $lte: threshold }
-    })
-    .sort({ currentStockQty: 1 })
-    .limit(10)
-    .select('productName currentStockQty unit');
+    const products = await Product.aggregate([
+      { $match: { tenantId, isActive: true } },
+      ...buildEffectiveStockAggregation(tenantId, enableBatchTracking),
+      { $match: { effectiveStockQty: { $lte: threshold } } },
+      { $sort: { effectiveStockQty: 1 } },
+      { $limit: 10 },
+      { $project: { productName: 1, currentStockQty: 1, effectiveStockQty: 1, unit: 1 } }
+    ]);
 
     res.status(200).json({
       success: true,

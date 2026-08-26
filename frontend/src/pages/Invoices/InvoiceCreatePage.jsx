@@ -239,10 +239,13 @@ export default function InvoiceCreatePage() {
       productIds.map(async (id) => {
         try {
           const data = await productService.getProduct(id, false);
-          stockMap.set(id, data?.product?.currentStockQty ?? 0);
+          stockMap.set(id, {
+            stock: data?.product?.effectiveStockQty ?? data?.product?.currentStockQty ?? 0,
+            representation: data?.product?.inventoryRepresentation || 'FREE'
+          });
           versionMap[id] = data?.product?.stockVersion ?? 0;
         } catch {
-          stockMap.set(id, 0);
+          stockMap.set(id, { stock: 0, representation: 'FREE' });
           versionMap[id] = 0;
         }
       })
@@ -306,11 +309,15 @@ export default function InvoiceCreatePage() {
         const next = prev.map(item => {
           const update = updates.find(u => u.productId === item.product._id);
           if (!update) return item;
-          if (update.currentStockQty === item.product.currentStock) return item;
+          if (update.effectiveStockQty === item.product.currentStock && update.inventoryRepresentation === item.product.inventoryRepresentation) return item;
           changed = true;
           return {
             ...item,
-            product: { ...item.product, currentStock: update.currentStockQty }
+            product: { 
+              ...item.product, 
+              currentStock: update.effectiveStockQty,
+              inventoryRepresentation: update.inventoryRepresentation 
+            }
           };
         });
         return changed ? next : prev;
@@ -331,12 +338,16 @@ export default function InvoiceCreatePage() {
         setInvoiceItems(prev => {
           let changed = false;
           const next = prev.map(item => {
-            const freshStock = stockMap.get(item.product._id);
-            if (freshStock === undefined || freshStock === item.product.currentStock) return item;
+            const freshData = stockMap.get(item.product._id);
+            if (!freshData || (freshData.stock === item.product.currentStock && freshData.representation === item.product.inventoryRepresentation)) return item;
             changed = true;
             return {
               ...item,
-              product: { ...item.product, currentStock: freshStock }
+              product: { 
+                ...item.product, 
+                currentStock: freshData.stock,
+                inventoryRepresentation: freshData.representation 
+              }
             };
           });
           return changed ? next : prev;
@@ -374,12 +385,16 @@ export default function InvoiceCreatePage() {
         setInvoiceItems(prev => {
           let changed = false;
           const next = prev.map(item => {
-            const freshStock = stockMap.get(item.product._id);
-            if (freshStock === undefined || freshStock === item.product.currentStock) return item;
+            const freshData = stockMap.get(item.product._id);
+            if (!freshData || (freshData.stock === item.product.currentStock && freshData.representation === item.product.inventoryRepresentation)) return item;
             changed = true;
             return {
               ...item,
-              product: { ...item.product, currentStock: freshStock }
+              product: { 
+                ...item.product, 
+                currentStock: freshData.stock,
+                inventoryRepresentation: freshData.representation 
+              }
             };
           });
           return changed ? next : prev;
@@ -553,14 +568,15 @@ export default function InvoiceCreatePage() {
           const { stockMap } = await getCurrentStockByProductId(savedDraft.invoiceItems);
           
           const restoredItems = savedDraft.invoiceItems.map(item => {
-            const currentStockQty = stockMap.get(item.product._id);
+            const currentStockData = stockMap.get(item.product._id);
             return {
               ...item,
               product: {
                 ...item.product,
                 // Keep live database stock separate from the original invoice
                 // allocation. The available quantity is derived while editing.
-                currentStock: currentStockQty ?? 0
+                currentStock: currentStockData?.stock ?? 0,
+                inventoryRepresentation: currentStockData?.representation || 'FREE'
               }
             };
           });
@@ -592,13 +608,16 @@ export default function InvoiceCreatePage() {
           if (savedDraft.invoiceItems && savedDraft.invoiceItems.length > 0) {
             const { stockMap } = await getCurrentStockByProductId(savedDraft.invoiceItems);
             const validItems = savedDraft.invoiceItems.filter(item => {
-              return (stockMap.get(item.product._id) ?? 0) > 0;
+              const data = stockMap.get(item.product._id);
+              return (data?.stock ?? 0) > 0;
             }).map(item => {
+              const data = stockMap.get(item.product._id);
               return {
                 ...item,
                 product: {
                   ...item.product,
-                  currentStock: stockMap.get(item.product._id) ?? 0
+                  currentStock: data?.stock ?? 0,
+                  inventoryRepresentation: data?.representation || 'FREE'
                 }
               };
             });
@@ -621,7 +640,7 @@ export default function InvoiceCreatePage() {
             setCustomerSearch(invoice.customer.customerName);
             
             const loadedItems = invoice.items.map(item => {
-              const currentStockQty = stockMap.get(item.product._id) ?? 0;
+              const currentStockData = stockMap.get(item.product._id);
               const baseRate = item.ratePerUnit;
               const amounts = calculateItemAmounts(
                 item.quantitySold,
@@ -634,7 +653,8 @@ export default function InvoiceCreatePage() {
                 product: {
                   ...item.product,
                   rate: item.product.newMRP,
-                  currentStock: currentStockQty
+                  currentStock: currentStockData?.stock ?? 0,
+                  inventoryRepresentation: currentStockData?.representation || 'FREE'
                 },
                 quantitySold: item.quantitySold,
                 freeQuantity: item.freeQuantity || 0,
@@ -666,7 +686,7 @@ export default function InvoiceCreatePage() {
           setCustomerSearch(invoice.customer.customerName);
           
           const loadedItems = invoice.items.map(item => {
-            const currentStockQty = stockMap.get(item.product._id) ?? 0;
+            const currentStockData = stockMap.get(item.product._id);
             const baseRate = item.ratePerUnit;
             const amounts = calculateItemAmounts(
               item.quantitySold,
@@ -679,7 +699,8 @@ export default function InvoiceCreatePage() {
               product: {
                 ...item.product,
                 rate: item.product.newMRP,
-                currentStock: currentStockQty
+                currentStock: currentStockData?.stock ?? 0,
+                inventoryRepresentation: currentStockData?.representation || 'FREE'
               },
               quantitySold: item.quantitySold,
               freeQuantity: item.freeQuantity || 0,
@@ -745,7 +766,7 @@ export default function InvoiceCreatePage() {
         newMRP: product.newMRP,
         rate: product.rate,
         gstPercentage: product.gstPercentage,
-        currentStock: product.currentStockQty
+        currentStock: product.effectiveStockQty ?? product.currentStockQty ?? 0
       },
       quantitySold: 1,
       freeQuantity: 0,
@@ -1334,9 +1355,10 @@ export default function InvoiceCreatePage() {
                 )}
 
                 {!isProductSearchLoading && productSearch.trim().length >= 1 && productResults.map((product, index) => {
+                  const baseStock = product.effectiveStockQty ?? product.currentStockQty ?? 0;
                   const availableStock = isEditMode
-                    ? getCurrentEditStock(product.currentStockQty, product._id)
-                    : product.currentStockQty;
+                    ? getCurrentEditStock(baseStock, product._id)
+                    : baseStock;
 
                   return (
                   <motion.button
@@ -1770,7 +1792,7 @@ export default function InvoiceCreatePage() {
                     <div>
                       <p className="text-xs text-slate-400 mb-1">Batch Number</p>
                       <div className="flex items-center gap-2">
-                        <p className="font-medium text-white">{batch.batchNo || batch.batchNumber || 'N/A'}</p>
+                        <p className="font-medium text-white">{batch.batchNo && batch.batchNo !== 'UNNAMED' ? batch.batchNo : 'No Batch #'}</p>
                         {new Date(batch.expiryDate) < new Date() && (
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-500/10 text-red-400 border border-red-500/20">Expired</span>
                         )}

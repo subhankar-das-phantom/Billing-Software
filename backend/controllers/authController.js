@@ -530,10 +530,6 @@ exports.updatePreferences = async (req, res, next) => {
       user.set('preferences.showCalculator', showCalculator);
     }
 
-    if (enableBatchTracking !== undefined && req.userRole === 'admin') {
-      user.set('preferences.enableBatchTracking', enableBatchTracking);
-    }
-
     if (invoiceColumns !== undefined) {
       // Validate: must be an array
       if (!Array.isArray(invoiceColumns)) {
@@ -558,6 +554,14 @@ exports.updatePreferences = async (req, res, next) => {
     }
 
     await user.save();
+
+    if (enableBatchTracking !== undefined && req.userRole === 'admin') {
+      const { toggleBatchTracking } = require('../services/inventoryService');
+      if (user.preferences.enableBatchTracking !== enableBatchTracking) {
+        await toggleBatchTracking(user._id, enableBatchTracking);
+        user = await Admin.findById(req.user._id);
+      }
+    }
 
     res.status(200).json({
       success: true,

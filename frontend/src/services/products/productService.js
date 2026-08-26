@@ -1021,7 +1021,7 @@ export const productUtils = {
           key = `${product.gstPercentage || 0}%`;
           break;
         case 'stockStatus':
-          const status = productUtils.getStockStatus(product.currentStockQty);
+          const status = productUtils.getStockStatus(product.effectiveStockQty ?? product.currentStockQty ?? 0);
           key = status.label;
           break;
         default:
@@ -1075,7 +1075,7 @@ export const productUtils = {
 
       // Stock status filter
       if (filters.stockStatus) {
-        const status = productUtils.getStockStatus(product.currentStockQty);
+        const status = productUtils.getStockStatus(product.effectiveStockQty ?? product.currentStockQty ?? 0);
         if (status.status !== filters.stockStatus) return false;
       }
 
@@ -1137,7 +1137,7 @@ export const productAnalytics = {
    */
   calculateInventoryValue: (products) => {
     return products.reduce((total, product) => {
-      const value = (product.newMRP || 0) * (product.currentStockQty || 0);
+      const value = (product.newMRP || 0) * (product.effectiveStockQty ?? product.currentStockQty ?? 0);
       return total + value;
     }, 0);
   },
@@ -1156,7 +1156,7 @@ export const productAnalytics = {
     };
 
     products.forEach(product => {
-      const status = productUtils.getStockStatus(product.currentStockQty);
+      const status = productUtils.getStockStatus(product.effectiveStockQty ?? product.currentStockQty ?? 0);
       
       switch (status.status) {
         case 'out':
@@ -1190,7 +1190,7 @@ export const productAnalytics = {
         distribution[gst] = { count: 0, value: 0 };
       }
       distribution[gst].count++;
-      distribution[gst].value += (product.newMRP || 0) * (product.currentStockQty || 0);
+      distribution[gst].value += (product.newMRP || 0) * (product.effectiveStockQty ?? product.currentStockQty ?? 0);
     });
 
     return distribution;

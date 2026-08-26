@@ -644,7 +644,7 @@ export default function DashboardPage() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium text-red-400 mb-1">{product.currentStockQty} {product.unit}</p>
+                        <p className="font-medium text-red-400 mb-1">{product.effectiveStockQty ?? product.currentStockQty ?? 0} {product.unit}</p>
                         <p className="text-xs text-slate-500 leading-relaxed">Remaining</p>
                       </div>
                     </motion.div>
