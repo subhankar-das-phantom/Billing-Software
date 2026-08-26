@@ -7,6 +7,8 @@ const Admin = require('../models/Admin');
 const { calculateItemAmounts, round } = require('../utils/invoiceCalculator');
 const { getAttribution } = require('../middleware/auth');
 const getTenantId = require('../utils/getTenantId');
+const Batch = require('../models/Batch');
+const inventoryService = require('../services/inventoryService');
 
 // @desc    Create credit note (sales return)
 // @route   POST /api/credit-notes
@@ -18,6 +20,9 @@ exports.createCreditNote = async (req, res, next) => {
   try {
     const { invoiceId, items, reason } = req.body;
     const tenantId = getTenantId(req);
+
+    const tenant = await Admin.findById(tenantId).select('preferences').lean();
+    const enableBatchTracking = tenant?.preferences?.enableBatchTracking === true;
 
     // 1. Validate invoice
     const invoice = await Invoice.findOne({
@@ -107,22 +112,36 @@ exports.createCreditNote = async (req, res, next) => {
         totalAmount: amounts.totalAmount
       });
 
-      // 4. Restore stock to product's currentStockQty
-      await Product.findOneAndUpdate(
-        { _id: invoiceItem.product._id, tenantId },
-        {
-          $inc: { currentStockQty: returnItem.quantityReturned, stockVersion: 1 },
-          $push: {
-            stockHistory: {
-              type: 'sales_return',
-              changeQty: returnItem.quantityReturned,
-              reference: 'Sales Return: CN-NEW',
-              timestamp: new Date()
+      // 4. Restore stock to product's currentStockQty or Batch
+      if (enableBatchTracking && returnItem.batchId) {
+        // If it's a batch return, we restore it to the batch
+        await inventoryService.restoreBatchAllocations(
+          tenantId,
+          invoiceItem.product._id,
+          [{ batchId: returnItem.batchId, batchNo: returnItem.batchNo, quantity: returnItem.quantityReturned }],
+          returnItem.quantityReturned,
+          invoice._id,
+          `Sales Return: CN-NEW`,
+          'sales_return',
+          session
+        );
+      } else {
+        await Product.findOneAndUpdate(
+          { _id: invoiceItem.product._id, tenantId },
+          {
+            $inc: { currentStockQty: returnItem.quantityReturned, stockVersion: 1 },
+            $push: {
+              stockHistory: {
+                type: 'sales_return',
+                changeQty: returnItem.quantityReturned,
+                reference: 'Sales Return: CN-NEW',
+                timestamp: new Date()
+              }
             }
-          }
-        },
-        { session }
-      );
+          },
+          { session }
+        );
+      }
     }
 
     if (processedItems.length === 0) {

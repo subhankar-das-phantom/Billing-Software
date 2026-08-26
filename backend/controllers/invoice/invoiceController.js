@@ -504,6 +504,8 @@ exports.createInvoice = async (req, res, next) => {
       });
     }
 
+    const inventoryService = require('../../services/inventoryService');
+
     // Process items and validate stock
     const processedItems = [];
     const stockDeductions = new Map();
@@ -516,12 +518,16 @@ exports.createInvoice = async (req, res, next) => {
       const alreadyReservedQty = stockDeductions.get(productId) || 0;
       const nextReservedQty = alreadyReservedQty + totalQty;
 
+      // Resolve authoritative stock based on migration state
+      const stockInfo = await inventoryService.getProductEffectiveStock(tenantId, product);
+      const availableStock = stockInfo.effectiveStockQty;
+
       // Check stock including repeated line-items of the same product.
-      if (product.currentStockQty < nextReservedQty) {
+      if (availableStock < nextReservedQty) {
         await session.abortTransaction();
         return res.status(400).json({
           success: false,
-          message: `Insufficient stock for ${product.productName}. Available: ${product.currentStockQty}, Required: ${nextReservedQty}`
+          message: `Insufficient stock for ${product.productName}. Available: ${availableStock}, Required: ${nextReservedQty}`
         });
       }
       stockDeductions.set(productId, nextReservedQty);
@@ -634,6 +640,8 @@ exports.createInvoice = async (req, res, next) => {
         const totalQty = item.quantitySold + (item.freeQuantity || 0);
         let allocations = [];
         
+        await inventoryService.ensureProductBatchMigrated(tenantId, item.product._id, 'UNNAMED', session);
+
         if (originalItem.allocationMode === 'MANUAL' && originalItem.manualAllocations) {
           allocations = await inventoryService.allocateManualStock(
             tenantId,
