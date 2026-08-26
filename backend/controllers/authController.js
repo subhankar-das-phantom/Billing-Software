@@ -509,7 +509,7 @@ const VALID_INVOICE_COLUMNS = new Set([
 
 exports.updatePreferences = async (req, res, next) => {
   try {
-    const { showCalculator, invoiceColumns } = req.body;
+    const { showCalculator, invoiceColumns, enableBatchTracking } = req.body;
     
     let user;
     if (req.userRole === 'employee') {
@@ -528,6 +528,10 @@ exports.updatePreferences = async (req, res, next) => {
     // Update preferences if provided
     if (showCalculator !== undefined) {
       user.set('preferences.showCalculator', showCalculator);
+    }
+
+    if (enableBatchTracking !== undefined && req.userRole === 'admin') {
+      user.set('preferences.enableBatchTracking', enableBatchTracking);
     }
 
     if (invoiceColumns !== undefined) {
