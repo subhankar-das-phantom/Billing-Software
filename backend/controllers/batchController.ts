@@ -39,7 +39,7 @@ export const createBatch = async (req: Request, res: Response, next: NextFunctio
     
     const createdBy = {
       user: admin ? admin._id : user._id,
-      userModel: admin ? 'Admin' : 'Employee'
+      userModel: (admin ? 'Admin' : 'Employee') as 'Admin' | 'Employee'
     };
 
     const batch = await Batch.create({
@@ -150,13 +150,13 @@ export const adjustBatchStock = async (req: Request, res: Response, next: NextFu
       const admin = (req as any).admin;
       const adjustedBy = {
         user: admin ? admin._id : user._id,
-        userModel: admin ? 'Admin' : 'Employee'
+        userModel: (admin ? 'Admin' : 'Employee') as 'Admin' | 'Employee'
       };
 
       await Product.findByIdAndUpdate(
         batch.productId,
         {
-          $inc: { currentStockQty: qtyChange, stockVersion: 1 },
+          $inc: { stockVersion: 1 },
           $push: {
             stockHistory: {
               type: 'adjustment',
