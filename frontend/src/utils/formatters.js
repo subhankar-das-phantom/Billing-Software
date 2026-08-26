@@ -185,12 +185,43 @@ export const formatDate = (date, format = 'medium') => {
     full: { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }
   };
   
-  return d.toLocaleDateString('en-IN', formats[format] || formats.medium);
+  try {
+    return new Intl.DateTimeFormat('en-IN', formats[format]).format(d);
+  } catch (e) {
+    return d.toLocaleDateString('en-IN');
+  }
 };
 
 /**
- * Format date with time
- * @param {Date|string} date - Date to format
+ * Check if date is expired
+ * @param {string|Date} dateString 
+ * @returns {boolean}
+ */
+export const isExpired = (dateString) => {
+  if (!dateString) return false;
+  const date = new Date(dateString);
+  const now = new Date();
+  now.setHours(0,0,0,0);
+  return date < now;
+};
+
+/**
+ * Check if date is expiring soon (within 3 months)
+ * @param {string|Date} dateString 
+ * @returns {boolean}
+ */
+export const isExpiringSoon = (dateString) => {
+  if (!dateString) return false;
+  const date = new Date(dateString);
+  const now = new Date();
+  const threeMonthsFromNow = new Date();
+  threeMonthsFromNow.setMonth(now.getMonth() + 3);
+  return date >= now && date <= threeMonthsFromNow;
+};
+
+/**
+ * Format DateTime (e.g., Oct 12, 2023, 10:30 AM)
+ * @param {string|Date} dateString - Date to format
  * @returns {string} - Formatted date and time
  */
 export const formatDateTime = (date) => {

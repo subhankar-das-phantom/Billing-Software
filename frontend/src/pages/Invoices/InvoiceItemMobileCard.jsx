@@ -9,7 +9,10 @@ export default function InvoiceItemMobileCard({
   updateItemQuantity,
   removeItem,
   availableStock,
-  maxSoldQuantity
+  maxSoldQuantity,
+  enableBatchTracking,
+  allocationMode,
+  openBatchModal
 }) {
   return (
     <motion.div
@@ -45,6 +48,18 @@ export default function InvoiceItemMobileCard({
         <div className="mt-2 text-xs text-slate-400">
           GST: <span className="text-slate-300 font-medium">{item.product.gstPercentage}%</span> (₹{item.gstAmount.toFixed(2)})
         </div>
+        
+        {enableBatchTracking && allocationMode === 'MANUAL' && (
+          <div className="mt-2">
+            <button 
+              onClick={() => openBatchModal(index, item)}
+              className="text-xs text-blue-400 hover:text-blue-300 underline"
+            >
+              {item.manualAllocations ? 'Edit Batch Allocation' : 'Select Batches'} 
+              {item.manualAllocations && ` (${item.manualAllocations.reduce((s, a) => s + a.quantity, 0)}/${(Number(item.quantitySold) || 0) + (Number(item.freeQuantity) || 0)})`}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Body: Inputs */}

@@ -97,13 +97,29 @@ export default function InvoiceViewPage() {
   const { success, error } = useToast();
   const isFirstVisit = useFirstVisit('invoice-view');
 
+  const { user, admin, updateUserPreferences } = useAuth();
+  const enableBatchTracking = user?.preferences?.enableBatchTracking === true;
+
   // Column definitions
   const ALL_COLUMNS = [
     { key: 'qty', label: 'Qty', width: '4%', align: 'center', render: (item) => item.quantitySold },
     { key: 'free', label: 'Fr', width: '3%', align: 'center', render: (item) => item.freeQuantity || 0 },
     { key: 'productName', label: 'Product Name', width: '33%', align: 'left', render: (item) => item.product?.productName },
     { key: 'hsn', label: 'HSN', width: '7%', align: 'center', render: (item) => item.product?.hsnCode },
-    { key: 'batchNo', label: 'Batch', width: '7%', align: 'center', render: (item) => item.product?.batchNo || '-' },
+    { key: 'batchNo', label: 'Batch', width: '10%', align: 'center', render: (item) => {
+        if (enableBatchTracking && item.batchAllocations?.length > 0) {
+          return (
+            <div className="flex flex-col gap-1 items-center">
+              {item.batchAllocations.map((alloc, idx) => (
+                <span key={idx} className="text-xs whitespace-nowrap bg-slate-800 px-1.5 py-0.5 rounded">
+                  {alloc.batchNo || 'N/A'} ({alloc.quantity})
+                </span>
+              ))}
+            </div>
+          );
+        }
+        return item.product?.batchNo || '-';
+    }},
     { key: 'expiry', label: 'Expiry', width: '7%', align: 'center', render: (item) => item.product?.expiryDate ? new Date(item.product.expiryDate).toLocaleDateString('en-IN', { month: '2-digit', year: '2-digit' }) : '-' },
     { key: 'mrp', label: 'MRP', width: '8%', align: 'right', render: (item) => item.product?.newMRP?.toFixed(2) || '-' },
     { key: 'rate', label: 'Rate', width: '7%', align: 'right', render: (item) => item.ratePerUnit.toFixed(2) },
@@ -121,8 +137,6 @@ export default function InvoiceViewPage() {
 
   // Clean up legacy localStorage key — DB is the single source of truth
   localStorage.removeItem('invoiceColumns');
-
-  const { user, admin, updateUserPreferences } = useAuth();
 
   const visibleColumns = user?.preferences?.invoiceColumns ?? DEFAULT_INVOICE_COLUMNS;
 

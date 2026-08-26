@@ -19,7 +19,8 @@ import {
   X,
   ChevronDown,
   Loader2,
-  Layers
+  Layers,
+  Calendar
 } from 'lucide-react';
 import { productService } from '../../services/products/productService';
 import { customerService } from '../../services/customers/customerService';
@@ -32,6 +33,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { invalidateCachePattern, subscribeToInvalidation, useDebounce, useFirstVisit, useMediaQuery, useStockSSE } from '../../hooks';
 import { useQueryClient } from '@tanstack/react-query';
 import InvoiceItemMobileCard from './InvoiceItemMobileCard';
+import { useAuth } from '../../contexts/AuthContext';
 
 const pageVariants = {
   hidden: { opacity: 0 },
@@ -160,6 +162,9 @@ export default function InvoiceCreatePage() {
   const isFirstVisit = useFirstVisit('invoice-create');
   const isDesktop = useMediaQuery('(min-width: 950px)');
 
+  const { user } = useAuth();
+  const enableBatchTracking = user?.preferences?.enableBatchTracking === true;
+
   // Detect if we're in edit mode
   const isEditMode = Boolean(editInvoiceId && location.pathname.includes('/edit'));
 
@@ -181,6 +186,8 @@ export default function InvoiceCreatePage() {
   const [invoiceItems, setInvoiceItems] = useState([]);
   const [paymentType, setPaymentType] = useState('Credit');
   const [notes, setNotes] = useState('');
+  const [allocationMode, setAllocationMode] = useState('AUTO');
+  const [batchModal, setBatchModal] = useState({ open: false, itemIndex: null, batches: [], requiredQty: 0, allocations: {} });
   const [createRequestId, setCreateRequestId] = useState(() => generateCreateRequestId());
   
   const [draftLoaded, setDraftLoaded] = useState(false);
@@ -861,6 +868,51 @@ export default function InvoiceCreatePage() {
 
 
 
+  const openBatchModal = async (index, item) => {
+    try {
+      const data = await productService.getBatches(item.product._id);
+      const requiredQty = (Number(item.quantitySold) || 0) + (Number(item.freeQuantity) || 0);
+      
+      const initialAllocations = {};
+      if (item.manualAllocations) {
+        item.manualAllocations.forEach(a => {
+          initialAllocations[a.batchId] = a.quantity;
+        });
+      }
+
+      setBatchModal({
+        open: true,
+        itemIndex: index,
+        batches: data.batches || [],
+        requiredQty,
+        allocations: initialAllocations
+      });
+    } catch (err) {
+      error('Failed to load batches');
+    }
+  };
+
+  const saveBatchAllocations = () => {
+    const allocatedTotal = Object.values(batchModal.allocations).reduce((sum, q) => sum + (parseInt(q) || 0), 0);
+    if (allocatedTotal !== batchModal.requiredQty) {
+      error(`Total allocated quantity (${allocatedTotal}) must equal required quantity (${batchModal.requiredQty})`);
+      return;
+    }
+
+    const manualAllocations = Object.entries(batchModal.allocations)
+      .map(([batchId, quantity]) => ({ batchId, quantity: parseInt(quantity) }))
+      .filter(a => a.quantity > 0);
+
+    setInvoiceItems(prev => {
+      const updated = [...prev];
+      updated[batchModal.itemIndex].manualAllocations = manualAllocations;
+      return updated;
+    });
+
+    setBatchModal({ ...batchModal, open: false });
+    success('Batch allocations saved');
+  };
+
   // Use useMemo to ensure totals recalculate when invoiceItems changes
   const totals = useMemo(() => {
     try {
@@ -897,6 +949,14 @@ export default function InvoiceCreatePage() {
         error(`Insufficient stock for ${item.product.productName}`);
         return false;
       }
+      
+      if (enableBatchTracking && allocationMode === 'MANUAL') {
+        const batchAllocated = (item.manualAllocations || []).reduce((sum, a) => sum + a.quantity, 0);
+        if (batchAllocated !== totalQty) {
+          error(`Please complete manual batch allocation for ${item.product.productName}`);
+          return false;
+        }
+      }
       allocatedByProduct.set(productId, allocated);
     }
     return true;
@@ -911,16 +971,26 @@ export default function InvoiceCreatePage() {
     try {
       const invoiceData = {
         customerId: selectedCustomer._id,
-        items: invoiceItems.map(item => ({
-          productId: item.product._id,
-          quantitySold: item.quantitySold,
-          freeQuantity: item.freeQuantity,
-          ratePerUnit: item.baseRate,
-          schemeDiscount: item.schemeDiscount
-        })),
+        items: invoiceItems.map(item => {
+          const mappedItem = {
+            productId: item.product._id,
+            quantitySold: item.quantitySold,
+            freeQuantity: item.freeQuantity,
+            ratePerUnit: item.baseRate,
+            schemeDiscount: item.schemeDiscount
+          };
+          if (enableBatchTracking) {
+            mappedItem.manualAllocations = item.manualAllocations || [];
+          }
+          return mappedItem;
+        }),
         paymentType,
         notes
       };
+
+      if (enableBatchTracking) {
+        invoiceData.allocationMode = allocationMode;
+      }
 
       if (isEditMode && originalInvoice?.updatedAt) {
         invoiceData.lastKnownUpdatedAt = originalInvoice.updatedAt;
@@ -1369,6 +1439,15 @@ export default function InvoiceCreatePage() {
                                   <span className="text-slate-500"> • MRP: {formatCurrency(item.product.newMRP)}</span>
                                 )}
                               </p>
+                              {enableBatchTracking && allocationMode === 'MANUAL' && (
+                                <button 
+                                  onClick={() => openBatchModal(index, item)}
+                                  className="mt-1 text-xs text-blue-400 hover:text-blue-300 underline"
+                                >
+                                  {item.manualAllocations ? 'Edit Batch Allocation' : 'Select Batches'} 
+                                  {item.manualAllocations && ` (${item.manualAllocations.reduce((s, a) => s + a.quantity, 0)}/${(Number(item.quantitySold) || 0) + (Number(item.freeQuantity) || 0)})`}
+                                </button>
+                              )}
                             </div>
                           </td>
                           <td>
@@ -1475,6 +1554,9 @@ export default function InvoiceCreatePage() {
                         removeItem={removeItem}
                         availableStock={getRemainingStockForItem(item)}
                         maxSoldQuantity={getMaxSoldQuantityForItem(item, index)}
+                        enableBatchTracking={enableBatchTracking}
+                        allocationMode={allocationMode}
+                        openBatchModal={openBatchModal}
                       />
                     ))}
                   </AnimatePresence>
@@ -1544,6 +1626,45 @@ export default function InvoiceCreatePage() {
                   placeholder="Any special notes..."
                 />
               </div>
+
+              {enableBatchTracking && (
+                <div className="md:col-span-2 mt-2">
+                  <label className="label flex items-center gap-2 mb-2">
+                    <Layers className="w-4 h-4 text-slate-400" />
+                    Batch Allocation Mode
+                  </label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer p-3 rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700/50 transition-colors flex-1">
+                      <input 
+                        type="radio" 
+                        name="allocationMode"
+                        value="AUTO"
+                        checked={allocationMode === 'AUTO'}
+                        onChange={() => setAllocationMode('AUTO')}
+                        className="text-blue-500 focus:ring-blue-500"
+                      />
+                      <div>
+                        <span className="block text-white text-sm font-medium">Automatic (FIFO)</span>
+                        <span className="block text-xs text-slate-400 mt-0.5">Deduct from oldest expiring batches</span>
+                      </div>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer p-3 rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700/50 transition-colors flex-1">
+                      <input 
+                        type="radio" 
+                        name="allocationMode"
+                        value="MANUAL"
+                        checked={allocationMode === 'MANUAL'}
+                        onChange={() => setAllocationMode('MANUAL')}
+                        className="text-blue-500 focus:ring-blue-500"
+                      />
+                      <div>
+                        <span className="block text-white text-sm font-medium">Manual Selection</span>
+                        <span className="block text-xs text-slate-400 mt-0.5">Manually select batches for each product</span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1609,6 +1730,105 @@ export default function InvoiceCreatePage() {
           </div>
         </div>
       )}
+
+      {/* Batch Allocation Modal */}
+      <Modal
+        isOpen={batchModal.open}
+        onClose={() => setBatchModal({ ...batchModal, open: false })}
+        title="Select Batches"
+        maxWidth="2xl"
+      >
+        <div className="space-y-6">
+          {/* Simple Header */}
+          <div className="flex justify-between items-end mb-4 px-1">
+            <div>
+              <p className="text-slate-400 text-sm mb-0.5">Required Quantity</p>
+              <p className="text-2xl font-semibold text-white">{batchModal.requiredQty}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-slate-400 text-sm mb-0.5">Allocated</p>
+              <p className={`text-2xl font-semibold ${
+                Object.values(batchModal.allocations).reduce((sum, q) => sum + (parseInt(q) || 0), 0) === batchModal.requiredQty 
+                  ? 'text-emerald-400' 
+                  : 'text-amber-400'
+              }`}>
+                {Object.values(batchModal.allocations).reduce((sum, q) => sum + (parseInt(q) || 0), 0)} / {batchModal.requiredQty}
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1 custom-scrollbar">
+            {batchModal.batches.length === 0 ? (
+              <div className="text-center py-8 text-slate-400 bg-slate-800/50 rounded-lg border border-slate-700">
+                No available batches found for this product
+              </div>
+            ) : (
+              batchModal.batches.map(batch => (
+                <div key={batch._id} className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors hover:border-slate-500">
+                  
+                  <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-xs text-slate-400 mb-1">Batch Number</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-white">{batch.batchNo || batch.batchNumber || 'N/A'}</p>
+                        {new Date(batch.expiryDate) < new Date() && (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-500/10 text-red-400 border border-red-500/20">Expired</span>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400 mb-1">Expiry Date</p>
+                      <p className={`font-medium ${new Date(batch.expiryDate) < new Date() ? 'text-red-400' : 'text-slate-300'}`}>
+                        {batch.expiryDate ? new Date(batch.expiryDate).toLocaleDateString() : 'N/A'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400 mb-1">Available</p>
+                      <p className="font-medium text-slate-300">{batch.remainingQty}</p>
+                    </div>
+                  </div>
+
+                  <div className="w-full sm:w-32 shrink-0">
+                    <input
+                      type="number"
+                      min="0"
+                      max={batch.remainingQty}
+                      value={batchModal.allocations[batch._id] || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setBatchModal(prev => ({
+                          ...prev,
+                          allocations: {
+                            ...prev.allocations,
+                            [batch._id]: val
+                          }
+                        }));
+                      }}
+                      className="input w-full text-center"
+                      placeholder="Qty"
+                    />
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-700">
+            <button
+              onClick={() => setBatchModal({ ...batchModal, open: false })}
+              className="btn btn-secondary"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={saveBatchAllocations}
+              className="btn btn-primary"
+            >
+              Save Allocations
+            </button>
+          </div>
+        </div>
+      </Modal>
 
     </motion.div>
   );
