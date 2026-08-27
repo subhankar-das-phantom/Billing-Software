@@ -112,9 +112,6 @@ const splitInvoiceItemByBatchAllocations = ({ product, item, allocations, alloca
     remainingSold -= soldFromBatch;
 
     const key = [
-      allocation.batchId?.toString(),
-      allocation.batchNo || '',
-      allocation.expiryDate ? new Date(allocation.expiryDate).toISOString() : '',
       allocation.rate,
       allocation.mrp,
       allocation.gstPercent,
@@ -125,7 +122,16 @@ const splitInvoiceItemByBatchAllocations = ({ product, item, allocations, alloca
     if (existing) {
       existing.quantitySold += soldFromBatch;
       existing.freeQuantity += freeFromBatch;
-      existing.batchAllocations[0].quantity += allocatedQty;
+
+      const existingAlloc = existing.batchAllocations.find(a => 
+        a.batchId?.toString() === allocation.batchId?.toString()
+      );
+      if (existingAlloc) {
+        existingAlloc.quantity += allocatedQty;
+      } else {
+        existing.batchAllocations.push(allocation);
+      }
+
       Object.assign(existing, calculateItemAmounts(
         existing.quantitySold,
         existing.ratePerUnit,
@@ -599,11 +605,40 @@ exports.createInvoice = async (req, res, next) => {
 
     const inventoryService = require('../../services/inventoryService');
 
+    // Pre-merge identical items (same product + rate + discount)
+    const mergedItemsMap = {};
+    items.forEach((item) => {
+      const rate = item.ratePerUnit || productMap.get(String(item.productId))?.rate || productMap.get(String(item.productId))?.newMRP;
+      const key = `${item.productId}_${rate}_${item.schemeDiscount || 0}`;
+      if (mergedItemsMap[key]) {
+        mergedItemsMap[key].quantitySold += item.quantitySold;
+        mergedItemsMap[key].freeQuantity += (item.freeQuantity || 0);
+        if (item.manualAllocations) {
+          mergedItemsMap[key].manualAllocations = [
+            ...(mergedItemsMap[key].manualAllocations || []),
+            ...item.manualAllocations
+          ];
+        }
+      } else {
+        mergedItemsMap[key] = {
+          productId: item.productId,
+          quantitySold: item.quantitySold,
+          freeQuantity: item.freeQuantity || 0,
+          ratePerUnit: item.ratePerUnit,
+          schemeDiscount: item.schemeDiscount || 0,
+          allocationMode: item.allocationMode,
+          manualAllocations: item.manualAllocations ? [...item.manualAllocations] : undefined
+        };
+      }
+    });
+
+    const mergedItemsList = Object.values(mergedItemsMap);
+
     // Process items and validate stock
     const processedItems = [];
     const stockDeductions = new Map();
 
-    for (const item of items) {
+    for (const item of mergedItemsList) {
       const productId = String(item.productId);
       const product = productMap.get(productId);
 
@@ -716,7 +751,7 @@ exports.createInvoice = async (req, res, next) => {
 
       for (let i = 0; i < invoice[0].items.length; i++) {
         const item = invoice[0].items[i];
-        const originalItem = items[i];
+        const originalItem = mergedItemsList[i];
         const product = productMap.get(item.product._id.toString());
         const totalQty = item.quantitySold + (item.freeQuantity || 0);
         let allocations = [];
@@ -1030,7 +1065,7 @@ exports.updateInvoice = async (req, res, next) => {
     //
     const mergeKey = (item, index) => {
       const rate = item.ratePerUnit || productMap[item.productId.toString()]?.rate || productMap[item.productId.toString()]?.newMRP;
-      return enableBatchTracking ? `item_${index}` : `${item.productId}_${rate}_${item.schemeDiscount || 0}`;
+      return `${item.productId}_${rate}_${item.schemeDiscount || 0}`;
     };
 
     const mergedItemsMap = {};

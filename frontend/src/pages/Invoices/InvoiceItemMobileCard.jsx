@@ -26,8 +26,13 @@ export default function InvoiceItemMobileCard({
       <div className="p-4 border-b border-slate-700 bg-slate-800/50">
         <div className="flex justify-between items-start gap-4">
           <div>
-            <h3 className="font-semibold text-white text-base leading-tight">
+            <h3 className="font-semibold text-white text-base leading-tight flex items-center gap-2 flex-wrap">
               {item.product.productName}
+              {item._batchPreview && (
+                <span className="text-[10px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded border border-blue-500/20 font-normal">
+                  FIFO
+                </span>
+              )}
             </h3>
             {item.product.hsnCode && (
               <p className="text-xs text-slate-400 mt-1">HSN: {item.product.hsnCode}</p>
@@ -45,8 +50,15 @@ export default function InvoiceItemMobileCard({
             )}
           </div>
         </div>
-        <div className="mt-2 text-xs text-slate-400">
-          GST: <span className="text-slate-300 font-medium">{item.product.gstPercentage}%</span> (₹{item.gstAmount.toFixed(2)})
+        <div className="mt-2 text-xs text-slate-400 flex items-center justify-between">
+          <span>
+            GST: <span className="text-slate-300 font-medium">{item.product.gstPercentage}%</span> (₹{item.gstAmount.toFixed(2)})
+          </span>
+          {enableBatchTracking && allocationMode === 'AUTO' && (
+            <span className="text-slate-400 text-[11px] bg-slate-900/40 px-2 py-0.5 rounded">
+              Batch: {item.product.batchNo && item.product.batchNo !== 'UNNAMED' ? item.product.batchNo : 'Auto (FIFO)'}
+            </span>
+          )}
         </div>
         
         {enableBatchTracking && allocationMode === 'MANUAL' && (
