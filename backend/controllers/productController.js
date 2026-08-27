@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const Admin = require('../models/Admin');
-const { assertFreeStockMutationAllowed, ensureProductBatchMigrated, getProductEffectiveStock, buildEffectiveStockAggregation } = require('../services/inventoryService');
+const { assertFreeStockMutationAllowed, ensureProductMigratedToBatch, getProductEffectiveStock, buildEffectiveStockAggregation } = require('../services/inventoryService');
 const Product = require('../models/Product');
 const { LOW_STOCK_THRESHOLD } = require('../config/constants');
 const { getAttribution } = require('../middleware/auth');
@@ -129,7 +129,7 @@ exports.getProduct = async (req, res, next) => {
   try {
     const tenantId = getTenantId(req);
     try {
-      await ensureProductBatchMigrated(tenantId, req.params.id);
+      await ensureProductMigratedToBatch(tenantId, req.params.id);
     } catch (err) {
       if (err.message === 'Migration in progress') {
         return res.status(409).json({ 
@@ -423,14 +423,15 @@ exports.getLowStock = async (req, res, next) => {
   try {
     const threshold = parseInt(req.query.threshold) || LOW_STOCK_THRESHOLD;
     const tenantId = getTenantId(req);
+    const tenant = await Admin.findById(tenantId).select('preferences').lean();
+    const enableBatchTracking = tenant?.preferences?.enableBatchTracking === true;
 
-    // Get all active products
-    const products = await Product.find({ tenantId, isActive: true });
-    
-    // Filter for low stock
-    const lowStockProducts = products
-      .filter(p => p.currentStockQty <= threshold)
-      .sort((a, b) => a.currentStockQty - b.currentStockQty);
+    const lowStockProducts = await Product.aggregate([
+      { $match: { tenantId, isActive: true } },
+      ...buildEffectiveStockAggregation(tenantId, enableBatchTracking),
+      { $match: { effectiveStockQty: { $lte: threshold } } },
+      { $sort: { effectiveStockQty: 1 } }
+    ]);
 
     res.status(200).json({
       success: true,

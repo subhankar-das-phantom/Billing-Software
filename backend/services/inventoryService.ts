@@ -3,6 +3,25 @@ import Batch from '../models/Batch';
 import Product from '../models/Product';
 import Admin from '../models/Admin';
 import ProductInventoryMigration from '../models/ProductInventoryMigration';
+
+export const NO_BATCH_BATCH_NO = 'UNNAMED';
+const MIGRATION_IN_PROGRESS_MESSAGE = 'Migration in progress';
+
+export const normalizeBatchNo = (batchNo: unknown): string => {
+  if (typeof batchNo === 'string') {
+    const trimmed = batchNo.trim();
+    return trimmed || NO_BATCH_BATCH_NO;
+  }
+
+  return batchNo ? String(batchNo) : NO_BATCH_BATCH_NO;
+};
+
+const createMigrationInProgressError = () => {
+  const error = new Error(MIGRATION_IN_PROGRESS_MESSAGE) as Error & { statusCode?: number };
+  error.statusCode = 409;
+  return error;
+};
+
 interface ManualAllocation {
   batchId: string;
   quantity: number;
@@ -23,6 +42,8 @@ export const allocateFifoStock = async (
   invoiceNumber: string,
   session: ClientSession
 ): Promise<AllocationRecord[]> => {
+  await ensureProductMigratedToBatch(tenantId, productId, session);
+
   // Get all active batches sorted by earliest expiry first (FIFO)
   const batches = await Batch.find({
     tenantId,
@@ -103,6 +124,8 @@ export const allocateManualStock = async (
   invoiceNumber: string,
   session: ClientSession
 ): Promise<AllocationRecord[]> => {
+  await ensureProductMigratedToBatch(tenantId, productId, session);
+
   let totalAllocated = 0;
   const consumptionRecords: AllocationRecord[] = [];
 
@@ -245,6 +268,7 @@ export const createBatch = async (
   const batch = new Batch({
     tenantId,
     ...data,
+    batchNo: normalizeBatchNo(data.batchNo),
     remainingQty: data.initialQty || data.stock || 0
   });
   if (session) {
@@ -253,22 +277,25 @@ export const createBatch = async (
   return batch.save();
 };
 
-export const ensureProductBatchMigrated = async (
+export const ensureProductMigratedToBatch = async (
   tenantId: mongoose.Types.ObjectId | string,
   productId: mongoose.Types.ObjectId | string,
-  defaultBatchNo: string = 'UNNAMED',
   providedSession?: mongoose.ClientSession
 ): Promise<void> => {
   const tenant = await Admin.findById(tenantId).select('preferences').lean();
   if (!tenant?.preferences?.enableBatchTracking) return;
 
   // Optimistic pre-check outside transaction to avoid unnecessary contention
-  const preCheck = await ProductInventoryMigration.findOne({
+  let preCheck = await ProductInventoryMigration.findOne({
     tenantId,
-    productId,
-    direction: 'FREE_TO_BATCH',
-    status: 'COMPLETED'
+    productId
   }).sort({ generation: -1 }).lean();
+  if (preCheck && !(preCheck.direction === 'FREE_TO_BATCH' && preCheck.status === 'COMPLETED')) {
+    if (preCheck.direction === 'FREE_TO_BATCH' && preCheck.status === 'MIGRATING') {
+      throw createMigrationInProgressError();
+    }
+    preCheck = null;
+  }
   if (preCheck) return; // Already migrated — skip transaction entirely
 
   const runMigration = async (session: mongoose.ClientSession) => {
@@ -283,7 +310,7 @@ export const ensureProductBatchMigrated = async (
         return; // Already migrated (confirmed inside txn)
       }
       if (latestMigration.direction === 'FREE_TO_BATCH' && latestMigration.status === 'MIGRATING') {
-        return; // Another request is handling it — let it finish
+        throw createMigrationInProgressError();
       }
       generation = latestMigration.generation + 1;
     }
@@ -296,7 +323,14 @@ export const ensureProductBatchMigrated = async (
       status: 'MIGRATING',
       startedAt: new Date()
     });
-    await migration.save({ session });
+    try {
+      await migration.save({ session });
+    } catch (err: any) {
+      if (err?.code === 11000) {
+        throw createMigrationInProgressError();
+      }
+      throw err;
+    }
 
     try {
       const product = await Product.findOne({ _id: productId, tenantId }).session(session);
@@ -308,7 +342,7 @@ export const ensureProductBatchMigrated = async (
         const batch = new Batch({
           tenantId,
           productId,
-          batchNo: product.batchNo || defaultBatchNo,
+          batchNo: normalizeBatchNo(product.batchNo),
           expiryDate: product.expiryDate || null,
           rate: product.rate || 0,
           mrp: product.newMRP || 0,
@@ -377,6 +411,20 @@ export const ensureProductBatchMigrated = async (
     }
   }
 };
+
+export const ensureProductBatchMigrated = async (
+  tenantId: mongoose.Types.ObjectId | string,
+  productId: mongoose.Types.ObjectId | string,
+  defaultBatchNoOrSession: string | mongoose.ClientSession = NO_BATCH_BATCH_NO,
+  maybeSession?: mongoose.ClientSession
+): Promise<void> => {
+  const providedSession = typeof defaultBatchNoOrSession === 'string'
+    ? maybeSession
+    : defaultBatchNoOrSession;
+
+  await ensureProductMigratedToBatch(tenantId, productId, providedSession);
+};
+
 export const toggleBatchTracking = async (
   tenantId: mongoose.Types.ObjectId | string,
   enable: boolean
@@ -390,41 +438,53 @@ export const toggleBatchTracking = async (
     if (!tenant) throw new Error('Tenant not found');
 
     if (enable) {
-      tenant.preferences.enableBatchTracking = true;
+      tenant.set('preferences.enableBatchTracking', true);
       await tenant.save({ session });
     } else {
-      tenant.preferences.enableBatchTracking = false;
+      tenant.set('preferences.enableBatchTracking', false);
       await tenant.save({ session });
 
-      const migrations = await ProductInventoryMigration.find({
-        tenantId,
-        direction: 'FREE_TO_BATCH',
-        status: 'COMPLETED'
-      }).session(session);
+      const tenantObjectId = new mongoose.Types.ObjectId(tenantId.toString());
+      const latestMigrationRows = await ProductInventoryMigration.aggregate([
+        { $match: { tenantId: tenantObjectId, status: 'COMPLETED' } },
+        { $sort: { productId: 1, generation: -1 } },
+        { $group: { _id: '$productId', latest: { $first: '$$ROOT' } } },
+        { $match: { 'latest.direction': 'FREE_TO_BATCH' } }
+      ]).session(session);
+
+      const migrations = latestMigrationRows.map(row => row.latest);
 
       const productIds = migrations.map(m => m.productId);
 
       if (productIds.length > 0) {
         const batchAgg = await Batch.aggregate([
-          { $match: { tenantId: new mongoose.Types.ObjectId(tenantId.toString()), productId: { $in: productIds }, isActive: true } },
-          { $group: { _id: '$productId', totalStock: { $sum: '$remainingQty' } } }
+          { $match: { tenantId: tenantObjectId, productId: { $in: productIds }, isActive: true } },
+          { $sort: { productId: 1, expiryDate: 1, createdAt: 1 } },
+          {
+            $group: {
+              _id: '$productId',
+              totalStock: { $sum: '$remainingQty' },
+              batchNo: { $first: '$batchNo' }
+            }
+          }
         ]).session(session);
 
         const stockMap = new Map();
         batchAgg.forEach(b => stockMap.set(b._id.toString(), b.totalStock));
+        const batchNoMap = new Map();
+        batchAgg.forEach(b => batchNoMap.set(b._id.toString(), normalizeBatchNo(b.batchNo)));
 
         const timestamp = new Date();
 
         for (const migration of migrations) {
           const pid = migration.productId.toString();
           const effectiveStock = stockMap.get(pid) || 0;
+          const batchNo = batchNoMap.get(pid) || NO_BATCH_BATCH_NO;
 
-          const ProductModel = mongoose.model('Product');
-          
-          await ProductModel.updateOne(
+          await Product.updateOne(
             { _id: pid, tenantId },
             { 
-              $set: { currentStockQty: effectiveStock },
+              $set: { currentStockQty: effectiveStock, batchNo },
               $inc: { stockVersion: 1 }
             },
             { session }
@@ -490,11 +550,10 @@ export const getProductEffectiveStock = async (
   const migration = await ProductInventoryMigration.findOne({
     tenantId,
     productId: product._id,
-    direction: 'FREE_TO_BATCH',
     status: 'COMPLETED'
   }).sort({ generation: -1 }).lean();
 
-  if (migration) {
+  if (migration?.direction === 'FREE_TO_BATCH' && migration.status === 'COMPLETED') {
     const batches = await Batch.find({
       tenantId,
       productId: product._id,
@@ -542,7 +601,6 @@ export const buildEffectiveStockAggregation = (
           { $match: { $expr: { $and: [
             { $eq: ['$tenantId', new mongoose.Types.ObjectId(tenantId.toString())] },
             { $eq: ['$productId', '$$pid'] },
-            { $eq: ['$direction', 'FREE_TO_BATCH'] },
             { $eq: ['$status', 'COMPLETED'] }
           ]}}},
           { $sort: { generation: -1 } },
@@ -567,7 +625,13 @@ export const buildEffectiveStockAggregation = (
     },
     {
       $addFields: {
-        isMigrated: { $gt: [{ $size: '$latestMigration' }, 0] }
+        isMigrated: {
+          $and: [
+            { $gt: [{ $size: '$latestMigration' }, 0] },
+            { $eq: [{ $arrayElemAt: ['$latestMigration.direction', 0] }, 'FREE_TO_BATCH'] },
+            { $eq: [{ $arrayElemAt: ['$latestMigration.status', 0] }, 'COMPLETED'] }
+          ]
+        }
       }
     },
     {

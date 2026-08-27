@@ -90,7 +90,7 @@ export const exportProducts = async (req: any, res: Response, next: NextFunction
     }
 
     // 5. Data Mapping
-    const dataRows: ProductExportRow[] = products.map(p => ({
+    const dataRows: ProductExportRow[] = products.map((p: any) => ({
       productName: p.productName || '',
       manufacturer: p.manufacturer || '',
       hsnCode: p.hsnCode || '',

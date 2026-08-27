@@ -36,7 +36,7 @@ const batchSchema = new Schema<IBatch>(
     batchNo: {
       type: String,
       trim: true,
-      default: null
+      default: 'UNNAMED'
     },
     expiryDate: {
       type: Date,

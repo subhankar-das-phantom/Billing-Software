@@ -640,8 +640,6 @@ exports.createInvoice = async (req, res, next) => {
         const totalQty = item.quantitySold + (item.freeQuantity || 0);
         let allocations = [];
         
-        await inventoryService.ensureProductBatchMigrated(tenantId, item.product._id, 'UNNAMED', session);
-
         if (originalItem.allocationMode === 'MANUAL' && originalItem.manualAllocations) {
           allocations = await inventoryService.allocateManualStock(
             tenantId,

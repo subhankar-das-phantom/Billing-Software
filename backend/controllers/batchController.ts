@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import Batch from '../models/Batch';
 import getTenantId from '../utils/getTenantId';
+import { ensureProductMigratedToBatch, normalizeBatchNo } from '../services/inventoryService';
 
 // @desc    Get active batches for a product
 // @route   GET /api/batches
@@ -13,6 +14,8 @@ export const getBatches = async (req: Request, res: Response, next: NextFunction
     if (!productId) {
       return res.status(400).json({ success: false, message: 'productId is required' });
     }
+
+    await ensureProductMigratedToBatch(tenantId, String(productId));
 
     const batches = await Batch.find({ 
       tenantId, 
@@ -34,6 +37,8 @@ export const createBatch = async (req: Request, res: Response, next: NextFunctio
     const tenantId = getTenantId(req);
     const { productId, batchNo, expiryDate, mrp, rate, gstPercent, initialQty } = req.body;
 
+    await ensureProductMigratedToBatch(tenantId, productId);
+
     const user = (req as any).user;
     const admin = (req as any).admin;
     
@@ -45,7 +50,7 @@ export const createBatch = async (req: Request, res: Response, next: NextFunctio
     const batch = await Batch.create({
       tenantId,
       productId,
-      batchNo: batchNo || null,
+      batchNo: normalizeBatchNo(batchNo),
       expiryDate: expiryDate || null,
       mrp,
       rate: rate || 0,
@@ -76,7 +81,14 @@ export const updateBatch = async (req: Request, res: Response, next: NextFunctio
       return res.status(404).json({ success: false, message: 'Batch not found' });
     }
 
-    batch = await Batch.findByIdAndUpdate(batchId, req.body, {
+    const updates = {
+      ...req.body,
+      ...(Object.prototype.hasOwnProperty.call(req.body, 'batchNo')
+        ? { batchNo: normalizeBatchNo(req.body.batchNo) }
+        : {})
+    };
+
+    batch = await Batch.findByIdAndUpdate(batchId, updates, {
       new: true,
       runValidators: true
     });
