@@ -459,12 +459,11 @@ export const toggleBatchTracking = async (
       if (productIds.length > 0) {
         const batchAgg = await Batch.aggregate([
           { $match: { tenantId: tenantObjectId, productId: { $in: productIds }, isActive: true } },
-          { $sort: { productId: 1, expiryDate: 1, createdAt: 1 } },
           {
             $group: {
               _id: '$productId',
               totalStock: { $sum: '$remainingQty' },
-              batchNo: { $first: '$batchNo' }
+              batchNos: { $addToSet: '$batchNo' }
             }
           }
         ]).session(session);
@@ -472,7 +471,17 @@ export const toggleBatchTracking = async (
         const stockMap = new Map();
         batchAgg.forEach(b => stockMap.set(b._id.toString(), b.totalStock));
         const batchNoMap = new Map();
-        batchAgg.forEach(b => batchNoMap.set(b._id.toString(), normalizeBatchNo(b.batchNo)));
+        batchAgg.forEach(b => {
+          const namedBatchNos = [...new Set(
+            (b.batchNos || [])
+              .map((batchNo: unknown) => normalizeBatchNo(batchNo))
+              .filter((batchNo: string) => batchNo !== NO_BATCH_BATCH_NO)
+          )];
+          batchNoMap.set(
+            b._id.toString(),
+            namedBatchNos.length === 1 ? normalizeBatchNo(namedBatchNos[0]) : NO_BATCH_BATCH_NO
+          );
+        });
 
         const timestamp = new Date();
 
