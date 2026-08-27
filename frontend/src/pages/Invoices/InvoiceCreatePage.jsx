@@ -661,6 +661,10 @@ export default function InvoiceCreatePage() {
                 baseRate: baseRate,
                 netRate: round(baseRate * (1 + item.product.gstPercentage / 100), 2),
                 schemeDiscount: item.schemeDiscount || 0,
+                manualAllocations: item.batchAllocations?.map(allocation => ({
+                  batchId: allocation.batchId,
+                  quantity: allocation.quantity
+                })),
                 ...amounts
               };
             });
@@ -707,6 +711,10 @@ export default function InvoiceCreatePage() {
               baseRate: baseRate,
               netRate: round(baseRate * (1 + item.product.gstPercentage / 100), 2),
               schemeDiscount: item.schemeDiscount || 0,
+              manualAllocations: item.batchAllocations?.map(allocation => ({
+                batchId: allocation.batchId,
+                quantity: allocation.quantity
+              })),
               ...amounts
             };
           });
@@ -1788,7 +1796,7 @@ export default function InvoiceCreatePage() {
               batchModal.batches.map(batch => (
                 <div key={batch._id} className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors hover:border-slate-500">
                   
-                  <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-4">
                     <div>
                       <p className="text-xs text-slate-400 mb-1">Batch Number</p>
                       <div className="flex items-center gap-2">
@@ -1807,6 +1815,12 @@ export default function InvoiceCreatePage() {
                     <div>
                       <p className="text-xs text-slate-400 mb-1">Available</p>
                       <p className="font-medium text-slate-300">{batch.remainingQty}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400 mb-1">Rate / MRP / GST</p>
+                      <p className="font-medium text-slate-300">
+                        {formatCurrency(batch.rate || 0)} / {formatCurrency(batch.mrp || 0)} / {batch.gstPercent || 0}%
+                      </p>
                     </div>
                   </div>
 

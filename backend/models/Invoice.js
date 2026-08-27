@@ -22,7 +22,10 @@ const invoiceItemSchema = new mongoose.Schema({
       type: Number,
       required: true
     },
-    expiryDate: Date
+    expiryDate: Date,
+    rate: Number,
+    mrp: Number,
+    gstPercent: Number
   }],
   allocationMode: {
     type: String,
@@ -32,7 +35,7 @@ const invoiceItemSchema = new mongoose.Schema({
   quantitySold: {
     type: Number,
     required: true,
-    min: 1
+    min: 0
   },
   freeQuantity: {
     type: Number,

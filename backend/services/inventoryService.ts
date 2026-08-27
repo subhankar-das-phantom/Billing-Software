@@ -32,6 +32,9 @@ interface AllocationRecord {
   batchNo: string | null;
   quantity: number;
   expiryDate: Date | null;
+  rate: number;
+  mrp: number;
+  gstPercent: number;
 }
 
 export const allocateFifoStock = async (
@@ -79,7 +82,10 @@ export const allocateFifoStock = async (
       batchId: batch._id as mongoose.Types.ObjectId,
       batchNo: batch.batchNo,
       quantity: take,
-      expiryDate: batch.expiryDate || null
+      expiryDate: batch.expiryDate || null,
+      rate: batch.rate || 0,
+      mrp: batch.mrp || 0,
+      gstPercent: batch.gstPercent || 0
     });
 
     remaining -= take;
@@ -160,7 +166,10 @@ export const allocateManualStock = async (
       batchId: batch._id as mongoose.Types.ObjectId,
       batchNo: batch.batchNo,
       quantity: alloc.quantity,
-      expiryDate: batch.expiryDate || null
+      expiryDate: batch.expiryDate || null,
+      rate: batch.rate || 0,
+      mrp: batch.mrp || 0,
+      gstPercent: batch.gstPercent || 0
     });
 
     totalAllocated += alloc.quantity;

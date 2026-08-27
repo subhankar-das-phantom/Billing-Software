@@ -60,6 +60,99 @@ const getRoundedNumber = (n) => round2(Number(n) || 0);
 const INVOICE_STATUSES = new Set(['Created', 'Printed', 'Cancelled']);
 const PAYMENT_STATUSES = new Set(['Unpaid', 'Partial', 'Paid']);
 
+const buildInvoiceItem = ({
+  product,
+  quantitySold,
+  freeQuantity = 0,
+  ratePerUnit,
+  mrp,
+  gstPercentage,
+  batchNo,
+  expiryDate,
+  schemeDiscount = 0,
+  batchAllocations,
+  allocationMode
+}) => {
+  const amounts = calculateItemAmounts(
+    quantitySold,
+    ratePerUnit,
+    gstPercentage,
+    schemeDiscount
+  );
+
+  return {
+    product: {
+      _id: product._id,
+      productName: product.productName,
+      hsnCode: product.hsnCode,
+      pack: product.pack,
+      batchNo: batchNo || '',
+      expiryDate: expiryDate || null,
+      newMRP: mrp,
+      gstPercentage
+    },
+    ...(batchAllocations ? { batchAllocations } : {}),
+    ...(allocationMode ? { allocationMode } : {}),
+    quantitySold,
+    freeQuantity,
+    ratePerUnit,
+    schemeDiscount,
+    ...amounts
+  };
+};
+
+const splitInvoiceItemByBatchAllocations = ({ product, item, allocations, allocationMode }) => {
+  let remainingSold = Number(item.quantitySold) || 0;
+  const splitItemsByKey = new Map();
+
+  for (const allocation of allocations) {
+    const allocatedQty = Number(allocation.quantity) || 0;
+    const soldFromBatch = Math.min(remainingSold, allocatedQty);
+    const freeFromBatch = allocatedQty - soldFromBatch;
+    remainingSold -= soldFromBatch;
+
+    const key = [
+      allocation.batchId?.toString(),
+      allocation.batchNo || '',
+      allocation.expiryDate ? new Date(allocation.expiryDate).toISOString() : '',
+      allocation.rate,
+      allocation.mrp,
+      allocation.gstPercent,
+      item.schemeDiscount || 0
+    ].join('|');
+
+    const existing = splitItemsByKey.get(key);
+    if (existing) {
+      existing.quantitySold += soldFromBatch;
+      existing.freeQuantity += freeFromBatch;
+      existing.batchAllocations[0].quantity += allocatedQty;
+      Object.assign(existing, calculateItemAmounts(
+        existing.quantitySold,
+        existing.ratePerUnit,
+        existing.product.gstPercentage,
+        existing.schemeDiscount
+      ));
+      continue;
+    }
+
+    splitItemsByKey.set(key, buildInvoiceItem({
+      product,
+      quantitySold: soldFromBatch,
+      freeQuantity: freeFromBatch,
+      ratePerUnit: allocation.rate,
+      mrp: allocation.mrp,
+      gstPercentage: allocation.gstPercent,
+      batchNo: allocation.batchNo,
+      expiryDate: allocation.expiryDate,
+      schemeDiscount: item.schemeDiscount || 0,
+      batchAllocations: [allocation],
+      allocationMode
+    }));
+  }
+
+  return [...splitItemsByKey.values()];
+};
+
 const derivePaymentStatus = (totalAmount, paidAmount) => {
   const roundedTotal = getRoundedNumber(totalAmount);
   const roundedPaid = getRoundedNumber(paidAmount);
@@ -532,36 +625,23 @@ exports.createInvoice = async (req, res, next) => {
       }
       stockDeductions.set(productId, nextReservedQty);
 
-      // Calculate amounts and add standard item
       const rateToUse = item.ratePerUnit || product.rate || product.newMRP;
-      const amounts = calculateItemAmounts(
-        item.quantitySold,
-        rateToUse,
-        product.gstPercentage,
-        item.schemeDiscount || 0
-      );
 
-      processedItems.push({
-        product: {
-          _id: product._id,
-          productName: product.productName,
-          hsnCode: product.hsnCode,
-          pack: product.pack,
-          batchNo: product.batchNo || '',
-          expiryDate: product.expiryDate || null,
-          newMRP: product.newMRP,
-          gstPercentage: product.gstPercentage
-        },
+      processedItems.push(buildInvoiceItem({
+        product,
         quantitySold: item.quantitySold,
         freeQuantity: item.freeQuantity || 0,
         ratePerUnit: rateToUse,
-        schemeDiscount: item.schemeDiscount || 0,
-        ...amounts
-      });
+        mrp: product.newMRP,
+        gstPercentage: product.gstPercentage,
+        batchNo: product.batchNo || '',
+        expiryDate: product.expiryDate || null,
+        schemeDiscount: item.schemeDiscount || 0
+      }));
     }
 
     // Calculate totals
-    const totals = calculateInvoiceTotals(processedItems);
+    let totals = calculateInvoiceTotals(processedItems);
     totals.amountInWords = numberToWords(totals.netTotal);
 
     // Create invoice
@@ -632,11 +712,12 @@ exports.createInvoice = async (req, res, next) => {
 
     if (enableBatchTracking) {
       const inventoryService = require('../../services/inventoryService');
-      let needsSave = false;
+      const batchExpandedItems = [];
 
       for (let i = 0; i < invoice[0].items.length; i++) {
         const item = invoice[0].items[i];
         const originalItem = items[i];
+        const product = productMap.get(item.product._id.toString());
         const totalQty = item.quantitySold + (item.freeQuantity || 0);
         let allocations = [];
         
@@ -661,14 +742,19 @@ exports.createInvoice = async (req, res, next) => {
           );
         }
         
-        item.batchAllocations = allocations;
-        item.allocationMode = originalItem.allocationMode || 'AUTO';
-        needsSave = true;
+        batchExpandedItems.push(...splitInvoiceItemByBatchAllocations({
+          product,
+          item: originalItem,
+          allocations,
+          allocationMode: originalItem.allocationMode || 'AUTO'
+        }));
       }
 
-      if (needsSave) {
-        await invoice[0].save({ session });
-      }
+      totals = calculateInvoiceTotals(batchExpandedItems);
+      totals.amountInWords = numberToWords(totals.netTotal);
+      invoice[0].items = batchExpandedItems;
+      invoice[0].totals = totals;
+      await invoice[0].save({ session });
     }
 
     // Update customer stats
@@ -978,30 +1064,17 @@ exports.updateInvoice = async (req, res, next) => {
       }
 
       const rateToUse = item.ratePerUnit || product.rate || product.newMRP;
-      const amounts = calculateItemAmounts(
-        item.quantitySold,
-        rateToUse,
-        product.gstPercentage,
-        item.schemeDiscount || 0
-      );
-
-      const pItem = {
-        product: {
-          _id: product._id,
-          productName: product.productName,
-          hsnCode: product.hsnCode,
-          pack: product.pack,
-          batchNo: product.batchNo || '',
-          expiryDate: product.expiryDate || null,
-          newMRP: product.newMRP,
-          gstPercentage: product.gstPercentage
-        },
+      const pItem = buildInvoiceItem({
+        product,
         quantitySold: item.quantitySold,
         freeQuantity: item.freeQuantity || 0,
         ratePerUnit: rateToUse,
-        schemeDiscount: item.schemeDiscount || 0,
-        ...amounts
-      };
+        mrp: product.newMRP,
+        gstPercentage: product.gstPercentage,
+        batchNo: product.batchNo || '',
+        expiryDate: product.expiryDate || null,
+        schemeDiscount: item.schemeDiscount || 0
+      });
 
       const totalQty = item.quantitySold + (item.freeQuantity || 0);
 
@@ -1018,8 +1091,13 @@ exports.updateInvoice = async (req, res, next) => {
             `${existingInvoice.invoiceNumber} - Edit`, session
           );
         }
-        pItem.batchAllocations = allocations;
-        pItem.allocationMode = item.allocationMode || 'AUTO';
+        processedItems.push(...splitInvoiceItemByBatchAllocations({
+          product,
+          item,
+          allocations,
+          allocationMode: item.allocationMode || 'AUTO'
+        }));
+        continue;
       } else if (batchManagedProducts.has(product._id.toString())) {
         // Full deduct for products that were batch-managed but aren't anymore
         await Product.findOneAndUpdate(
