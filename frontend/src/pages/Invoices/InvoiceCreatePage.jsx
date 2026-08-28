@@ -1098,8 +1098,31 @@ export default function InvoiceCreatePage() {
           const next = prev.filter(
             (item) => String(item.product?._id || item.product?.id || item.product) !== productIdString,
           );
+          
+          const oldItems = prev.filter(
+            (item) => String(item.product?._id || item.product?.id || item.product) === productIdString,
+          );
+
+          const mergedRows = rows.map(newRow => {
+            const oldRow = oldItems.find(old => old._batchId === newRow._batchId);
+            if (oldRow) {
+              newRow.schemeDiscount = oldRow.schemeDiscount || 0;
+              if (oldRow.baseRate !== undefined) newRow.baseRate = oldRow.baseRate;
+              if (oldRow.netRate !== undefined) newRow.netRate = oldRow.netRate;
+              
+              const amounts = calculateItemAmounts(
+                newRow.quantitySold,
+                newRow.baseRate,
+                newRow.product.gstPercentage,
+                newRow.schemeDiscount
+              );
+              return { ...newRow, ...amounts };
+            }
+            return newRow;
+          });
+
           const insertIndex = firstIndex !== -1 ? Math.min(firstIndex, next.length) : 0;
-          next.splice(insertIndex, 0, ...rows);
+          next.splice(insertIndex, 0, ...mergedRows);
           return next;
         });
       } catch (err) {
@@ -1178,97 +1201,92 @@ export default function InvoiceCreatePage() {
       allocationMode === "AUTO" &&
       (field === "quantitySold" || field === "freeQuantity")
     ) {
-      let nextSnapshot;
-      setInvoiceItems((prev) => {
-        const updated = [...prev];
-        const changedItem = { ...updated[index] };
-        let newValue = parseFloat(value);
-        if (Number.isNaN(newValue)) newValue = 0;
+      const updated = [...invoiceItems];
+      const changedItem = { ...updated[index] };
+      let newValue = parseFloat(value);
+      if (Number.isNaN(newValue)) newValue = 0;
 
-        const productId = String(changedItem.product._id);
-        const otherQuantity = updated.reduce(
-          (total, existing, existingIndex) => {
-            if (
-              existingIndex === index ||
-              String(existing.product._id) !== productId
-            )
-              return total;
-            return (
-              total +
-              (Number(existing.quantitySold) || 0) +
-              (Number(existing.freeQuantity) || 0)
-            );
-          },
-          0,
-        );
+      const productId = String(changedItem.product._id);
+      const otherQuantity = updated.reduce(
+        (total, existing, existingIndex) => {
+          if (
+            existingIndex === index ||
+            String(existing.product._id) !== productId
+          )
+            return total;
+          return (
+            total +
+            (Number(existing.quantitySold) || 0) +
+            (Number(existing.freeQuantity) || 0)
+          );
+        },
+        0,
+      );
 
-        const stockLimit = getCurrentEditStock(
-          changedItem.product,
-          changedItem.product._id,
-        );
-        const currentSold =
-          field === "quantitySold"
-            ? Math.max(0, newValue)
-            : Number(changedItem.quantitySold) || 0;
-        const currentFree =
-          field === "freeQuantity"
-            ? Math.max(0, newValue)
-            : Number(changedItem.freeQuantity) || 0;
-        let groupQuantity = currentSold + currentFree + otherQuantity;
+      const stockLimit = getCurrentEditStock(
+        changedItem.product,
+        changedItem.product._id,
+      );
+      const currentSold =
+        field === "quantitySold"
+          ? Math.max(0, newValue)
+          : Number(changedItem.quantitySold) || 0;
+      const currentFree =
+        field === "freeQuantity"
+          ? Math.max(0, newValue)
+          : Number(changedItem.freeQuantity) || 0;
+      let groupQuantity = currentSold + currentFree + otherQuantity;
 
-        if (groupQuantity > stockLimit) {
-          const excess = groupQuantity - stockLimit;
-          if (field === "freeQuantity") {
-            newValue = Math.max(0, currentFree - excess);
-          } else {
-            newValue = Math.max(0, currentSold - excess);
-          }
-        }
-
-        if (field === "quantitySold") {
-          changedItem.quantitySold = Math.max(0, newValue);
+      if (groupQuantity > stockLimit) {
+        const excess = groupQuantity - stockLimit;
+        if (field === "freeQuantity") {
+          newValue = Math.max(0, currentFree - excess);
         } else {
-          changedItem.freeQuantity = Math.max(0, newValue);
+          newValue = Math.max(0, currentSold - excess);
         }
-
-        const amounts = calculateItemAmounts(
-          changedItem.quantitySold,
-          changedItem.baseRate,
-          changedItem.product.gstPercentage,
-          changedItem.schemeDiscount,
-        );
-        updated[index] = {
-          ...changedItem,
-          ...amounts,
-          netRate: round(
-            changedItem.baseRate *
-              (1 + changedItem.product.gstPercentage / 100),
-            2,
-          ),
-          _batchPreviewPending: true,
-        };
-
-        nextSnapshot = {
-          product: changedItem.product,
-          quantitySold: updated
-            .filter((item) => String(item.product._id) === productId)
-            .reduce((sum, item) => sum + (Number(item.quantitySold) || 0), 0),
-          freeQuantity: updated
-            .filter((item) => String(item.product._id) === productId)
-            .reduce((sum, item) => sum + (Number(item.freeQuantity) || 0), 0),
-          schemeDiscount: changedItem.schemeDiscount || 0,
-        };
-
-        return updated;
-      });
-
-      if (nextSnapshot) {
-        scheduleBatchPreview(
-          nextSnapshot.product,
-          nextSnapshot.quantitySold + nextSnapshot.freeQuantity,
-          nextSnapshot,
-        );
       }
+
+      if (field === "quantitySold") {
+        changedItem.quantitySold = Math.max(0, newValue);
+      } else {
+        changedItem.freeQuantity = Math.max(0, newValue);
+      }
+
+      const amounts = calculateItemAmounts(
+        changedItem.quantitySold,
+        changedItem.baseRate,
+        changedItem.product.gstPercentage,
+        changedItem.schemeDiscount,
+      );
+      updated[index] = {
+        ...changedItem,
+        ...amounts,
+        netRate: round(
+          changedItem.baseRate *
+            (1 + changedItem.product.gstPercentage / 100),
+          2,
+        ),
+        _batchPreviewPending: true,
+      };
+
+      const nextSnapshot = {
+        product: changedItem.product,
+        quantitySold: updated
+          .filter((item) => String(item.product._id) === productId)
+          .reduce((sum, item) => sum + (Number(item.quantitySold) || 0), 0),
+        freeQuantity: updated
+          .filter((item) => String(item.product._id) === productId)
+          .reduce((sum, item) => sum + (Number(item.freeQuantity) || 0), 0),
+        schemeDiscount: changedItem.schemeDiscount || 0,
+      };
+
+      setInvoiceItems(updated);
+
+      scheduleBatchPreview(
+        nextSnapshot.product,
+        nextSnapshot.quantitySold + nextSnapshot.freeQuantity,
+        nextSnapshot,
+      );
       return;
     }
 
