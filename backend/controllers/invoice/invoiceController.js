@@ -541,7 +541,7 @@ exports.createInvoice = async (req, res, next) => {
   session.startTransaction();
 
   try {
-    const { customerId, items, paymentType, notes } = req.body;
+    const { customerId, items, paymentType, notes, isBatchTrackingEnabled } = req.body;
     const paymentTypeToUse = paymentType || 'Credit';
 
     // Validate customer
@@ -712,6 +712,14 @@ exports.createInvoice = async (req, res, next) => {
     }], { session });
 
     const enableBatchTracking = adminInfo.preferences?.enableBatchTracking === true;
+
+    if (isBatchTrackingEnabled !== undefined && isBatchTrackingEnabled !== enableBatchTracking) {
+      await session.abortTransaction();
+      return res.status(409).json({
+        success: false,
+        message: 'Inventory settings have changed in another session. Please refresh the page to sync the latest settings.'
+      });
+    }
 
     // Update stock in bulk to minimize round-trips within the transaction.
     const stockTimestamp = new Date();
@@ -884,7 +892,7 @@ exports.updateInvoice = async (req, res, next) => {
     session.startTransaction();
 
     try {
-      const { customerId, items, paymentType, notes, lastKnownUpdatedAt } = req.body;
+      const { customerId, items, paymentType, notes, lastKnownUpdatedAt, isBatchTrackingEnabled } = req.body;
       const tenantId = getTenantId(req);
 
     // ── STEP 1: Fetch existing invoice ─────────────────────────────────
@@ -950,6 +958,14 @@ exports.updateInvoice = async (req, res, next) => {
     // ── STEP 5: Delta-based or Batch-based stock adjustment ───────────────────────────
     const adminInfo = await Admin.findById(tenantId).session(session);
     const enableBatchTracking = adminInfo.preferences?.enableBatchTracking === true;
+
+    if (isBatchTrackingEnabled !== undefined && isBatchTrackingEnabled !== enableBatchTracking) {
+      await session.abortTransaction();
+      return res.status(409).json({
+        success: false,
+        message: 'Inventory settings have changed in another session. Please refresh the page to sync the latest settings.'
+      });
+    }
     const inventoryService = require('../../services/inventoryService');
 
     const allProductIds = [

@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import Batch from '../models/Batch';
 import getTenantId from '../utils/getTenantId';
 import { ensureProductMigratedToBatch, normalizeBatchNo } from '../services/inventoryService';
+import Admin from '../models/Admin';
 
 import mongoose from 'mongoose';
 
@@ -56,6 +57,11 @@ export const createBatch = async (req: Request, res: Response, next: NextFunctio
     const tenantId = getTenantId(req);
     const { productId, batchNo, expiryDate, mrp, rate, gstPercent, initialQty } = req.body;
 
+    const tenant = await Admin.findById(tenantId).select('preferences').lean();
+    if (!tenant?.preferences?.enableBatchTracking) {
+      return res.status(403).json({ success: false, message: 'Batch tracking is disabled for this account. Please refresh your page.' });
+    }
+
     await ensureProductMigratedToBatch(tenantId, productId);
 
     const user = (req as any).user;
@@ -94,6 +100,11 @@ export const updateBatch = async (req: Request, res: Response, next: NextFunctio
     const tenantId = getTenantId(req);
     const batchId = req.params.id;
 
+    const tenant = await Admin.findById(tenantId).select('preferences').lean();
+    if (!tenant?.preferences?.enableBatchTracking) {
+      return res.status(403).json({ success: false, message: 'Batch tracking is disabled for this account. Please refresh your page.' });
+    }
+
     let batch = await Batch.findOne({ _id: batchId, tenantId });
 
     if (!batch) {
@@ -126,6 +137,11 @@ export const deleteBatch = async (req: Request, res: Response, next: NextFunctio
     const tenantId = getTenantId(req);
     const batchId = req.params.id;
 
+    const tenant = await Admin.findById(tenantId).select('preferences').lean();
+    if (!tenant?.preferences?.enableBatchTracking) {
+      return res.status(403).json({ success: false, message: 'Batch tracking is disabled for this account. Please refresh your page.' });
+    }
+
     const batch = await Batch.findOne({ _id: batchId, tenantId });
 
     if (!batch) {
@@ -149,6 +165,11 @@ export const adjustBatchStock = async (req: Request, res: Response, next: NextFu
     const tenantId = getTenantId(req);
     const batchId = req.params.id;
     const { quantity, type, reason } = req.body;
+
+    const tenant = await Admin.findById(tenantId).select('preferences').lean();
+    if (!tenant?.preferences?.enableBatchTracking) {
+      return res.status(403).json({ success: false, message: 'Batch tracking is disabled for this account. Please refresh your page.' });
+    }
 
     if (!quantity || quantity <= 0) {
       return res.status(400).json({ success: false, message: 'Valid quantity is required' });

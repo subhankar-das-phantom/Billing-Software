@@ -1634,6 +1634,8 @@ export default function InvoiceCreatePage() {
         notes,
       };
 
+      invoiceData.isBatchTrackingEnabled = enableBatchTracking;
+
       if (enableBatchTracking) {
         invoiceData.allocationMode = allocationMode;
       }
