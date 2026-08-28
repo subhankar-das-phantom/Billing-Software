@@ -145,7 +145,7 @@ export default function ManualEntryModal({
         if (onSuccess) onSuccess();
       }, 800);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create manual entry');
+      setError(err.message || 'Failed to create manual entry');
     } finally {
       setLoading(false);
     }

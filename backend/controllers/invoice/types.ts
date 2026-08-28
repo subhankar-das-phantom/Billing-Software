@@ -48,6 +48,7 @@ export interface IDistributorSnapshot {
   firmAddress?: string;
   firmPhone?: string;
   firmGSTIN?: string;
+  firmDL?: string;
   paymentInformation?: {
     enabled?: boolean;
     upiId?: string;

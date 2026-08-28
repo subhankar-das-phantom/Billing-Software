@@ -208,7 +208,7 @@ export default function InvoicesPage() {
       setShowExportModal(false);
       success(`Successfully exported invoices as ${format.toUpperCase()}`);
     } catch (err) {
-      error(err.response?.data?.message || 'Failed to export invoices');
+      error(err.message || 'Failed to export invoices');
     } finally {
       setIsExporting(false);
     }

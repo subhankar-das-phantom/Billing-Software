@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { getProductEffectiveStock } = require('./inventoryService');
 const Product = require('../models/Product');
 
 /**
@@ -174,7 +175,7 @@ function initialize() {
  * Handle a Change Stream event.
  * Validates the event before broadcasting.
  */
-function handleChangeEvent(change) {
+async function handleChangeEvent(change) {
   try {
     // Reset reconnect attempts on a successful event
     reconnectAttempts = 0;
@@ -184,8 +185,8 @@ function handleChangeEvent(change) {
 
     const updatedFields = change.updateDescription?.updatedFields || {};
 
-    // Check if currentStockQty was modified (the field we care about)
-    const hasStockQtyChange = 'currentStockQty' in updatedFields;
+    // Check if currentStockQty or stockVersion was modified
+    const hasStockQtyChange = 'currentStockQty' in updatedFields || 'stockVersion' in updatedFields;
     if (!hasStockQtyChange) return;
 
     // fullDocument may be null if the document was deleted between the update and the lookup
@@ -205,15 +206,19 @@ function handleChangeEvent(change) {
     // updatedFields may not include stockVersion when $inc creates the field for the first time.
     const stockVersion = fullDocument.stockVersion ?? 0;
 
+    const stockInfo = await getProductEffectiveStock(tenantId, fullDocument);
+
     const update = {
       productId: fullDocument._id.toString(),
-      currentStockQty: fullDocument.currentStockQty,
+      effectiveStockQty: stockInfo.effectiveStockQty,
+      inventoryRepresentation: stockInfo.inventoryRepresentation,
       stockVersion
     };
 
     console.log('[StockChangeStream] Stock change detected:', {
       productId: update.productId,
-      currentStockQty: update.currentStockQty,
+      effectiveStockQty: update.effectiveStockQty,
+      inventoryRepresentation: update.inventoryRepresentation,
       stockVersion: update.stockVersion,
       tenantId
     });

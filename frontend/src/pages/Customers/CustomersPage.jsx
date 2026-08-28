@@ -360,7 +360,7 @@ export default function CustomersPage() {
       setAccumulatedCustomers([]);
       mutate();
     } catch (err) {
-      error(err.response?.data?.message || 'Failed to save customer');
+      error(err.message || 'Failed to save customer');
     } finally {
       setSaving(false);
     }
@@ -378,7 +378,7 @@ export default function CustomersPage() {
       setAccumulatedCustomers([]);
       mutate();
     } catch (err) {
-      error(err.response?.data?.message || 'Failed to delete customer');
+      error(err.message || 'Failed to delete customer');
     }
   };
 

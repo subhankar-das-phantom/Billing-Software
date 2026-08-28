@@ -119,7 +119,7 @@ export default function EditPaymentModal({
         }
       }, 800);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update payment');
+      setError(err.message || 'Failed to update payment');
     } finally {
       setLoading(false);
     }

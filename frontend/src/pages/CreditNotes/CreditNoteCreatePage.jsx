@@ -77,11 +77,16 @@ export default function CreditNoteCreatePage() {
         try {
           const items = await Promise.all(invoiceData.invoice.items.map(async item => {
             const productKey = item.product._id?.toString() || item.product._id;
-            const alreadyReturned = returnSummary[productKey]?.totalReturned || 0;
-            const maxReturnable = item.quantitySold - alreadyReturned;
+            const itemKey = item._id?.toString() || item._id;
+            const batchAllocation = item.batchAllocations?.[0];
+            const alreadyReturned = returnSummary[itemKey]?.totalReturned || returnSummary[productKey]?.totalReturned || 0;
+            const maxReturnable = Math.max(0, item.quantitySold - alreadyReturned);
 
             return {
+              invoiceItemId: item._id,
               productId: item.product._id,
+              batchId: batchAllocation?.batchId,
+              batchNo: batchAllocation?.batchNo || item.product.batchNo,
               productName: item.product.productName,
               quantitySold: item.quantitySold,
               alreadyReturned,
@@ -152,7 +157,10 @@ export default function CreditNoteCreatePage() {
       const items = returnItems
         .filter(i => i.quantityReturned > 0)
         .map(i => ({
+          invoiceItemId: i.invoiceItemId,
           productId: i.productId,
+          batchId: i.batchId,
+          batchNo: i.batchNo,
           quantityReturned: i.quantityReturned
         }));
 
@@ -176,7 +184,7 @@ export default function CreditNoteCreatePage() {
         navigate(`/invoices/${invoiceId}`);
       }
     } catch (err) {
-      error(err.response?.data?.message || 'Failed to create credit note');
+      error(err.message || 'Failed to create credit note');
     } finally {
       setSubmitting(false);
     }
@@ -262,7 +270,7 @@ export default function CreditNoteCreatePage() {
 
                 return (
                   <motion.tr
-                    key={item.productId + (item.batchId || index)}
+                    key={(item.invoiceItemId || item.productId) + (item.batchId || index)}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: index * 0.03 }}
@@ -270,6 +278,11 @@ export default function CreditNoteCreatePage() {
                   >
                     <td className="font-medium text-white text-left">
                         {item.productName}
+                        {item.batchNo && (
+                          <p className="text-xs text-slate-400 mt-1">
+                            Batch: {item.batchNo === 'UNNAMED' ? 'No Batch #' : item.batchNo}
+                          </p>
+                        )}
                     </td>
                     <td className="text-slate-300 text-center">{item.quantitySold}</td>
                     <td className="text-center">

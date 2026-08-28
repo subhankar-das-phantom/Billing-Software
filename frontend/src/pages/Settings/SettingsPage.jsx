@@ -64,7 +64,8 @@ export default function SettingsPage() {
 
   // Preferences form state
   const [preferences, setPreferences] = useState({
-    showCalculator: true
+    showCalculator: true,
+    enableBatchTracking: false
   });
   const [preferencesLoading, setPreferencesLoading] = useState(false);
 
@@ -97,7 +98,8 @@ export default function SettingsPage() {
     }
     if (user && user.preferences) {
       setPreferences({
-        showCalculator: user.preferences.showCalculator !== false
+        showCalculator: user.preferences.showCalculator !== false,
+        enableBatchTracking: user.preferences.enableBatchTracking === true
       });
     }
   }, [user, userRole]);
@@ -125,7 +127,7 @@ export default function SettingsPage() {
         showSuccess('Business details updated successfully!');
       }
     } catch (err) {
-      showError(err.response?.data?.message || 'Failed to update business details');
+      showError(err.message || 'Failed to update business details');
     } finally {
       setProfileLoading(false);
     }
@@ -145,7 +147,27 @@ export default function SettingsPage() {
     } catch (err) {
       // Revert if failed
       setPreferences({ ...preferences, showCalculator: !newShowCalculator });
-      showError(err.response?.data?.message || 'Failed to update preferences');
+      showError(err.message || 'Failed to update preferences');
+    } finally {
+      setPreferencesLoading(false);
+    }
+  };
+
+  const handleToggleBatchTracking = async () => {
+    if (userRole !== 'admin') return;
+    const newEnableBatchTracking = !preferences.enableBatchTracking;
+    setPreferences({ ...preferences, enableBatchTracking: newEnableBatchTracking });
+    setPreferencesLoading(true);
+    
+    try {
+      const result = await authService.updatePreferences({ enableBatchTracking: newEnableBatchTracking });
+      if (result.success) {
+        updateUserPreferences({ enableBatchTracking: newEnableBatchTracking });
+        showSuccess(`Batch & FIFO Tracking is now ${newEnableBatchTracking ? 'enabled' : 'disabled'}`);
+      }
+    } catch (err) {
+      setPreferences({ ...preferences, enableBatchTracking: !newEnableBatchTracking });
+      showError(err.message || 'Failed to update preferences');
     } finally {
       setPreferencesLoading(false);
     }
@@ -180,7 +202,7 @@ export default function SettingsPage() {
         });
       }
     } catch (err) {
-      showError(err.response?.data?.message || 'Failed to change password');
+      showError(err.message || 'Failed to change password');
     } finally {
       setPasswordLoading(false);
     }
@@ -489,6 +511,37 @@ export default function SettingsPage() {
               />
             </button>
           </div>
+
+          {/* Custom Pill Toggle for Batch & FIFO Tracking (Admin Only) */}
+          {userRole === 'admin' && (
+            <div className="flex items-start sm:items-center justify-between p-5 bg-slate-950/40 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-blue-500/10 rounded-xl shadow-[0_0_15px_rgba(59,130,246,0.1)]">
+                  <FileText className="w-6 h-6 text-blue-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-white text-base">Enable Batch & FIFO Tracking</h3>
+                  <p className="text-sm text-slate-400 mt-0.5 max-w-sm">Use comprehensive batch management, expiry tracking, and FIFO or Manual allocation for inventory.</p>
+                </div>
+              </div>
+              
+              <button 
+                onClick={handleToggleBatchTracking}
+                disabled={preferencesLoading}
+                className={`relative inline-flex h-7 w-14 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-opacity-75 disabled:opacity-50 disabled:cursor-wait ${
+                  preferences.enableBatchTracking ? 'bg-blue-500' : 'bg-slate-700'
+                }`}
+              >
+                <span className="sr-only">Toggle Batch Tracking</span>
+                <span
+                  aria-hidden="true"
+                  className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg ring-0 transition duration-300 ease-in-out ${
+                    preferences.enableBatchTracking ? 'translate-x-7' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+          )}
 
           {/* Placeholder for future preferences */}
           <div className="flex items-start sm:items-center justify-between p-5 bg-slate-950/40 rounded-2xl border border-white/5 opacity-50 cursor-not-allowed">

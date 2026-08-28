@@ -81,6 +81,23 @@ const tableRowVariants = {
   })
 };
 
+const getBatchGroups = (allocations) => {
+  const groupsMap = allocations.reduce((acc, alloc) => {
+    const displayName = alloc.batchNo && alloc.batchNo !== 'UNNAMED' ? alloc.batchNo : 'No Batch #';
+    const expiryStr = alloc.expiryDate 
+      ? new Date(alloc.expiryDate).toLocaleDateString('en-IN', { month: '2-digit', year: '2-digit' }) 
+      : '-';
+    
+    const key = `${displayName}|${expiryStr}`;
+    if (!acc[key]) {
+      acc[key] = { name: displayName, expiry: expiryStr, qtys: [] };
+    }
+    acc[key].qtys.push(alloc.quantity);
+    return acc;
+  }, {});
+  return Object.values(groupsMap);
+};
+
 export default function InvoiceViewPage() {
   const { id } = useParams();
   const [updating, setUpdating] = useState(false);
@@ -97,14 +114,48 @@ export default function InvoiceViewPage() {
   const { success, error } = useToast();
   const isFirstVisit = useFirstVisit('invoice-view');
 
+  const { user, admin, updateUserPreferences } = useAuth();
+  const enableBatchTracking = user?.preferences?.enableBatchTracking === true;
+
   // Column definitions
   const ALL_COLUMNS = [
     { key: 'qty', label: 'Qty', width: '4%', align: 'center', render: (item) => item.quantitySold },
     { key: 'free', label: 'Fr', width: '3%', align: 'center', render: (item) => item.freeQuantity || 0 },
     { key: 'productName', label: 'Product Name', width: '33%', align: 'left', render: (item) => item.product?.productName },
     { key: 'hsn', label: 'HSN', width: '7%', align: 'center', render: (item) => item.product?.hsnCode },
-    { key: 'batchNo', label: 'Batch', width: '7%', align: 'center', render: (item) => item.product?.batchNo || '-' },
-    { key: 'expiry', label: 'Expiry', width: '7%', align: 'center', render: (item) => item.product?.expiryDate ? new Date(item.product.expiryDate).toLocaleDateString('en-IN', { month: '2-digit', year: '2-digit' }) : '-' },
+    { key: 'batchNo', label: 'Batch', width: '10%', align: 'center', render: (item) => {
+        if (enableBatchTracking && item.batchAllocations?.length > 0) {
+          const groups = getBatchGroups(item.batchAllocations);
+
+          return (
+            <div className="flex flex-col gap-0.5">
+              {groups.map((g, idx) => {
+                const displayQty = g.name === 'No Batch #' ? g.qtys.join('+') : g.qtys.reduce((sum, q) => sum + q, 0);
+                return (
+                  <span key={idx} className="whitespace-nowrap">
+                    {g.name} ({displayQty})
+                  </span>
+                );
+              })}
+            </div>
+          );
+        }
+        const bNo = item.product?.batchNo;
+        return bNo && bNo !== 'UNNAMED' ? bNo : 'No Batch #';
+    }},
+    { key: 'expiry', label: 'Expiry', width: '7%', align: 'center', render: (item) => {
+        if (enableBatchTracking && item.batchAllocations?.length > 0) {
+          const groups = getBatchGroups(item.batchAllocations);
+          return (
+            <div className="flex flex-col gap-0.5">
+              {groups.map((g, idx) => (
+                <span key={idx} className="whitespace-nowrap">{g.expiry}</span>
+              ))}
+            </div>
+          );
+        }
+        return item.product?.expiryDate ? new Date(item.product.expiryDate).toLocaleDateString('en-IN', { month: '2-digit', year: '2-digit' }) : '-';
+    }},
     { key: 'mrp', label: 'MRP', width: '8%', align: 'right', render: (item) => item.product?.newMRP?.toFixed(2) || '-' },
     { key: 'rate', label: 'Rate', width: '7%', align: 'right', render: (item) => item.ratePerUnit.toFixed(2) },
     { key: 'net', label: 'Net', width: '7%', align: 'right', render: (item) => (item.ratePerUnit * (1 + (item.product?.gstPercentage || 0) / 100)).toFixed(2) },
@@ -121,8 +172,6 @@ export default function InvoiceViewPage() {
 
   // Clean up legacy localStorage key — DB is the single source of truth
   localStorage.removeItem('invoiceColumns');
-
-  const { user, updateUserPreferences } = useAuth();
 
   const visibleColumns = user?.preferences?.invoiceColumns ?? DEFAULT_INVOICE_COLUMNS;
 
@@ -390,8 +439,8 @@ export default function InvoiceViewPage() {
         {/* Header */}
         <div className="grid grid-cols-2 gap-2 border-b border-black pb-1 mb-1">
           <div className="text-left">
-            <h1 className="font-bold mb-0.5" style={{ fontSize: '18px' }}>{invoice.distributor?.firmName || 'BHARAT ENTERPRISES'}</h1>
-            <p className="text-[11px] leading-tight">{invoice.distributor?.firmAddress || 'Address Line 1, City, State - PIN'}</p>
+            <h1 className="font-bold mb-0.5" style={{ fontSize: '18px' }}>{admin?.firmName || invoice.distributor?.firmName || 'BHARAT ENTERPRISES'}</h1>
+            <p className="text-[11px] leading-tight">{admin?.firmAddress || invoice.distributor?.firmAddress || 'Address Line 1, City, State - PIN'}</p>
           </div>
           <div className="flex justify-end text-[11px] leading-tight">
             {invoice.distributor?.paymentInformation?.enabled && (
@@ -402,9 +451,9 @@ export default function InvoiceViewPage() {
               </div>
             )}
             <div className="text-left">
-              <p>Phone: {invoice.distributor?.firmPhone || 'XXXXXXXXXX'}</p>
-              <p>DL No: DL-XXXXX-XXXXX</p>
-              <p>GSTIN: {invoice.distributor?.firmGSTIN || 'XXXXXXXXXXXX'}</p>
+              <p>Phone: {admin?.firmPhone || invoice.distributor?.firmPhone || 'XXXXXXXXXX'}</p>
+              <p>DL No: {admin?.firmDL || invoice.distributor?.firmDL || user?.firmDL || 'XXXXXXXXXX'}</p>
+              <p>GSTIN: {admin?.firmGSTIN || invoice.distributor?.firmGSTIN || 'XXXXXXXXXXXX'}</p>
             </div>
           </div>
         </div>

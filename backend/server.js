@@ -95,6 +95,7 @@ app.use('/api/auth', authLimiter, require('./routes/auth'));
 app.use('/api/employees', generalLimiter, require('./routes/employees'));
 app.use('/api/analytics', generalLimiter, require('./routes/analytics'));
 app.use('/api/products', generalLimiter, require('./routes/products'));
+app.use('/api/batches', generalLimiter, require('./routes/batches'));
 app.use('/api/customers', generalLimiter, require('./routes/customers'));
 app.use('/api/invoices', generalLimiter, require('./routes/invoices'));
 app.use('/api/dashboard', generalLimiter, require('./routes/dashboard'));

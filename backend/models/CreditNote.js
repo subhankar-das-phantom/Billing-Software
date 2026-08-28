@@ -1,11 +1,19 @@
 const mongoose = require('mongoose');
 
 const creditNoteItemSchema = new mongoose.Schema({
+  invoiceItemId: {
+    type: mongoose.Schema.Types.ObjectId
+  },
   productId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Product',
     required: true
   },
+  batchId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Batch'
+  },
+  batchNo: String,
   productName: {
     type: String,
     required: true
@@ -74,6 +82,13 @@ const creditNoteSchema = new mongoose.Schema({
     customerName: String,
     phone: String,
     gstin: String
+  },
+  // Distributor/Firm snapshot
+  distributor: {
+    firmName: String,
+    firmAddress: String,
+    firmGSTIN: String,
+    firmDL: String
   },
   items: [creditNoteItemSchema],
   // Credit note totals
