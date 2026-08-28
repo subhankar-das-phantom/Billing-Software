@@ -111,8 +111,12 @@ const splitInvoiceItemByBatchAllocations = ({ product, item, allocations, alloca
     const freeFromBatch = allocatedQty - soldFromBatch;
     remainingSold -= soldFromBatch;
 
+    const effectiveRate = item.ratePerUnit !== undefined && item.ratePerUnit !== null 
+      ? item.ratePerUnit 
+      : allocation.rate;
+
     const key = [
-      allocation.rate,
+      effectiveRate,
       allocation.mrp,
       allocation.gstPercent,
       item.schemeDiscount || 0
@@ -145,7 +149,7 @@ const splitInvoiceItemByBatchAllocations = ({ product, item, allocations, alloca
       product,
       quantitySold: soldFromBatch,
       freeQuantity: freeFromBatch,
-      ratePerUnit: allocation.rate,
+      ratePerUnit: effectiveRate,
       mrp: allocation.mrp,
       gstPercentage: allocation.gstPercent,
       batchNo: allocation.batchNo,
