@@ -1065,8 +1065,8 @@ export default function InvoiceCreatePage() {
         quantitySold: group.quantitySold,
         freeQuantity: group.freeQuantity,
         batchIds: group.batchIds,
+        manualAllocations: group.manualAllocations,
       });
-      delete item.manualAllocations;
       return item;
     });
   };
@@ -1612,8 +1612,21 @@ export default function InvoiceCreatePage() {
             schemeDiscount: item.schemeDiscount,
           };
           if (enableBatchTracking) {
-            mappedItem.allocationMode = item.allocationMode || allocationMode;
-            mappedItem.manualAllocations = item.manualAllocations || [];
+            mappedItem.allocationMode = "MANUAL";
+            if (item.manualAllocations && item.manualAllocations.length > 0) {
+              mappedItem.manualAllocations = item.manualAllocations;
+            } else if (item._batchId) {
+              mappedItem.manualAllocations = [
+                {
+                  batchId: item._batchId,
+                  quantity:
+                    (Number(item.quantitySold) || 0) +
+                    (Number(item.freeQuantity) || 0),
+                },
+              ];
+            } else {
+              mappedItem.manualAllocations = [];
+            }
           }
           return mappedItem;
         }),
