@@ -603,7 +603,9 @@ export const productService = {
    */
   getBatches: async (productId) => {
     try {
-      const response = await api.get('/batches', { params: { productId } });
+      const rawId = productId?._id || productId?.id || productId;
+      const pidStr = typeof rawId === 'object' ? String(rawId?._id || rawId?.id || rawId) : String(rawId);
+      const response = await api.get('/batches', { params: { productId: pidStr } });
       return response.data;
     } catch (error) {
       throw error;

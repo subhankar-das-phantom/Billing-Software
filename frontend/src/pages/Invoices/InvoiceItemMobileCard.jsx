@@ -55,8 +55,8 @@ export default function InvoiceItemMobileCard({
             GST: <span className="text-slate-300 font-medium">{item.product.gstPercentage}%</span> (₹{item.gstAmount.toFixed(2)})
           </span>
           {enableBatchTracking && allocationMode === 'AUTO' && (
-            <span className="text-slate-400 text-[11px] bg-slate-900/40 px-2 py-0.5 rounded">
-              Batch: {item.product.batchNo && item.product.batchNo !== 'UNNAMED' ? item.product.batchNo : 'Auto (FIFO)'}
+            <span className="text-emerald-400 text-[11px] bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 font-mono">
+              Batch: {item.product?.batchNo || item.batchNo || 'No Batch #'}
             </span>
           )}
         </div>

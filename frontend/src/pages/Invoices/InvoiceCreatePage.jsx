@@ -240,9 +240,19 @@ export default function InvoiceCreatePage() {
     err?.name === "CanceledError" ||
     err?.name === "AbortError";
 
-  const getCurrentEditStock = (currentStockQty, productId) =>
-    Math.max(0, Number(currentStockQty) || 0) +
-    (originalStockAllocationsRef.current.get(String(productId)) || 0);
+  const getCurrentEditStock = (productObj, productId) => {
+    const rawVal =
+      typeof productObj === "object" && productObj !== null
+        ? productObj.effectiveStockQty ??
+          productObj.currentStockQty ??
+          productObj.currentStock ??
+          0
+        : productObj ?? 0;
+    return (
+      Math.max(0, Number(rawVal) || 0) +
+      (originalStockAllocationsRef.current.get(String(productId)) || 0)
+    );
+  };
 
   const getDraftQuantityForProduct = (productId, excludedIndex = null) =>
     invoiceItems.reduce((total, item, index) => {
@@ -261,14 +271,14 @@ export default function InvoiceCreatePage() {
   const getRemainingStockForItem = (item) =>
     Math.max(
       0,
-      getCurrentEditStock(item.product.currentStock, item.product._id) -
+      getCurrentEditStock(item.product, item.product._id) -
         getDraftQuantityForProduct(item.product._id),
     );
 
   const getMaxSoldQuantityForItem = (item, index) =>
     Math.max(
       0,
-      getCurrentEditStock(item.product.currentStock, item.product._id) -
+      getCurrentEditStock(item.product, item.product._id) -
         getDraftQuantityForProduct(item.product._id, index) -
         (Number(item.freeQuantity) || 0),
     );
@@ -891,7 +901,9 @@ export default function InvoiceCreatePage() {
   const getBatchPricingKey = (batch) => {
     const rate = Number(batch?.rate ?? 0);
     const mrp = Number(batch?.mrp ?? 0);
-    const gstPercent = Number(batch?.gstPercent ?? 0);
+    const gstPercent = Number(
+      batch?.gstPercent ?? batch?.gstPercentage ?? 0,
+    );
     return `${rate}|${mrp}|${gstPercent}`;
   };
 
@@ -916,14 +928,21 @@ export default function InvoiceCreatePage() {
       sourceItem.schemeDiscount || 0,
     );
 
+    const batchNo =
+      batch?.batchNo ||
+      batch?.batchNumber ||
+      (batch?._id === "UNNAMED" ? "UNNAMED" : "No Batch #");
+
     return {
       ...sourceItem,
       product: {
         ...sourceItem.product,
+        batchNo: batchNo || sourceItem.product?.batchNo || "No Batch #",
         newMRP: mrp,
         rate,
         gstPercentage: gstPercent,
       },
+      batchNo: batchNo || sourceItem.batchNo || "No Batch #",
       quantitySold,
       freeQuantity,
       baseRate,
@@ -931,8 +950,8 @@ export default function InvoiceCreatePage() {
       ...(manualAllocations ? { manualAllocations } : {}),
       ...(batchIds.length > 0 ? { _batchIds: batchIds } : {}),
       ...amounts,
-      _batchId: batch?._id,
-      _batchKey: `${batch?._id || "batch"}|${getBatchPricingKey(batch)}`,
+      _batchId: batch?._id ? String(batch._id) : (batch?.id ? String(batch.id) : null),
+      _batchKey: `${batch?._id ? String(batch._id) : (batch?.id ? String(batch.id) : "batch")}|${getBatchPricingKey(batch)}`,
       _batchPreview: true,
     };
   };
@@ -945,7 +964,10 @@ export default function InvoiceCreatePage() {
     const quantity = Math.max(0, Number(requestedQuantity) || 0);
     if (quantity <= 0) return [];
 
-    const data = await productService.getBatches(product._id);
+    const rawId = product?._id || product?.id || product;
+    const productIdStr = typeof rawId === "object" ? String(rawId?._id || rawId?.id || rawId) : String(rawId);
+
+    const data = await productService.getBatches(productIdStr);
     const batches = [...(data?.batches || [])]
       .filter((batch) => (Number(batch.remainingQty) || 0) > 0)
       .sort((a, b) => {
@@ -955,7 +977,10 @@ export default function InvoiceCreatePage() {
         const bExpiry = b.expiryDate
           ? new Date(b.expiryDate).getTime()
           : Number.POSITIVE_INFINITY;
-        return aExpiry - bExpiry;
+        if (aExpiry !== bExpiry) return aExpiry - bExpiry;
+        const aCreated = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bCreated = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return aCreated - bCreated;
       });
 
     let remaining = quantity;
@@ -971,22 +996,32 @@ export default function InvoiceCreatePage() {
     }
 
     if (remaining > 0) {
-      const fallbackTotalStock = Number(
-        product.effectiveStockQty ?? product.currentStockQty ?? 0,
-      );
-      if (fallbackTotalStock < quantity) {
-        throw new Error(
-          `Insufficient batch stock for ${product.productName}. Available: ${fallbackTotalStock}, Required: ${quantity}`,
-        );
-      }
+      allocations.push({
+        batch: {
+          _id: "UNNAMED",
+          batchNumber: "UNNAMED",
+          mfgDate: null,
+          expiryDate: null,
+          rate: product.rate || 0,
+          mrp: product.newMRP || product.rate || 0,
+          gstPercent: product.gstPercentage || 0,
+          purchaseRate: product.rate || 0,
+          remainingQty: remaining,
+        },
+        quantity: remaining,
+      });
+      remaining = 0;
     }
 
     let soldRemaining = Number(sourceItem?.quantitySold ?? quantity);
     let freeRemaining = Number(sourceItem?.freeQuantity ?? 0);
     const grouped = new Map();
 
-    for (const allocation of allocations) {
-      const pricingKey = getBatchPricingKey(allocation.batch);
+    for (let i = 0; i < allocations.length; i++) {
+      const allocation = allocations[i];
+      const b = allocation.batch;
+      const bId = b?._id ? String(b._id) : (b?.id ? String(b.id) : `batch_${i}`);
+      const pricingKey = `${bId}|${getBatchPricingKey(b)}`;
       const soldForBatch = Math.min(soldRemaining, allocation.quantity);
       const remainingForFree = allocation.quantity - soldForBatch;
       const freeForBatch = Math.min(freeRemaining, remainingForFree);
@@ -1053,16 +1088,17 @@ export default function InvoiceCreatePage() {
         if (!isMountedRef.current) return;
 
         setInvoiceItems((prev) => {
-          const productIdString = String(product._id);
+          const rawId = product?._id || product?.id || product;
+          const productIdString = typeof rawId === "object" ? String(rawId?._id || rawId?.id || rawId) : String(rawId);
+
           const firstIndex = prev.findIndex(
-            (item) => String(item.product._id) === productIdString,
+            (item) => String(item.product?._id || item.product?.id || item.product) === productIdString,
           );
-          if (firstIndex === -1) return prev;
 
           const next = prev.filter(
-            (item) => String(item.product._id) !== productIdString,
+            (item) => String(item.product?._id || item.product?.id || item.product) !== productIdString,
           );
-          const insertIndex = Math.min(firstIndex, next.length);
+          const insertIndex = firstIndex !== -1 ? Math.min(firstIndex, next.length) : 0;
           next.splice(insertIndex, 0, ...rows);
           return next;
         });
@@ -1075,7 +1111,7 @@ export default function InvoiceCreatePage() {
           batchPreviewTimersRef.current.delete(productId);
         }
       }
-    }, 350);
+    }, 150);
     batchPreviewTimersRef.current.set(productId, timer);
   };
 
@@ -1091,7 +1127,11 @@ export default function InvoiceCreatePage() {
         newMRP: product.newMRP,
         rate: product.rate,
         gstPercentage: product.gstPercentage,
-        currentStock: product.effectiveStockQty ?? product.currentStockQty ?? 0,
+        currentStock:
+          product.effectiveStockQty ??
+          product.currentStockQty ??
+          product.currentStock ??
+          0,
         inventoryRepresentation: product.inventoryRepresentation || "FREE",
       },
       quantitySold: 1,
@@ -1163,7 +1203,7 @@ export default function InvoiceCreatePage() {
         );
 
         const stockLimit = getCurrentEditStock(
-          changedItem.product.currentStock,
+          changedItem.product,
           changedItem.product._id,
         );
         const currentSold =
@@ -1241,7 +1281,7 @@ export default function InvoiceCreatePage() {
       // Recalculate it from the current draft so decreasing a line immediately
       // releases that stock for the rest of the edit session.
       const maxStock = getCurrentEditStock(
-        item.product.currentStock,
+        item.product,
         item.product._id,
       );
       const quantityInOtherLines = updated.reduce(
@@ -2058,11 +2098,16 @@ export default function InvoiceCreatePage() {
                             >
                               <td>
                                 <div>
-                                  <p className="font-medium text-white">
+                                  <p className="font-medium text-white flex items-center gap-1.5 flex-wrap">
                                     {item.product.productName}
                                     {item._batchPreview && (
-                                      <span className="ml-2 text-[10px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded border border-blue-500/20">
+                                      <span className="text-[10px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded border border-blue-500/20">
                                         FIFO
+                                      </span>
+                                    )}
+                                    {enableBatchTracking && (
+                                      <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/20 font-mono">
+                                        Batch: {item.product.batchNo || item.batchNo || "No Batch #"}
                                       </span>
                                     )}
                                   </p>
@@ -2305,7 +2350,22 @@ export default function InvoiceCreatePage() {
                         name="allocationMode"
                         value="AUTO"
                         checked={allocationMode === "AUTO"}
-                        onChange={() => setAllocationMode("AUTO")}
+                        onChange={() => {
+                          setAllocationMode("AUTO");
+                          const uniqueProducts = new Map();
+                          invoiceItems.forEach((item) => {
+                            const pid = String(item.product._id);
+                            const qty = (Number(item.quantitySold) || 0) + (Number(item.freeQuantity) || 0);
+                            uniqueProducts.set(pid, {
+                              product: item.product,
+                              qty: (uniqueProducts.get(pid)?.qty || 0) + qty,
+                              sourceItem: item,
+                            });
+                          });
+                          uniqueProducts.forEach(({ product, qty, sourceItem }) => {
+                            if (qty > 0) scheduleBatchPreview(product, qty, sourceItem);
+                          });
+                        }}
                         className="text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900"
                       />
                       <div>

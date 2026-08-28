@@ -3,6 +3,8 @@ import Batch from '../models/Batch';
 import getTenantId from '../utils/getTenantId';
 import { ensureProductMigratedToBatch, normalizeBatchNo } from '../services/inventoryService';
 
+import mongoose from 'mongoose';
+
 // @desc    Get active batches for a product
 // @route   GET /api/batches
 // @access  Private
@@ -15,13 +17,30 @@ export const getBatches = async (req: Request, res: Response, next: NextFunction
       return res.status(400).json({ success: false, message: 'productId is required' });
     }
 
-    await ensureProductMigratedToBatch(tenantId, String(productId));
+    const pidStr = String(productId);
+    await ensureProductMigratedToBatch(tenantId, pidStr);
 
-    const batches = await Batch.find({ 
-      tenantId, 
-      productId: String(productId), 
-      isActive: true 
-    }).sort({ expiryDate: 1, createdAt: 1 });
+    const query: any = {
+      isActive: true,
+      $or: [
+        { productId: pidStr },
+        ...(mongoose.Types.ObjectId.isValid(pidStr) ? [{ productId: new mongoose.Types.ObjectId(pidStr) }] : [])
+      ]
+    };
+
+    if (tenantId) {
+      const tidStr = String(tenantId);
+      query.$and = [
+        {
+          $or: [
+            { tenantId: tidStr },
+            ...(mongoose.Types.ObjectId.isValid(tidStr) ? [{ tenantId: new mongoose.Types.ObjectId(tidStr) }] : [])
+          ]
+        }
+      ];
+    }
+
+    const batches = await Batch.find(query).sort({ expiryDate: 1, createdAt: 1 });
     
     res.status(200).json({ success: true, count: batches.length, batches });
   } catch (error) {
