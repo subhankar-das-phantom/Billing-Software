@@ -26,7 +26,7 @@ const ROLES = [
 ];
 
 export default function EmployeePermissionsEditor({ employee, onUpdate }) {
-  const { showToast } = useAuth();
+  const { showToast, user } = useAuth();
   const [role, setRole] = useState(employee.role || 'full_access');
   const [permissions, setPermissions] = useState(employee.permissions || {});
   const [isSaving, setIsSaving] = useState(false);
@@ -86,6 +86,11 @@ export default function EmployeePermissionsEditor({ employee, onUpdate }) {
     }
   };
 
+  const modulesToShow = { ...PERMISSION_MODULES };
+  if (user?.preferences?.enableBatchTracking) {
+    modulesToShow.batches = { label: 'Batches', actions: ['view', 'create', 'edit', 'delete'] };
+  }
+
   return (
     <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-5 mt-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
@@ -127,7 +132,7 @@ export default function EmployeePermissionsEditor({ employee, onUpdate }) {
             </tr>
           </thead>
           <tbody>
-            {Object.entries(PERMISSION_MODULES).map(([moduleKey, config]) => (
+            {Object.entries(modulesToShow).map(([moduleKey, config]) => (
               <tr key={moduleKey} className="border-b border-slate-700/50 hover:bg-slate-800/30">
                 <td className="py-3 px-4 text-sm font-medium text-white">{config.label}</td>
                 {['view', 'create', 'edit', 'delete', 'cancel'].map(action => (

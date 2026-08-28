@@ -106,7 +106,7 @@ export default function ProductDetailsPage() {
   const isFirstVisit = useFirstVisit('product-details');
   const { isDesktop } = useDeviceType();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
 
   const enableBatchTracking = user?.preferences?.enableBatchTracking === true;
   const isBatchMode = product?.inventoryRepresentation === 'BATCH';
@@ -393,8 +393,8 @@ export default function ProductDetailsPage() {
         </div>
       </motion.div>
 
-      {/* Batches Section — only when batch tracking is enabled */}
-      {enableBatchTracking && (
+      {/* Batches Section — only when batch tracking is enabled and user has permission */}
+      {enableBatchTracking && hasPermission('batches', 'view') && (
         <motion.div variants={cardVariants} initial={isFirstVisit ? "hidden" : false} animate="visible" className="glass-card p-6">
           <button
             type="button"
@@ -440,9 +440,11 @@ export default function ProductDetailsPage() {
                     <p className="text-slate-500 text-sm max-w-md mb-4">
                       Add a batch to start tracking inventory with FIFO allocation.
                     </p>
-                    <EnhancedButton onClick={openAddBatch} icon={Plus} className="bg-blue-500 hover:bg-blue-600 text-white">
-                      Add First Batch
-                    </EnhancedButton>
+                    {hasPermission('batches', 'create') && (
+                      <EnhancedButton onClick={openAddBatch} icon={Plus} className="bg-blue-500 hover:bg-blue-600 text-white">
+                        Add First Batch
+                      </EnhancedButton>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -477,6 +479,7 @@ export default function ProductDetailsPage() {
                             </div>
                           </div>
                           <div className="flex items-center gap-1 flex-shrink-0 ml-3">
+                            {hasPermission('batches', 'edit') && (
                             <button
                               onClick={() => {
                                 setBatchAdjust({ 
@@ -494,6 +497,8 @@ export default function ProductDetailsPage() {
                             >
                               <ArrowUpDown className="w-3.5 h-3.5" />
                             </button>
+                            )}
+                            {hasPermission('batches', 'edit') && (
                             <button
                               onClick={() => openEditBatch(batch)}
                               className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
@@ -501,6 +506,8 @@ export default function ProductDetailsPage() {
                             >
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
+                            )}
+                            {hasPermission('batches', 'delete') && (
                             <button
                               onClick={() => confirmDeleteBatch(batch._id)}
                               className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50"
@@ -508,6 +515,7 @@ export default function ProductDetailsPage() {
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
+                            )}
                           </div>
                         </div>
                       </div>
