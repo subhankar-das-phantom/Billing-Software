@@ -6,39 +6,31 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { subscriptionService } from '../../services/saas/subscriptionService';
 import { FEATURE_LABELS } from '../../saas/features';
+import { useSubscriptionPlansQuery } from '../../features/saas/queries/useSubscriptionPlansQuery';
 
 export default function SubscriptionPage() {
   const { subscription, activeDbSub, isExpired, isGrace, isTrial, planName, daysRemaining, refreshSubscription } = useSubscription();
   const { user } = useAuth();
   const toast = useToast();
 
-  const [plans, setPlans] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data: plans = [], isLoading: loading, isError, error } = useSubscriptionPlansQuery();
   const [processing, setProcessing] = useState(false);
   const [selectedDuration, setSelectedDuration] = useState(1); // 1, 3, 6, 12 months
   const [renewalMode, setRenewalMode] = useState('manual'); // manual, auto
 
   useEffect(() => {
-    loadPlans();
+    if (isError) {
+      toast.error(error?.message || 'Failed to load subscription plans');
+    }
+  }, [isError, error, toast]);
+
+  useEffect(() => {
     // Load Razorpay script
     const script = document.createElement('script');
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
     script.async = true;
     document.body.appendChild(script);
   }, []);
-
-  const loadPlans = async () => {
-    try {
-      const res = await subscriptionService.getPlans();
-      if (res.success) {
-        setPlans(res.plans);
-      }
-    } catch (err) {
-      toast.error('Failed to load subscription plans');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSubscribe = async (plan) => {
     if (!window.Razorpay) {
