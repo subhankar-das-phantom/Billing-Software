@@ -60,6 +60,109 @@ const getRoundedNumber = (n) => round2(Number(n) || 0);
 const INVOICE_STATUSES = new Set(['Created', 'Printed', 'Cancelled']);
 const PAYMENT_STATUSES = new Set(['Unpaid', 'Partial', 'Paid']);
 
+const buildInvoiceItem = ({
+  product,
+  quantitySold,
+  freeQuantity = 0,
+  ratePerUnit,
+  mrp,
+  gstPercentage,
+  batchNo,
+  expiryDate,
+  schemeDiscount = 0,
+  batchAllocations,
+  allocationMode
+}) => {
+  const amounts = calculateItemAmounts(
+    quantitySold,
+    ratePerUnit,
+    gstPercentage,
+    schemeDiscount
+  );
+
+  return {
+    product: {
+      _id: product._id,
+      productName: product.productName,
+      hsnCode: product.hsnCode,
+      pack: product.pack,
+      batchNo: batchNo || '',
+      expiryDate: expiryDate || null,
+      newMRP: mrp,
+      gstPercentage
+    },
+    ...(batchAllocations ? { batchAllocations } : {}),
+    ...(allocationMode ? { allocationMode } : {}),
+    quantitySold,
+    freeQuantity,
+    ratePerUnit,
+    schemeDiscount,
+    ...amounts
+  };
+};
+
+const splitInvoiceItemByBatchAllocations = ({ product, item, allocations, allocationMode }) => {
+  let remainingSold = Number(item.quantitySold) || 0;
+  const splitItemsByKey = new Map();
+
+  for (const allocation of allocations) {
+    const allocatedQty = Number(allocation.quantity) || 0;
+    const soldFromBatch = Math.min(remainingSold, allocatedQty);
+    const freeFromBatch = allocatedQty - soldFromBatch;
+    remainingSold -= soldFromBatch;
+
+    const effectiveRate = item.ratePerUnit !== undefined && item.ratePerUnit !== null 
+      ? item.ratePerUnit 
+      : allocation.rate;
+
+    const key = [
+      effectiveRate,
+      allocation.mrp,
+      allocation.gstPercent,
+      item.schemeDiscount || 0
+    ].join('|');
+
+    const existing = splitItemsByKey.get(key);
+    if (existing) {
+      existing.quantitySold += soldFromBatch;
+      existing.freeQuantity += freeFromBatch;
+
+      const existingAlloc = existing.batchAllocations.find(a => 
+        a.batchId?.toString() === allocation.batchId?.toString()
+      );
+      if (existingAlloc) {
+        existingAlloc.quantity += allocatedQty;
+      } else {
+        existing.batchAllocations.push(allocation);
+      }
+
+      Object.assign(existing, calculateItemAmounts(
+        existing.quantitySold,
+        existing.ratePerUnit,
+        existing.product.gstPercentage,
+        existing.schemeDiscount
+      ));
+      continue;
+    }
+
+    splitItemsByKey.set(key, buildInvoiceItem({
+      product,
+      quantitySold: soldFromBatch,
+      freeQuantity: freeFromBatch,
+      ratePerUnit: effectiveRate,
+      mrp: allocation.mrp,
+      gstPercentage: allocation.gstPercent,
+      batchNo: allocation.batchNo,
+      expiryDate: allocation.expiryDate,
+      schemeDiscount: item.schemeDiscount || 0,
+      batchAllocations: [allocation],
+      allocationMode
+    }));
+  }
+
+  return [...splitItemsByKey.values()];
+};
+
 const derivePaymentStatus = (totalAmount, paidAmount) => {
   const roundedTotal = getRoundedNumber(totalAmount);
   const roundedPaid = getRoundedNumber(paidAmount);
@@ -438,7 +541,7 @@ exports.createInvoice = async (req, res, next) => {
   session.startTransaction();
 
   try {
-    const { customerId, items, paymentType, notes } = req.body;
+    const { customerId, items, paymentType, notes, isBatchTrackingEnabled } = req.body;
     const paymentTypeToUse = paymentType || 'Credit';
 
     // Validate customer
@@ -504,11 +607,42 @@ exports.createInvoice = async (req, res, next) => {
       });
     }
 
+    const inventoryService = require('../../services/inventoryService');
+
+    // Pre-merge identical items (same product + rate + discount)
+    const mergedItemsMap = {};
+    items.forEach((item) => {
+      const rate = item.ratePerUnit || productMap.get(String(item.productId))?.rate || productMap.get(String(item.productId))?.newMRP;
+      const key = `${item.productId}_${rate}_${item.schemeDiscount || 0}`;
+      if (mergedItemsMap[key]) {
+        mergedItemsMap[key].quantitySold += item.quantitySold;
+        mergedItemsMap[key].freeQuantity += (item.freeQuantity || 0);
+        if (item.manualAllocations) {
+          mergedItemsMap[key].manualAllocations = [
+            ...(mergedItemsMap[key].manualAllocations || []),
+            ...item.manualAllocations
+          ];
+        }
+      } else {
+        mergedItemsMap[key] = {
+          productId: item.productId,
+          quantitySold: item.quantitySold,
+          freeQuantity: item.freeQuantity || 0,
+          ratePerUnit: item.ratePerUnit,
+          schemeDiscount: item.schemeDiscount || 0,
+          allocationMode: item.allocationMode,
+          manualAllocations: item.manualAllocations ? [...item.manualAllocations] : undefined
+        };
+      }
+    });
+
+    const mergedItemsList = Object.values(mergedItemsMap);
+
     // Process items and validate stock
     const processedItems = [];
     const stockDeductions = new Map();
 
-    for (const item of items) {
+    for (const item of mergedItemsList) {
       const productId = String(item.productId);
       const product = productMap.get(productId);
 
@@ -516,46 +650,37 @@ exports.createInvoice = async (req, res, next) => {
       const alreadyReservedQty = stockDeductions.get(productId) || 0;
       const nextReservedQty = alreadyReservedQty + totalQty;
 
+      // Resolve authoritative stock based on migration state
+      const stockInfo = await inventoryService.getProductEffectiveStock(tenantId, product);
+      const availableStock = stockInfo.effectiveStockQty;
+
       // Check stock including repeated line-items of the same product.
-      if (product.currentStockQty < nextReservedQty) {
+      if (availableStock < nextReservedQty) {
         await session.abortTransaction();
         return res.status(400).json({
           success: false,
-          message: `Insufficient stock for ${product.productName}. Available: ${product.currentStockQty}, Required: ${nextReservedQty}`
+          message: `Insufficient stock for ${product.productName}. Available: ${availableStock}, Required: ${nextReservedQty}`
         });
       }
       stockDeductions.set(productId, nextReservedQty);
 
-      // Calculate amounts and add standard item
       const rateToUse = item.ratePerUnit || product.rate || product.newMRP;
-      const amounts = calculateItemAmounts(
-        item.quantitySold,
-        rateToUse,
-        product.gstPercentage,
-        item.schemeDiscount || 0
-      );
 
-      processedItems.push({
-        product: {
-          _id: product._id,
-          productName: product.productName,
-          hsnCode: product.hsnCode,
-          pack: product.pack,
-          batchNo: product.batchNo || '',
-          expiryDate: product.expiryDate || null,
-          newMRP: product.newMRP,
-          gstPercentage: product.gstPercentage
-        },
+      processedItems.push(buildInvoiceItem({
+        product,
         quantitySold: item.quantitySold,
         freeQuantity: item.freeQuantity || 0,
         ratePerUnit: rateToUse,
-        schemeDiscount: item.schemeDiscount || 0,
-        ...amounts
-      });
+        mrp: product.newMRP,
+        gstPercentage: product.gstPercentage,
+        batchNo: product.batchNo || '',
+        expiryDate: product.expiryDate || null,
+        schemeDiscount: item.schemeDiscount || 0
+      }));
     }
 
     // Calculate totals
-    const totals = calculateInvoiceTotals(processedItems);
+    let totals = calculateInvoiceTotals(processedItems);
     totals.amountInWords = numberToWords(totals.netTotal);
 
     // Create invoice
@@ -586,11 +711,23 @@ exports.createInvoice = async (req, res, next) => {
       createdBy: getAttribution(req)
     }], { session });
 
+    const enableBatchTracking = adminInfo.preferences?.enableBatchTracking === true;
+
+    if (isBatchTrackingEnabled !== undefined && isBatchTrackingEnabled !== enableBatchTracking) {
+      await session.abortTransaction();
+      return res.status(409).json({
+        success: false,
+        message: 'Inventory settings have changed in another session. Please refresh the page to sync the latest settings.'
+      });
+    }
+
     // Update stock in bulk to minimize round-trips within the transaction.
     const stockTimestamp = new Date();
     const stockUpdateOperations = [];
 
     for (const [productId, deductedQty] of stockDeductions.entries()) {
+      if (enableBatchTracking) continue; // Handled per-item below via inventoryService
+
       const product = productMap.get(productId);
       const previousQty = product.currentStockQty;
       const newQty = previousQty - deductedQty;
@@ -618,6 +755,53 @@ exports.createInvoice = async (req, res, next) => {
 
     if (stockUpdateOperations.length > 0) {
       await Product.bulkWrite(stockUpdateOperations, { session });
+    }
+
+    if (enableBatchTracking) {
+      const inventoryService = require('../../services/inventoryService');
+      const batchExpandedItems = [];
+
+      for (let i = 0; i < invoice[0].items.length; i++) {
+        const item = invoice[0].items[i];
+        const originalItem = mergedItemsList[i];
+        const product = productMap.get(item.product._id.toString());
+        const totalQty = item.quantitySold + (item.freeQuantity || 0);
+        let allocations = [];
+        
+        if (originalItem.allocationMode === 'MANUAL' && originalItem.manualAllocations) {
+          allocations = await inventoryService.allocateManualStock(
+            tenantId,
+            item.product._id,
+            originalItem.manualAllocations,
+            totalQty,
+            invoice[0]._id,
+            invoiceNumber,
+            session
+          );
+        } else {
+          allocations = await inventoryService.allocateFifoStock(
+            tenantId,
+            item.product._id,
+            totalQty,
+            invoice[0]._id,
+            invoiceNumber,
+            session
+          );
+        }
+        
+        batchExpandedItems.push(...splitInvoiceItemByBatchAllocations({
+          product,
+          item: originalItem,
+          allocations,
+          allocationMode: originalItem.allocationMode || 'AUTO'
+        }));
+      }
+
+      totals = calculateInvoiceTotals(batchExpandedItems);
+      totals.amountInWords = numberToWords(totals.netTotal);
+      invoice[0].items = batchExpandedItems;
+      invoice[0].totals = totals;
+      await invoice[0].save({ session });
     }
 
     // Update customer stats
@@ -708,7 +892,7 @@ exports.updateInvoice = async (req, res, next) => {
     session.startTransaction();
 
     try {
-      const { customerId, items, paymentType, notes, lastKnownUpdatedAt } = req.body;
+      const { customerId, items, paymentType, notes, lastKnownUpdatedAt, isBatchTrackingEnabled } = req.body;
       const tenantId = getTenantId(req);
 
     // ── STEP 1: Fetch existing invoice ─────────────────────────────────
@@ -771,16 +955,23 @@ exports.updateInvoice = async (req, res, next) => {
       newItemsMap[pid] = (newItemsMap[pid] || 0) + sold + free;
     }
 
-    // ── STEP 5: Delta-based stock adjustment ───────────────────────────
-    //
-    // THIS IS THE ONLY PLACE STOCK IS MODIFIED.
-    // Nothing above or below this block touches Product.currentStockQty.
-    //
+    // ── STEP 5: Delta-based or Batch-based stock adjustment ───────────────────────────
+    const adminInfo = await Admin.findById(tenantId).session(session);
+    const enableBatchTracking = adminInfo.preferences?.enableBatchTracking === true;
+
+    if (isBatchTrackingEnabled !== undefined && isBatchTrackingEnabled !== enableBatchTracking) {
+      await session.abortTransaction();
+      return res.status(409).json({
+        success: false,
+        message: 'Inventory settings have changed in another session. Please refresh the page to sync the latest settings.'
+      });
+    }
+    const inventoryService = require('../../services/inventoryService');
+
     const allProductIds = [
       ...new Set([...Object.keys(oldItemsMap), ...Object.keys(newItemsMap)])
     ].sort();
 
-    // Batch-fetch all involved products (eliminates N+1 queries)
     const allProducts = await Product.find({
       _id: { $in: allProductIds },
       tenantId
@@ -790,7 +981,6 @@ exports.updateInvoice = async (req, res, next) => {
       productMap[p._id.toString()] = p;
     }
 
-    // Verify all products exist
     for (const pid of allProductIds) {
       if (!productMap[pid]) {
         await session.abortTransaction();
@@ -801,7 +991,21 @@ exports.updateInvoice = async (req, res, next) => {
       }
     }
 
+    // Determine which products are batch-managed in this transaction
+    const batchManagedProducts = new Set();
+    if (enableBatchTracking) {
+      Object.keys(newItemsMap).forEach(pid => batchManagedProducts.add(pid));
+    }
+    for (const item of existingInvoice.items) {
+      if (item.batchAllocations && item.batchAllocations.length > 0) {
+        batchManagedProducts.add(item.product._id.toString());
+      }
+    }
+
+    // Process non-batch-managed products via Delta
     for (const pid of allProductIds) {
+      if (batchManagedProducts.has(pid)) continue;
+
       const oldQty = oldItemsMap[pid] || 0;
       const newQty = newItemsMap[pid] || 0;
       const delta = newQty - oldQty;
@@ -809,52 +1013,69 @@ exports.updateInvoice = async (req, res, next) => {
       if (delta === 0) continue;
 
       if (delta > 0) {
-        // DEDUCT — safe conditional update prevents negative stock & race conditions
         const updated = await Product.findOneAndUpdate(
           { _id: pid, tenantId, currentStockQty: { $gte: delta } },
           {
             $inc: { currentStockQty: -delta, stockVersion: 1 },
             $push: {
               stockHistory: {
-                type: 'invoice_edit',
-                invoiceId: existingInvoice._id,
-                changeQty: -delta,
-                reference: `${existingInvoice.invoiceNumber} - Edit (deducted ${delta})`,
-                timestamp: new Date()
+                type: 'invoice_edit', invoiceId: existingInvoice._id, changeQty: -delta,
+                reference: `${existingInvoice.invoiceNumber} - Edit (deducted ${delta})`, timestamp: new Date()
               }
             }
-          },
-          { session, new: true }
+          }, { session, new: true }
         );
-
         if (!updated) {
           await session.abortTransaction();
           return res.status(400).json({
-            success: false,
-            message: `Insufficient stock for ${productMap[pid].productName}. Additional required: ${delta}`
+            success: false, message: `Insufficient stock for ${productMap[pid].productName}. Additional required: ${delta}`
           });
         }
       } else {
-        // RESTORE — delta < 0, return stock to inventory
         await Product.findOneAndUpdate(
           { _id: pid, tenantId },
           {
             $inc: { currentStockQty: Math.abs(delta), stockVersion: 1 },
             $push: {
               stockHistory: {
-                type: 'invoice_edit',
-                invoiceId: existingInvoice._id,
-                changeQty: Math.abs(delta),
-                reference: `${existingInvoice.invoiceNumber} - Edit (restored ${Math.abs(delta)})`,
-                timestamp: new Date()
+                type: 'invoice_edit', invoiceId: existingInvoice._id, changeQty: Math.abs(delta),
+                reference: `${existingInvoice.invoiceNumber} - Edit (restored ${Math.abs(delta)})`, timestamp: new Date()
               }
             }
-          },
-          { session }
+          }, { session }
         );
       }
     }
-    // ── END OF STOCK CHANGES — nothing below touches Product.currentStockQty ──
+
+    // Process batch-managed products via Full Restore (Full Deduct happens per item later)
+    for (const item of existingInvoice.items) {
+      const pid = item.product._id.toString();
+      if (!batchManagedProducts.has(pid)) continue;
+
+      const oldQty = item.quantitySold + (item.freeQuantity || 0);
+      if (oldQty === 0) continue;
+
+      if (item.batchAllocations && item.batchAllocations.length > 0) {
+        await inventoryService.restoreBatchAllocations(
+          tenantId, pid, item.batchAllocations, oldQty, existingInvoice._id,
+          `${existingInvoice.invoiceNumber} - Edit (restored ${oldQty})`, 'invoice_edit_reversal', session
+        );
+      } else {
+        await Product.findOneAndUpdate(
+          { _id: pid, tenantId },
+          {
+            $inc: { currentStockQty: oldQty, stockVersion: 1 },
+            $push: {
+              stockHistory: {
+                type: 'invoice_edit_reversal', invoiceId: existingInvoice._id, changeQty: oldQty,
+                reference: `${existingInvoice.invoiceNumber} - Edit (restored ${oldQty})`, timestamp: new Date()
+              }
+            }
+          }, { session }
+        );
+      }
+    }
+    // ── END OF STOCK CHANGES ──────────────────────────────────────────
 
     // ── STEP 6: Process items for invoice (amounts only, NO stock logic)
     //
@@ -862,14 +1083,14 @@ exports.updateInvoice = async (req, res, next) => {
     //   Same product + same rate + same discount → merge into one line
     //   Same product + different rate or discount → keep separate lines
     //
-    const mergeKey = (item) => {
+    const mergeKey = (item, index) => {
       const rate = item.ratePerUnit || productMap[item.productId.toString()]?.rate || productMap[item.productId.toString()]?.newMRP;
       return `${item.productId}_${rate}_${item.schemeDiscount || 0}`;
     };
 
     const mergedItemsMap = {};
-    for (const item of items) {
-      const key = mergeKey(item);
+    items.forEach((item, index) => {
+      const key = mergeKey(item, index);
       if (mergedItemsMap[key]) {
         mergedItemsMap[key].quantitySold += item.quantitySold;
         mergedItemsMap[key].freeQuantity += (item.freeQuantity || 0);
@@ -879,10 +1100,12 @@ exports.updateInvoice = async (req, res, next) => {
           quantitySold: item.quantitySold,
           freeQuantity: item.freeQuantity || 0,
           ratePerUnit: item.ratePerUnit,
-          schemeDiscount: item.schemeDiscount || 0
+          schemeDiscount: item.schemeDiscount || 0,
+          allocationMode: item.allocationMode,
+          manualAllocations: item.manualAllocations
         };
       }
-    }
+    });
 
     const processedItems = [];
     for (const item of Object.values(mergedItemsMap)) {
@@ -896,30 +1119,57 @@ exports.updateInvoice = async (req, res, next) => {
       }
 
       const rateToUse = item.ratePerUnit || product.rate || product.newMRP;
-      const amounts = calculateItemAmounts(
-        item.quantitySold,
-        rateToUse,
-        product.gstPercentage,
-        item.schemeDiscount || 0
-      );
-
-      processedItems.push({
-        product: {
-          _id: product._id,
-          productName: product.productName,
-          hsnCode: product.hsnCode,
-          pack: product.pack,
-          batchNo: product.batchNo || '',
-          expiryDate: product.expiryDate || null,
-          newMRP: product.newMRP,
-          gstPercentage: product.gstPercentage
-        },
+      const pItem = buildInvoiceItem({
+        product,
         quantitySold: item.quantitySold,
         freeQuantity: item.freeQuantity || 0,
         ratePerUnit: rateToUse,
-        schemeDiscount: item.schemeDiscount || 0,
-        ...amounts
+        mrp: product.newMRP,
+        gstPercentage: product.gstPercentage,
+        batchNo: product.batchNo || '',
+        expiryDate: product.expiryDate || null,
+        schemeDiscount: item.schemeDiscount || 0
       });
+
+      const totalQty = item.quantitySold + (item.freeQuantity || 0);
+
+      if (enableBatchTracking) {
+        let allocations = [];
+        if (item.allocationMode === 'MANUAL' && item.manualAllocations) {
+          allocations = await inventoryService.allocateManualStock(
+            tenantId, product._id, item.manualAllocations, totalQty, existingInvoice._id,
+            `${existingInvoice.invoiceNumber} - Edit`, session
+          );
+        } else {
+          allocations = await inventoryService.allocateFifoStock(
+            tenantId, product._id, totalQty, existingInvoice._id,
+            `${existingInvoice.invoiceNumber} - Edit`, session
+          );
+        }
+        processedItems.push(...splitInvoiceItemByBatchAllocations({
+          product,
+          item,
+          allocations,
+          allocationMode: item.allocationMode || 'AUTO'
+        }));
+        continue;
+      } else if (batchManagedProducts.has(product._id.toString())) {
+        // Full deduct for products that were batch-managed but aren't anymore
+        await Product.findOneAndUpdate(
+          { _id: product._id, tenantId },
+          {
+            $inc: { currentStockQty: -totalQty, stockVersion: 1 },
+            $push: {
+              stockHistory: {
+                type: 'invoice_edit', invoiceId: existingInvoice._id, changeQty: -totalQty,
+                reference: `${existingInvoice.invoiceNumber} - Edit (deducted ${totalQty})`, timestamp: new Date()
+              }
+            }
+          }, { session }
+        );
+      }
+
+      processedItems.push(pItem);
     }
 
     // ── STEP 7: Calculate totals ───────────────────────────────────────
@@ -1081,22 +1331,36 @@ exports.updateInvoiceStatus = async (req, res, next) => {
         for (const item of invoice.items) {
           const totalQty = item.quantitySold + (item.freeQuantity || 0);
 
-          await Product.findOneAndUpdate(
-            { _id: item.product._id, tenantId },
-            {
-              $inc: { currentStockQty: totalQty, stockVersion: 1 },
-              $push: {
-                stockHistory: {
-                  type: 'invoice_cancelled',
-                  invoiceId: invoice._id,
-                  changeQty: totalQty,
-                  reference: `${invoice.invoiceNumber} - Cancelled`,
-                  timestamp: new Date()
+          if (item.batchAllocations && item.batchAllocations.length > 0) {
+            const inventoryService = require('../../services/inventoryService');
+            await inventoryService.restoreBatchAllocations(
+              tenantId,
+              item.product._id,
+              item.batchAllocations,
+              totalQty,
+              invoice._id,
+              `${invoice.invoiceNumber} - Cancelled`,
+              'invoice_cancelled',
+              session
+            );
+          } else {
+            await Product.findOneAndUpdate(
+              { _id: item.product._id, tenantId },
+              {
+                $inc: { currentStockQty: totalQty, stockVersion: 1 },
+                $push: {
+                  stockHistory: {
+                    type: 'invoice_cancelled',
+                    invoiceId: invoice._id,
+                    changeQty: totalQty,
+                    reference: `${invoice.invoiceNumber} - Cancelled`,
+                    timestamp: new Date()
+                  }
                 }
-              }
-            },
-            { session }
-          );
+              },
+              { session }
+            );
+          }
         }
 
         // Reverse customer stats

@@ -47,6 +47,10 @@ const adminSchema = new mongoose.Schema({
       type: Boolean,
       default: true
     },
+    enableBatchTracking: {
+      type: Boolean,
+      default: false
+    },
     invoiceColumns: {
       type: [String],
       default: ['qty', 'free', 'productName', 'hsn', 'batchNo', 'expiry', 'mrp', 'rate', 'net', 'disc', 'gst', 'amount']

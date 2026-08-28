@@ -25,6 +25,20 @@ const generateToken = (id, role = 'admin') => {
   });
 };
 
+const getPopulatedEmployeeProfile = async (employee) => {
+  const profile = employee.getPublicProfile();
+  if (employee.createdByAdmin) {
+    const admin = await Admin.findById(employee.createdByAdmin).select('preferences').lean();
+    if (admin && admin.preferences) {
+      profile.preferences = {
+        ...admin.preferences,
+        ...profile.preferences
+      };
+    }
+  }
+  return profile;
+};
+
 /**
  * Create session for login tracking
  */
@@ -220,7 +234,7 @@ exports.login = async (req, res, next) => {
         success: true,
         role: 'employee',
         token,
-        employee: employee.getPublicProfile()
+        employee: await getPopulatedEmployeeProfile(employee)
       });
     }
 
@@ -301,7 +315,7 @@ exports.employeeLogin = async (req, res, next) => {
       success: true,
       role: 'employee',
       token,
-      employee: employee.getPublicProfile()
+      employee: await getPopulatedEmployeeProfile(employee)
     });
   } catch (error) {
     next(error);
@@ -325,7 +339,7 @@ exports.getMe = async (req, res, next) => {
       res.status(200).json({
         success: true,
         role: 'employee',
-        user: req.user.getPublicProfile()
+        user: await getPopulatedEmployeeProfile(req.user)
       });
     } else {
       // Return admin profile
@@ -509,7 +523,7 @@ const VALID_INVOICE_COLUMNS = new Set([
 
 exports.updatePreferences = async (req, res, next) => {
   try {
-    const { showCalculator, invoiceColumns } = req.body;
+    const { showCalculator, invoiceColumns, enableBatchTracking } = req.body;
     
     let user;
     if (req.userRole === 'employee') {
@@ -554,6 +568,14 @@ exports.updatePreferences = async (req, res, next) => {
     }
 
     await user.save();
+
+    if (enableBatchTracking !== undefined && req.userRole === 'admin') {
+      const { toggleBatchTracking } = require('../services/inventoryService');
+      if (user.preferences.enableBatchTracking !== enableBatchTracking) {
+        await toggleBatchTracking(user._id, enableBatchTracking);
+        user = await Admin.findById(req.user._id);
+      }
+    }
 
     res.status(200).json({
       success: true,

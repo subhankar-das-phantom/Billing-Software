@@ -7,6 +7,7 @@ const PERMISSIONS_REGISTRY = {
   notes: ['view', 'create', 'edit', 'delete'],
   reports: ['view'],
   inventory: ['view', 'create', 'edit', 'delete'],
+  batches: ['view', 'create', 'edit', 'delete'],
   ledger: ['view']
 };
 
@@ -44,6 +45,7 @@ const ROLE_PRESETS = {
     notes: ['view'],
     reports: ['view'],
     inventory: ['view'],
+    batches: ['view'],
     ledger: ['view']
   }, false),
   payment_collector: buildPermissions({

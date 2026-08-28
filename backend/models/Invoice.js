@@ -12,10 +12,30 @@ const invoiceItemSchema = new mongoose.Schema({
     newMRP: Number,
     gstPercentage: Number
   },
+  batchAllocations: [{
+    batchId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Batch'
+    },
+    batchNo: String,
+    quantity: {
+      type: Number,
+      required: true
+    },
+    expiryDate: Date,
+    rate: Number,
+    mrp: Number,
+    gstPercent: Number
+  }],
+  allocationMode: {
+    type: String,
+    enum: ['AUTO', 'MANUAL'],
+    default: 'AUTO'
+  },
   quantitySold: {
     type: Number,
     required: true,
-    min: 1
+    min: 0
   },
   freeQuantity: {
     type: Number,

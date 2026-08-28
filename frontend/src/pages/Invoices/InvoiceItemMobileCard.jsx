@@ -9,7 +9,10 @@ export default function InvoiceItemMobileCard({
   updateItemQuantity,
   removeItem,
   availableStock,
-  maxSoldQuantity
+  maxSoldQuantity,
+  enableBatchTracking,
+  allocationMode,
+  openBatchModal
 }) {
   return (
     <motion.div
@@ -23,8 +26,13 @@ export default function InvoiceItemMobileCard({
       <div className="p-4 border-b border-slate-700 bg-slate-800/50">
         <div className="flex justify-between items-start gap-4">
           <div>
-            <h3 className="font-semibold text-white text-base leading-tight">
+            <h3 className="font-semibold text-white text-base leading-tight flex items-center gap-2 flex-wrap">
               {item.product.productName}
+              {item._batchPreview && (
+                <span className="text-[10px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded border border-blue-500/20 font-normal">
+                  FIFO
+                </span>
+              )}
             </h3>
             {item.product.hsnCode && (
               <p className="text-xs text-slate-400 mt-1">HSN: {item.product.hsnCode}</p>
@@ -42,9 +50,28 @@ export default function InvoiceItemMobileCard({
             )}
           </div>
         </div>
-        <div className="mt-2 text-xs text-slate-400">
-          GST: <span className="text-slate-300 font-medium">{item.product.gstPercentage}%</span> (₹{item.gstAmount.toFixed(2)})
+        <div className="mt-2 text-xs text-slate-400 flex items-center justify-between">
+          <span>
+            GST: <span className="text-slate-300 font-medium">{item.product.gstPercentage}%</span> (₹{item.gstAmount.toFixed(2)})
+          </span>
+          {enableBatchTracking && allocationMode === 'AUTO' && (
+            <span className="text-emerald-400 text-[11px] bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 font-mono">
+              Batch: {item.product?.batchNo || item.batchNo || 'No Batch #'}
+            </span>
+          )}
         </div>
+        
+        {enableBatchTracking && allocationMode === 'MANUAL' && (
+          <div className="mt-2">
+            <button 
+              onClick={() => openBatchModal(index, item)}
+              className="text-xs text-blue-400 hover:text-blue-300 underline"
+            >
+              {item.manualAllocations ? 'Edit Batch Allocation' : 'Select Batches'} 
+              {item.manualAllocations && ` (${item.manualAllocations.reduce((s, a) => s + a.quantity, 0)}/${(Number(item.quantitySold) || 0) + (Number(item.freeQuantity) || 0)})`}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Body: Inputs */}

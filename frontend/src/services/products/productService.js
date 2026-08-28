@@ -592,18 +592,20 @@ export const productService = {
     }
   },
 
+  // ────────────────────────────────────────────────────────────────────────
+  // Batch Operations
+  // ────────────────────────────────────────────────────────────────────────
+
   /**
-   * Generate barcode for product
-   * @param {string} id - Product ID
-   * @param {object} options - Barcode options (format, size)
-   * @returns {Promise<Blob>} - Barcode image blob
+   * Get active batches for a product
+   * @param {string} productId - Product ID
+   * @returns {Promise<{batches: array}>}
    */
-  generateBarcode: async (id, options = {}) => {
+  getBatches: async (productId) => {
     try {
-      const response = await api.get(`/products/${id}/barcode`, {
-        params: options,
-        responseType: 'blob'
-      });
+      const rawId = productId?._id || productId?.id || productId;
+      const pidStr = typeof rawId === 'object' ? String(rawId?._id || rawId?.id || rawId) : String(rawId);
+      const response = await api.get('/batches', { params: { productId: pidStr } });
       return response.data;
     } catch (error) {
       throw error;
@@ -611,17 +613,62 @@ export const productService = {
   },
 
   /**
-   * Generate product label
-   * @param {string} id - Product ID
-   * @param {object} options - Label options
-   * @returns {Promise<Blob>} - Label PDF blob
+   * Add a new batch to a product
+   * @param {string} productId - Product ID
+   * @param {object} batchData - Batch details
+   * @returns {Promise<{success: boolean, batch: object}>}
    */
-  generateLabel: async (id, options = {}) => {
+  addBatch: async (productId, batchData) => {
     try {
-      const response = await api.get(`/products/${id}/label`, {
-        params: options,
-        responseType: 'blob'
-      });
+      const response = await api.post('/batches', { ...batchData, productId });
+      clearCache();
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
+   * Update a batch
+   * @param {string} batchId - Batch ID
+   * @param {object} batchData - Updated batch details
+   * @returns {Promise<{success: boolean, batch: object}>}
+   */
+  updateBatch: async (batchId, batchData) => {
+    try {
+      const response = await api.put(`/batches/${batchId}`, batchData);
+      clearCache();
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
+   * Delete a batch
+   * @param {string} batchId - Batch ID
+   * @returns {Promise<{success: boolean}>}
+   */
+  deleteBatch: async (batchId) => {
+    try {
+      const response = await api.delete(`/batches/${batchId}`);
+      clearCache();
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
+   * Adjust stock for a specific batch
+   * @param {string} batchId - Batch ID
+   * @param {object} data - Adjustment details (quantity, type, reason)
+   * @returns {Promise<{success: boolean, batch: object}>}
+   */
+  adjustBatchStock: async (batchId, data) => {
+    try {
+      const response = await api.post(`/batches/${batchId}/adjust`, data);
+      clearCache();
       return response.data;
     } catch (error) {
       throw error;
@@ -976,7 +1023,7 @@ export const productUtils = {
           key = `${product.gstPercentage || 0}%`;
           break;
         case 'stockStatus':
-          const status = productUtils.getStockStatus(product.currentStockQty);
+          const status = productUtils.getStockStatus(product.effectiveStockQty ?? product.currentStockQty ?? 0);
           key = status.label;
           break;
         default:
@@ -1030,7 +1077,7 @@ export const productUtils = {
 
       // Stock status filter
       if (filters.stockStatus) {
-        const status = productUtils.getStockStatus(product.currentStockQty);
+        const status = productUtils.getStockStatus(product.effectiveStockQty ?? product.currentStockQty ?? 0);
         if (status.status !== filters.stockStatus) return false;
       }
 
@@ -1092,7 +1139,7 @@ export const productAnalytics = {
    */
   calculateInventoryValue: (products) => {
     return products.reduce((total, product) => {
-      const value = (product.newMRP || 0) * (product.currentStockQty || 0);
+      const value = (product.newMRP || 0) * (product.effectiveStockQty ?? product.currentStockQty ?? 0);
       return total + value;
     }, 0);
   },
@@ -1111,7 +1158,7 @@ export const productAnalytics = {
     };
 
     products.forEach(product => {
-      const status = productUtils.getStockStatus(product.currentStockQty);
+      const status = productUtils.getStockStatus(product.effectiveStockQty ?? product.currentStockQty ?? 0);
       
       switch (status.status) {
         case 'out':
@@ -1145,7 +1192,7 @@ export const productAnalytics = {
         distribution[gst] = { count: 0, value: 0 };
       }
       distribution[gst].count++;
-      distribution[gst].value += (product.newMRP || 0) * (product.currentStockQty || 0);
+      distribution[gst].value += (product.newMRP || 0) * (product.effectiveStockQty ?? product.currentStockQty ?? 0);
     });
 
     return distribution;

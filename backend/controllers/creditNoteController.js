@@ -7,6 +7,8 @@ const Admin = require('../models/Admin');
 const { calculateItemAmounts, round } = require('../utils/invoiceCalculator');
 const { getAttribution } = require('../middleware/auth');
 const getTenantId = require('../utils/getTenantId');
+const Batch = require('../models/Batch');
+const inventoryService = require('../services/inventoryService');
 
 // @desc    Create credit note (sales return)
 // @route   POST /api/credit-notes
@@ -18,6 +20,9 @@ exports.createCreditNote = async (req, res, next) => {
   try {
     const { invoiceId, items, reason } = req.body;
     const tenantId = getTenantId(req);
+
+    const tenant = await Admin.findById(tenantId).select('preferences').lean();
+    const enableBatchTracking = tenant?.preferences?.enableBatchTracking === true;
 
     // 1. Validate invoice
     const invoice = await Invoice.findOne({
@@ -45,7 +50,7 @@ exports.createCreditNote = async (req, res, next) => {
     const alreadyReturned = {};
     for (const cn of existingCreditNotes) {
       for (const item of cn.items) {
-        const key = item.productId.toString();
+        const key = item.invoiceItemId?.toString() || item.productId.toString();
         alreadyReturned[key] = (alreadyReturned[key] || 0) + item.quantityReturned;
       }
     }
@@ -54,10 +59,14 @@ exports.createCreditNote = async (req, res, next) => {
     const processedItems = [];
     
     for (const returnItem of items) {
-      // Find the matching invoice item
-      const invoiceItem = invoice.items.find(ii => 
-        ii.product._id.toString() === returnItem.productId
-      );
+      // Find the matching invoice row first; split batch invoices can have
+      // multiple rows for the same product with different commercial values.
+      const invoiceItem = returnItem.invoiceItemId
+        ? invoice.items.id(returnItem.invoiceItemId)
+        : invoice.items.find(ii =>
+            ii.product._id.toString() === returnItem.productId
+            && (!returnItem.batchId || ii.batchAllocations?.some(a => a.batchId?.toString() === returnItem.batchId))
+          );
 
       if (!invoiceItem) {
         await session.abortTransaction();
@@ -68,9 +77,9 @@ exports.createCreditNote = async (req, res, next) => {
       }
 
       // Check return quantity against sold quantity minus already returned
-      const key = returnItem.productId;
+      const key = invoiceItem._id?.toString() || returnItem.productId;
       const previouslyReturned = alreadyReturned[key] || 0;
-      const maxReturnable = invoiceItem.quantitySold - previouslyReturned;
+      const maxReturnable = Math.max(0, invoiceItem.quantitySold - previouslyReturned);
 
       if (returnItem.quantityReturned > maxReturnable) {
         await session.abortTransaction();
@@ -95,7 +104,10 @@ exports.createCreditNote = async (req, res, next) => {
       );
 
       processedItems.push({
+        invoiceItemId: invoiceItem._id,
         productId: invoiceItem.product._id,
+        batchId: returnItem.batchId,
+        batchNo: returnItem.batchNo || invoiceItem.batchAllocations?.[0]?.batchNo || invoiceItem.product.batchNo,
         productName: invoiceItem.product.productName,
         quantityReturned: returnItem.quantityReturned,
         rate,
@@ -107,22 +119,44 @@ exports.createCreditNote = async (req, res, next) => {
         totalAmount: amounts.totalAmount
       });
 
-      // 4. Restore stock to product's currentStockQty
-      await Product.findOneAndUpdate(
-        { _id: invoiceItem.product._id, tenantId },
-        {
-          $inc: { currentStockQty: returnItem.quantityReturned, stockVersion: 1 },
-          $push: {
-            stockHistory: {
-              type: 'sales_return',
-              changeQty: returnItem.quantityReturned,
-              reference: 'Sales Return: CN-NEW',
-              timestamp: new Date()
+      // 4. Restore stock to product's currentStockQty or Batch
+      const batchAllocation = returnItem.batchId
+        ? invoiceItem.batchAllocations?.find(a => a.batchId?.toString() === returnItem.batchId)
+        : invoiceItem.batchAllocations?.[0];
+
+      if (enableBatchTracking && batchAllocation?.batchId) {
+        const allocationForRestore = typeof batchAllocation.toObject === 'function'
+          ? batchAllocation.toObject()
+          : batchAllocation;
+
+        // If it's a batch return, we restore it to the batch
+        await inventoryService.restoreBatchAllocations(
+          tenantId,
+          invoiceItem.product._id,
+          [{ ...allocationForRestore, quantity: returnItem.quantityReturned }],
+          returnItem.quantityReturned,
+          invoice._id,
+          `Sales Return: CN-NEW`,
+          'sales_return',
+          session
+        );
+      } else {
+        await Product.findOneAndUpdate(
+          { _id: invoiceItem.product._id, tenantId },
+          {
+            $inc: { currentStockQty: returnItem.quantityReturned, stockVersion: 1 },
+            $push: {
+              stockHistory: {
+                type: 'sales_return',
+                changeQty: returnItem.quantityReturned,
+                reference: 'Sales Return: CN-NEW',
+                timestamp: new Date()
+              }
             }
-          }
-        },
-        { session }
-      );
+          },
+          { session }
+        );
+      }
     }
 
     if (processedItems.length === 0) {
@@ -256,11 +290,12 @@ exports.getCreditNotesByInvoice = async (req, res, next) => {
       invoiceId: req.params.invoiceId
     }).sort({ createdAt: -1 });
 
-    // Calculate total returned per product
+    // Calculate total returned per invoice row when available; fall back to product
+    // for credit notes created before row-level tracking existed.
     const returnSummary = {};
     for (const cn of creditNotes) {
       for (const item of cn.items) {
-        const key = item.productId.toString();
+        const key = item.invoiceItemId?.toString() || item.productId.toString();
         if (!returnSummary[key]) {
           returnSummary[key] = {
             productName: item.productName,
