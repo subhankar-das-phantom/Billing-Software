@@ -468,28 +468,21 @@ export const toggleBatchTracking = async (
       if (productIds.length > 0) {
         const batchAgg = await Batch.aggregate([
           { $match: { tenantId: tenantObjectId, productId: { $in: productIds }, isActive: true } },
+          { $sort: { updatedAt: -1 } },
           {
             $group: {
               _id: '$productId',
               totalStock: { $sum: '$remainingQty' },
-              batchNos: { $addToSet: '$batchNo' }
+              latestBatch: { $first: '$$ROOT' }
             }
           }
         ]).session(session);
 
         const stockMap = new Map();
-        batchAgg.forEach(b => stockMap.set(b._id.toString(), b.totalStock));
-        const batchNoMap = new Map();
+        const latestBatchMap = new Map();
         batchAgg.forEach(b => {
-          const namedBatchNos = [...new Set(
-            (b.batchNos || [])
-              .map((batchNo: unknown) => normalizeBatchNo(batchNo))
-              .filter((batchNo: string) => batchNo !== NO_BATCH_BATCH_NO)
-          )];
-          batchNoMap.set(
-            b._id.toString(),
-            namedBatchNos.length === 1 ? normalizeBatchNo(namedBatchNos[0]) : NO_BATCH_BATCH_NO
-          );
+          stockMap.set(b._id.toString(), b.totalStock);
+          latestBatchMap.set(b._id.toString(), b.latestBatch);
         });
 
         const timestamp = new Date();
@@ -497,12 +490,25 @@ export const toggleBatchTracking = async (
         for (const migration of migrations) {
           const pid = migration.productId.toString();
           const effectiveStock = stockMap.get(pid) || 0;
-          const batchNo = batchNoMap.get(pid) || NO_BATCH_BATCH_NO;
+          const latestBatch = latestBatchMap.get(pid);
+
+          const updateSet: any = { 
+            currentStockQty: effectiveStock, 
+            batchNo: '' 
+          };
+
+          if (latestBatch) {
+            updateSet.batchNo = latestBatch.batchNo === NO_BATCH_BATCH_NO ? '' : latestBatch.batchNo;
+            if (latestBatch.rate !== undefined) updateSet.rate = latestBatch.rate;
+            if (latestBatch.mrp !== undefined) updateSet.newMRP = latestBatch.mrp;
+            if (latestBatch.gstPercent !== undefined) updateSet.gstPercentage = latestBatch.gstPercent;
+            if (latestBatch.expiryDate !== undefined) updateSet.expiryDate = latestBatch.expiryDate;
+          }
 
           await Product.updateOne(
             { _id: pid, tenantId },
             { 
-              $set: { currentStockQty: effectiveStock, batchNo },
+              $set: updateSet,
               $inc: { stockVersion: 1 }
             },
             { session }
