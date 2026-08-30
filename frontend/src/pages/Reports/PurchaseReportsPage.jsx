@@ -1,8 +1,22 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ShoppingCart, Calendar, ArrowUpRight, ArrowDownRight, Package, Users } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { 
+  ShoppingCart, 
+  Calendar, 
+  ArrowUpRight, 
+  ArrowDownRight, 
+  Package, 
+  Users, 
+  Loader2, 
+  DollarSign, 
+  Clock, 
+  XCircle,
+  FileBarChart
+} from 'lucide-react';
 import { purchaseReportService } from '../../services/reports/purchaseReportService';
 import { formatCurrency } from '../../utils/formatters';
 import { useToast } from '../../contexts/ToastContext';
+import { useMotionConfig } from '../../hooks';
 
 export default function PurchaseReportsPage() {
   const [loading, setLoading] = useState(true);
@@ -14,11 +28,14 @@ export default function PurchaseReportsPage() {
   const [dateTo, setDateTo] = useState('');
 
   const { showToast } = useToast();
+  const motionConfig = useMotionConfig();
 
   const fetchReports = useCallback(async () => {
     try {
       setLoading(true);
-      const params = { dateFrom, dateTo };
+      const params = {};
+      if (dateFrom) params.dateFrom = dateFrom;
+      if (dateTo) params.dateTo = dateTo;
       
       const [sumData, supData, prodData] = await Promise.all([
         purchaseReportService.getPurchaseSummary(params),
@@ -27,8 +44,8 @@ export default function PurchaseReportsPage() {
       ]);
       
       setSummary(sumData.data);
-      setSupplierData(supData.data);
-      setProductData(prodData.data);
+      setSupplierData(supData.data || []);
+      setProductData(prodData.data || []);
     } catch (error) {
       showToast('Failed to load purchase reports', 'error');
     } finally {
@@ -41,159 +58,205 @@ export default function PurchaseReportsPage() {
   }, [fetchReports]);
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-          <ShoppingCart className="text-indigo-600" />
-          Purchase Reports
-        </h1>
-      </div>
-
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6 flex gap-4 items-end">
-        <div>
-          <label className="block text-sm text-gray-600 mb-1">From Date (Purchase Date)</label>
-          <input
-            type="date"
-            className="border rounded px-3 py-2 text-sm"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-          />
+    <div className="space-y-6">
+      {/* Header & Date Filters */}
+      <div className="glass-card p-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-blue-500/20 text-blue-400 rounded-xl">
+              <FileBarChart className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white">Purchase Analytics & Reports</h2>
+              <p className="text-xs text-slate-400 mt-0.5">Comprehensive vendor and item purchase breakdown</p>
+            </div>
+          </div>
         </div>
-        <div>
-          <label className="block text-sm text-gray-600 mb-1">To Date (Purchase Date)</label>
-          <input
-            type="date"
-            className="border rounded px-3 py-2 text-sm"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-          />
+
+        {/* Date Filter Bar */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-4 border-t border-slate-700/50">
+          <div>
+            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">From Date</label>
+            <input
+              type="date"
+              className="input w-full"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">To Date</label>
+            <input
+              type="date"
+              className="input w-full"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+            />
+          </div>
+          {(dateFrom || dateTo) && (
+            <div className="flex items-end">
+              <button
+                onClick={() => { setDateFrom(''); setDateTo(''); }}
+                className="btn btn-secondary text-xs h-10 w-full flex items-center justify-center gap-1.5"
+              >
+                <XCircle className="w-4 h-4" />
+                Clear Filters
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
       {loading ? (
-        <div className="text-center p-12 text-gray-500">Loading reports...</div>
+        <div className="glass-card p-12 text-center text-slate-400">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-400 mb-3" />
+          <p>Loading purchase reports...</p>
+        </div>
       ) : (
         <div className="space-y-6">
-          {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-white rounded-lg border p-4 flex items-center shadow-sm border-l-4 border-l-blue-500">
-              <div className="flex-1">
-                <p className="text-sm text-gray-500 mb-1">Total Purchases</p>
-                <h3 className="text-2xl font-bold text-gray-800">{summary?.totalPurchases || 0}</h3>
+          {/* Summary Metric Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="glass-card p-5 group hover:-translate-y-1 transition-all">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Total Purchases</p>
+                  <h3 className="text-2xl font-bold text-white">{summary?.totalPurchases || 0}</h3>
+                </div>
+                <div className="p-3 bg-blue-500/20 text-blue-400 rounded-xl group-hover:scale-110 transition-transform">
+                  <ShoppingCart className="w-6 h-6" />
+                </div>
               </div>
-              <div className="p-3 bg-blue-50 rounded-full text-blue-600"><ShoppingCart /></div>
             </div>
             
-            <div className="bg-white rounded-lg border p-4 flex items-center shadow-sm border-l-4 border-l-green-500">
-              <div className="flex-1">
-                <p className="text-sm text-gray-500 mb-1">Completed Value</p>
-                <h3 className="text-2xl font-bold text-gray-800">{formatCurrency(summary?.completed?.value || 0)}</h3>
-                <p className="text-xs text-green-600 font-medium mt-1">{summary?.completed?.count || 0} transactions</p>
+            <div className="glass-card p-5 group hover:-translate-y-1 transition-all">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Completed Value</p>
+                  <h3 className="text-2xl font-bold text-emerald-400">{formatCurrency(summary?.completed?.value || 0)}</h3>
+                  <p className="text-xs text-emerald-500 font-medium mt-1">{summary?.completed?.count || 0} received</p>
+                </div>
+                <div className="p-3 bg-emerald-500/20 text-emerald-400 rounded-xl group-hover:scale-110 transition-transform">
+                  <ArrowUpRight className="w-6 h-6" />
+                </div>
               </div>
-              <div className="p-3 bg-green-50 rounded-full text-green-600"><ArrowUpRight /></div>
             </div>
             
-            <div className="bg-white rounded-lg border p-4 flex items-center shadow-sm border-l-4 border-l-red-500">
-              <div className="flex-1">
-                <p className="text-sm text-gray-500 mb-1">Cancelled Value</p>
-                <h3 className="text-2xl font-bold text-gray-800">{formatCurrency(summary?.cancelled?.value || 0)}</h3>
-                <p className="text-xs text-red-600 font-medium mt-1">{summary?.cancelled?.count || 0} transactions</p>
+            <div className="glass-card p-5 group hover:-translate-y-1 transition-all">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Cancelled Value</p>
+                  <h3 className="text-2xl font-bold text-rose-400">{formatCurrency(summary?.cancelled?.value || 0)}</h3>
+                  <p className="text-xs text-rose-500 font-medium mt-1">{summary?.cancelled?.count || 0} cancelled</p>
+                </div>
+                <div className="p-3 bg-rose-500/20 text-rose-400 rounded-xl group-hover:scale-110 transition-transform">
+                  <ArrowDownRight className="w-6 h-6" />
+                </div>
               </div>
-              <div className="p-3 bg-red-50 rounded-full text-red-600"><ArrowDownRight /></div>
             </div>
 
-            <div className="bg-white rounded-lg border p-4 flex items-center shadow-sm border-l-4 border-l-yellow-500">
-              <div className="flex-1">
-                <p className="text-sm text-gray-500 mb-1">Draft Value</p>
-                <h3 className="text-2xl font-bold text-gray-800">{formatCurrency(summary?.draft?.value || 0)}</h3>
-                <p className="text-xs text-yellow-600 font-medium mt-1">{summary?.draft?.count || 0} pending</p>
+            <div className="glass-card p-5 group hover:-translate-y-1 transition-all">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Draft Value</p>
+                  <h3 className="text-2xl font-bold text-amber-400">{formatCurrency(summary?.draft?.value || 0)}</h3>
+                  <p className="text-xs text-amber-500 font-medium mt-1">{summary?.draft?.count || 0} pending</p>
+                </div>
+                <div className="p-3 bg-amber-500/20 text-amber-400 rounded-xl group-hover:scale-110 transition-transform">
+                  <Clock className="w-6 h-6" />
+                </div>
               </div>
-              <div className="p-3 bg-yellow-50 rounded-full text-yellow-600"><Calendar /></div>
             </div>
           </div>
 
+          {/* Analysis Grids */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Supplier Wise */}
-            <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-              <div className="p-4 border-b bg-gray-50 flex items-center gap-2">
-                <Users size={18} className="text-gray-500" />
-                <h2 className="font-semibold text-gray-700">Supplier Wise Analysis</h2>
+            {/* Supplier Wise Analysis */}
+            <div className="glass-card overflow-hidden">
+              <div className="p-4 border-b border-slate-700/50 bg-slate-800/40 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-white font-semibold">
+                  <Users size={18} className="text-blue-400" />
+                  Supplier Wise Analysis
+                </div>
+                <span className="text-xs text-slate-400">{supplierData.length} Suppliers</span>
               </div>
-              <div className="overflow-y-auto max-h-96">
+              <div className="overflow-x-auto max-h-96">
                 <table className="w-full text-left border-collapse text-sm">
-                  <thead className="bg-white sticky top-0">
-                    <tr className="text-gray-600 border-b">
+                  <thead className="bg-slate-800/70 sticky top-0 text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-700/50">
+                    <tr>
                       <th className="p-3">Supplier</th>
                       <th className="p-3">Status</th>
-                      <th className="p-3 text-right">Count</th>
-                      <th className="p-3 text-right">Total Value</th>
+                      <th className="p-3 text-right">Bills</th>
+                      <th className="p-3 text-right">Total (₹)</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-slate-700/40">
                     {supplierData.map((row, i) => (
-                      <tr key={i} className="border-b hover:bg-gray-50">
-                        <td className="p-3 font-medium text-gray-800">{row.supplierName || 'Unknown'}</td>
+                      <tr key={i} className="hover:bg-slate-800/30 transition-colors">
+                        <td className="p-3 font-medium text-white">{row.supplierName || 'Unknown'}</td>
                         <td className="p-3">
-                          <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                            row.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
-                            row.status === 'CANCELLED' ? 'bg-red-100 text-red-700' :
-                            'bg-yellow-100 text-yellow-700'
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                            row.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                            row.status === 'CANCELLED' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
+                            'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                           }`}>
                             {row.status}
                           </span>
                         </td>
-                        <td className="p-3 text-right">{row.count}</td>
-                        <td className="p-3 text-right font-medium">{formatCurrency(row.totalValue)}</td>
+                        <td className="p-3 text-right text-slate-300">{row.count}</td>
+                        <td className="p-3 text-right font-bold text-emerald-400">{formatCurrency(row.totalValue)}</td>
                       </tr>
                     ))}
                     {supplierData.length === 0 && (
-                      <tr><td colSpan="4" className="p-4 text-center text-gray-500">No data found</td></tr>
+                      <tr><td colSpan="4" className="p-8 text-center text-slate-500">No supplier data found</td></tr>
                     )}
                   </tbody>
                 </table>
               </div>
             </div>
 
-            {/* Product Wise */}
-            <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-              <div className="p-4 border-b bg-gray-50 flex items-center gap-2">
-                <Package size={18} className="text-gray-500" />
-                <h2 className="font-semibold text-gray-700">Product Wise Analysis</h2>
+            {/* Product Wise Analysis */}
+            <div className="glass-card overflow-hidden">
+              <div className="p-4 border-b border-slate-700/50 bg-slate-800/40 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-white font-semibold">
+                  <Package size={18} className="text-teal-400" />
+                  Product Wise Analysis
+                </div>
+                <span className="text-xs text-slate-400">{productData.length} Products</span>
               </div>
-              <div className="overflow-y-auto max-h-96">
+              <div className="overflow-x-auto max-h-96">
                 <table className="w-full text-left border-collapse text-sm">
-                  <thead className="bg-white sticky top-0">
-                    <tr className="text-gray-600 border-b">
+                  <thead className="bg-slate-800/70 sticky top-0 text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-700/50">
+                    <tr>
                       <th className="p-3">Product</th>
                       <th className="p-3">Status</th>
                       <th className="p-3 text-right">Qty</th>
                       <th className="p-3 text-right">Free</th>
-                      <th className="p-3 text-right">Value</th>
+                      <th className="p-3 text-right">Value (₹)</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-slate-700/40">
                     {productData.map((row, i) => (
-                      <tr key={i} className="border-b hover:bg-gray-50">
+                      <tr key={i} className="hover:bg-slate-800/30 transition-colors">
                         <td className="p-3">
-                          <div className="font-medium text-gray-800">{row.productName || 'Unknown'}</div>
-                          <div className="text-xs text-gray-500">{row.sku}</div>
+                          <div className="font-medium text-white">{row.productName || 'Unknown'}</div>
+                          {row.sku && <div className="text-xs text-slate-500">{row.sku}</div>}
                         </td>
                         <td className="p-3">
-                          <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                            row.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
-                            row.status === 'CANCELLED' ? 'bg-red-100 text-red-700' :
-                            'bg-yellow-100 text-yellow-700'
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                            row.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                            row.status === 'CANCELLED' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
+                            'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                           }`}>
                             {row.status}
                           </span>
                         </td>
-                        <td className="p-3 text-right">{row.quantity}</td>
-                        <td className="p-3 text-right text-gray-500">{row.freeQuantity}</td>
-                        <td className="p-3 text-right font-medium">{formatCurrency(row.totalValue)}</td>
+                        <td className="p-3 text-right text-slate-200">{row.quantity}</td>
+                        <td className="p-3 text-right text-slate-500">{row.freeQuantity || 0}</td>
+                        <td className="p-3 text-right font-bold text-emerald-400">{formatCurrency(row.totalValue)}</td>
                       </tr>
                     ))}
                     {productData.length === 0 && (
-                      <tr><td colSpan="5" className="p-4 text-center text-gray-500">No data found</td></tr>
+                      <tr><td colSpan="5" className="p-8 text-center text-slate-500">No product purchase data found</td></tr>
                     )}
                   </tbody>
                 </table>
