@@ -55,11 +55,12 @@ export default function SupplierFormModal({ isOpen, onClose, supplier, onSuccess
       if (supplier && supplier._id) {
         await supplierService.updateSupplier(supplier._id, formData);
         showToast('Supplier updated successfully', 'success');
+        if (onSuccess) onSuccess(supplier);
       } else {
-        await supplierService.createSupplier(formData);
+        const res = await supplierService.createSupplier(formData);
         showToast('Supplier created successfully', 'success');
+        if (onSuccess) onSuccess(res?.supplier || res);
       }
-      if (onSuccess) onSuccess();
       onClose();
     } catch (error) {
       console.error('Error saving supplier:', error);
