@@ -15,7 +15,7 @@ const PERMISSION_MODULES = {
   inventory: { label: 'Inventory', actions: ['view', 'create', 'edit', 'delete'] },
   ledger: { label: 'Ledger', actions: ['view'] },
   suppliers: { label: 'Suppliers', actions: ['view', 'create', 'edit', 'delete'] },
-  purchases: { label: 'Purchases', actions: ['view', 'create', 'edit', 'delete', 'cancel'] }
+  purchases: { label: 'Purchases', actions: ['view', 'create', 'edit', 'cancel'] }
 };
 
 const ROLES = [

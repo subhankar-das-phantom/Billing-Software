@@ -10,7 +10,7 @@ const PERMISSIONS_REGISTRY = {
   batches: ['view', 'create', 'edit', 'delete'],
   ledger: ['view'],
   suppliers: ['view', 'create', 'edit', 'delete'],
-  purchases: ['view', 'create', 'edit', 'delete', 'cancel']
+  purchases: ['view', 'create', 'edit', 'cancel']
 };
 
 const buildPermissions = (modules, defaultAccess = false) => {

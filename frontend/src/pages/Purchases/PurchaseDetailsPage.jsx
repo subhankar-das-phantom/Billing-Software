@@ -145,7 +145,7 @@ export default function PurchaseDetailsPage() {
                   </button>
                 </>
               )}
-              {(isAdmin || hasPermission('purchases', 'delete')) && (
+              {(isAdmin || hasPermission('purchases', 'edit')) && (
                 <button
                   onClick={handleDelete}
                   className="flex items-center gap-2 bg-slate-800/80 border border-red-500/30 text-red-400 px-5 py-2.5 rounded-xl hover:bg-red-500/10 hover:border-red-500/50 transition-all font-semibold active:scale-95"

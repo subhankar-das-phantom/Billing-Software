@@ -595,7 +595,7 @@ export default function PurchasesPage() {
                                     <CheckCircle className="w-4 h-4" />
                                   </button>
                                 )}
-                                {(isAdmin || hasPermission('purchases', 'delete')) && (
+                                {(isAdmin || hasPermission('purchases', 'edit')) && (
                                   <button
                                     type="button"
                                     onClick={() => handleDelete(purchase._id)}

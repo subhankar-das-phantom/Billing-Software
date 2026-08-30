@@ -29,7 +29,7 @@ router.get('/export', requirePermission('purchases', 'view'), exportPurchases);
 router.route('/:id')
   .get(requirePermission('purchases', 'view'), mongoIdParam, getPurchase)
   .put(requirePermission('purchases', 'edit'), mongoIdParam, updatePurchase)
-  .delete(requirePermission('purchases', 'delete'), mongoIdParam, deletePurchase);
+  .delete(requirePermission('purchases', 'edit'), mongoIdParam, deletePurchase);
 
 router.post('/:id/complete', requirePermission('purchases', 'edit'), mongoIdParam, completePurchase);
 router.post('/:id/cancel', requirePermission('purchases', 'cancel'), mongoIdParam, cancelPurchaseController);
