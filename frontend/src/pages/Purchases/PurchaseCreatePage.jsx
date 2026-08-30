@@ -137,6 +137,7 @@ export default function PurchaseCreatePage() {
   const [showSupplierDropdown, setShowSupplierDropdown] = useState(false);
   const [isAddSupplierModalOpen, setIsAddSupplierModalOpen] = useState(false);
   const latestSupplierSearchRequest = useRef(0);
+  const supplierSearchContainerRef = useRef(null);
 
   // Product Search State
   const [productSearch, setProductSearch] = useState('');
@@ -145,6 +146,7 @@ export default function PurchaseCreatePage() {
   const [isProductSearchLoading, setIsProductSearchLoading] = useState(false);
   const [showProductDropdown, setShowProductDropdown] = useState(false);
   const latestProductSearchRequest = useRef(0);
+  const productSearchContainerRef = useRef(null);
 
   // Refs for real-time stock sync
   const itemsRef = useRef(items);
@@ -154,6 +156,28 @@ export default function PurchaseCreatePage() {
   useEffect(() => {
     itemsRef.current = items;
   }, [items]);
+
+  // Click outside to dismiss search dropdowns
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (
+        supplierSearchContainerRef.current &&
+        !supplierSearchContainerRef.current.contains(e.target)
+      ) {
+        setShowSupplierDropdown(false);
+      }
+      if (
+        productSearchContainerRef.current &&
+        !productSearchContainerRef.current.contains(e.target)
+      ) {
+        setShowProductDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   // Helper for checking canceled async requests
   const isRequestCanceled = (err) =>
@@ -633,7 +657,7 @@ export default function PurchaseCreatePage() {
       </div>
 
       {/* Supplier Selection Card */}
-      <motion.div variants={cardVariants} className="glass-card p-6 relative z-50">
+      <motion.div variants={cardVariants} className="glass-card p-6 relative z-20">
         <div className="flex items-center justify-between gap-3 mb-6">
           <div className="flex items-center gap-3">
             <motion.div 
@@ -656,7 +680,7 @@ export default function PurchaseCreatePage() {
           </button>
         </div>
 
-        <div className="relative">
+        <div ref={supplierSearchContainerRef} className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
           <input
             type="text"
@@ -677,7 +701,7 @@ export default function PurchaseCreatePage() {
                 initial="hidden"
                 animate="visible"
                 exit="exit"
-                className="absolute z-50 w-full mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl max-h-60 overflow-y-auto"
+                className="absolute z-30 w-full mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl max-h-60 overflow-y-auto"
               >
                 {isSupplierSearchLoading && (
                   <div className="px-4 py-3 text-sm text-slate-300 flex items-center gap-2">
@@ -818,7 +842,7 @@ export default function PurchaseCreatePage() {
       </motion.div>
 
       {/* Product Selection Card */}
-      <motion.div variants={cardVariants} className="glass-card p-6 relative z-40">
+      <motion.div variants={cardVariants} className="glass-card p-6 relative z-10">
         <div className="flex items-center gap-3 mb-6">
           <motion.div 
             className="p-2 bg-accent-500/20 rounded-lg"
@@ -858,7 +882,7 @@ export default function PurchaseCreatePage() {
           )}
         </div>
 
-        <div className="relative mb-4">
+        <div ref={productSearchContainerRef} className="relative mb-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
           <input
             type="text"
@@ -879,7 +903,7 @@ export default function PurchaseCreatePage() {
                 initial="hidden"
                 animate="visible"
                 exit="exit"
-                className="absolute z-50 w-full mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl max-h-60 overflow-y-auto"
+                className="absolute z-30 w-full mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl max-h-60 overflow-y-auto"
               >
                 {isProductSearchLoading && (
                   <div className="px-4 py-3 text-sm text-slate-300 flex items-center gap-2">
