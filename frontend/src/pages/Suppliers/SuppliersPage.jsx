@@ -172,6 +172,9 @@ export default function SuppliersPage() {
   const [searchInput, setSearchInput] = useState('');
   const [search] = useDebounce(searchInput);
   const [statusFilter, setStatusFilter] = useState('active');
+  const [page, setPage] = useState(1);
+  const [accumulatedSuppliers, setAccumulatedSuppliers] = useState([]);
+  const observer = useRef(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState(null);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, supplier: null });
@@ -184,13 +187,53 @@ export default function SuppliersPage() {
 
   // SWR: Suppliers List with search & caching
   const { data, isLoading, isValidating, mutate } = useSWR(
-    `suppliers-page-${search}`,
-    () => supplierService.getSuppliers({ search, limit: 200 }),
+    `suppliers-page-${search}-${page}`,
+    () => supplierService.getSuppliers({ search, page, limit: 30 }),
     { ttl: 5 * 60 * 1000 }
   );
 
-  const suppliers = data?.suppliers || [];
+  const suppliers = accumulatedSuppliers.length > 0 ? accumulatedSuppliers : (data?.suppliers || []);
   const totalCount = data?.total || suppliers.length;
+  const hasMore = data?.pages ? page < data.pages : false;
+
+  // Reset page when search changes
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
+
+  // Accumulate suppliers as pages arrive
+  useEffect(() => {
+    if (!data?.suppliers) return;
+
+    if (page === 1) {
+      setAccumulatedSuppliers(data.suppliers);
+      return;
+    }
+
+    setAccumulatedSuppliers(prev => {
+      const existingIds = new Set(prev.map(s => s._id));
+      const newSuppliers = data.suppliers.filter(s => !existingIds.has(s._id));
+      return [...prev, ...newSuppliers];
+    });
+  }, [data, page]);
+
+  // Infinite Scroll Observer
+  const lastElementRef = useCallback((node) => {
+    if (isValidating) return;
+    if (observer.current) observer.current.disconnect();
+
+    if (node) {
+      observer.current = new IntersectionObserver(
+        entries => {
+          if (entries[0].isIntersecting && !isValidating && hasMore) {
+            setPage(prev => prev + 1);
+          }
+        },
+        { threshold: 0.1 }
+      );
+      observer.current.observe(node);
+    }
+  }, [isValidating, hasMore]);
 
   const filteredSuppliers = useMemo(() => {
     return suppliers.filter(s => {
@@ -438,6 +481,14 @@ export default function SuppliersPage() {
               hasPermission={hasPermission}
             />
           ))}
+        </div>
+      )}
+
+      {/* Infinite Scroll Loader */}
+      {(hasMore || isValidating) && (
+        <div ref={lastElementRef} className="p-4 glass-card flex items-center justify-center gap-2 text-slate-400">
+          <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
+          <span className="text-sm">Loading more suppliers...</span>
         </div>
       )}
 

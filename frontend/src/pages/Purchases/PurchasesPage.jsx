@@ -724,6 +724,14 @@ export default function PurchasesPage() {
                 }}
               />
             )}
+
+            {/* Infinite Scroll Loader */}
+            {(hasMore || isValidating) && (
+              <div ref={lastElementRef} className="p-4 glass-card flex items-center justify-center gap-2 text-slate-400">
+                <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
+                <span className="text-sm">Loading more purchases...</span>
+              </div>
+            )}
           </div>
         )}
       </AnimatePresence>
