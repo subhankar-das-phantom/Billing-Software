@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
+import mongoose from 'mongoose';
 import Supplier from '../models/Supplier';
+import Purchase from '../models/Purchase';
 import getTenantId from '../utils/getTenantId';
 import { getSearchPattern } from '../utils/searchUtils';
 
@@ -74,7 +76,28 @@ export const getSupplier = async (req: Request, res: Response, next: NextFunctio
       return res.status(404).json({ success: false, message: 'Supplier not found' });
     }
 
-    res.status(200).json({ success: true, supplier });
+    const [purchaseCount, spendResult] = await Promise.all([
+      Purchase.countDocuments({ tenantId, supplierId: supplier._id }),
+      Purchase.aggregate([
+        { $match: { tenantId: new mongoose.Types.ObjectId(tenantId.toString()), supplierId: supplier._id, status: { $ne: 'CANCELLED' } } },
+        { $group: { _id: null, totalSpend: { $sum: '$totals.grandTotal' } } }
+      ])
+    ]);
+
+    const totalPurchases = spendResult[0]?.totalSpend || 0;
+    const openingBalance = supplier.openingBalance || 0;
+    const balance = openingBalance + totalPurchases;
+
+    res.status(200).json({
+      success: true,
+      supplier,
+      summary: {
+        purchaseCount,
+        totalPurchases,
+        openingBalance,
+        balance
+      }
+    });
   } catch (error) {
     next(error);
   }
