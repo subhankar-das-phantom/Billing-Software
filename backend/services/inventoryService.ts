@@ -3,6 +3,7 @@ import Batch from '../models/Batch';
 import Product from '../models/Product';
 import Admin from '../models/Admin';
 import ProductInventoryMigration from '../models/ProductInventoryMigration';
+import StockMovement from '../models/StockMovement';
 
 export const NO_BATCH_BATCH_NO = 'UNNAMED';
 const MIGRATION_IN_PROGRESS_MESSAGE = 'Migration in progress';
@@ -20,6 +21,29 @@ const createMigrationInProgressError = () => {
   const error = new Error(MIGRATION_IN_PROGRESS_MESSAGE) as Error & { statusCode?: number };
   error.statusCode = 409;
   return error;
+};
+
+export const recordStockMovement = async (
+  data: {
+    tenantId: mongoose.Types.ObjectId | string;
+    productId: mongoose.Types.ObjectId | string;
+    batchId?: mongoose.Types.ObjectId | string | null;
+    type: 'PURCHASE' | 'OPENING_STOCK' | 'MANUAL_ADJUSTMENT_IN' | 'MANUAL_ADJUSTMENT_OUT' | 'SALE' | 'SALE_REVERSAL' | 'SALE_RETURN' | 'PURCHASE_RETURN';
+    quantity: number;
+    rate?: number;
+    totalValue?: number;
+    referenceType?: string | null;
+    referenceId?: string | null;
+    createdBy?: { user: mongoose.Types.ObjectId | string; userModel: 'Admin' | 'Employee' };
+  },
+  session?: ClientSession
+): Promise<void> => {
+  const movement = new StockMovement(data);
+  if (session) {
+    await movement.save({ session });
+  } else {
+    await movement.save();
+  }
 };
 
 interface ManualAllocation {
@@ -88,6 +112,18 @@ export const allocateFifoStock = async (
       gstPercent: batch.gstPercent || 0
     });
 
+    await recordStockMovement({
+      tenantId,
+      productId,
+      batchId: batch._id,
+      type: 'SALE',
+      quantity: take,
+      rate: batch.rate || 0,
+      totalValue: (batch.rate || 0) * take,
+      referenceType: 'Invoice',
+      referenceId: String(invoiceId)
+    }, session);
+
     remaining -= take;
   }
 
@@ -116,6 +152,21 @@ export const allocateFifoStock = async (
       },
       { session }
     );
+
+    // Record StockMovement for FREE stock mode (if no batches were consumed, or as a general product movement)
+    if (consumptionRecords.length === 0) {
+      await recordStockMovement({
+        tenantId,
+        productId,
+        batchId: null,
+        type: 'SALE',
+        quantity,
+        rate: product.rate || 0,
+        totalValue: (product.rate || 0) * quantity,
+        referenceType: 'Invoice',
+        referenceId: String(invoiceId)
+      }, session);
+    }
   }
 
   return consumptionRecords;
@@ -172,6 +223,18 @@ export const allocateManualStock = async (
       gstPercent: batch.gstPercent || 0
     });
 
+    await recordStockMovement({
+      tenantId,
+      productId,
+      batchId: batch._id,
+      type: 'SALE',
+      quantity: alloc.quantity,
+      rate: batch.rate || 0,
+      totalValue: (batch.rate || 0) * alloc.quantity,
+      referenceType: 'Invoice',
+      referenceId: String(invoiceId)
+    }, session);
+
     totalAllocated += alloc.quantity;
   }
 
@@ -204,6 +267,20 @@ export const allocateManualStock = async (
       },
       { session }
     );
+
+    if (consumptionRecords.length === 0) {
+      await recordStockMovement({
+        tenantId,
+        productId,
+        batchId: null,
+        type: 'SALE',
+        quantity,
+        rate: product.rate || 0,
+        totalValue: (product.rate || 0) * quantity,
+        referenceType: 'Invoice',
+        referenceId: String(invoiceId)
+      }, session);
+    }
   }
 
   return consumptionRecords;
@@ -226,6 +303,18 @@ export const restoreBatchAllocations = async (
         { $inc: { remainingQty: alloc.quantity } },
         { session }
       );
+
+      await recordStockMovement({
+        tenantId,
+        productId,
+        batchId: alloc.batchId,
+        type: type === 'invoice_cancelled' ? 'SALE_REVERSAL' : 'SALE_RETURN', // Map appropriately, invoice_edit_reversal usually acts like return
+        quantity: alloc.quantity,
+        rate: alloc.rate || 0,
+        totalValue: (alloc.rate || 0) * alloc.quantity,
+        referenceType: 'Invoice',
+        referenceId: String(invoiceId)
+      }, session);
     }
   }
 
@@ -254,6 +343,20 @@ export const restoreBatchAllocations = async (
       },
       { session }
     );
+
+    if (!allocations || allocations.length === 0) {
+      await recordStockMovement({
+        tenantId,
+        productId,
+        batchId: null,
+        type: type === 'invoice_cancelled' ? 'SALE_REVERSAL' : 'SALE_RETURN',
+        quantity: quantityToRestore,
+        rate: product.rate || 0,
+        totalValue: (product.rate || 0) * quantityToRestore,
+        referenceType: 'Invoice',
+        referenceId: String(invoiceId)
+      }, session);
+    }
   }
 };
 

@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import Batch from '../models/Batch';
 import getTenantId from '../utils/getTenantId';
-import { ensureProductMigratedToBatch, normalizeBatchNo } from '../services/inventoryService';
+import { ensureProductMigratedToBatch, normalizeBatchNo, recordStockMovement } from '../services/inventoryService';
 import Admin from '../models/Admin';
 
 import mongoose from 'mongoose';
@@ -85,6 +85,21 @@ export const createBatch = async (req: Request, res: Response, next: NextFunctio
       isActive: true,
       createdBy
     });
+
+    if (initialQty && initialQty > 0) {
+      await recordStockMovement({
+        tenantId,
+        productId,
+        batchId: batch._id,
+        type: 'MANUAL_ADJUSTMENT_IN',
+        quantity: initialQty,
+        rate: rate || 0,
+        totalValue: (rate || 0) * initialQty,
+        referenceType: 'Batch',
+        referenceId: String(batch._id),
+        createdBy
+      });
+    }
 
     res.status(201).json({ success: true, batch });
   } catch (error) {
@@ -221,6 +236,19 @@ export const adjustBatchStock = async (req: Request, res: Response, next: NextFu
         },
         { session }
       );
+
+      await recordStockMovement({
+        tenantId,
+        productId: batch.productId,
+        batchId: batch._id,
+        type: type === 'out' ? 'MANUAL_ADJUSTMENT_OUT' : 'MANUAL_ADJUSTMENT_IN',
+        quantity: Math.abs(qtyChange),
+        rate: batch.rate || 0,
+        totalValue: (batch.rate || 0) * Math.abs(qtyChange),
+        referenceType: 'BatchAdjustment',
+        referenceId: String(batch._id),
+        createdBy: adjustedBy
+      }, session);
 
       await session.commitTransaction();
       res.status(200).json({ success: true, batch });
