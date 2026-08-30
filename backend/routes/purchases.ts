@@ -4,6 +4,7 @@ import {
   createPurchase,
   getPurchases,
   getPurchase,
+  getPurchaseStats,
   updatePurchase,
   deletePurchase
 } from '../controllers/purchaseController';
@@ -20,6 +21,8 @@ router.use(protect);
 router.route('/')
   .get(requirePermission('purchases', 'view'), getPurchases)
   .post(requirePermission('purchases', 'create'), createPurchase);
+
+router.get('/stats', requirePermission('purchases', 'view'), getPurchaseStats);
 
 router.route('/:id')
   .get(requirePermission('purchases', 'view'), mongoIdParam, getPurchase)

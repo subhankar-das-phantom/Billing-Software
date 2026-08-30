@@ -1,9 +1,14 @@
-import api from './api';
+import api, { clearCache } from './api';
 
 const API_URL = '/purchases';
 
 const getPurchases = async (params = {}) => {
   const response = await api.get(API_URL, { params });
+  return response.data;
+};
+
+const getPurchaseStats = async (params = {}) => {
+  const response = await api.get(`${API_URL}/stats`, { params });
   return response.data;
 };
 
@@ -14,30 +19,42 @@ const getPurchase = async (id) => {
 
 const createPurchase = async (purchaseData) => {
   const response = await api.post(API_URL, purchaseData);
+  clearCache();
   return response.data;
 };
 
 const updatePurchase = async (id, purchaseData) => {
   const response = await api.put(`${API_URL}/${id}`, purchaseData);
+  clearCache();
   return response.data;
 };
 
 const deletePurchase = async (id) => {
   const response = await api.delete(`${API_URL}/${id}`);
+  clearCache();
+  return response.data;
+};
+
+const completePurchase = async (id) => {
+  const response = await api.post(`${API_URL}/${id}/complete`);
+  clearCache();
   return response.data;
 };
 
 const cancelPurchase = async (id) => {
   const response = await api.post(`${API_URL}/${id}/cancel`);
+  clearCache();
   return response.data;
 };
 
 const purchaseService = {
   getPurchases,
+  getPurchaseStats,
   getPurchase,
   createPurchase,
   updatePurchase,
   deletePurchase,
+  completePurchase,
   cancelPurchase
 };
 

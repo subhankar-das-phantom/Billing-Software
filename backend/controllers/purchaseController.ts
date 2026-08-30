@@ -83,7 +83,7 @@ export const getPurchases = async (req: Request | any, res: Response) => {
   try {
     const tenantId = req.user.tenantId || req.user._id;
     const page = parseInt(req.query.page as string, 10) || 1;
-    const limit = parseInt(req.query.limit as string, 10) || 10;
+    const limit = parseInt(req.query.limit as string, 10) || 20;
     
     // Construct filters based on query params (status, search, etc.)
     const filters: any = {};
@@ -92,6 +92,15 @@ export const getPurchases = async (req: Request | any, res: Response) => {
     }
     if (req.query.supplierId) {
       filters.supplierId = req.query.supplierId;
+    }
+    if (req.query.search) {
+      filters.search = req.query.search;
+    }
+    if (req.query.startDate) {
+      filters.startDate = req.query.startDate;
+    }
+    if (req.query.endDate) {
+      filters.endDate = req.query.endDate;
     }
 
     const result = await purchaseService.getPurchases(tenantId.toString(), filters, page, limit);
@@ -105,6 +114,24 @@ export const getPurchases = async (req: Request | any, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching purchases'
+    });
+  }
+};
+
+export const getPurchaseStats = async (req: Request | any, res: Response) => {
+  try {
+    const tenantId = req.user.tenantId || req.user._id;
+    const stats = await purchaseService.getPurchaseStats(tenantId.toString());
+
+    res.status(200).json({
+      success: true,
+      stats
+    });
+  } catch (error: any) {
+    console.error('Get Purchase Stats Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching purchase stats'
     });
   }
 };

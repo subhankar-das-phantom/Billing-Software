@@ -1,6 +1,8 @@
 import mongoose, { ClientSession } from 'mongoose';
 import Purchase, { IPurchase } from '../models/Purchase';
 
+import Supplier from '../models/Supplier';
+
 export const purchaseService = {
   /**
    * Creates a DRAFT purchase.
@@ -39,16 +41,57 @@ export const purchaseService = {
 
   async getPurchases(
     tenantId: string,
-    filters: any,
+    filters: any = {},
     page: number = 1,
     limit: number = 10
   ): Promise<{ purchases: IPurchase[]; total: number; pages: number }> {
-    const query = { tenantId, ...filters };
+    const query: any = { tenantId };
+
+    if (filters.status && filters.status !== 'all') {
+      query.status = filters.status;
+    }
+
+    if (filters.supplierId) {
+      query.supplierId = filters.supplierId;
+    }
+
+    if (filters.startDate || filters.endDate) {
+      query.purchaseDate = {};
+      if (filters.startDate) {
+        query.purchaseDate.$gte = new Date(filters.startDate);
+      }
+      if (filters.endDate) {
+        const end = new Date(filters.endDate);
+        end.setHours(23, 59, 59, 999);
+        query.purchaseDate.$lte = end;
+      }
+    }
+
+    if (filters.search) {
+      const searchRegex = new RegExp(filters.search.trim(), 'i');
+      const matchingSuppliers = await Supplier.find({
+        tenantId,
+        $or: [
+          { name: searchRegex },
+          { gstin: searchRegex },
+          { phone: searchRegex }
+        ]
+      }).select('_id').lean();
+
+      const supplierIds = matchingSuppliers.map(s => s._id);
+
+      query.$or = [
+        { purchaseNumber: searchRegex },
+        { supplierInvoiceNumber: searchRegex },
+        { supplierId: { $in: supplierIds } }
+      ];
+    }
+
     const skip = (page - 1) * limit;
 
     const [purchases, total] = await Promise.all([
       Purchase.find(query)
-        .populate('supplierId', 'name gstin')
+        .populate('supplierId', 'name gstin address phone')
         .sort({ purchaseDate: -1, createdAt: -1 })
         .skip(skip)
         .limit(limit)
@@ -60,6 +103,37 @@ export const purchaseService = {
       purchases: purchases as unknown as IPurchase[],
       total,
       pages: Math.ceil(total / limit),
+    };
+  },
+
+  async getPurchaseStats(tenantId: string): Promise<{ totalPurchases: number; todayPurchases: number; thisMonthPurchases: number; totalSpend: number }> {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const tomorrowStart = new Date(todayStart);
+    tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+
+    const monthStart = new Date(todayStart.getFullYear(), todayStart.getMonth(), 1);
+    const nextMonthStart = new Date(todayStart.getFullYear(), todayStart.getMonth() + 1, 1);
+
+    const baseQuery = { tenantId, status: { $ne: 'CANCELLED' } };
+
+    const [totalPurchases, todayPurchases, thisMonthPurchases, spendResult] = await Promise.all([
+      Purchase.countDocuments({ tenantId, status: { $ne: 'CANCELLED' } }),
+      Purchase.countDocuments({ ...baseQuery, purchaseDate: { $gte: todayStart, $lt: tomorrowStart } }),
+      Purchase.countDocuments({ ...baseQuery, purchaseDate: { $gte: monthStart, $lt: nextMonthStart } }),
+      Purchase.aggregate([
+        { $match: { tenantId: new mongoose.Types.ObjectId(tenantId), status: { $ne: 'CANCELLED' } } },
+        { $group: { _id: null, totalSpend: { $sum: '$totals.grandTotal' } } }
+      ])
+    ]);
+
+    const totalSpend = spendResult[0]?.totalSpend || 0;
+
+    return {
+      totalPurchases,
+      todayPurchases,
+      thisMonthPurchases,
+      totalSpend
     };
   },
 
