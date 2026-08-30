@@ -20,7 +20,10 @@ import {
   Banknote,
   UsersRound,
   Shield,
-  FileBarChart
+  FileBarChart,
+  Truck,
+  ShoppingCart,
+  History
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { invoiceService } from '../../services/invoices/invoiceService';
@@ -35,6 +38,15 @@ const getMenuItems = (invoiceCount, hasPermission, isAdmin) => {
   }
   if (isAdmin || hasPermission('customers', 'view')) {
     items.push({ path: '/customers', label: 'Customers', icon: Users, badge: null });
+  }
+  if (isAdmin || hasPermission('suppliers', 'view')) {
+    items.push({ path: '/suppliers', label: 'Suppliers', icon: Truck, badge: null });
+  }
+  if (isAdmin || hasPermission('purchases', 'view')) {
+    items.push({ path: '/purchases', label: 'Purchases', icon: ShoppingCart, badge: null });
+  }
+  if (isAdmin || hasPermission('inventory', 'view')) {
+    items.push({ path: '/inventory/ledger', label: 'Inventory Ledger', icon: History, badge: null });
   }
   if (isAdmin || hasPermission('invoices', 'create')) {
     items.push({ path: '/invoices/create', label: 'Create Invoice', icon: FilePlus, badge: 'New', badgeColor: 'bg-emerald-500' });

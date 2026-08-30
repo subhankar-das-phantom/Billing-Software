@@ -189,7 +189,7 @@ export default function ProductDetailsPage() {
   const openEditBatch = (batch) => {
     setEditingBatch(batch);
     setBatchForm({
-      batchNo: batch.batchNo || '',
+      batchNo: batch.batchNo && batch.batchNo !== 'UNNAMED' ? batch.batchNo : '',
       expiryDate: batch.expiryDate ? new Date(batch.expiryDate).toISOString().split('T')[0] : '',
       mrp: batch.mrp?.toString() || '',
       rate: batch.rate?.toString() || '',
