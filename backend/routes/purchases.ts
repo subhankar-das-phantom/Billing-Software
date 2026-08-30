@@ -10,6 +10,7 @@ import {
 } from '../controllers/purchaseController';
 import { completePurchase } from '../controllers/purchaseCompletionController';
 import { cancelPurchaseController } from '../controllers/purchaseCancellationController';
+import { exportPurchases } from '../controllers/purchaseExportController';
 
 // Using require for CJS modules to avoid TS interop issues
 const { protect, requirePermission } = require('../middleware/auth');
@@ -23,6 +24,7 @@ router.route('/')
   .post(requirePermission('purchases', 'create'), createPurchase);
 
 router.get('/stats', requirePermission('purchases', 'view'), getPurchaseStats);
+router.get('/export', requirePermission('purchases', 'view'), exportPurchases);
 
 router.route('/:id')
   .get(requirePermission('purchases', 'view'), mongoIdParam, getPurchase)

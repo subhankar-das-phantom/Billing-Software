@@ -12,6 +12,14 @@ const getPurchaseStats = async (params = {}) => {
   return response.data;
 };
 
+const exportPurchases = async (params = {}) => {
+  const response = await api.get(`${API_URL}/export`, {
+    params,
+    responseType: 'blob'
+  });
+  return response.data;
+};
+
 const getPurchase = async (id) => {
   const response = await api.get(`${API_URL}/${id}`);
   return response.data;
@@ -50,6 +58,7 @@ const cancelPurchase = async (id) => {
 const purchaseService = {
   getPurchases,
   getPurchaseStats,
+  exportPurchases,
   getPurchase,
   createPurchase,
   updatePurchase,

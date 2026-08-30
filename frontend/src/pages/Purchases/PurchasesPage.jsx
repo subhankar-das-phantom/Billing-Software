@@ -243,43 +243,26 @@ export default function PurchasesPage() {
     setIsExporting(true);
 
     try {
-      const activePurchases = purchases.filter(p => {
-        if (!dateRange.startDate && !dateRange.endDate) return true;
-        const pDate = new Date(p.purchaseDate);
-        if (dateRange.startDate && pDate < new Date(dateRange.startDate)) return false;
-        if (dateRange.endDate && pDate > new Date(dateRange.endDate)) return false;
-        return true;
-      });
+      const params = { format };
+      if (dateRange?.startDate) params.startDate = dateRange.startDate;
+      if (dateRange?.endDate) params.endDate = dateRange.endDate;
+      if (statusFilter !== 'all') params.status = statusFilter;
 
-      if (activePurchases.length === 0) {
-        showToast('No purchases found for selected date range', 'error');
-        setIsExporting(false);
-        return;
-      }
-
-      // Generate CSV or JSON data export
-      const headers = ['Purchase #', 'Date', 'Supplier', 'Supplier GSTIN', 'Bill No', 'Items Count', 'Payment Mode', 'Status', 'Grand Total'];
-      const rows = activePurchases.map(p => [
-        p.purchaseNumber,
-        p.purchaseDate ? new Date(p.purchaseDate).toLocaleDateString() : '',
-        `"${p.supplierId?.name || 'Unknown Supplier'}"`,
-        `"${p.supplierId?.gstin || ''}"`,
-        `"${p.supplierInvoiceNumber || ''}"`,
-        p.items?.length || 0,
-        p.paymentType || 'Credit',
-        p.status,
-        (p.totals?.grandTotal || 0).toFixed(2)
-      ]);
-
-      const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const blob = await purchaseService.exportPurchases(params);
 
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
+
+      const extensionMap = { excel: 'xlsx', pdf: 'pdf', csv: 'csv' };
+      const extension = extensionMap[format] || 'xlsx';
+
       const now = new Date();
-      const filename = `purchases_export_${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}.${format === 'csv' ? 'csv' : 'xlsx'}`;
-      link.setAttribute('download', filename);
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      link.download = `purchases_export_${y}-${m}-${d}.${extension}`;
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -288,7 +271,7 @@ export default function PurchasesPage() {
       setShowExportModal(false);
       showToast(`Successfully exported purchases as ${format.toUpperCase()}`, 'success');
     } catch (err) {
-      showToast(err.message || 'Failed to export purchases', 'error');
+      showToast(err.response?.data?.message || err.message || 'Failed to export purchases', 'error');
     } finally {
       setIsExporting(false);
     }
