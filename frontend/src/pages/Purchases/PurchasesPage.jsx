@@ -36,6 +36,7 @@ import {
 } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 import { VirtualizedList } from '../../components/Common/VirtualizedList';
+import PurchasesPageSkeleton from './PurchasesPageSkeleton';
 
 // Factory functions for adaptive motion variants
 const createPageVariants = (isMobile, shouldStagger) => ({
@@ -278,6 +279,10 @@ export default function PurchasesPage() {
   };
 
   const showSkeleton = isLoading && purchases.length === 0 && page === 1;
+
+  if (showSkeleton) {
+    return <PurchasesPageSkeleton />;
+  }
 
   return (
     <motion.div

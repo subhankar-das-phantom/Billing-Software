@@ -28,6 +28,7 @@ import ConfirmDialog from '../../components/Common/Dialogs/ConfirmDialog';
 import EnhancedButton from '../../components/Common/Buttons/EnhancedButton';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 import { VirtualizedGrid } from '../../components/Common/VirtualizedList';
+import SuppliersPageSkeleton from './SuppliersPageSkeleton';
 import { useToast } from '../../contexts/ToastContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
@@ -289,6 +290,10 @@ export default function SuppliersPage() {
   };
 
   const isLargeList = filteredSuppliers.length > LARGE_SUPPLIER_LIST_THRESHOLD;
+
+  if (isLoading && suppliers.length === 0) {
+    return <SuppliersPageSkeleton />;
+  }
 
   return (
     <motion.div

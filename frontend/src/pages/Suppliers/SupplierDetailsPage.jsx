@@ -36,6 +36,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { invalidateCachePattern, useMotionConfig, useFirstVisit, useMediaQuery, useSWR } from '../../hooks';
 import { VirtualizedList } from '../../components/Common/VirtualizedList';
+import SupplierDetailsPageSkeleton from './SupplierDetailsPageSkeleton';
 
 /* ─────────────────────────────────────────────────────────────
    Shared content for the printable A4 supplier ledger
@@ -243,11 +244,7 @@ export default function SupplierDetailsPage() {
   ];
 
   if (supplierLoading && !supplier) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <RefreshCw className="w-8 h-8 animate-spin text-blue-400" />
-      </div>
-    );
+    return <SupplierDetailsPageSkeleton />;
   }
 
   if (!supplier) {

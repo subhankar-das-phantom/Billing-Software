@@ -17,28 +17,35 @@ import {
   useMediaQuery, 
   useStockSSE, 
   invalidateCachePattern, 
-  subscribeToInvalidation 
+  subscribeToInvalidation,
+  useMotionConfig,
+  useFirstVisit
 } from '../../hooks';
 import { useAuth } from '../../contexts/AuthContext';
 import PurchaseItemMobileCard from './PurchaseItemMobileCard';
 import SupplierFormModal from '../../components/Suppliers/SupplierFormModal';
 
-const pageVariants = {
+const createPageVariants = (isMobile, shouldStagger) => ({
   hidden: { opacity: 0 },
   visible: { 
     opacity: 1, 
-    transition: { staggerChildren: 0.1, delayChildren: 0.1 } 
+    transition: { 
+      staggerChildren: shouldStagger ? 0.1 : 0, 
+      delayChildren: isMobile ? 0 : 0.1 
+    } 
   }
-};
+});
 
-const cardVariants = {
-  hidden: { opacity: 0, y: 20 },
+const createCardVariants = (isMobile) => ({
+  hidden: { opacity: 0, y: isMobile ? 12 : 20 },
   visible: { 
     opacity: 1, 
     y: 0, 
-    transition: { type: "spring", stiffness: 300, damping: 24 } 
+    transition: isMobile 
+      ? { type: "tween", duration: 0.2, ease: "easeOut" }
+      : { type: "spring", stiffness: 300, damping: 24 } 
   }
-};
+});
 
 const dropdownVariants = {
   hidden: { opacity: 0, y: -10, scale: 0.95 },
@@ -114,6 +121,11 @@ export default function PurchaseCreatePage() {
   const { user } = useAuth();
   const enableBatchTracking = user?.preferences?.enableBatchTracking === true;
   const isDesktop = useMediaQuery('(min-width: 950px)');
+
+  const motionConfig = useMotionConfig();
+  const isFirstVisit = useFirstVisit('purchase-create');
+  const pageVariants = useMemo(() => createPageVariants(motionConfig.isMobile, motionConfig.shouldStagger), [motionConfig.isMobile, motionConfig.shouldStagger]);
+  const cardVariants = useMemo(() => createCardVariants(motionConfig.isMobile), [motionConfig.isMobile]);
 
   const [saving, setSaving] = useState(false);
   const [loadingInitial, setLoadingInitial] = useState(true);
