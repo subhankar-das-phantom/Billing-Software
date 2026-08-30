@@ -32,6 +32,22 @@ export default function PurchaseDetailsPage() {
     fetchPurchase();
   }, [id]);
 
+  const handleComplete = async () => {
+    if (!window.confirm('Completing this purchase will permanently receive stock. Continue?')) {
+      return;
+    }
+    setCompleting(true);
+    try {
+      await purchaseService.completePurchase(id);
+      showToast('Purchase completed successfully. Inventory received.', 'success');
+      fetchPurchase();
+    } catch (error) {
+      showToast(error.response?.data?.message || 'Error completing purchase', 'error');
+    } finally {
+      setCompleting(false);
+    }
+  };
+
   const handleCancel = async () => {
     if (!window.confirm('Cancelling this purchase will reverse the inventory received from it. Continue?')) {
       return;
@@ -45,6 +61,19 @@ export default function PurchaseDetailsPage() {
       showToast(error.response?.data?.message || 'Error cancelling purchase', 'error');
     } finally {
       setCancelling(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this draft purchase?')) {
+      return;
+    }
+    try {
+      await purchaseService.deletePurchase(id);
+      showToast('Purchase draft deleted successfully', 'success');
+      navigate('/purchases');
+    } catch (error) {
+      showToast(error.response?.data?.message || 'Error deleting purchase', 'error');
     }
   };
 
@@ -96,6 +125,37 @@ export default function PurchaseDetailsPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          {status === 'DRAFT' && (
+            <>
+              {(isAdmin || hasPermission('purchases', 'edit')) && (
+                <>
+                  <button
+                    onClick={() => navigate(`/purchases/${id}/edit`)}
+                    className="flex items-center gap-2 bg-slate-800/80 border border-slate-600/50 text-slate-300 px-5 py-2.5 rounded-xl hover:bg-slate-700/80 hover:text-white transition-all font-semibold active:scale-95"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={handleComplete}
+                    disabled={completing}
+                    className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl transition-all font-semibold active:scale-95 disabled:opacity-50"
+                  >
+                    <CheckCircle size={18} />
+                    {completing ? 'Completing...' : 'Complete & Receive Stock'}
+                  </button>
+                </>
+              )}
+              {(isAdmin || hasPermission('purchases', 'delete')) && (
+                <button
+                  onClick={handleDelete}
+                  className="flex items-center gap-2 bg-slate-800/80 border border-red-500/30 text-red-400 px-5 py-2.5 rounded-xl hover:bg-red-500/10 hover:border-red-500/50 transition-all font-semibold active:scale-95"
+                >
+                  Delete Draft
+                </button>
+              )}
+            </>
+          )}
+
           {status === 'COMPLETED' && (isAdmin || hasPermission('purchases', 'edit')) && (
             <button
               onClick={() => navigate(`/purchases/${id}/edit`)}
