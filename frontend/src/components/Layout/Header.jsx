@@ -73,7 +73,7 @@ export default function Header({
   });
 
   return (
-    <header className="sticky top-0 z-30 bg-slate-900/80 backdrop-blur-xl border-b border-slate-800/80 transition-colors">
+    <header className="sticky top-0 z-30 bg-slate-900/80 backdrop-blur-xl border-b border-slate-800/80 transition-colors no-print">
       <div className="flex items-center justify-between px-4 sm:px-6 h-16 gap-3">
         {/* ─── Left: Navigation Toggle & Breadcrumbs ───────────────────── */}
         <div className="flex items-center gap-3 min-w-0">

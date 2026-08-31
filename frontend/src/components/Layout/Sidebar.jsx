@@ -181,7 +181,7 @@ export default function Sidebar({
 
   return (
     <aside
-      className={`h-full bg-slate-900/95 border-r border-slate-800/80 flex flex-col backdrop-blur-xl transition-all duration-300 select-none ${
+      className={`h-full bg-slate-900/95 border-r border-slate-800/80 flex flex-col backdrop-blur-xl transition-all duration-300 select-none no-print ${
         isMobile ? 'w-full' : isCollapsed ? 'w-[68px]' : 'w-64'
       }`}
     >

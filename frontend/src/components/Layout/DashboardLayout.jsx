@@ -138,7 +138,7 @@ export default function DashboardLayout() {
     <div className="flex h-screen w-full overflow-hidden bg-slate-950 text-slate-100 antialiased">
       {/* ─── 1. Desktop & Tablet Persistent Sidebar Rail ──────────────── */}
       {!isMobile && (
-        <div className="shrink-0 z-40 h-full flex flex-col">
+        <div className="shrink-0 z-40 h-full flex flex-col no-print">
           <Sidebar
             isCollapsed={isTablet ? true : sidebarCollapsed}
             onToggleCollapse={isDesktop ? handleToggleDesktopCollapse : () => setTabletDrawerOpen(true)}
@@ -154,7 +154,7 @@ export default function DashboardLayout() {
             {/* Backdrop */}
             <motion.div
               key="drawer-backdrop"
-              className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 touch-none"
+              className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 touch-none no-print"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -168,7 +168,7 @@ export default function DashboardLayout() {
             {/* Slide-out Panel */}
             <motion.div
               key="drawer-panel"
-              className="fixed inset-y-0 left-0 z-50 max-w-[82vw] w-72 shadow-2xl shadow-black"
+              className="fixed inset-y-0 left-0 z-50 max-w-[82vw] w-72 shadow-2xl shadow-black no-print"
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
@@ -190,12 +190,14 @@ export default function DashboardLayout() {
       {/* ─── 3. Main Application Column ───────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden relative">
         {/* Top Header */}
-        <Header
-          onToggleSidebar={handleToggleSidebar}
-          onOpenCommandPalette={() => setCommandPaletteOpen(true)}
-          isSidebarCollapsed={sidebarCollapsed}
-          isDesktop={isDesktop}
-        />
+        <div className="no-print">
+          <Header
+            onToggleSidebar={handleToggleSidebar}
+            onOpenCommandPalette={() => setCommandPaletteOpen(true)}
+            isSidebarCollapsed={sidebarCollapsed}
+            isDesktop={isDesktop}
+          />
+        </div>
 
         {/* Main Content Area */}
         <main
@@ -218,7 +220,7 @@ export default function DashboardLayout() {
         {/* Animated background gradient - Desktop only */}
         {motionConfig.shouldInfiniteAnimate && (
           <motion.div
-            className="fixed inset-0 pointer-events-none opacity-20 z-0"
+            className="fixed inset-0 pointer-events-none opacity-20 z-0 no-print"
             animate={{
               background: [
                 'radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.08) 0%, transparent 50%)',

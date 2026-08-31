@@ -929,11 +929,11 @@
 }
 
 
-/* Invoice Print Styles for A4 */
+/* Invoice & Ledger Print Styles for A4 */
 @media print {
   @page {
     size: A4 portrait;
-    margin: 0;
+    margin: 6mm;
   }
 
   html,
@@ -941,46 +941,104 @@
     margin: 0 !important;
     padding: 0 !important;
     width: 100% !important;
-    height: 100% !important;
+    height: auto !important;
+    min-height: auto !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    overflow: visible !important;
   }
 
-  /* Reset all parent containers */
+  /* Reset outer shell containers ONLY without breaking inner flex/grid/overflow layout */
   #root,
-  main,
-  .main-content,
-  [class*="justify-center"]:not(.no-print) {
+  #root > div,
+  main {
     margin: 0 !important;
     padding: 0 !important;
     width: 100% !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    background: transparent !important;
+    background-image: none !important;
     display: block !important;
+    position: static !important;
   }
 
-  .no-print {
+  /* Force print preview wrapper container to be full width and visible */
+  .print-preview-container,
+  .print-preview-container > div,
+  .no-print-hide {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: transparent !important;
+  }
+
+  /* Hide all non-printable elements */
+  .no-print,
+  aside,
+  header,
+  nav,
+  button,
+  .sidebar,
+  .navbar,
+  [role="dialog"],
+  [class*="backdrop-blur"],
+  [class*="pointer-events-none"] {
     display: none !important;
   }
 
-  /* Full width invoice */
+  /* Full width invoice & ledger document */
   .invoice-print {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
     position: relative !important;
-    width: 210mm !important;
+    width: 100% !important;
     max-width: 210mm !important;
     background: white !important;
     color: black !important;
-    font-size: 12px !important;
-    padding: 5mm !important;
-    margin: 0 !important;
+    font-size: 11px !important;
+    padding: 2mm !important;
+    margin: 0 auto !important;
     box-sizing: border-box !important;
     border: none !important;
     box-shadow: none !important;
   }
 
   .invoice-copy {
-    padding: 5mm !important;
+    display: flex !important;
+    flex-direction: column !important;
+    visibility: visible !important;
+    padding: 2mm !important;
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Preserve all flex and grid layouts inside printable documents */
+  .invoice-print .flex {
+    display: flex !important;
+  }
+  .invoice-print .grid {
+    display: grid !important;
+  }
+  .invoice-print .inline-flex {
+    display: inline-flex !important;
+  }
+  .invoice-print .hidden {
+    display: none !important;
+  }
+  .invoice-print .block {
+    display: block !important;
   }
 
   .invoice-print * {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+    color: #000000 !important;
+    visibility: visible !important;
   }
 
   /* Force show hidden printable areas during print */
