@@ -157,13 +157,14 @@ export default function PurchasesPage() {
     if (observer.current) observer.current.disconnect();
 
     if (node) {
+      const scrollParent = node.closest('main') || null;
       observer.current = new IntersectionObserver(
         entries => {
           if (entries[0].isIntersecting && !isValidating && hasMore) {
             setPage(prev => prev + 1);
           }
         },
-        { threshold: 0.1 }
+        { root: scrollParent, threshold: 0.1 }
       );
       observer.current.observe(node);
     }

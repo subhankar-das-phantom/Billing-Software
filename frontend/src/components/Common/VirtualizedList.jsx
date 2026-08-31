@@ -1,23 +1,67 @@
-import { useLayoutEffect, useRef, useState } from 'react';
-import { useWindowVirtualizer } from '@tanstack/react-virtual';
+import { useLayoutEffect, useRef, useState, useCallback } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 
-const DEFAULT_OVERSCAN = 8;
+const DEFAULT_OVERSCAN = 10;
 
-function useScrollMargin() {
+/**
+ * Finds the nearest scrollable ancestor container (e.g. <main>),
+ * or falls back to document.querySelector('main') / window / documentElement.
+ */
+function findScrollParent(node) {
+  if (!node || typeof window === 'undefined') return null;
+  let parent = node.parentElement;
+  while (parent && parent !== document.body && parent !== document.documentElement) {
+    const style = window.getComputedStyle(parent);
+    const overflowY = style.overflowY;
+    if (overflowY === 'auto' || overflowY === 'scroll') {
+      return parent;
+    }
+    parent = parent.parentElement;
+  }
+  return document.querySelector('main') || (typeof document !== 'undefined' ? document.documentElement : null);
+}
+
+function useScrollParentAndMargin() {
   const ref = useRef(null);
+  const scrollParentRef = useRef(null);
   const [scrollMargin, setScrollMargin] = useState(0);
 
+  const getScrollElement = useCallback(() => {
+    if (scrollParentRef.current) return scrollParentRef.current;
+    if (ref.current) {
+      scrollParentRef.current = findScrollParent(ref.current);
+      return scrollParentRef.current;
+    }
+    return typeof document !== 'undefined' ? document.querySelector('main') || document.documentElement : null;
+  }, []);
+
   useLayoutEffect(() => {
+    if (!ref.current) return;
+    const parent = findScrollParent(ref.current);
+    scrollParentRef.current = parent;
+
     const updateScrollMargin = () => {
       if (!ref.current) return;
-      setScrollMargin(ref.current.getBoundingClientRect().top + window.scrollY);
+      const scrollEl = scrollParentRef.current || document.querySelector('main') || document.documentElement;
+      if (scrollEl && scrollEl !== document.documentElement && scrollEl !== document.body && scrollEl !== window) {
+        const parentRect = scrollEl.getBoundingClientRect();
+        const elemRect = ref.current.getBoundingClientRect();
+        const margin = elemRect.top - parentRect.top + scrollEl.scrollTop;
+        setScrollMargin(margin >= 0 ? margin : 0);
+      } else {
+        setScrollMargin(ref.current.getBoundingClientRect().top + window.scrollY);
+      }
     };
 
     updateScrollMargin();
     window.addEventListener('resize', updateScrollMargin);
 
     const resizeObserver = new ResizeObserver(updateScrollMargin);
-    resizeObserver.observe(document.body);
+    if (parent && parent !== document.documentElement && parent !== document.body && parent !== window) {
+      resizeObserver.observe(parent);
+    } else if (document.body) {
+      resizeObserver.observe(document.body);
+    }
 
     return () => {
       window.removeEventListener('resize', updateScrollMargin);
@@ -25,7 +69,7 @@ function useScrollMargin() {
     };
   }, []);
 
-  return { ref, scrollMargin };
+  return { ref, getScrollElement, scrollMargin };
 }
 
 export function VirtualizedList({
@@ -39,9 +83,11 @@ export function VirtualizedList({
   itemClassName = '',
   itemStyle
 }) {
-  const { ref, scrollMargin } = useScrollMargin();
-  const virtualizer = useWindowVirtualizer({
+  const { ref, getScrollElement, scrollMargin } = useScrollParentAndMargin();
+
+  const virtualizer = useVirtualizer({
     count: items.length,
+    getScrollElement,
     estimateSize,
     getItemKey: (index) => getKey(items[index], index),
     overscan,
@@ -53,7 +99,7 @@ export function VirtualizedList({
     <div
       ref={ref}
       className={className}
-      style={{ height: virtualizer.getTotalSize(), position: 'relative' }}
+      style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}
     >
       {virtualizer.getVirtualItems().map((virtualItem) => {
         const item = items[virtualItem.index];
@@ -95,9 +141,11 @@ export function VirtualizedGrid({
   className = '',
   itemClassName = ''
 }) {
-  const { ref, scrollMargin } = useScrollMargin();
-  const virtualizer = useWindowVirtualizer({
+  const { ref, getScrollElement, scrollMargin } = useScrollParentAndMargin();
+
+  const virtualizer = useVirtualizer({
     count: items.length,
+    getScrollElement,
     estimateSize,
     getItemKey: (index) => getKey(items[index], index),
     overscan,
@@ -112,7 +160,7 @@ export function VirtualizedGrid({
     <div
       ref={ref}
       className={className}
-      style={{ height: virtualizer.getTotalSize(), position: 'relative' }}
+      style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}
     >
       {virtualizer.getVirtualItems().map((virtualItem) => {
         const item = items[virtualItem.index];
