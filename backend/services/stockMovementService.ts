@@ -1,14 +1,20 @@
 import mongoose, { PipelineStage } from 'mongoose';
 import StockMovement, { IStockMovement } from '../models/StockMovement';
+import Batch from '../models/Batch';
 
 export interface GetStockMovementsFilter {
   productId?: string;
   batchId?: string;
+  batchNo?: string;
   type?: string;
   referenceType?: string;
   referenceId?: string;
   dateFrom?: string;
   dateTo?: string;
+}
+
+function escapeRegex(text: string): string {
+  return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
 }
 
 export const stockMovementService = {
@@ -28,13 +34,28 @@ export const stockMovementService = {
         matchStage.productId = null;
       }
     }
-    if (filters.batchId) {
-      if (mongoose.Types.ObjectId.isValid(filters.batchId)) {
-        matchStage.batchId = new mongoose.Types.ObjectId(filters.batchId);
+
+    const rawBatchQuery = (filters.batchId || filters.batchNo || '').trim();
+    if (rawBatchQuery) {
+      const isObjectId = mongoose.Types.ObjectId.isValid(rawBatchQuery) && rawBatchQuery.length === 24;
+
+      // Find all batches for this tenant where batchNo matches regex OR _id equals the valid ObjectId
+      const matchingBatches = await Batch.find({
+        tenantId,
+        $or: [
+          ...(isObjectId ? [{ _id: new mongoose.Types.ObjectId(rawBatchQuery) }] : []),
+          { batchNo: { $regex: escapeRegex(rawBatchQuery), $options: 'i' } }
+        ]
+      }).select('_id').lean();
+
+      if (matchingBatches.length > 0) {
+        matchStage.batchId = { $in: matchingBatches.map(b => b._id) };
       } else {
-        matchStage.batchId = null;
+        // No batches matched the search query -> force 0 movement results
+        matchStage.batchId = new mongoose.Types.ObjectId();
       }
     }
+
     if (filters.type) {
       matchStage.type = filters.type;
     }

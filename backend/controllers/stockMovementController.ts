@@ -23,6 +23,7 @@ export const getStockMovements = async (req: AuthRequest, res: Response): Promis
     const {
       productId,
       batchId,
+      batchNo,
       type,
       referenceType,
       referenceId,
@@ -42,7 +43,8 @@ export const getStockMovements = async (req: AuthRequest, res: Response): Promis
       tenantId,
       {
         productId: productId as string,
-        batchId: batchId as string,
+        batchId: (batchId || batchNo) as string,
+        batchNo: (batchNo || batchId) as string,
         type: type as string,
         referenceType: referenceType as string,
         referenceId: referenceId as string,
