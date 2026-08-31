@@ -146,11 +146,11 @@ export const deleteSupplier = async (req: Request, res: Response, next: NextFunc
 export const getSupplierLedger = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const tenantId = getTenantId(req);
-    const supplierId = req.params.id;
+    const supplierId = String(req.params.id);
     const { startDate, endDate, sortOrder = 'asc' } = req.query;
 
     const supplierObjectId = new mongoose.Types.ObjectId(supplierId);
-    const tenantObjectId = new mongoose.Types.ObjectId(tenantId.toString());
+    const tenantObjectId = new mongoose.Types.ObjectId(String(tenantId));
 
     const supplier = await Supplier.findOne({ _id: supplierObjectId, tenantId: tenantObjectId }).lean();
     if (!supplier) {
