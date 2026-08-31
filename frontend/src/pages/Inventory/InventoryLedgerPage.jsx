@@ -5,6 +5,7 @@ import { productService } from '../../services/products/productService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { useToast } from '../../contexts/ToastContext';
 import { useDebounce, useFirstVisit, useMotionConfig } from '../../hooks';
+import ExportModal from '../../components/Common/Modals/ExportModal';
 import {
   History,
   Package,
@@ -47,6 +48,8 @@ export default function InventoryLedgerPage() {
   const [movements, setMovements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const limit = 20;
@@ -297,39 +300,50 @@ export default function InventoryLedgerPage() {
     };
   }, [movements, total]);
 
-  // CSV Quick Export
-  const handleExportCSV = () => {
-    if (!movements || movements.length === 0) {
-      showToast('No ledger entries available to export', 'error');
-      return;
+  // Handle Export via Unified Export Engine (Excel, PDF, CSV)
+  const handleExport = async ({ format, dateRange }) => {
+    if (isExporting) return;
+    setIsExporting(true);
+
+    try {
+      const params = { format };
+      if (searchProductId) params.productId = searchProductId;
+      if (debouncedBatchId) params.batchId = debouncedBatchId;
+      if (movementType) params.type = movementType;
+
+      if (dateRange?.startDate) params.dateFrom = dateRange.startDate;
+      else if (dateFrom) params.dateFrom = dateFrom;
+
+      if (dateRange?.endDate) params.dateTo = dateRange.endDate;
+      else if (dateTo) params.dateTo = dateTo;
+
+      const blob = await stockMovementService.exportStockMovements(params);
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+
+      const extensionMap = { excel: 'xlsx', pdf: 'pdf', csv: 'csv' };
+      const extension = extensionMap[format] || 'xlsx';
+
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      link.download = `inventory_ledger_export_${y}-${m}-${d}.${extension}`;
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      setShowExportModal(false);
+      showToast(`Successfully exported inventory ledger as ${format.toUpperCase()}`, 'success');
+    } catch (err) {
+      showToast(err.response?.data?.message || err.message || 'Failed to export inventory ledger', 'error');
+    } finally {
+      setIsExporting(false);
     }
-
-    const headers = ['Date', 'Time', 'Type', 'Product Name', 'Batch No', 'Expiry Date', 'Qty Change', 'Unit Rate', 'Total Value', 'Created By'];
-    const rows = movements.map(m => {
-      const d = new Date(m.createdAt);
-      return [
-        `"${d.toLocaleDateString('en-IN')}"`,
-        `"${d.toLocaleTimeString('en-IN')}"`,
-        `"${m.type}"`,
-        `"${(m.product?.productName || m.productName || '').replace(/"/g, '""')}"`,
-        `"${(m.batch?.batchNo || m.batchNumber || '').replace(/"/g, '""')}"`,
-        `"${m.batch?.expiryDate ? formatDate(m.batch.expiryDate) : ''}"`,
-        m.quantity,
-        m.rate || 0,
-        m.totalValue || 0,
-        `"${m.createdBy?.name || 'System'}"`
-      ];
-    });
-
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `inventory_ledger_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    showToast('Ledger exported to CSV successfully', 'success');
   };
 
   const totalPages = Math.ceil(total / limit) || 1;
@@ -367,12 +381,12 @@ export default function InventoryLedgerPage() {
           </button>
 
           <button
-            onClick={handleExportCSV}
-            disabled={loading || movements.length === 0}
+            onClick={() => setShowExportModal(true)}
+            disabled={loading || total === 0}
             className="btn btn-secondary flex items-center gap-2 py-2 px-3.5 text-xs font-medium hover:text-emerald-400 border-slate-700 hover:border-emerald-500/30"
           >
             <Download className="w-4 h-4 text-emerald-400" />
-            <span>Export CSV</span>
+            <span>Export</span>
           </button>
         </div>
       </div>
@@ -817,6 +831,16 @@ export default function InventoryLedgerPage() {
           </div>
         )}
       </div>
+
+      {/* ─── Unified Export Modal ────────────────────────────── */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+        entityType="inventory-movements"
+        isExporting={isExporting}
+        showDateRange={true}
+      />
     </motion.div>
   );
 }
