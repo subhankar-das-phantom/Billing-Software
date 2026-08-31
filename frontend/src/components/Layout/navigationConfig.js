@@ -151,6 +151,10 @@ export const NAVIGATION_SECTIONS = [
         label: 'Employee Analytics',
         icon: BarChart3,
         adminOnly: true,
+        badge: {
+          text: 'Admin',
+          color: 'bg-teal-500/20 text-teal-300 border border-teal-500/30',
+        },
       },
       {
         id: 'activity-log',
@@ -198,8 +202,12 @@ export const NAVIGATION_SECTIONS = [
         path: '/reports',
         label: 'Reports',
         icon: FileBarChart,
-        adminOnly: false,
+        adminOnly: true,
         permission: { module: 'reports', action: 'view' },
+        badge: {
+          text: 'Admin',
+          color: 'bg-teal-500/20 text-teal-300 border border-teal-500/30',
+        },
       },
     ],
   },
@@ -213,6 +221,10 @@ export const NAVIGATION_SECTIONS = [
         label: 'Settings',
         icon: Settings,
         adminOnly: true,
+        badge: {
+          text: 'Admin',
+          color: 'bg-teal-500/20 text-teal-300 border border-teal-500/30',
+        },
       },
     ],
   },
