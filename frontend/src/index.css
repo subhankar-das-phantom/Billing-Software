@@ -46,9 +46,9 @@
     /* slate-600 */
   }
 
-  html {
-    overflow-y: scroll;
-    scrollbar-gutter: stable;
+  html,
+  body {
+    height: 100%;
   }
 
   body {

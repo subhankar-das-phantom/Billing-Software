@@ -163,8 +163,8 @@ function AppRoutes() {
           <Route path="/credits" element={<PermissionRoute resource="creditNotes"><CreditsPage /></PermissionRoute>} />
           <Route path="/collections" element={<PermissionRoute resource="payments"><CollectionsPage /></PermissionRoute>} />
           <Route path="/reports" element={<PermissionRoute resource="reports"><ReportsPage /></PermissionRoute>} />
-          <Route path="/reports/purchases" element={<PermissionRoute resource="reports"><PurchaseReportsPage /></PermissionRoute>} />
-          <Route path="/reports/inventory-movements" element={<PermissionRoute resource="reports"><InventoryMovementReportPage /></PermissionRoute>} />
+          <Route path="/reports/purchases" element={<Navigate to="/reports" replace />} />
+          <Route path="/reports/inventory-movements" element={<Navigate to="/reports" replace />} />
           <Route path="/reports/gst" element={<Navigate to="/reports" replace />} />
           <Route 
             path="/settings" 

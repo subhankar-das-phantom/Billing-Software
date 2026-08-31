@@ -2,10 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileBarChart, TrendingUp } from 'lucide-react';
 import GstReportPage from './GstReportPage';
-import PurchaseReportsPage from './PurchaseReportsPage';
-import InventoryMovementReportPage from './InventoryMovementReportPage';
 import { SalesAnalyticsSection } from '../../features/salesAnalytics/components/SalesAnalyticsSection';
-import { ShoppingCart, ArrowRightLeft } from 'lucide-react';
 
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState('sales-analytics');
@@ -53,28 +50,6 @@ export default function ReportsPage() {
           <FileBarChart className="w-4 h-4" />
           GST Report
         </button>
-        <button
-          onClick={() => setActiveTab('purchases')}
-          className={`flex items-center gap-2 px-6 py-3 rounded-full font-medium text-sm transition-all whitespace-nowrap ${
-            activeTab === 'purchases'
-              ? 'bg-gradient-to-r from-blue-600 to-accent2-600 text-white shadow-lg shadow-blue-500/20'
-              : 'bg-slate-800/50 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-          }`}
-        >
-          <ShoppingCart className="w-4 h-4" />
-          Purchase Reports
-        </button>
-        <button
-          onClick={() => setActiveTab('inventory-flow')}
-          className={`flex items-center gap-2 px-6 py-3 rounded-full font-medium text-sm transition-all whitespace-nowrap ${
-            activeTab === 'inventory-flow'
-              ? 'bg-gradient-to-r from-blue-600 to-accent2-600 text-white shadow-lg shadow-blue-500/20'
-              : 'bg-slate-800/50 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-          }`}
-        >
-          <ArrowRightLeft className="w-4 h-4" />
-          Inventory Flow
-        </button>
       </div>
 
       {/* ─── TAB CONTENT ─── */}
@@ -99,28 +74,6 @@ export default function ReportsPage() {
             transition={{ duration: 0.2 }}
           >
             <GstReportPage />
-          </motion.div>
-        )}
-        {activeTab === 'purchases' && (
-          <motion.div
-            key="purchases"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-          >
-            <PurchaseReportsPage />
-          </motion.div>
-        )}
-        {activeTab === 'inventory-flow' && (
-          <motion.div
-            key="inventory-flow"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-          >
-            <InventoryMovementReportPage />
           </motion.div>
         )}
       </AnimatePresence>

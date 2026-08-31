@@ -39,6 +39,15 @@ export const supplierService = {
     }
   },
 
+  getSupplierLedger: async (id, params = {}) => {
+    try {
+      const response = await api.get(`/suppliers/${id}/ledger`, { params });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
   deleteSupplier: async (id) => {
     try {
       const response = await api.delete(`/suppliers/${id}`);

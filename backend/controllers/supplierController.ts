@@ -142,3 +142,126 @@ export const deleteSupplier = async (req: Request, res: Response, next: NextFunc
     next(error);
   }
 };
+
+export const getSupplierLedger = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const tenantId = getTenantId(req);
+    const supplierId = req.params.id;
+    const { startDate, endDate, sortOrder = 'asc' } = req.query;
+
+    const supplierObjectId = new mongoose.Types.ObjectId(supplierId);
+    const tenantObjectId = new mongoose.Types.ObjectId(tenantId.toString());
+
+    const supplier = await Supplier.findOne({ _id: supplierObjectId, tenantId: tenantObjectId }).lean();
+    if (!supplier) {
+      return res.status(404).json({ success: false, message: 'Supplier not found' });
+    }
+
+    const start = startDate ? new Date(startDate as string) : null;
+    const end = endDate ? new Date(endDate as string) : new Date();
+    if (endDate) {
+      end.setHours(23, 59, 59, 999);
+    }
+
+    // 1. Calculate opening balance: supplier.openingBalance + all completed purchases before start date
+    let openingBalance = supplier.openingBalance || 0;
+    if (start) {
+      const priorPurchases = await Purchase.aggregate([
+        {
+          $match: {
+            tenantId: tenantObjectId,
+            supplierId: supplierObjectId,
+            purchaseDate: { $lt: start },
+            status: { $ne: 'CANCELLED' }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            totalPrior: { $sum: '$totals.grandTotal' }
+          }
+        }
+      ]);
+      const priorPurchasesTotal = priorPurchases[0]?.totalPrior || 0;
+      openingBalance += priorPurchasesTotal;
+    }
+
+    // 2. Fetch purchases in range
+    const dateMatch: any = {};
+    if (start) {
+      dateMatch.$gte = start;
+    }
+    dateMatch.$lte = end;
+
+    const purchases = await Purchase.find({
+      tenantId: tenantObjectId,
+      supplierId: supplierObjectId,
+      status: { $ne: 'CANCELLED' },
+      purchaseDate: dateMatch
+    })
+      .populate('items.productId', 'name productCode')
+      .sort({ purchaseDate: 1, createdAt: 1 })
+      .lean();
+
+    // 3. Build chronological ledger entries
+    const ledgerEntries: any[] = [];
+    let runningBalance = openingBalance;
+
+    for (const p of purchases) {
+      const amount = p.totals?.grandTotal || 0;
+      runningBalance += amount;
+      
+      const itemNames = (p.items || [])
+        .map((it: any) => {
+          const name = it.productId?.name || 'Item';
+          return `${name} (x${it.quantity})`;
+        })
+        .slice(0, 3)
+        .join(', ');
+      
+      const extraItems = (p.items || []).length > 3 ? ` +${(p.items || []).length - 3} more` : '';
+      const description = (p.notes ? `${p.notes} - ` : '') + (itemNames ? `${itemNames}${extraItems}` : `${p.items?.length || 0} items`);
+
+      ledgerEntries.push({
+        date: p.purchaseDate,
+        type: 'Purchase',
+        ref: p.purchaseNumber,
+        supplierInvoiceNumber: p.supplierInvoiceNumber || '-',
+        description,
+        debit: 0,
+        credit: amount,
+        balance: runningBalance,
+        linkId: p._id,
+        linkType: 'purchase',
+        itemCount: p.items?.length || 0,
+        paymentType: (p as any).paymentType || 'Credit'
+      });
+    }
+
+    // If descending requested
+    let finalLedger = ledgerEntries;
+    if (sortOrder === 'desc') {
+      finalLedger = [...ledgerEntries].reverse();
+    }
+
+    const totalDebit = 0;
+    const totalCredit = purchases.reduce((sum, p) => sum + (p.totals?.grandTotal || 0), 0);
+    const closingBalance = runningBalance;
+
+    res.status(200).json({
+      success: true,
+      supplier,
+      ledger: finalLedger,
+      summary: {
+        openingBalance,
+        totalDebit,
+        totalCredit,
+        closingBalance,
+        totalPurchasesCount: purchases.length
+      },
+      totalCount: finalLedger.length
+    });
+  } catch (error) {
+    next(error);
+  }
+};
