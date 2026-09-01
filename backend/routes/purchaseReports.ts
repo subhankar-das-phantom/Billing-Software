@@ -1,6 +1,7 @@
 import express from 'express';
 import {
   getPurchaseSummary,
+  getPurchaseStatusSummary,
   getSupplierWisePurchases,
   getProductWisePurchases,
   getInventoryFlowSummary
@@ -18,6 +19,7 @@ router.use(checkFeatureAccess(Feature.PURCHASE_REPORTS));
 router.use(requirePermission('reports', 'view'));
 
 router.get('/summary', getPurchaseSummary);
+router.get('/status', getPurchaseStatusSummary);
 router.get('/supplier-wise', getSupplierWisePurchases);
 router.get('/product-wise', getProductWisePurchases);
 router.get('/inventory-flow', getInventoryFlowSummary);

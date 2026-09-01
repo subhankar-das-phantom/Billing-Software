@@ -7,8 +7,12 @@ export interface ReportDateFilter {
   dateTo?: string;
 }
 
-const buildPurchaseDateFilter = (tenantId: string, filters: ReportDateFilter): any => {
-  const matchStage: any = { tenantId };
+const toObjectId = (id: string | mongoose.Types.ObjectId): mongoose.Types.ObjectId => {
+  return typeof id === 'string' ? new mongoose.Types.ObjectId(id) : id;
+};
+
+const buildPurchaseDateFilter = (tenantId: string | mongoose.Types.ObjectId, filters: ReportDateFilter): any => {
+  const matchStage: any = { tenantId: toObjectId(tenantId) };
   if (filters.dateFrom || filters.dateTo) {
     matchStage.purchaseDate = {};
     if (filters.dateFrom) {
@@ -23,8 +27,8 @@ const buildPurchaseDateFilter = (tenantId: string, filters: ReportDateFilter): a
   return matchStage;
 };
 
-const buildMovementDateFilter = (tenantId: string, filters: ReportDateFilter): any => {
-  const matchStage: any = { tenantId };
+const buildMovementDateFilter = (tenantId: string | mongoose.Types.ObjectId, filters: ReportDateFilter): any => {
+  const matchStage: any = { tenantId: toObjectId(tenantId) };
   if (filters.dateFrom || filters.dateTo) {
     matchStage.createdAt = {};
     if (filters.dateFrom) {
@@ -40,7 +44,7 @@ const buildMovementDateFilter = (tenantId: string, filters: ReportDateFilter): a
 };
 
 export const purchaseReportService = {
-  async getPurchaseSummary(tenantId: string, filters: ReportDateFilter) {
+  async getPurchaseSummary(tenantId: string | mongoose.Types.ObjectId, filters: ReportDateFilter) {
     const matchStage = buildPurchaseDateFilter(tenantId, filters);
 
     const pipeline: PipelineStage[] = [
@@ -60,25 +64,59 @@ export const purchaseReportService = {
       completed: { count: 0, value: 0 },
       cancelled: { count: 0, value: 0 },
       draft: { count: 0, value: 0 },
-      totalPurchases: 0
+      totalPurchases: { count: 0, value: 0 }
     };
 
     results.forEach(r => {
       const status = r._id as string;
+      const count = r.count || 0;
+      const value = r.totalValue || 0;
+
       if (status === 'COMPLETED') {
-        summary.completed = { count: r.count, value: r.totalValue };
+        summary.completed = { count, value };
       } else if (status === 'CANCELLED') {
-        summary.cancelled = { count: r.count, value: r.totalValue };
+        summary.cancelled = { count, value };
       } else if (status === 'DRAFT') {
-        summary.draft = { count: r.count, value: r.totalValue };
+        summary.draft = { count, value };
       }
-      summary.totalPurchases += r.count;
+      summary.totalPurchases.count += count;
+      summary.totalPurchases.value += value;
     });
 
     return summary;
   },
 
-  async getSupplierWisePurchases(tenantId: string, filters: ReportDateFilter) {
+  async getPurchaseStatusSummary(tenantId: string | mongoose.Types.ObjectId, filters: ReportDateFilter) {
+    const matchStage = buildPurchaseDateFilter(tenantId, filters);
+
+    const pipeline: PipelineStage[] = [
+      { $match: matchStage },
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 },
+          totalAmount: { $sum: '$totalAmount' },
+          totalTax: { $sum: '$taxAmount' },
+          totalDiscount: { $sum: '$discountAmount' }
+        }
+      },
+      {
+        $project: {
+          status: '$_id',
+          count: 1,
+          totalAmount: 1,
+          totalTax: 1,
+          totalDiscount: 1,
+          _id: 0
+        }
+      },
+      { $sort: { status: 1 } }
+    ];
+
+    return await Purchase.aggregate(pipeline);
+  },
+
+  async getSupplierWisePurchases(tenantId: string | mongoose.Types.ObjectId, filters: ReportDateFilter) {
     const matchStage = buildPurchaseDateFilter(tenantId, filters);
 
     const pipeline: PipelineStage[] = [
@@ -90,7 +128,8 @@ export const purchaseReportService = {
             status: '$status'
           },
           count: { $sum: 1 },
-          totalValue: { $sum: '$totalAmount' }
+          totalValue: { $sum: '$totalAmount' },
+          lastPurchaseDate: { $max: '$purchaseDate' }
         }
       },
       {
@@ -105,10 +144,13 @@ export const purchaseReportService = {
       {
         $project: {
           supplierId: '$_id.supplierId',
-          supplierName: '$supplier.name',
+          supplierName: { $ifNull: ['$supplier.name', 'Unknown Supplier'] },
+          supplierPhone: { $ifNull: ['$supplier.phone', ''] },
+          supplierGstin: { $ifNull: ['$supplier.gstin', ''] },
           status: '$_id.status',
           count: 1,
           totalValue: 1,
+          lastPurchaseDate: 1,
           _id: 0
         }
       },
@@ -118,7 +160,7 @@ export const purchaseReportService = {
     return await Purchase.aggregate(pipeline);
   },
 
-  async getProductWisePurchases(tenantId: string, filters: ReportDateFilter) {
+  async getProductWisePurchases(tenantId: string | mongoose.Types.ObjectId, filters: ReportDateFilter) {
     const matchStage = buildPurchaseDateFilter(tenantId, filters);
 
     const pipeline: PipelineStage[] = [
@@ -148,11 +190,13 @@ export const purchaseReportService = {
       {
         $project: {
           productId: '$_id.productId',
-          productName: '$product.productName',
-          sku: '$product.sku',
+          productName: { $ifNull: ['$product.productName', 'Unknown Product'] },
+          sku: { $ifNull: ['$product.sku', ''] },
+          hsnCode: { $ifNull: ['$product.hsnCode', ''] },
           status: '$_id.status',
-          quantity: 1,
-          freeQuantity: 1,
+          paidQuantity: '$quantity',
+          freeQuantity: '$freeQuantity',
+          receivedQuantity: { $add: ['$quantity', '$freeQuantity'] },
           totalValue: 1,
           count: 1,
           _id: 0
@@ -164,7 +208,7 @@ export const purchaseReportService = {
     return await Purchase.aggregate(pipeline);
   },
 
-  async getInventoryFlowSummary(tenantId: string, filters: ReportDateFilter) {
+  async getInventoryFlowSummary(tenantId: string | mongoose.Types.ObjectId, filters: ReportDateFilter) {
     const matchStage = buildMovementDateFilter(tenantId, filters);
 
     const pipeline: PipelineStage[] = [
@@ -185,7 +229,9 @@ export const purchaseReportService = {
     const flow = {
       inflow: [] as any[],
       outflow: [] as any[],
-      summary: [] as any[]
+      summary: [] as any[],
+      totalInflowQty: 0,
+      totalOutflowQty: 0
     };
 
     const inTypes = ['PURCHASE', 'OPENING_STOCK', 'MANUAL_ADJUSTMENT_IN', 'SALE_RETURN'];
@@ -195,8 +241,10 @@ export const purchaseReportService = {
       const item = { type: r._id, count: r.count, quantity: r.quantity };
       if (inTypes.includes(r._id)) {
         flow.inflow.push(item);
+        flow.totalInflowQty += r.quantity;
       } else if (outTypes.includes(r._id)) {
         flow.outflow.push(item);
+        flow.totalOutflowQty += r.quantity;
       }
       flow.summary.push(item);
     });

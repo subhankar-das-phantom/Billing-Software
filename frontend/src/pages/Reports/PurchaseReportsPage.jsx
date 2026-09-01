@@ -19,23 +19,26 @@ import { useToast } from '../../contexts/ToastContext';
 import { useMotionConfig } from '../../hooks';
 
 export default function PurchaseReportsPage() {
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [summary, setSummary] = useState(null);
   const [supplierData, setSupplierData] = useState([]);
   const [productData, setProductData] = useState([]);
   
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [activeDateFrom, setActiveDateFrom] = useState('');
+  const [activeDateTo, setActiveDateTo] = useState('');
 
   const { showToast } = useToast();
   const motionConfig = useMotionConfig();
 
-  const fetchReports = useCallback(async () => {
+  const fetchReports = useCallback(async (from = activeDateFrom, to = activeDateTo) => {
     try {
-      setLoading(true);
+      setIsUpdating(true);
       const params = {};
-      if (dateFrom) params.dateFrom = dateFrom;
-      if (dateTo) params.dateTo = dateTo;
+      if (from) params.dateFrom = from;
+      if (to) params.dateTo = to;
       
       const [sumData, supData, prodData] = await Promise.all([
         purchaseReportService.getPurchaseSummary(params),
@@ -49,16 +52,31 @@ export default function PurchaseReportsPage() {
     } catch (error) {
       showToast('Failed to load purchase reports', 'error');
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
+      setIsUpdating(false);
     }
-  }, [dateFrom, dateTo, showToast]);
+  }, [activeDateFrom, activeDateTo, showToast]);
 
   useEffect(() => {
-    fetchReports();
-  }, [fetchReports]);
+    fetchReports('', '');
+  }, []);
+
+  const handleApplyFilter = () => {
+    setActiveDateFrom(dateFrom);
+    setActiveDateTo(dateTo);
+    fetchReports(dateFrom, dateTo);
+  };
+
+  const handleClearFilter = () => {
+    setDateFrom('');
+    setDateTo('');
+    setActiveDateFrom('');
+    setActiveDateTo('');
+    fetchReports('', '');
+  };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
       {/* Header & Date Filters */}
       <div className="glass-card p-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
@@ -71,10 +89,16 @@ export default function PurchaseReportsPage() {
               <p className="text-xs text-slate-400 mt-0.5">Comprehensive vendor and item purchase breakdown</p>
             </div>
           </div>
+          {isUpdating && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-300 text-xs font-semibold backdrop-blur-md">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              Updating reports...
+            </div>
+          )}
         </div>
 
         {/* Date Filter Bar */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-4 border-t border-slate-700/50">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-slate-700/50">
           <div>
             <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">From Date</label>
             <input
@@ -93,10 +117,20 @@ export default function PurchaseReportsPage() {
               onChange={(e) => setDateTo(e.target.value)}
             />
           </div>
+          <div className="flex items-end">
+            <button
+              onClick={handleApplyFilter}
+              disabled={isUpdating}
+              className="btn btn-primary text-xs h-10 w-full flex items-center justify-center gap-1.5"
+            >
+              Apply Filter
+            </button>
+          </div>
           {(dateFrom || dateTo) && (
             <div className="flex items-end">
               <button
-                onClick={() => { setDateFrom(''); setDateTo(''); }}
+                onClick={handleClearFilter}
+                disabled={isUpdating}
                 className="btn btn-secondary text-xs h-10 w-full flex items-center justify-center gap-1.5"
               >
                 <XCircle className="w-4 h-4" />
@@ -107,7 +141,7 @@ export default function PurchaseReportsPage() {
         </div>
       </div>
 
-      {loading ? (
+      {initialLoading ? (
         <div className="glass-card p-12 text-center text-slate-400">
           <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-400 mb-3" />
           <p>Loading purchase reports...</p>
@@ -120,7 +154,12 @@ export default function PurchaseReportsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Total Purchases</p>
-                  <h3 className="text-2xl font-bold text-white">{summary?.totalPurchases || 0}</h3>
+                  <h3 className="text-2xl font-bold text-white">
+                    {typeof summary?.totalPurchases === 'object' ? summary.totalPurchases.count : (summary?.totalPurchases || 0)}
+                  </h3>
+                  <p className="text-xs text-blue-400 font-medium mt-1">
+                    {formatCurrency(typeof summary?.totalPurchases === 'object' ? summary.totalPurchases.value : 0)}
+                  </p>
                 </div>
                 <div className="p-3 bg-blue-500/20 text-blue-400 rounded-xl group-hover:scale-110 transition-transform">
                   <ShoppingCart className="w-6 h-6" />
@@ -133,7 +172,7 @@ export default function PurchaseReportsPage() {
                 <div>
                   <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Completed Value</p>
                   <h3 className="text-2xl font-bold text-emerald-400">{formatCurrency(summary?.completed?.value || 0)}</h3>
-                  <p className="text-xs text-emerald-500 font-medium mt-1">{summary?.completed?.count || 0} received</p>
+                  <p className="text-xs text-emerald-500 font-medium mt-1">{summary?.completed?.count || 0} completed orders</p>
                 </div>
                 <div className="p-3 bg-emerald-500/20 text-emerald-400 rounded-xl group-hover:scale-110 transition-transform">
                   <ArrowUpRight className="w-6 h-6" />
@@ -144,12 +183,12 @@ export default function PurchaseReportsPage() {
             <div className="glass-card p-5 group hover:-translate-y-1 transition-all">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Cancelled Value</p>
-                  <h3 className="text-2xl font-bold text-rose-400">{formatCurrency(summary?.cancelled?.value || 0)}</h3>
-                  <p className="text-xs text-rose-500 font-medium mt-1">{summary?.cancelled?.count || 0} cancelled</p>
+                  <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Draft Value</p>
+                  <h3 className="text-2xl font-bold text-amber-400">{formatCurrency(summary?.draft?.value || 0)}</h3>
+                  <p className="text-xs text-amber-500 font-medium mt-1">{summary?.draft?.count || 0} pending drafts</p>
                 </div>
-                <div className="p-3 bg-rose-500/20 text-rose-400 rounded-xl group-hover:scale-110 transition-transform">
-                  <ArrowDownRight className="w-6 h-6" />
+                <div className="p-3 bg-amber-500/20 text-amber-400 rounded-xl group-hover:scale-110 transition-transform">
+                  <Clock className="w-6 h-6" />
                 </div>
               </div>
             </div>
@@ -157,12 +196,12 @@ export default function PurchaseReportsPage() {
             <div className="glass-card p-5 group hover:-translate-y-1 transition-all">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Draft Value</p>
-                  <h3 className="text-2xl font-bold text-amber-400">{formatCurrency(summary?.draft?.value || 0)}</h3>
-                  <p className="text-xs text-amber-500 font-medium mt-1">{summary?.draft?.count || 0} pending</p>
+                  <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Cancelled Value</p>
+                  <h3 className="text-2xl font-bold text-rose-400">{formatCurrency(summary?.cancelled?.value || 0)}</h3>
+                  <p className="text-xs text-rose-500 font-medium mt-1">{summary?.cancelled?.count || 0} cancelled</p>
                 </div>
-                <div className="p-3 bg-amber-500/20 text-amber-400 rounded-xl group-hover:scale-110 transition-transform">
-                  <Clock className="w-6 h-6" />
+                <div className="p-3 bg-rose-500/20 text-rose-400 rounded-xl group-hover:scale-110 transition-transform">
+                  <ArrowDownRight className="w-6 h-6" />
                 </div>
               </div>
             </div>
@@ -185,14 +224,21 @@ export default function PurchaseReportsPage() {
                     <tr>
                       <th className="p-3">Supplier</th>
                       <th className="p-3">Status</th>
-                      <th className="p-3 text-right">Bills</th>
+                      <th className="p-3 text-right">Orders</th>
                       <th className="p-3 text-right">Total (₹)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-700/40">
                     {supplierData.map((row, i) => (
                       <tr key={i} className="hover:bg-slate-800/30 transition-colors">
-                        <td className="p-3 font-medium text-white">{row.supplierName || 'Unknown'}</td>
+                        <td className="p-3">
+                          <div className="font-medium text-white">{row.supplierName || 'Unknown'}</div>
+                          {row.lastPurchaseDate && (
+                            <div className="text-xs text-slate-500">
+                              Last: {new Date(row.lastPurchaseDate).toLocaleDateString()}
+                            </div>
+                          )}
+                        </td>
                         <td className="p-3">
                           <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
                             row.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
@@ -229,8 +275,9 @@ export default function PurchaseReportsPage() {
                     <tr>
                       <th className="p-3">Product</th>
                       <th className="p-3">Status</th>
-                      <th className="p-3 text-right">Qty</th>
+                      <th className="p-3 text-right">Paid Qty</th>
                       <th className="p-3 text-right">Free</th>
+                      <th className="p-3 text-right">Recv Qty</th>
                       <th className="p-3 text-right">Value (₹)</th>
                     </tr>
                   </thead>
@@ -250,13 +297,16 @@ export default function PurchaseReportsPage() {
                             {row.status}
                           </span>
                         </td>
-                        <td className="p-3 text-right text-slate-200">{row.quantity}</td>
-                        <td className="p-3 text-right text-slate-500">{row.freeQuantity || 0}</td>
+                        <td className="p-3 text-right text-slate-200">{row.paidQuantity ?? row.quantity ?? 0}</td>
+                        <td className="p-3 text-right text-emerald-400/80">{row.freeQuantity || 0}</td>
+                        <td className="p-3 text-right font-semibold text-blue-300">
+                          {row.receivedQuantity ?? ((row.quantity || 0) + (row.freeQuantity || 0))}
+                        </td>
                         <td className="p-3 text-right font-bold text-emerald-400">{formatCurrency(row.totalValue)}</td>
                       </tr>
                     ))}
                     {productData.length === 0 && (
-                      <tr><td colSpan="5" className="p-8 text-center text-slate-500">No product purchase data found</td></tr>
+                      <tr><td colSpan="6" className="p-8 text-center text-slate-500">No product purchase data found</td></tr>
                     )}
                   </tbody>
                 </table>
