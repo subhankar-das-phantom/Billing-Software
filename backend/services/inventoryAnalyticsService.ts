@@ -148,10 +148,19 @@ export const inventoryAnalyticsService = {
       { $unwind: '$items' },
       {
         $group: {
-          _id: '$items.productId',
-          unitsSold: { $sum: '$items.quantity' },
+          _id: { $ifNull: ['$items.product._id', '$items.product'] },
+          unitsSold: {
+            $sum: {
+              $add: [
+                { $ifNull: ['$items.quantitySold', { $ifNull: ['$items.quantity', 0] }] },
+                { $ifNull: ['$items.freeQuantity', 0] }
+              ]
+            }
+          },
           orderCount: { $sum: 1 },
-          salesValue: { $sum: '$items.total' }
+          salesValue: {
+            $sum: { $ifNull: ['$items.totalAmount', { $ifNull: ['$items.total', 0] }] }
+          }
         }
       }
     ];
@@ -253,33 +262,39 @@ export const inventoryAnalyticsService = {
 
     const outOfStockItems: any[] = [];
     const lowStockItems: any[] = [];
+    const healthyItems: any[] = [];
 
     products.forEach((p: any) => {
       const qty = p.currentStockQty || 0;
       totalStockUnits += qty;
 
+      const itemData = {
+        productId: p._id,
+        productName: p.productName,
+        sku: p.sku || '',
+        category: p.category || '',
+        currentStockQty: qty,
+        rate: p.rate || 0
+      };
+
       if (qty <= 0) {
         outOfStockCount++;
         outOfStockItems.push({
-          productId: p._id,
-          productName: p.productName,
-          sku: p.sku || '',
-          currentStockQty: qty,
-          rate: p.rate,
+          ...itemData,
           risk: 'OUT_OF_STOCK'
         });
       } else if (qty <= 10) {
         lowStockCount++;
         lowStockItems.push({
-          productId: p._id,
-          productName: p.productName,
-          sku: p.sku || '',
-          currentStockQty: qty,
-          rate: p.rate,
+          ...itemData,
           risk: 'LOW_STOCK'
         });
       } else {
         healthyCount++;
+        healthyItems.push({
+          ...itemData,
+          risk: 'HEALTHY'
+        });
       }
     });
 
@@ -291,8 +306,9 @@ export const inventoryAnalyticsService = {
         lowStockCount,
         healthyCount
       },
-      outOfStockItems: outOfStockItems.slice(0, 30),
-      lowStockItems: lowStockItems.slice(0, 30)
+      outOfStockItems: outOfStockItems.slice(0, 100),
+      lowStockItems: lowStockItems.slice(0, 100),
+      healthyItems: healthyItems.slice(0, 100)
     };
   },
 

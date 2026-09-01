@@ -78,6 +78,33 @@ export function InventoryIntelligenceSection() {
     fetchIntelligence('', '');
   };
 
+  const [riskFilter, setRiskFilter] = useState('ALL');
+  const [riskSearch, setRiskSearch] = useState('');
+
+  const allRiskItems = [
+    ...(stockRiskData?.outOfStockItems || []),
+    ...(stockRiskData?.lowStockItems || []),
+    ...(stockRiskData?.healthyItems || [])
+  ];
+
+  const filteredByStatus = riskFilter === 'ALL'
+    ? allRiskItems
+    : riskFilter === 'OUT_OF_STOCK'
+    ? (stockRiskData?.outOfStockItems || [])
+    : riskFilter === 'LOW_STOCK'
+    ? (stockRiskData?.lowStockItems || [])
+    : (stockRiskData?.healthyItems || []);
+
+  const displayedRiskItems = filteredByStatus.filter(item => {
+    if (!riskSearch.trim()) return true;
+    const query = riskSearch.toLowerCase();
+    return (
+      item.productName?.toLowerCase().includes(query) ||
+      item.sku?.toLowerCase().includes(query) ||
+      item.category?.toLowerCase().includes(query)
+    );
+  });
+
   if (initialLoading) {
     return (
       <div className="glass-card p-12 text-center text-slate-400">
@@ -193,7 +220,12 @@ export function InventoryIntelligenceSection() {
               <TrendingUp className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">Product Sales Velocity</h3>
+              <div className="flex items-center gap-3">
+                <h3 className="text-lg font-bold text-white">Product Sales Velocity</h3>
+                <span className="text-xs px-2.5 py-0.5 bg-emerald-500/10 text-emerald-300 rounded-full border border-emerald-500/30 font-semibold">
+                  {(velocityData?.summary?.totalUnitsSold || 0).toLocaleString()} Units Sold
+                </span>
+              </div>
               <p className="text-xs text-slate-400">Deterministic movement rate based on invoice sales in selected period</p>
             </div>
           </div>
@@ -351,18 +383,75 @@ export function InventoryIntelligenceSection() {
 
       {/* ─── SECTION 3: STOCK RISK INDICATORS ─── */}
       <div className="space-y-4">
-        <div className="flex items-center gap-2.5">
-          <div className="p-2 bg-rose-500/20 text-rose-400 rounded-xl">
-            <ShieldAlert className="w-5 h-5" />
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-rose-500/20 text-rose-400 rounded-xl">
+              <ShieldAlert className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-white">Stock Risk Analysis</h3>
+              <p className="text-xs text-slate-400">Objective stock levels: Out of Stock (0 units), Low Stock (≤10 units), and Healthy (&gt;10 units)</p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-lg font-bold text-white">Stock Risk Analysis</h3>
-            <p className="text-xs text-slate-400">Objective stock levels: Out of Stock (0 units), Low Stock (≤10 units), and Healthy (&gt;10 units)</p>
+
+          {/* Filter Pills */}
+          <div className="flex items-center gap-1.5 p-1 bg-slate-900/60 rounded-xl border border-slate-800">
+            <button
+              onClick={() => setRiskFilter('ALL')}
+              className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
+                riskFilter === 'ALL'
+                  ? 'bg-slate-700 text-white shadow'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              All ({stockRiskData?.summary?.totalProducts || 0})
+            </button>
+            <button
+              onClick={() => setRiskFilter('OUT_OF_STOCK')}
+              className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
+                riskFilter === 'OUT_OF_STOCK'
+                  ? 'bg-rose-600 text-white shadow'
+                  : 'text-rose-400/80 hover:text-rose-300'
+              }`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+              Out of Stock ({stockRiskData?.summary?.outOfStockCount || 0})
+            </button>
+            <button
+              onClick={() => setRiskFilter('LOW_STOCK')}
+              className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
+                riskFilter === 'LOW_STOCK'
+                  ? 'bg-amber-600 text-white shadow'
+                  : 'text-amber-400/80 hover:text-amber-300'
+              }`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+              Low Stock ({stockRiskData?.summary?.lowStockCount || 0})
+            </button>
+            <button
+              onClick={() => setRiskFilter('HEALTHY')}
+              className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
+                riskFilter === 'HEALTHY'
+                  ? 'bg-emerald-600 text-white shadow'
+                  : 'text-emerald-400/80 hover:text-emerald-300'
+              }`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              Healthy ({stockRiskData?.summary?.healthyCount || 0})
+            </button>
           </div>
         </div>
 
+        {/* 3 Summary Cards (Clickable) */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="glass-card p-5 border border-rose-500/30 bg-rose-950/10">
+          <div
+            onClick={() => setRiskFilter('OUT_OF_STOCK')}
+            className={`glass-card p-5 border cursor-pointer transition-all ${
+              riskFilter === 'OUT_OF_STOCK'
+                ? 'border-rose-500 bg-rose-950/30 ring-2 ring-rose-500/30'
+                : 'border-rose-500/30 bg-rose-950/10 hover:border-rose-500/50'
+            }`}
+          >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-rose-400 uppercase font-semibold">Out of Stock</p>
@@ -373,7 +462,14 @@ export function InventoryIntelligenceSection() {
             </div>
           </div>
 
-          <div className="glass-card p-5 border border-amber-500/30 bg-amber-950/10">
+          <div
+            onClick={() => setRiskFilter('LOW_STOCK')}
+            className={`glass-card p-5 border cursor-pointer transition-all ${
+              riskFilter === 'LOW_STOCK'
+                ? 'border-amber-500 bg-amber-950/30 ring-2 ring-amber-500/30'
+                : 'border-amber-500/30 bg-amber-950/10 hover:border-amber-500/50'
+            }`}
+          >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-amber-400 uppercase font-semibold">Low Stock (≤10 units)</p>
@@ -384,7 +480,14 @@ export function InventoryIntelligenceSection() {
             </div>
           </div>
 
-          <div className="glass-card p-5 border border-emerald-500/30 bg-emerald-950/10">
+          <div
+            onClick={() => setRiskFilter('HEALTHY')}
+            className={`glass-card p-5 border cursor-pointer transition-all ${
+              riskFilter === 'HEALTHY'
+                ? 'border-emerald-500 bg-emerald-950/30 ring-2 ring-emerald-500/30'
+                : 'border-emerald-500/30 bg-emerald-950/10 hover:border-emerald-500/50'
+            }`}
+          >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-emerald-400 uppercase font-semibold">Healthy Stock (&gt;10 units)</p>
@@ -393,6 +496,89 @@ export function InventoryIntelligenceSection() {
               </div>
               <CheckCircle2 className="w-8 h-8 text-emerald-400" />
             </div>
+          </div>
+        </div>
+
+        {/* Detailed Product Risk Table */}
+        <div className="glass-card overflow-hidden">
+          <div className="p-3.5 bg-slate-800/60 border-b border-slate-700/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Package className="w-4 h-4 text-blue-400" />
+              <h4 className="text-xs font-bold uppercase tracking-wider text-white">
+                {riskFilter === 'ALL' && 'All Catalog Inventory'}
+                {riskFilter === 'OUT_OF_STOCK' && 'Out of Stock Products (Immediate Reorder Required)'}
+                {riskFilter === 'LOW_STOCK' && 'Low Stock Products (Low Inventory Warning)'}
+                {riskFilter === 'HEALTHY' && 'Healthy Inventory Stock Buffer'}
+              </h4>
+            </div>
+            <input
+              type="text"
+              placeholder="Search products in this list..."
+              value={riskSearch}
+              onChange={(e) => setRiskSearch(e.target.value)}
+              className="input text-xs py-1 px-3 h-8 w-full sm:w-64"
+            />
+          </div>
+
+          <div className="overflow-x-auto max-h-72">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-800/80 text-slate-400 uppercase tracking-wider border-b border-slate-700/50 sticky top-0">
+                <tr>
+                  <th className="p-3">Product Name</th>
+                  <th className="p-3">SKU / Code</th>
+                  <th className="p-3">Category</th>
+                  <th className="p-3 text-right">Unit Rate</th>
+                  <th className="p-3 text-right">Stock on Hand</th>
+                  <th className="p-3 text-center">Status / Recommendation</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800">
+                {displayedRiskItems.map((item, idx) => (
+                  <tr key={item.productId || idx} className="hover:bg-slate-800/30 transition-colors">
+                    <td className="p-3 font-semibold text-white">{item.productName}</td>
+                    <td className="p-3 text-slate-400 font-mono">{item.sku || '—'}</td>
+                    <td className="p-3 text-slate-400">{item.category || 'General'}</td>
+                    <td className="p-3 text-right text-slate-300 font-medium">{formatCurrency(item.rate || 0)}</td>
+                    <td className="p-3 text-right font-bold text-sm">
+                      <span className={
+                        item.currentStockQty <= 0
+                          ? 'text-rose-400'
+                          : item.currentStockQty <= 10
+                          ? 'text-amber-400'
+                          : 'text-emerald-400'
+                      }>
+                        {item.currentStockQty.toLocaleString()} units
+                      </span>
+                    </td>
+                    <td className="p-3 text-center">
+                      {item.currentStockQty <= 0 ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                          <XCircle className="w-3 h-3" />
+                          Out of Stock — Reorder
+                        </span>
+                      ) : item.currentStockQty <= 10 ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                          <AlertTriangle className="w-3 h-3" />
+                          Low Stock — Approaching Limit
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Healthy Stock Buffer
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {displayedRiskItems.length === 0 && (
+                  <tr>
+                    <td colSpan="6" className="p-8 text-center text-slate-500">
+                      No products match the selected stock risk filter
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
