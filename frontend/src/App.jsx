@@ -52,9 +52,11 @@ const CreditNoteViewPage = lazy(() => import('./pages/CreditNotes/CreditNoteView
 const PrivacyPolicyPage = lazy(() => import('./pages/Legal/PrivacyPolicyPage'));
 const TermsPage = lazy(() => import('./pages/Legal/TermsPage'));
 
+import AppShellSkeleton from './components/Layout/AppShellSkeleton';
+
 // Page loading fallback
 function PageLoader() {
-  return null;
+  return <AppShellSkeleton />;
 }
 
 // Protected Route Wrapper
@@ -63,7 +65,7 @@ function ProtectedRoute({ children }) {
   const { canAccess, loading: subLoading } = useSubscription();
   
   if (loading || subLoading) {
-    return null;
+    return <AppShellSkeleton />;
   }
   
   if (!user) {
@@ -106,7 +108,7 @@ function PlanGuard({ feature: explicitFeature, children }) {
   const isFeatureAllowed = requiredFeature ? (canAccess ? canAccess(requiredFeature) : true) : true;
 
   if (subLoading) {
-    return null;
+    return <AppShellSkeleton />;
   }
 
   if (!isFeatureAllowed) {
@@ -132,7 +134,7 @@ function PermissionRoute({ resource, action = 'view', feature: explicitFeature, 
   }, [loading, subLoading, isFeatureAllowed, hasPermission, resource, action, showToast]);
 
   if (loading || subLoading) {
-    return null;
+    return <AppShellSkeleton />;
   }
 
   // 1. Enforce SaaS Plan Entitlement first
