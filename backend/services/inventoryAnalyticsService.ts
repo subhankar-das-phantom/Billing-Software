@@ -47,7 +47,8 @@ export const inventoryAnalyticsService = {
         $project: {
           productId: 1,
           productName: { $ifNull: ['$product.productName', 'Unknown Product'] },
-          sku: { $ifNull: ['$product.sku', ''] },
+          hsnCode: { $ifNull: ['$product.hsnCode', ''] },
+          manufacturer: { $ifNull: ['$product.manufacturer', ''] },
           batchNo: 1,
           expiryDate: 1,
           remainingQty: 1,
@@ -93,7 +94,8 @@ export const inventoryAnalyticsService = {
         criticalBatches.push({
           productId: b.productId,
           productName: b.productName,
-          sku: b.sku,
+          hsnCode: b.hsnCode,
+          manufacturer: b.manufacturer,
           batchNo: b.batchNo,
           expiryDate: b.expiryDate,
           remainingQty: b.remainingQty,
@@ -179,7 +181,7 @@ export const inventoryAnalyticsService = {
 
     // 2. Fetch active products
     const products = await Product.find({ tenantId: tId, isActive: true })
-      .select('_id productName sku category currentStockQty rate')
+      .select('_id productName hsnCode manufacturer unit currentStockQty rate newMRP')
       .lean();
 
     const productList = products.map((p: any) => {
@@ -192,7 +194,9 @@ export const inventoryAnalyticsService = {
       return {
         productId: p._id,
         productName: p.productName,
-        sku: p.sku || '',
+        hsnCode: p.hsnCode || '',
+        manufacturer: p.manufacturer || '',
+        unit: p.unit || 'Pieces',
         currentStockQty: currentStock,
         unitsSold: sale.unitsSold,
         orderCount: sale.orderCount,
@@ -252,7 +256,7 @@ export const inventoryAnalyticsService = {
     const tId = toObjectId(tenantId);
 
     const products = await Product.find({ tenantId: tId, isActive: true })
-      .select('_id productName sku category currentStockQty rate')
+      .select('_id productName hsnCode manufacturer unit currentStockQty rate newMRP')
       .lean();
 
     let outOfStockCount = 0;
@@ -271,10 +275,12 @@ export const inventoryAnalyticsService = {
       const itemData = {
         productId: p._id,
         productName: p.productName,
-        sku: p.sku || '',
-        category: p.category || '',
+        hsnCode: p.hsnCode || '',
+        manufacturer: p.manufacturer || '',
+        unit: p.unit || 'Pieces',
         currentStockQty: qty,
-        rate: p.rate || 0
+        rate: p.rate || 0,
+        newMRP: p.newMRP || 0
       };
 
       if (qty <= 0) {
