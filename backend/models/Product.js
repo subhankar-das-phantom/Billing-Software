@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const stockHistorySchema = new mongoose.Schema({
   type: {
     type: String,
-    enum: ['invoice', 'invoice_edit', 'invoice_edit_reversal', 'invoice_cancelled', 'adjustment', 'opening', 'sales_return'],
+    enum: ['invoice', 'invoice_edit', 'invoice_edit_reversal', 'invoice_cancelled', 'adjustment', 'opening', 'sales_return', 'purchase', 'purchase_edit', 'purchase_edit_reversal', 'purchase_cancelled'],
     required: true
   },
   invoiceId: {

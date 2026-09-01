@@ -269,7 +269,8 @@ export const subscribeToInvalidation = (pattern, callback) => {
  * Main SWR Hook
  */
 export function useSWR(key, fetcher, options = {}) {
-  const { user } = useAuth();
+  const auth = useAuth();
+  const user = auth?.user;
   const {
     ttl = DEFAULT_TTL,
     revalidateOnFocus = false,
@@ -280,7 +281,7 @@ export function useSWR(key, fetcher, options = {}) {
   const baseKey = key
     ? (typeof key === 'string' ? key : JSON.stringify(key))
     : null;
-  const scopedKey = userId && baseKey ? `${baseKey}|${userId}` : null;
+  const scopedKey = userId && baseKey ? `${baseKey}|${userId}` : (baseKey || null);
 
   const [data, setData] = useState(() => {
     if (!scopedKey) return fallbackData;
