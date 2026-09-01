@@ -5,7 +5,7 @@
 import type { Response, NextFunction } from 'express';
 import type { SaaSRequest } from '../types';
 import Plan from '../models/Plan';
-import { getAvailablePlans } from '../services/pricingService';
+import { getAvailablePlans, invalidatePricingCache } from '../services/pricingService';
 
 /**
  * GET /api/saas/plans
@@ -62,6 +62,7 @@ export async function createPlan(
 ): Promise<void> {
   try {
     const plan = await Plan.create(req.body);
+    invalidatePricingCache();
     res.status(201).json({ success: true, plan });
   } catch (error) {
     next(error);
@@ -89,6 +90,7 @@ export async function updatePlan(
       return;
     }
 
+    invalidatePricingCache();
     res.status(200).json({ success: true, plan });
   } catch (error) {
     next(error);

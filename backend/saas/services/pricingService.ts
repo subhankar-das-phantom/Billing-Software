@@ -2,7 +2,7 @@
  * Pricing Service — calculates subscription prices.
  *
  * All pricing is DB-driven via Plan.baseMonthlyPrice + PricingRule discounts.
- * Never hardcodes ₹299, ₹499, ₹699, or any discount percentages.
+ * High-performance implementation with batch lookups and in-memory TTL caching.
  */
 
 import Plan from '../models/Plan';
@@ -10,27 +10,25 @@ import PricingRule from '../models/PricingRule';
 import { SUPPORTED_DURATIONS, DiscountType } from '../shared/features';
 import type { PriceCalculation, PlanWithPricing } from '../types';
 
+// ─── In-Memory Cache ─────────────────────────────────────────────
+let cachedPlansWithPricing: PlanWithPricing[] | null = null;
+let cacheExpiresAt = 0;
+const PLANS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+export function invalidatePricingCache(): void {
+  cachedPlansWithPricing = null;
+  cacheExpiresAt = 0;
+}
+
 /**
- * Calculate the price for a specific plan + duration.
+ * Pure calculation helper (O(1) memory computation).
  */
-export async function calculatePrice(
-  planId: string,
+function computePrice(
+  baseMonthlyPrice: number,
   durationMonths: number,
-): Promise<PriceCalculation> {
-  const plan = await Plan.findById(planId).lean();
-  if (!plan) {
-    throw new Error('Plan not found');
-  }
-
-  const basePrice = plan.baseMonthlyPrice * durationMonths;
-
-  // Look up pricing rule for this plan + duration
-  const rule = await PricingRule.findOne({
-    planId,
-    durationMonths,
-    active: true,
-  }).lean();
-
+  rule?: { discountType: string; discountValue: number } | null
+): PriceCalculation {
+  const basePrice = baseMonthlyPrice * durationMonths;
   let discountAmount = 0;
 
   if (rule) {
@@ -58,32 +56,75 @@ export async function calculatePrice(
 }
 
 /**
+ * Calculate the price for a specific plan + duration.
+ */
+export async function calculatePrice(
+  planId: string,
+  durationMonths: number,
+): Promise<PriceCalculation> {
+  const plan = await Plan.findById(planId).lean();
+  if (!plan) {
+    throw new Error('Plan not found');
+  }
+
+  const rule = await PricingRule.findOne({
+    planId,
+    durationMonths,
+    active: true,
+  }).lean();
+
+  return computePrice(plan.baseMonthlyPrice, durationMonths, rule);
+}
+
+/**
  * Get all active plans with pricing for all supported durations.
- * Used by the frontend pricing page.
+ * Uses 2 batch queries and in-memory caching for sub-millisecond responses.
  */
 export async function getAvailablePlans(): Promise<PlanWithPricing[]> {
+  const now = Date.now();
+  if (cachedPlansWithPricing && now < cacheExpiresAt) {
+    return cachedPlansWithPricing;
+  }
+
+  // 1. Fetch all active plans (1 batch query)
   const plans = await Plan.find({ active: true })
     .sort({ displayOrder: 1 })
     .lean();
 
-  const result: PlanWithPricing[] = [];
+  if (plans.length === 0) {
+    return [];
+  }
 
-  for (const plan of plans) {
-    const pricing: PriceCalculation[] = [];
+  const planIds = plans.map(p => p._id);
 
-    for (const duration of SUPPORTED_DURATIONS) {
-      const calc = await calculatePrice(
-        plan._id.toString(),
-        duration,
-      );
-      pricing.push(calc);
-    }
+  // 2. Fetch all active pricing rules for all active plans in one batch query
+  const rules = await PricingRule.find({
+    planId: { $in: planIds },
+    active: true,
+  }).lean();
 
-    result.push({
+  // Index rules by `planId:duration` for O(1) lookups
+  const ruleMap = new Map<string, typeof rules[0]>();
+  for (const r of rules) {
+    ruleMap.set(`${r.planId.toString()}:${r.durationMonths}`, r);
+  }
+
+  // 3. Compute pricing matrix in memory
+  const result: PlanWithPricing[] = plans.map(plan => {
+    const pricing: PriceCalculation[] = SUPPORTED_DURATIONS.map(duration => {
+      const rule = ruleMap.get(`${plan._id.toString()}:${duration}`);
+      return computePrice(plan.baseMonthlyPrice, duration, rule);
+    });
+
+    return {
       ...plan,
       pricing,
-    } as PlanWithPricing);
-  }
+    } as PlanWithPricing;
+  });
+
+  // Store in cache
+  cachedPlansWithPricing = result;
+  cacheExpiresAt = now + PLANS_CACHE_TTL_MS;
 
   return result;
 }
