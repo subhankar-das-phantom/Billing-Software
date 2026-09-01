@@ -17,6 +17,11 @@ const getProductWisePurchases = async (params = {}) => {
   return response.data;
 };
 
+const getPurchaseStatusSummary = async (params = {}) => {
+  const response = await axios.get(`${API_URL}/status`, { params, withCredentials: true });
+  return response.data;
+};
+
 const getInventoryFlowSummary = async (params = {}) => {
   const response = await axios.get(`${API_URL}/inventory-flow`, { params, withCredentials: true });
   return response.data;
@@ -24,6 +29,7 @@ const getInventoryFlowSummary = async (params = {}) => {
 
 export const purchaseReportService = {
   getPurchaseSummary,
+  getPurchaseStatusSummary,
   getSupplierWisePurchases,
   getProductWisePurchases,
   getInventoryFlowSummary

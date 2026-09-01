@@ -120,7 +120,12 @@ export default function PurchaseReportsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Total Purchases</p>
-                  <h3 className="text-2xl font-bold text-white">{summary?.totalPurchases || 0}</h3>
+                  <h3 className="text-2xl font-bold text-white">
+                    {typeof summary?.totalPurchases === 'object' ? summary.totalPurchases.count : (summary?.totalPurchases || 0)}
+                  </h3>
+                  <p className="text-xs text-blue-400 font-medium mt-1">
+                    {formatCurrency(typeof summary?.totalPurchases === 'object' ? summary.totalPurchases.value : 0)}
+                  </p>
                 </div>
                 <div className="p-3 bg-blue-500/20 text-blue-400 rounded-xl group-hover:scale-110 transition-transform">
                   <ShoppingCart className="w-6 h-6" />
@@ -133,7 +138,7 @@ export default function PurchaseReportsPage() {
                 <div>
                   <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Completed Value</p>
                   <h3 className="text-2xl font-bold text-emerald-400">{formatCurrency(summary?.completed?.value || 0)}</h3>
-                  <p className="text-xs text-emerald-500 font-medium mt-1">{summary?.completed?.count || 0} received</p>
+                  <p className="text-xs text-emerald-500 font-medium mt-1">{summary?.completed?.count || 0} completed orders</p>
                 </div>
                 <div className="p-3 bg-emerald-500/20 text-emerald-400 rounded-xl group-hover:scale-110 transition-transform">
                   <ArrowUpRight className="w-6 h-6" />
@@ -144,12 +149,12 @@ export default function PurchaseReportsPage() {
             <div className="glass-card p-5 group hover:-translate-y-1 transition-all">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Cancelled Value</p>
-                  <h3 className="text-2xl font-bold text-rose-400">{formatCurrency(summary?.cancelled?.value || 0)}</h3>
-                  <p className="text-xs text-rose-500 font-medium mt-1">{summary?.cancelled?.count || 0} cancelled</p>
+                  <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Draft Value</p>
+                  <h3 className="text-2xl font-bold text-amber-400">{formatCurrency(summary?.draft?.value || 0)}</h3>
+                  <p className="text-xs text-amber-500 font-medium mt-1">{summary?.draft?.count || 0} pending drafts</p>
                 </div>
-                <div className="p-3 bg-rose-500/20 text-rose-400 rounded-xl group-hover:scale-110 transition-transform">
-                  <ArrowDownRight className="w-6 h-6" />
+                <div className="p-3 bg-amber-500/20 text-amber-400 rounded-xl group-hover:scale-110 transition-transform">
+                  <Clock className="w-6 h-6" />
                 </div>
               </div>
             </div>
@@ -157,12 +162,12 @@ export default function PurchaseReportsPage() {
             <div className="glass-card p-5 group hover:-translate-y-1 transition-all">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Draft Value</p>
-                  <h3 className="text-2xl font-bold text-amber-400">{formatCurrency(summary?.draft?.value || 0)}</h3>
-                  <p className="text-xs text-amber-500 font-medium mt-1">{summary?.draft?.count || 0} pending</p>
+                  <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Cancelled Value</p>
+                  <h3 className="text-2xl font-bold text-rose-400">{formatCurrency(summary?.cancelled?.value || 0)}</h3>
+                  <p className="text-xs text-rose-500 font-medium mt-1">{summary?.cancelled?.count || 0} cancelled</p>
                 </div>
-                <div className="p-3 bg-amber-500/20 text-amber-400 rounded-xl group-hover:scale-110 transition-transform">
-                  <Clock className="w-6 h-6" />
+                <div className="p-3 bg-rose-500/20 text-rose-400 rounded-xl group-hover:scale-110 transition-transform">
+                  <ArrowDownRight className="w-6 h-6" />
                 </div>
               </div>
             </div>
@@ -185,14 +190,21 @@ export default function PurchaseReportsPage() {
                     <tr>
                       <th className="p-3">Supplier</th>
                       <th className="p-3">Status</th>
-                      <th className="p-3 text-right">Bills</th>
+                      <th className="p-3 text-right">Orders</th>
                       <th className="p-3 text-right">Total (₹)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-700/40">
                     {supplierData.map((row, i) => (
                       <tr key={i} className="hover:bg-slate-800/30 transition-colors">
-                        <td className="p-3 font-medium text-white">{row.supplierName || 'Unknown'}</td>
+                        <td className="p-3">
+                          <div className="font-medium text-white">{row.supplierName || 'Unknown'}</div>
+                          {row.lastPurchaseDate && (
+                            <div className="text-xs text-slate-500">
+                              Last: {new Date(row.lastPurchaseDate).toLocaleDateString()}
+                            </div>
+                          )}
+                        </td>
                         <td className="p-3">
                           <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
                             row.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
@@ -229,8 +241,9 @@ export default function PurchaseReportsPage() {
                     <tr>
                       <th className="p-3">Product</th>
                       <th className="p-3">Status</th>
-                      <th className="p-3 text-right">Qty</th>
+                      <th className="p-3 text-right">Paid Qty</th>
                       <th className="p-3 text-right">Free</th>
+                      <th className="p-3 text-right">Recv Qty</th>
                       <th className="p-3 text-right">Value (₹)</th>
                     </tr>
                   </thead>
@@ -250,13 +263,16 @@ export default function PurchaseReportsPage() {
                             {row.status}
                           </span>
                         </td>
-                        <td className="p-3 text-right text-slate-200">{row.quantity}</td>
-                        <td className="p-3 text-right text-slate-500">{row.freeQuantity || 0}</td>
+                        <td className="p-3 text-right text-slate-200">{row.paidQuantity ?? row.quantity ?? 0}</td>
+                        <td className="p-3 text-right text-emerald-400/80">{row.freeQuantity || 0}</td>
+                        <td className="p-3 text-right font-semibold text-blue-300">
+                          {row.receivedQuantity ?? ((row.quantity || 0) + (row.freeQuantity || 0))}
+                        </td>
                         <td className="p-3 text-right font-bold text-emerald-400">{formatCurrency(row.totalValue)}</td>
                       </tr>
                     ))}
                     {productData.length === 0 && (
-                      <tr><td colSpan="5" className="p-8 text-center text-slate-500">No product purchase data found</td></tr>
+                      <tr><td colSpan="6" className="p-8 text-center text-slate-500">No product purchase data found</td></tr>
                     )}
                   </tbody>
                 </table>

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileBarChart, TrendingUp } from 'lucide-react';
+import { FileBarChart, TrendingUp, Sparkles } from 'lucide-react';
 import GstReportPage from './GstReportPage';
 import { SalesAnalyticsSection } from '../../features/salesAnalytics/components/SalesAnalyticsSection';
+import { InventoryIntelligenceSection } from '../../features/inventoryAnalytics/components/InventoryIntelligenceSection';
 
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState('sales-analytics');
@@ -21,8 +22,8 @@ export default function ReportsPage() {
           transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
         />
         <div className="relative z-10">
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-2">Reports Hub</h1>
-          <p className="text-xs sm:text-sm text-slate-400">Comprehensive business insights and reporting</p>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-2">Reports & Intelligence Hub</h1>
+          <p className="text-xs sm:text-sm text-slate-400">Comprehensive business performance, inventory intelligence, and tax compliance</p>
         </div>
       </motion.div>
 
@@ -38,6 +39,17 @@ export default function ReportsPage() {
         >
           <TrendingUp className="w-4 h-4" />
           Sales Analytics
+        </button>
+        <button
+          onClick={() => setActiveTab('inventory-intelligence')}
+          className={`flex items-center gap-2 px-6 py-3 rounded-full font-medium text-sm transition-all whitespace-nowrap ${
+            activeTab === 'inventory-intelligence'
+              ? 'bg-gradient-to-r from-blue-600 to-accent2-600 text-white shadow-lg shadow-blue-500/20'
+              : 'bg-slate-800/50 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+          }`}
+        >
+          <Sparkles className="w-4 h-4 text-amber-400" />
+          Inventory Intelligence
         </button>
         <button
           onClick={() => setActiveTab('gst-report')}
@@ -63,6 +75,17 @@ export default function ReportsPage() {
             transition={{ duration: 0.2 }}
           >
             <SalesAnalyticsSection />
+          </motion.div>
+        )}
+        {activeTab === 'inventory-intelligence' && (
+          <motion.div
+            key="inventory-intelligence"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            <InventoryIntelligenceSection />
           </motion.div>
         )}
         {activeTab === 'gst-report' && (

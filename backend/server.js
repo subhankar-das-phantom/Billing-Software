@@ -101,6 +101,7 @@ app.use('/api/suppliers', generalLimiter, require('./routes/suppliers'));
 app.use('/api/purchases', generalLimiter, require('./routes/purchases'));
 app.use('/api/stock-movements', generalLimiter, require('./routes/stockMovements'));
 app.use('/api/reports/purchases', generalLimiter, require('./routes/purchaseReports'));
+app.use('/api/analytics/inventory', generalLimiter, require('./routes/inventoryAnalytics'));
 
 // SSE route — no rate limiter (long-lived connection, protected by auth + per-user limit)
 app.use('/api/stock-events', require('./routes/stockEvents'));
