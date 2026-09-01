@@ -76,7 +76,7 @@ export default function SubscriptionBanner() {
                 navigate('/subscription');
               }}
             >
-              <span>{isExpired ? 'Renew Now' : 'Subscribe'}</span>
+              <span>Contact us to upgrade this plan.</span>
               <ArrowRight className="w-4 h-4" />
             </motion.button>
 
