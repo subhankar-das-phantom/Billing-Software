@@ -93,12 +93,26 @@ export async function getSubscriptionInfo(
     actualStatus === SubscriptionStatus.TRIAL ||
     actualStatus === SubscriptionStatus.GRACE;
 
+  // Resolve plan document to ensure features include any newly added capabilities for this tier
+  let resolvedFeatures = (subscription.currentPricingSnapshot?.features || []) as Feature[];
+  let planName = subscription.currentPricingSnapshot?.planName || 'Starter';
+  let planCode = (subscription.currentPricingSnapshot?.planCode || PlanCode.STARTER) as PlanCode;
+
+  if (subscription.planId) {
+    const planDoc = await Plan.findById(subscription.planId).lean();
+    if (planDoc) {
+      resolvedFeatures = (planDoc.features || resolvedFeatures) as Feature[];
+      planName = planDoc.name || planName;
+      planCode = (planDoc.code || planCode) as PlanCode;
+    }
+  }
+
   const info: SubscriptionInfo = {
     status: actualStatus,
     plan: {
-      code: subscription.currentPricingSnapshot.planCode as PlanCode,
-      name: subscription.currentPricingSnapshot.planName,
-      features: subscription.currentPricingSnapshot.features as Feature[],
+      code: planCode,
+      name: planName,
+      features: resolvedFeatures,
     },
     canWrite,
     expiresAt: new Date(subscription.expiresAt),

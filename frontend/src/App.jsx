@@ -3,8 +3,9 @@ import { lazy, Suspense, useEffect } from 'react';
 import { AuthProvider, useAuth, AdminRoute } from './contexts/AuthContext';
 import { SubscriptionProvider, useSubscription } from './contexts/SubscriptionContext';
 import { ToastProvider } from './contexts/ToastContext';
-import { Feature } from './saas/features';
+import { Feature, getFeatureForRoute } from './saas/features';
 import { ShieldAlert, LogOut } from 'lucide-react';
+import PlanAccessRestricted from './components/Common/Guards/PlanAccessRestricted';
 
 // Eager load - needed immediately
 import DashboardLayout from './components/Layout/DashboardLayout';
@@ -28,8 +29,6 @@ const InvoiceCreatePage = lazy(() => import('./pages/Invoices/InvoiceCreatePage'
 const InvoiceViewPage = lazy(() => import('./pages/Invoices/InvoiceViewPage'));
 const NotesPage = lazy(() => import('./pages/Notes/NotesPage'));
 const ReportsPage = lazy(() => import('./pages/Reports/ReportsPage'));
-const PurchaseReportsPage = lazy(() => import('./pages/Reports/PurchaseReportsPage'));
-const InventoryMovementReportPage = lazy(() => import('./pages/Reports/InventoryMovementReportPage'));
 const SettingsPage = lazy(() => import('./pages/Settings/SettingsPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const CollectionsPage = lazy(() => import('./pages/Collections/CollectionsPage'));
@@ -53,9 +52,7 @@ const CreditNoteViewPage = lazy(() => import('./pages/CreditNotes/CreditNoteView
 const PrivacyPolicyPage = lazy(() => import('./pages/Legal/PrivacyPolicyPage'));
 const TermsPage = lazy(() => import('./pages/Legal/TermsPage'));
 
-// Landing page (eagerly loaded — it's the entry point for new users)
-
-// Page loading spinner removed as per request
+// Page loading fallback
 function PageLoader() {
   return null;
 }
@@ -100,24 +97,54 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
-// Permission Route Wrapper
-function PermissionRoute({ resource, action = 'view', children }) {
-  const { hasPermission, loading, showToast } = useAuth();
-  
-  useEffect(() => {
-    if (!loading && !hasPermission(resource, action)) {
-      showToast('Access denied by admin', 'error');
-    }
-  }, [loading, hasPermission, resource, action, showToast]);
+// Plan Feature Guard (renders PlanAccessRestricted if feature is not supported by current plan)
+function PlanGuard({ feature: explicitFeature, children }) {
+  const { canAccess, loading: subLoading, planName } = useSubscription();
+  const location = useLocation();
 
-  if (loading) {
+  const requiredFeature = explicitFeature || getFeatureForRoute(location.pathname);
+  const isFeatureAllowed = requiredFeature ? (canAccess ? canAccess(requiredFeature) : true) : true;
+
+  if (subLoading) {
     return null;
   }
-  
+
+  if (!isFeatureAllowed) {
+    return <PlanAccessRestricted feature={requiredFeature} currentPlan={planName} />;
+  }
+
+  return children;
+}
+
+// Permission Route Wrapper (Enforces SaaS Plan Entitlement + Employee RBAC)
+function PermissionRoute({ resource, action = 'view', feature: explicitFeature, children }) {
+  const { hasPermission, loading, showToast } = useAuth();
+  const { canAccess, loading: subLoading, planName } = useSubscription();
+  const location = useLocation();
+
+  const requiredFeature = explicitFeature || getFeatureForRoute(location.pathname);
+  const isFeatureAllowed = requiredFeature ? (canAccess ? canAccess(requiredFeature) : true) : true;
+
+  useEffect(() => {
+    if (!loading && !subLoading && isFeatureAllowed && !hasPermission(resource, action)) {
+      showToast('Access denied by admin', 'error');
+    }
+  }, [loading, subLoading, isFeatureAllowed, hasPermission, resource, action, showToast]);
+
+  if (loading || subLoading) {
+    return null;
+  }
+
+  // 1. Enforce SaaS Plan Entitlement first
+  if (!isFeatureAllowed) {
+    return <PlanAccessRestricted feature={requiredFeature} currentPlan={planName} />;
+  }
+
+  // 2. Enforce Employee RBAC permission
   if (!hasPermission(resource, action)) {
     return <Navigate to="/" replace />;
   }
-  
+
   return children;
 }
 
@@ -163,7 +190,7 @@ function AppRoutes() {
           }
         />
         
-        {/* Protected Routes */}
+        {/* Protected Operational Routes */}
         <Route
           element={
             <ProtectedRoute>
@@ -176,27 +203,41 @@ function AppRoutes() {
           <Route path="/products/:id" element={<PermissionRoute resource="products"><ProductDetailsPage /></PermissionRoute>} />
           <Route path="/customers" element={<PermissionRoute resource="customers"><CustomersPage /></PermissionRoute>} />
           <Route path="/customers/:id" element={<PermissionRoute resource="customers"><CustomerDetailsPage /></PermissionRoute>} />
-          <Route path="/suppliers" element={<PermissionRoute resource="suppliers"><SuppliersPage /></PermissionRoute>} />
-          <Route path="/suppliers/:id" element={<PermissionRoute resource="suppliers"><SupplierDetailsPage /></PermissionRoute>} />
-          <Route path="/purchases" element={<PermissionRoute resource="purchases"><PurchasesPage /></PermissionRoute>} />
-          <Route path="/purchases/new" element={<PermissionRoute resource="purchases" action="create"><PurchaseCreatePage /></PermissionRoute>} />
-          <Route path="/purchases/:id/edit" element={<PermissionRoute resource="purchases" action="edit"><PurchaseCreatePage /></PermissionRoute>} />
-          <Route path="/purchases/:id" element={<PermissionRoute resource="purchases"><PurchaseDetailsPage /></PermissionRoute>} />
-          <Route path="/inventory/ledger" element={<PermissionRoute resource="inventory" action="view"><InventoryLedgerPage /></PermissionRoute>} />
+          
+          {/* Business & Pro Tier: Suppliers */}
+          <Route path="/suppliers" element={<PermissionRoute resource="suppliers" feature={Feature.SUPPLIERS}><SuppliersPage /></PermissionRoute>} />
+          <Route path="/suppliers/:id" element={<PermissionRoute resource="suppliers" feature={Feature.SUPPLIERS}><SupplierDetailsPage /></PermissionRoute>} />
+          
+          {/* Business & Pro Tier: Purchases */}
+          <Route path="/purchases" element={<PermissionRoute resource="purchases" feature={Feature.PURCHASES}><PurchasesPage /></PermissionRoute>} />
+          <Route path="/purchases/new" element={<PermissionRoute resource="purchases" action="create" feature={Feature.PURCHASES}><PurchaseCreatePage /></PermissionRoute>} />
+          <Route path="/purchases/:id/edit" element={<PermissionRoute resource="purchases" action="edit" feature={Feature.PURCHASES}><PurchaseCreatePage /></PermissionRoute>} />
+          <Route path="/purchases/:id" element={<PermissionRoute resource="purchases" feature={Feature.PURCHASES}><PurchaseDetailsPage /></PermissionRoute>} />
+          
+          {/* Business & Pro Tier: Inventory Ledger */}
+          <Route path="/inventory/ledger" element={<PermissionRoute resource="inventory" action="view" feature={Feature.INVENTORY_LEDGER}><InventoryLedgerPage /></PermissionRoute>} />
+          
+          {/* Invoices */}
           <Route path="/invoices" element={<PermissionRoute resource="invoices"><InvoicesPage /></PermissionRoute>} />
           <Route path="/invoices/create" element={<PermissionRoute resource="invoices" action="create"><InvoiceCreatePage /></PermissionRoute>} />
           <Route path="/invoices/:id/edit" element={<PermissionRoute resource="invoices" action="edit"><InvoiceCreatePage /></PermissionRoute>} />
-          <Route path="/invoices/:id/return" element={<PermissionRoute resource="creditNotes" action="create"><CreditNoteCreatePage /></PermissionRoute>} />
+          <Route path="/invoices/:id/return" element={<PermissionRoute resource="creditNotes" action="create" feature={Feature.CREDIT_NOTES}><CreditNoteCreatePage /></PermissionRoute>} />
           <Route path="/invoices/:id" element={<PermissionRoute resource="invoices"><InvoiceViewPage /></PermissionRoute>} />
-          <Route path="/credit-notes/:id" element={<PermissionRoute resource="creditNotes"><CreditNoteViewPage /></PermissionRoute>} />
-          <Route path="/notes" element={<PermissionRoute resource="notes"><NotesPage /></PermissionRoute>} />
-          <Route path="/credits" element={<PermissionRoute resource="creditNotes"><CreditsPage /></PermissionRoute>} />
-          <Route path="/collections" element={<PermissionRoute resource="payments"><CollectionsPage /></PermissionRoute>} />
+          
+          {/* Business & Pro Tier: Credit Notes & Notes & Collections */}
+          <Route path="/credit-notes/:id" element={<PermissionRoute resource="creditNotes" feature={Feature.CREDIT_NOTES}><CreditNoteViewPage /></PermissionRoute>} />
+          <Route path="/credits" element={<PermissionRoute resource="creditNotes" feature={Feature.CREDIT_NOTES}><CreditsPage /></PermissionRoute>} />
+          <Route path="/notes" element={<PermissionRoute resource="notes" feature={Feature.NOTES}><NotesPage /></PermissionRoute>} />
+          <Route path="/collections" element={<PermissionRoute resource="payments" feature={Feature.COLLECTIONS}><CollectionsPage /></PermissionRoute>} />
+          
+          {/* Reports Hub */}
           <Route path="/reports" element={<PermissionRoute resource="reports"><ReportsPage /></PermissionRoute>} />
           <Route path="/reports/purchases" element={<PermissionRoute resource="reports"><ReportsPage defaultTab="purchases" /></PermissionRoute>} />
           <Route path="/reports/gst" element={<PermissionRoute resource="reports"><ReportsPage defaultTab="gst-report" /></PermissionRoute>} />
           <Route path="/reports/inventory" element={<PermissionRoute resource="reports"><ReportsPage defaultTab="inventory-intelligence" /></PermissionRoute>} />
           <Route path="/reports/inventory-movements" element={<Navigate to="/inventory/ledger" replace />} />
+          
+          {/* Admin Routes */}
           <Route 
             path="/subscription" 
             element={
@@ -222,12 +263,14 @@ function AppRoutes() {
             } 
           />
           
-          {/* Admin-only routes */}
+          {/* Pro Tier Only: Employee Management */}
           <Route 
             path="/employees" 
             element={
               <AdminRoute>
-                <EmployeesPage />
+                <PlanGuard feature={Feature.EMPLOYEES}>
+                  <EmployeesPage />
+                </PlanGuard>
               </AdminRoute>
             } 
           />
@@ -235,7 +278,9 @@ function AppRoutes() {
             path="/employees/:id" 
             element={
               <AdminRoute>
-                <EmployeeDetailPage />
+                <PlanGuard feature={Feature.EMPLOYEES}>
+                  <EmployeeDetailPage />
+                </PlanGuard>
               </AdminRoute>
             } 
           />
@@ -243,7 +288,9 @@ function AppRoutes() {
             path="/employee-analytics" 
             element={
               <AdminRoute>
-                <EmployeeAnalyticsPage />
+                <PlanGuard feature={Feature.EMPLOYEE_ANALYTICS}>
+                  <EmployeeAnalyticsPage />
+                </PlanGuard>
               </AdminRoute>
             } 
           />
@@ -251,7 +298,9 @@ function AppRoutes() {
             path="/activity-log" 
             element={
               <AdminRoute>
-                <ActivityLogPage />
+                <PlanGuard feature={Feature.ACTIVITY_LOGS}>
+                  <ActivityLogPage />
+                </PlanGuard>
               </AdminRoute>
             } 
           />
@@ -259,7 +308,9 @@ function AppRoutes() {
             path="/manual-entries" 
             element={
               <AdminRoute>
-                <ManualEntriesPage />
+                <PlanGuard feature={Feature.MANUAL_ENTRIES}>
+                  <ManualEntriesPage />
+                </PlanGuard>
               </AdminRoute>
             } 
           />

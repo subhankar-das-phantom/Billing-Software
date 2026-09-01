@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { subscriptionService } from '../services/saas/subscriptionService';
-import { ROUTE_FEATURE_MAP, SubscriptionStatus } from '../saas/features';
+import { ROUTE_FEATURE_MAP, SubscriptionStatus, getFeatureForRoute } from '../saas/features';
 
 const SubscriptionContext = createContext(null);
 
@@ -70,7 +70,7 @@ export const SubscriptionProvider = ({ children }) => {
    */
   const canAccessRoute = useCallback(
     (routePath) => {
-      const feature = ROUTE_FEATURE_MAP[routePath];
+      const feature = getFeatureForRoute(routePath) || ROUTE_FEATURE_MAP[routePath];
       if (!feature) return true; // Route not mapped = always accessible
       return canAccess(feature);
     },
