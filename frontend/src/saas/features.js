@@ -30,6 +30,7 @@ export const Feature = {
   PURCHASES:           'PURCHASES',
   PURCHASE_REPORTS:    'PURCHASE_REPORTS',
   INVENTORY_LEDGER:    'INVENTORY_LEDGER',
+  INVENTORY_INTELLIGENCE: 'INVENTORY_INTELLIGENCE',
 };
 
 // ─── Feature Labels ──────────────────────────────────────────────
@@ -57,6 +58,7 @@ export const FEATURE_LABELS = {
   [Feature.ACTIVITY_LOGS]: 'Activity Logs',
   [Feature.GST_REPORTS]: 'GST Reports & Filing',
   [Feature.ADVANCED_REPORTING]: 'Advanced Reporting',
+  [Feature.INVENTORY_INTELLIGENCE]: 'Inventory Intelligence Engine',
   [Feature.REPORTS]: 'Business Reports',
 };
 

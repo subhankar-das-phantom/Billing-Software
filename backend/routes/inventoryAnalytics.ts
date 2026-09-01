@@ -7,11 +7,15 @@ import {
 } from '../controllers/inventoryAnalyticsController';
 
 const { protect, requirePermission } = require('../middleware/auth');
+const { checkSubscription, checkFeatureAccess } = require('../saas/middleware');
+const { Feature } = require('../saas/shared/features');
 
 const router = express.Router();
 
-// Protected by Auth & Reports view permission (Admin / Permitted Employees)
+// Protected by Auth -> Subscription -> Feature (Professional) -> RBAC
 router.use(protect);
+router.use(checkSubscription);
+router.use(checkFeatureAccess(Feature.INVENTORY_INTELLIGENCE));
 router.use(requirePermission('reports', 'view'));
 
 router.get('/expiry-horizon', getBatchExpiryIntelligence);
