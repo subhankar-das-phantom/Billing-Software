@@ -113,9 +113,6 @@ export const DashboardHero = ({
           >
             <Plus className="w-4 h-4" />
             <span>Create Invoice</span>
-            <kbd className="hidden sm:inline-flex items-center px-1 text-[10px] font-mono bg-blue-700/80 text-blue-100 rounded">
-              Alt+N
-            </kbd>
           </Link>
         </div>
       </div>
