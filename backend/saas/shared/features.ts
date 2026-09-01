@@ -27,6 +27,10 @@ export enum Feature {
   GST_REPORTS        = 'GST_REPORTS',
   ADVANCED_REPORTING = 'ADVANCED_REPORTING',
   REPORTS            = 'REPORTS',
+  SUPPLIERS          = 'SUPPLIERS',
+  PURCHASES          = 'PURCHASES',
+  PURCHASE_REPORTS   = 'PURCHASE_REPORTS',
+  INVENTORY_LEDGER   = 'INVENTORY_LEDGER',
 }
 
 // ─── Plan Codes ──────────────────────────────────────────────────
@@ -126,6 +130,10 @@ const BUSINESS_FEATURES: Feature[] = [
   Feature.MANUAL_ENTRIES,
   Feature.LEDGER,
   Feature.OUTSTANDING_TRACKING,
+  Feature.SUPPLIERS,
+  Feature.PURCHASES,
+  Feature.PURCHASE_REPORTS,
+  Feature.INVENTORY_LEDGER,
 ];
 
 const PROFESSIONAL_FEATURES: Feature[] = [
