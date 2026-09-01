@@ -8,7 +8,7 @@ interface AuthRequest extends Request {
 
 export const getBatchExpiryIntelligence = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const tenantId = req.user?.tenantId || req.admin?.tenantId;
+    const tenantId = req.user?.tenantId || req.user?._id || req.admin?._id;
     const data = await inventoryAnalyticsService.getBatchExpiryIntelligence(tenantId);
     res.status(200).json({ success: true, data });
   } catch (error: any) {
@@ -18,7 +18,7 @@ export const getBatchExpiryIntelligence = async (req: AuthRequest, res: Response
 
 export const getProductVelocity = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const tenantId = req.user?.tenantId || req.admin?.tenantId;
+    const tenantId = req.user?.tenantId || req.user?._id || req.admin?._id;
     const { dateFrom, dateTo } = req.query;
     const data = await inventoryAnalyticsService.getProductVelocity(tenantId, {
       dateFrom: dateFrom as string,
@@ -32,7 +32,7 @@ export const getProductVelocity = async (req: AuthRequest, res: Response): Promi
 
 export const getStockRiskIndicators = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const tenantId = req.user?.tenantId || req.admin?.tenantId;
+    const tenantId = req.user?.tenantId || req.user?._id || req.admin?._id;
     const data = await inventoryAnalyticsService.getStockRiskIndicators(tenantId);
     res.status(200).json({ success: true, data });
   } catch (error: any) {
@@ -42,7 +42,7 @@ export const getStockRiskIndicators = async (req: AuthRequest, res: Response): P
 
 export const getSupplierProcurementActivity = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const tenantId = req.user?.tenantId || req.admin?.tenantId;
+    const tenantId = req.user?.tenantId || req.user?._id || req.admin?._id;
     const { dateFrom, dateTo } = req.query;
     const data = await inventoryAnalyticsService.getSupplierProcurementActivity(tenantId, {
       dateFrom: dateFrom as string,
