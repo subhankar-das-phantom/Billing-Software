@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Shield, AlertCircle, Mail, MessageSquare } from 'lucide-react';
+import { Check, AlertCircle, Mail, MessageSquare, Copy, ExternalLink, Headphones } from 'lucide-react';
 import { useSubscription } from '../../contexts/SubscriptionContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -13,6 +13,8 @@ export default function SubscriptionPage() {
   const { user } = useAuth();
   const toast = useToast();
 
+  const SUPPORT_EMAIL = 'support@bharatenterprise.com';
+
   const { data: plans = [], isLoading: loading, isError, error } = useSubscriptionPlansQuery();
   const [selectedDuration, setSelectedDuration] = useState(1); // 1, 3, 6, 12 months
 
@@ -21,6 +23,11 @@ export default function SubscriptionPage() {
       toast.error(error?.message || 'Failed to load subscription plans');
     }
   }, [isError, error, toast]);
+
+  const copySupportEmail = () => {
+    navigator.clipboard.writeText(SUPPORT_EMAIL);
+    toast.success('Support email copied to clipboard!');
+  };
 
   if (loading) {
     return (
@@ -61,52 +68,87 @@ export default function SubscriptionPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto pb-12">
+    <div className="max-w-6xl mx-auto pb-12 space-y-8">
       {/* Header */}
-      <div className="text-center mb-10">
-        <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 tracking-tight">Subscription & Plans</h1>
+      <div className="text-center space-y-2">
+        <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Subscription & Plans</h1>
         <p className="text-slate-400 text-xs sm:text-sm max-w-xl mx-auto">
-          Explore plan tiers, operational capabilities, and tailored feature sets for your enterprise.
+          Explore plan tiers, operational capabilities, and custom enterprise licensing.
         </p>
       </div>
 
+      {/* Support Contact Box */}
+      <div className="glass-card border border-blue-500/20 bg-gradient-to-r from-blue-950/40 via-slate-900/60 to-indigo-950/40 rounded-2xl p-5 sm:p-6 shadow-sm">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div className="p-3 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-xl shrink-0">
+              <Headphones className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-sm sm:text-base font-bold text-white">To Upgrade or Renew Your Plan:</h2>
+              <p className="text-xs text-slate-300 mt-0.5">
+                Contact our support team directly at{' '}
+                <a 
+                  href={`mailto:${SUPPORT_EMAIL}?subject=Subscription%20Upgrade%20or%20Renewal%20Request`} 
+                  className="text-blue-400 font-semibold hover:underline"
+                >
+                  {SUPPORT_EMAIL}
+                </a>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <button
+              onClick={copySupportEmail}
+              className="flex-1 md:flex-initial px-3.5 py-2 bg-slate-800 hover:bg-slate-700 active:bg-slate-800 text-slate-200 text-xs font-semibold rounded-xl border border-slate-700 transition-all flex items-center justify-center gap-1.5 shadow-sm"
+              title="Copy Email"
+            >
+              <Copy className="w-3.5 h-3.5 text-slate-400" />
+              Copy Email
+            </button>
+            <a
+              href={`mailto:${SUPPORT_EMAIL}?subject=Subscription%20Inquiry%20-%20${encodeURIComponent(user?.firmName || user?.name || '')}&body=Hello%20Bharat%20Enterprise%20Support%2C%0D%0A%0D%0AI%20would%20like%20to%20inquire%20about%20upgrading%2Frenewing%20our%20subscription%20plan.%0D%0A%0D%0AFirm%3A%20${encodeURIComponent(user?.firmName || '')}%0D%0AContact%3A%20${encodeURIComponent(user?.name || user?.email || '')}`}
+              className="flex-1 md:flex-initial px-4 py-2 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm"
+            >
+              <Mail className="w-3.5 h-3.5" />
+              Email Support
+            </a>
+          </div>
+        </div>
+      </div>
+
       {/* Current Status Card */}
-      <div className="glass-card border border-slate-800 bg-slate-900/70 rounded-2xl p-5 sm:p-6 mb-8">
+      <div className="glass-card border border-slate-800 bg-slate-900/70 rounded-2xl p-5 sm:p-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs text-slate-400 font-medium uppercase tracking-wider">Current Plan</span>
+              <span className="text-xs text-slate-400 font-medium uppercase tracking-wider">Current Account Plan</span>
               <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
                 {planName}
               </span>
             </div>
             <p className="text-xs text-slate-400">
               {isExpired ? (
-                <span className="text-rose-400 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" /> Subscription Expired</span>
+                <span className="text-rose-400 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" /> Subscription Expired — Contact support to renew.</span>
               ) : isGrace ? (
-                <span className="text-amber-400">Grace Period — {daysRemaining} days remaining</span>
+                <span className="text-amber-400">Grace Period — {daysRemaining} days remaining. Contact support to renew.</span>
               ) : isTrial ? (
-                <span className="text-blue-400">Trial Period — {daysRemaining} days remaining</span>
+                <span className="text-blue-400">Trial Period — {daysRemaining} days remaining. Contact support to upgrade.</span>
               ) : (
                 <span className="text-emerald-400">Active — {daysRemaining} days remaining</span>
               )}
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <a
-              href="mailto:support@bharatenterprise.com?subject=Subscription%20Plan%20Inquiry"
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 active:bg-slate-800 text-slate-200 rounded-xl text-xs font-semibold border border-slate-700 transition-all flex items-center gap-2 shadow-sm"
-            >
-              <MessageSquare className="w-3.5 h-3.5 text-blue-400" />
-              Contact us to upgrade this plan.
-            </a>
+          <div className="text-xs text-slate-400">
+            Support: <a href={`mailto:${SUPPORT_EMAIL}`} className="text-blue-400 hover:underline font-mono">{SUPPORT_EMAIL}</a>
           </div>
         </div>
       </div>
 
       {/* Duration Selector */}
-      <div className="flex justify-center mb-8">
+      <div className="flex justify-center">
         <div className="bg-slate-900/80 p-1 rounded-xl flex items-center border border-slate-800">
           {[
             { value: 1, label: '1 Month' },
@@ -187,22 +229,32 @@ export default function SubscriptionPage() {
 
               {/* Temporary Payment Flow: Contact CTA */}
               {isCurrentActive ? (
-                <div className="w-full py-2.5 rounded-xl font-semibold mb-6 flex justify-center items-center gap-2 bg-slate-800/80 border border-slate-700 text-slate-300 text-xs">
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                  Current Active Plan
+                <div className="space-y-1.5 mb-6">
+                  <div className="w-full py-2.5 rounded-xl font-semibold flex justify-center items-center gap-2 bg-slate-800/80 border border-slate-700 text-slate-300 text-xs">
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    Current Active Plan
+                  </div>
+                  <p className="text-[10px] text-slate-400 text-center">
+                    To renew, contact <span className="text-slate-300 font-mono">{SUPPORT_EMAIL}</span>
+                  </p>
                 </div>
               ) : (
-                <a
-                  href={`mailto:support@bharatenterprise.com?subject=Upgrade%20Inquiry%20-%20${encodeURIComponent(plan.name)}%20Plan&body=Hello%2C%0D%0A%0D%0AI%20would%20like%20to%20upgrade%20our%20account%20to%20the%20${encodeURIComponent(plan.name)}%20Plan%20(${selectedDuration}%20Months).%0D%0A%0D%0AUser%3A%20${encodeURIComponent(user?.name || user?.email || '')}%0D%0AFirm%3A%20${encodeURIComponent(user?.firmName || '')}`}
-                  className={`w-full py-2.5 rounded-xl font-semibold transition-all mb-6 flex justify-center items-center gap-2 text-xs ${
-                    isPro
-                      ? 'bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white shadow-sm'
-                      : 'bg-slate-800 hover:bg-slate-700 active:bg-slate-800 text-slate-200 border border-slate-700'
-                  }`}
-                >
-                  <Mail className="w-3.5 h-3.5" />
-                  Contact us to upgrade this plan.
-                </a>
+                <div className="space-y-1.5 mb-6">
+                  <a
+                    href={`mailto:${SUPPORT_EMAIL}?subject=Upgrade%20Inquiry%20-%20${encodeURIComponent(plan.name)}%20Plan&body=Hello%20Bharat%20Enterprise%20Support%2C%0D%0A%0D%0AI%20would%20like%20to%20upgrade%20our%20account%20to%20the%20${encodeURIComponent(plan.name)}%20Plan%20(${selectedDuration}%20Months).%0D%0A%0D%0AUser%3A%20${encodeURIComponent(user?.name || user?.email || '')}%0D%0AFirm%3A%20${encodeURIComponent(user?.firmName || '')}`}
+                    className={`w-full py-2.5 rounded-xl font-semibold transition-all flex justify-center items-center gap-2 text-xs ${
+                      isPro
+                        ? 'bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white shadow-sm'
+                        : 'bg-slate-800 hover:bg-slate-700 active:bg-slate-800 text-slate-200 border border-slate-700'
+                    }`}
+                  >
+                    <Mail className="w-3.5 h-3.5" />
+                    Contact us to upgrade this plan.
+                  </a>
+                  <p className="text-[10px] text-slate-400 text-center">
+                    Support: <span className="text-slate-300 font-mono">{SUPPORT_EMAIL}</span>
+                  </p>
+                </div>
               )}
 
               {/* Feature Checklist */}

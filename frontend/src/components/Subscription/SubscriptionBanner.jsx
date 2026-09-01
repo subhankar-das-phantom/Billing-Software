@@ -26,14 +26,14 @@ export default function SubscriptionBanner() {
     iconColor = 'text-red-400';
     Icon = AlertTriangle;
     title = 'Subscription Expired';
-    message = 'Your account is in read-only mode. Renew your subscription to create invoices, payments, and more.';
+    message = 'Your account is in read-only mode. To renew your plan, contact us at support@bharatenterprise.com.';
   } else if (isGrace) {
     bgClass = 'bg-amber-500/10';
     borderClass = 'border-amber-500/30';
     iconColor = 'text-amber-400';
     Icon = Clock;
     title = 'Grace Period Active';
-    message = `Your subscription has expired. You have ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} of grace period remaining before write access is disabled.`;
+    message = `Your subscription has expired (${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} left). To renew, contact support@bharatenterprise.com.`;
   } else {
     // Trial ending soon
     bgClass = 'bg-blue-500/10';
@@ -41,7 +41,7 @@ export default function SubscriptionBanner() {
     iconColor = 'text-blue-400';
     Icon = Clock;
     title = 'Trial Ending Soon';
-    message = `Your free trial of the ${planName} plan ends in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''}. Subscribe now to continue using all features.`;
+    message = `Your trial of the ${planName} plan ends in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''}. To upgrade, contact support@bharatenterprise.com.`;
   }
 
   return (
