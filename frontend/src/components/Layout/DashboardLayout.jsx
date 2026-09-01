@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState, useEffect, useCallback, useRef } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight } from 'lucide-react';
 import Sidebar from './Sidebar';
@@ -16,6 +16,7 @@ const SIDEBAR_COLLAPSED_STORAGE_KEY = 'bharat-enterprise-sidebar-collapsed';
 
 export default function DashboardLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const motionConfig = useMotionConfig();
   const { user } = useAuth();
   const mainRef = useRef(null);
@@ -66,13 +67,21 @@ export default function DashboardLayout() {
     }
   }, [isDesktop, isTablet, handleToggleDesktopCollapse]);
 
-  // Global Keyboard Shortcuts (Ctrl+B / Cmd+B for Sidebar, Ctrl+K / Cmd+K for Command Palette)
+  // Global Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
+      // Alt+N / Option+N -> Create New Invoice
+      if (e.altKey && (e.key.toLowerCase() === 'n' || e.code === 'KeyN')) {
+        e.preventDefault();
+        navigate('/invoices/create');
+        return;
+      }
+
       // Ctrl+K / Cmd+K -> Toggle Command Palette
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setCommandPaletteOpen((prev) => !prev);
+        return;
       }
 
       // Ctrl+B / Cmd+B -> Toggle Desktop Sidebar Collapse
@@ -81,6 +90,7 @@ export default function DashboardLayout() {
           e.preventDefault();
           handleToggleDesktopCollapse();
         }
+        return;
       }
 
       // Escape key closes mobile/tablet drawers
@@ -92,7 +102,7 @@ export default function DashboardLayout() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isDesktop, mobileDrawerOpen, tabletDrawerOpen, handleToggleDesktopCollapse]);
+  }, [isDesktop, mobileDrawerOpen, tabletDrawerOpen, handleToggleDesktopCollapse, navigate]);
 
   // Close overlays on route change
   useEffect(() => {

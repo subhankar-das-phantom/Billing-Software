@@ -1,58 +1,27 @@
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
+import { useMediaQuery } from './useMediaQuery';
 
 /**
- * Helper to get device info - used for both initial state and updates
- */
-const getDeviceInfo = () => {
-  if (typeof window === 'undefined') {
-    return {
-      isMobile: false,
-      isTablet: false,
-      isDesktop: true,
-      isTouchDevice: false,
-      screenWidth: 1024,
-    };
-  }
-  
-  const width = window.innerWidth;
-  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-  
-  return {
-    isMobile: width <= 768,
-    isTablet: width > 768 && width <= 1024,
-    isDesktop: width > 1024,
-    isTouchDevice,
-    screenWidth: width,
-  };
-};
-
-/**
- * Hook to detect device type based on screen size and touch capabilities.
- * Uses lazy initial state to correctly detect mobile on first render.
+ * Lightweight, zero-lag device type detector.
+ * Uses native CSS media queries without expensive resize polling.
  */
 export function useDeviceType() {
-  // Lazy initial state - correctly detects device on first render
-  const [deviceInfo, setDeviceInfo] = useState(getDeviceInfo);
+  const isMobile = useMediaQuery('(max-width: 768px)');
+  const isTablet = useMediaQuery('(min-width: 769px) and (max-width: 1024px)');
+  const isDesktop = !isMobile && !isTablet;
 
-  useEffect(() => {
-    // Debounced resize handler for performance
-    let timeoutId;
-    const handleResize = () => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        setDeviceInfo(getDeviceInfo());
-      }, 150);
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      clearTimeout(timeoutId);
-    };
+  const isTouchDevice = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
   }, []);
 
-  return deviceInfo;
+  return {
+    isMobile,
+    isTablet,
+    isDesktop,
+    isTouchDevice,
+    screenWidth: isMobile ? 375 : isTablet ? 768 : 1280
+  };
 }
 
 export default useDeviceType;
-
