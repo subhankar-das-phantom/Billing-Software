@@ -48,13 +48,14 @@ export function InfiniteVirtualizedList({
   useEffect(() => {
     if (!hasNextPage || isFetchingNextPage || isLoading || !enabled) return;
 
+    const scrollParent = typeof document !== 'undefined' ? document.querySelector('main') : null;
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
           fetchNextPage();
         }
       },
-      { rootMargin } // Use generous rootMargin for smooth loading
+      { root: scrollParent, rootMargin } // Use generous rootMargin for smooth loading
     );
 
     const sentinel = document.getElementById(`sentinel-${queryKey.join('-')}`);

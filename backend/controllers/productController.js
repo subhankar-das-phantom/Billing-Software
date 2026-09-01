@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const Admin = require('../models/Admin');
-const { assertFreeStockMutationAllowed, ensureProductMigratedToBatch, getProductEffectiveStock, buildEffectiveStockAggregation } = require('../services/inventoryService');
+const { assertFreeStockMutationAllowed, ensureProductMigratedToBatch, getProductEffectiveStock, buildEffectiveStockAggregation, recordStockMovement } = require('../services/inventoryService');
 const Product = require('../models/Product');
 const { LOW_STOCK_THRESHOLD } = require('../config/constants');
 const { getAttribution } = require('../middleware/auth');
@@ -215,6 +215,21 @@ exports.createProduct = async (req, res, next) => {
     // Track employee activity
     trackActivity(req, ACTIVITY_TYPES.PRODUCT_ADDED);
 
+    if (openingStockQty && openingStockQty > 0) {
+      await recordStockMovement({
+        tenantId: getTenantId(req),
+        productId: product._id,
+        batchId: null,
+        type: 'OPENING_STOCK',
+        quantity: openingStockQty,
+        rate: rate || 0,
+        totalValue: (rate || 0) * openingStockQty,
+        referenceType: 'Product',
+        referenceId: String(product._id),
+        createdBy: getAttribution(req)
+      });
+    }
+
     res.status(201).json({
       success: true,
       product
@@ -373,6 +388,19 @@ exports.adjustStock = async (req, res, next) => {
         message: 'Insufficient stock. Cannot remove more than available quantity.' 
       });
     }
+
+    await recordStockMovement({
+      tenantId,
+      productId: product._id,
+      batchId: null,
+      type: type === 'in' ? 'MANUAL_ADJUSTMENT_IN' : 'MANUAL_ADJUSTMENT_OUT',
+      quantity: Math.abs(adjustment),
+      rate: product.rate || 0,
+      totalValue: (product.rate || 0) * Math.abs(adjustment),
+      referenceType: 'ProductAdjustment',
+      referenceId: String(product._id),
+      createdBy: getAttribution(req)
+    });
 
     // Track employee activity
     trackActivity(req, ACTIVITY_TYPES.STOCK_ADJUSTED);

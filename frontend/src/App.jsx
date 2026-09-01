@@ -17,16 +17,25 @@ const DashboardPage = lazy(() => import('./pages/Dashboard/DashboardPage'));
 const ProductsPage = lazy(() => import('./pages/Products/ProductsPage'));
 const CustomersPage = lazy(() => import('./pages/Customers/CustomersPage'));
 const CustomerDetailsPage = lazy(() => import('./pages/Customers/CustomerDetailsPage'));
+const SuppliersPage = lazy(() => import('./pages/Suppliers/SuppliersPage'));
+const SupplierDetailsPage = lazy(() => import('./pages/Suppliers/SupplierDetailsPage'));
+const PurchasesPage = lazy(() => import('./pages/Purchases/PurchasesPage'));
+const PurchaseCreatePage = lazy(() => import('./pages/Purchases/PurchaseCreatePage'));
+const PurchaseDetailsPage = lazy(() => import('./pages/Purchases/PurchaseDetailsPage'));
+const InventoryLedgerPage = lazy(() => import('./pages/Inventory/InventoryLedgerPage'));
 const InvoicesPage = lazy(() => import('./pages/Invoices/InvoicesPage'));
 const InvoiceCreatePage = lazy(() => import('./pages/Invoices/InvoiceCreatePage'));
 const InvoiceViewPage = lazy(() => import('./pages/Invoices/InvoiceViewPage'));
 const NotesPage = lazy(() => import('./pages/Notes/NotesPage'));
-const CreditsPage = lazy(() => import('./pages/CreditNotes/CreditsPage'));
+const ReportsPage = lazy(() => import('./pages/Reports/ReportsPage'));
+const PurchaseReportsPage = lazy(() => import('./pages/Reports/PurchaseReportsPage'));
+const InventoryMovementReportPage = lazy(() => import('./pages/Reports/InventoryMovementReportPage'));
 const SettingsPage = lazy(() => import('./pages/Settings/SettingsPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const CollectionsPage = lazy(() => import('./pages/Collections/CollectionsPage'));
 const SubscriptionPage = lazy(() => import('./pages/Subscription/SubscriptionPage'));
 const ReferralPage = lazy(() => import('./pages/Referral/ReferralPage'));
+const CreditsPage = lazy(() => import('./pages/CreditNotes/CreditsPage'));
 
 // Admin-only pages
 const EmployeesPage = lazy(() => import('./pages/Employees/EmployeesPage'));
@@ -41,7 +50,6 @@ const CreditNoteCreatePage = lazy(() => import('./pages/CreditNotes/CreditNoteCr
 const CreditNoteViewPage = lazy(() => import('./pages/CreditNotes/CreditNoteViewPage'));
 
 // Report pages
-const ReportsPage = lazy(() => import('./pages/Reports/ReportsPage'));
 const PrivacyPolicyPage = lazy(() => import('./pages/Legal/PrivacyPolicyPage'));
 const TermsPage = lazy(() => import('./pages/Legal/TermsPage'));
 
@@ -168,6 +176,13 @@ function AppRoutes() {
           <Route path="/products/:id" element={<PermissionRoute resource="products"><ProductDetailsPage /></PermissionRoute>} />
           <Route path="/customers" element={<PermissionRoute resource="customers"><CustomersPage /></PermissionRoute>} />
           <Route path="/customers/:id" element={<PermissionRoute resource="customers"><CustomerDetailsPage /></PermissionRoute>} />
+          <Route path="/suppliers" element={<PermissionRoute resource="suppliers"><SuppliersPage /></PermissionRoute>} />
+          <Route path="/suppliers/:id" element={<PermissionRoute resource="suppliers"><SupplierDetailsPage /></PermissionRoute>} />
+          <Route path="/purchases" element={<PermissionRoute resource="purchases"><PurchasesPage /></PermissionRoute>} />
+          <Route path="/purchases/new" element={<PermissionRoute resource="purchases" action="create"><PurchaseCreatePage /></PermissionRoute>} />
+          <Route path="/purchases/:id/edit" element={<PermissionRoute resource="purchases" action="edit"><PurchaseCreatePage /></PermissionRoute>} />
+          <Route path="/purchases/:id" element={<PermissionRoute resource="purchases"><PurchaseDetailsPage /></PermissionRoute>} />
+          <Route path="/inventory/ledger" element={<PermissionRoute resource="inventory" action="view"><InventoryLedgerPage /></PermissionRoute>} />
           <Route path="/invoices" element={<PermissionRoute resource="invoices"><InvoicesPage /></PermissionRoute>} />
           <Route path="/invoices/create" element={<PermissionRoute resource="invoices" action="create"><InvoiceCreatePage /></PermissionRoute>} />
           <Route path="/invoices/:id/edit" element={<PermissionRoute resource="invoices" action="edit"><InvoiceCreatePage /></PermissionRoute>} />
@@ -178,6 +193,8 @@ function AppRoutes() {
           <Route path="/credits" element={<PermissionRoute resource="creditNotes"><CreditsPage /></PermissionRoute>} />
           <Route path="/collections" element={<PermissionRoute resource="payments"><CollectionsPage /></PermissionRoute>} />
           <Route path="/reports" element={<PermissionRoute resource="reports"><ReportsPage /></PermissionRoute>} />
+          <Route path="/reports/purchases" element={<Navigate to="/reports" replace />} />
+          <Route path="/reports/inventory-movements" element={<Navigate to="/reports" replace />} />
           <Route path="/reports/gst" element={<Navigate to="/reports" replace />} />
           <Route 
             path="/subscription" 

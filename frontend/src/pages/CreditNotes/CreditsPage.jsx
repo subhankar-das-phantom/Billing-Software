@@ -140,11 +140,12 @@ export default function CreditsPage() {
     if (outstandingValidating) return;
     if (outstandingObserver.current) outstandingObserver.current.disconnect();
     if (node) {
+      const scrollParent = node.closest('main') || null;
       outstandingObserver.current = new IntersectionObserver(entries => {
         if (entries[0].isIntersecting && !outstandingValidating && outstandingHasMore) {
           setOutstandingPage(prev => prev + 1);
         }
-      }, { threshold: 0.1 });
+      }, { root: scrollParent, threshold: 0.1 });
       outstandingObserver.current.observe(node);
     }
   }, [outstandingValidating, outstandingHasMore]);
@@ -176,11 +177,12 @@ export default function CreditsPage() {
     if (ageingValidating) return;
     if (ageingObserver.current) ageingObserver.current.disconnect();
     if (node) {
+      const scrollParent = node.closest('main') || null;
       ageingObserver.current = new IntersectionObserver(entries => {
         if (entries[0].isIntersecting && !ageingValidating && ageingHasMore) {
           setAgeingPage(prev => prev + 1);
         }
-      }, { threshold: 0.1 });
+      }, { root: scrollParent, threshold: 0.1 });
       ageingObserver.current.observe(node);
     }
   }, [ageingValidating, ageingHasMore]);

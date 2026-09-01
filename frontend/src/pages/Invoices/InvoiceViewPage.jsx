@@ -437,39 +437,39 @@ export default function InvoiceViewPage() {
       {/* Main content wrapper */}
       <div className="flex flex-col flex-1">
         {/* Header */}
-        <div className="grid grid-cols-2 gap-2 border-b border-black pb-1 mb-1">
+        <div className="grid grid-cols-2 gap-2 border-b border-black pb-1 mb-1" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: '1px solid black', paddingBottom: '4px', marginBottom: '4px' }}>
           <div className="text-left">
-            <h1 className="font-bold mb-0.5" style={{ fontSize: '18px' }}>{admin?.firmName || invoice.distributor?.firmName || 'BHARAT ENTERPRISES'}</h1>
-            <p className="text-[11px] leading-tight">{admin?.firmAddress || invoice.distributor?.firmAddress || 'Address Line 1, City, State - PIN'}</p>
+            <h1 className="font-bold mb-0.5" style={{ fontSize: '18px', margin: 0 }}>{admin?.firmName || invoice.distributor?.firmName || 'BHARAT ENTERPRISES'}</h1>
+            <p className="text-[11px] leading-tight" style={{ margin: '2px 0 0 0' }}>{admin?.firmAddress || invoice.distributor?.firmAddress || 'Address Line 1, City, State - PIN'}</p>
           </div>
-          <div className="flex justify-end text-[11px] leading-tight">
+          <div className="flex justify-end text-[11px] leading-tight" style={{ display: 'flex', justifyContent: 'flex-end', textAlign: 'right' }}>
             {invoice.distributor?.paymentInformation?.enabled && (
-              <div className="text-left border-l border-r border-black px-2 mr-2">
-                <p>UPI: {invoice.distributor.paymentInformation.upiId}</p>
-                <p>A/C: {invoice.distributor.paymentInformation.accountNumber}</p>
-                <p>IFSC: {invoice.distributor.paymentInformation.ifscCode}</p>
+              <div className="text-left border-l border-r border-black px-2 mr-2" style={{ borderLeft: '1px solid black', borderRight: '1px solid black', padding: '0 8px', marginRight: '8px', textAlign: 'left' }}>
+                <p style={{ margin: '1px 0' }}>UPI: {invoice.distributor.paymentInformation.upiId}</p>
+                <p style={{ margin: '1px 0' }}>A/C: {invoice.distributor.paymentInformation.accountNumber}</p>
+                <p style={{ margin: '1px 0' }}>IFSC: {invoice.distributor.paymentInformation.ifscCode}</p>
               </div>
             )}
-            <div className="text-left">
-              <p>Phone: {admin?.firmPhone || invoice.distributor?.firmPhone || 'XXXXXXXXXX'}</p>
-              <p>DL No: {admin?.firmDL || invoice.distributor?.firmDL || user?.firmDL || 'XXXXXXXXXX'}</p>
-              <p>GSTIN: {admin?.firmGSTIN || invoice.distributor?.firmGSTIN || 'XXXXXXXXXXXX'}</p>
+            <div className="text-left" style={{ textAlign: 'left' }}>
+              <p style={{ margin: '1px 0' }}>Phone: {admin?.firmPhone || invoice.distributor?.firmPhone || 'XXXXXXXXXX'}</p>
+              <p style={{ margin: '1px 0' }}>DL No: {admin?.firmDL || invoice.distributor?.firmDL || user?.firmDL || 'XXXXXXXXXX'}</p>
+              <p style={{ margin: '1px 0' }}>GSTIN: {admin?.firmGSTIN || invoice.distributor?.firmGSTIN || 'XXXXXXXXXXXX'}</p>
             </div>
           </div>
         </div>
 
         {/* Buyer & Invoice Details */}
-        <div className="grid grid-cols-3 gap-2 mb-1 text-[11px]">
+        <div className="grid grid-cols-3 gap-2 mb-1 text-[11px]" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', marginBottom: '4px' }}>
           <div>
             <p className="font-bold mb-0.5">M/s {invoice.customer?.customerName}</p>
             <p className="leading-tight">{invoice.customer?.address || 'Address not provided'}</p>
             <p className="mt-0.5">Ph: {invoice.customer?.phone}</p>
           </div>
-          <div className="border-l border-black pl-2">
+          <div className="border-l border-black pl-2" style={{ borderLeft: '1px solid black', paddingLeft: '8px' }}>
             {invoice.customer?.gstin && <p>GSTIN: {invoice.customer.gstin}</p>}
             {invoice.customer?.dlNo && <p>DL No: {invoice.customer.dlNo}</p>}
           </div>
-          <div className="text-right">
+          <div className="text-right" style={{ textAlign: 'right' }}>
             <p className="font-bold">Invoice No: {invoice.invoiceNumber}</p>
             <p><span className="font-bold">Date:</span> {formatDate(invoice.invoiceDate)}</p>
             <p><span className="font-bold">Bill Type:</span> {invoice.paymentType?.toUpperCase() || 'CREDIT'}</p>

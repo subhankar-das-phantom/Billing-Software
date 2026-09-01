@@ -3,85 +3,114 @@ import { ShimmerBone } from '../../features/salesAnalytics/components/SkeletonCa
 
 /* ─── App Shell Skeleton ─────────────────────────────────────────────
    A premium layout skeleton shown during initial authentication checks.
-   Mimics the DashboardLayout (Navbar on Desktop, Header on Mobile).
-   Ensures a seamless transition when the app fully loads.
+   Mirrors the new DashboardLayout:
+   - Sidebar on Desktop (256px)
+   - Sticky Header on top
+   - Content area skeleton
+   Ensures zero layout shift or jarring flashes when the app loads.
    ─────────────────────────────────────────────────────────────────── */
 
-const DesktopNavbarSkeleton = () => (
-  <div className="hidden lg:block fixed top-0 left-0 right-0 z-50 glass-card border-b border-slate-700/50 backdrop-blur-xl bg-slate-900/95">
-    <div className="max-w-[1600px] mx-auto px-6 py-4">
-      <div className="flex items-center justify-between">
-        {/* Logo Area */}
-        <div className="flex items-center gap-3">
-          <ShimmerBone className="w-10 h-10 rounded-xl" />
-          <div>
-            <ShimmerBone className="h-5 w-20 mb-1" />
-            <ShimmerBone className="h-3 w-16" />
-          </div>
-        </div>
+const SidebarSkeleton = () => (
+  <div className="hidden lg:flex w-64 h-screen bg-slate-900/95 border-r border-slate-800/80 flex-col p-4 shrink-0">
+    {/* Logo & Brand Skeleton */}
+    <div className="flex items-center gap-3 pb-6 border-b border-slate-800/80">
+      <ShimmerBone className="w-9 h-9 rounded-xl shrink-0" />
+      <div className="flex-1">
+        <ShimmerBone className="h-4 w-20 mb-1.5" />
+        <ShimmerBone className="h-3 w-16" />
+      </div>
+    </div>
 
-        {/* Nav Links Area */}
-        <div className="flex items-center gap-4">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <ShimmerBone key={i} className="h-9 w-24 rounded-lg" />
+    {/* Nav Sections Skeleton */}
+    <div className="flex-1 py-4 space-y-6">
+      <div>
+        <ShimmerBone className="h-3 w-16 mb-3" />
+        <div className="space-y-1.5">
+          {[1, 2].map((i) => (
+            <ShimmerBone key={i} className="h-9 w-full rounded-xl" />
           ))}
-          <ShimmerBone className="h-9 w-32 rounded-lg ml-2" />
         </div>
+      </div>
 
-        {/* User Profile Area */}
-        <div className="flex items-center gap-3">
-          <ShimmerBone className="w-10 h-10 rounded-full" />
-          <ShimmerBone className="w-10 h-10 rounded-full" />
+      <div>
+        <ShimmerBone className="h-3 w-16 mb-3" />
+        <div className="space-y-1.5">
+          {[1, 2, 3, 4].map((i) => (
+            <ShimmerBone key={i} className="h-9 w-full rounded-xl" />
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <ShimmerBone className="h-3 w-20 mb-3" />
+        <div className="space-y-1.5">
+          {[1, 2, 3].map((i) => (
+            <ShimmerBone key={i} className="h-9 w-full rounded-xl" />
+          ))}
+        </div>
+      </div>
+    </div>
+
+    {/* Footer User Skeleton */}
+    <div className="pt-4 border-t border-slate-800/80 space-y-2">
+      <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-800/40">
+        <ShimmerBone className="w-8 h-8 rounded-full shrink-0" />
+        <div className="flex-1 min-w-0">
+          <ShimmerBone className="h-3.5 w-24 mb-1" />
+          <ShimmerBone className="h-2.5 w-28" />
         </div>
       </div>
     </div>
   </div>
 );
 
-const MobileHeaderSkeleton = () => (
-  <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-md border-b border-white/10 px-4 py-4">
-    <div className="flex items-center justify-between">
-      <ShimmerBone className="w-10 h-10 rounded-xl" />
-      <ShimmerBone className="h-6 w-32" />
-      <ShimmerBone className="w-10 h-10 rounded-full" />
+const HeaderSkeleton = () => (
+  <header className="sticky top-0 z-30 bg-slate-900/80 backdrop-blur-xl border-b border-slate-800/80 h-16 flex items-center justify-between px-4 sm:px-6">
+    <div className="flex items-center gap-3">
+      <ShimmerBone className="w-8 h-8 rounded-lg lg:hidden" />
+      <div>
+        <ShimmerBone className="h-3 w-28 mb-1 hidden sm:block" />
+        <ShimmerBone className="h-5 w-36" />
+      </div>
     </div>
-  </div>
+
+    <div className="flex items-center gap-3">
+      <ShimmerBone className="h-9 w-36 sm:w-48 rounded-xl" />
+      <ShimmerBone className="h-8 w-8 rounded-full" />
+    </div>
+  </header>
 );
 
 const ContentSkeleton = () => (
-  <div className="flex-1 p-6 lg:p-8 pt-24 lg:pt-32 max-w-[1600px] mx-auto w-full space-y-6">
-    <div className="mb-8">
-      <ShimmerBone className="h-8 w-48 mb-2" />
+  <div className="flex-1 p-4 sm:p-6 lg:p-8 xl:p-10 max-w-[1600px] mx-auto w-full space-y-6">
+    <div className="mb-6">
+      <ShimmerBone className="h-7 w-48 mb-2" />
       <ShimmerBone className="h-4 w-64" />
     </div>
-    
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      {[1, 2, 3, 4].map(i => (
+
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+      {[1, 2, 3, 4].map((i) => (
         <div key={i} className="glass-card p-5">
-          <div className="flex justify-between items-start mb-4">
+          <div className="flex justify-between items-start mb-3">
             <ShimmerBone className="h-4 w-24" />
             <ShimmerBone className="w-8 h-8 rounded-lg" />
           </div>
-          <div className="flex items-baseline gap-1.5">
-            <ShimmerBone className="h-7 w-28" />
-          </div>
-          <div className="mt-3">
-            <ShimmerBone className="h-4 w-32" />
-          </div>
+          <ShimmerBone className="h-7 w-28 mb-2" />
+          <ShimmerBone className="h-3.5 w-32" />
         </div>
       ))}
     </div>
-    
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
-      <div className="lg:col-span-2 glass-card p-6 min-h-[400px]">
-        <ShimmerBone className="h-6 w-40 mb-6" />
-        <ShimmerBone className="h-[300px] w-full rounded-xl" />
+
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+      <div className="lg:col-span-2 glass-card p-6 min-h-[360px]">
+        <ShimmerBone className="h-5 w-40 mb-6" />
+        <ShimmerBone className="h-[260px] w-full rounded-xl" />
       </div>
-      <div className="glass-card p-6 min-h-[400px]">
-        <ShimmerBone className="h-6 w-40 mb-6" />
-        <div className="space-y-4">
-          {[1, 2, 3, 4, 5].map(i => (
-            <ShimmerBone key={i} className="h-12 w-full rounded-lg" />
+      <div className="glass-card p-6 min-h-[360px]">
+        <ShimmerBone className="h-5 w-40 mb-6" />
+        <div className="space-y-3.5">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <ShimmerBone key={i} className="h-10 w-full rounded-lg" />
           ))}
         </div>
       </div>
@@ -91,21 +120,14 @@ const ContentSkeleton = () => (
 
 export const AppShellSkeleton = () => {
   return (
-    <div className="flex flex-col min-h-screen bg-slate-950 overflow-hidden relative">
-      <DesktopNavbarSkeleton />
-      <MobileHeaderSkeleton />
-      
-      {/* Decorative animated background to match DashboardLayout */}
-      <div className="fixed inset-0 pointer-events-none opacity-30">
-        <div
-          className="absolute inset-0"
-          style={{
-            background: 'radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.05) 0%, transparent 50%)'
-          }}
-        />
+    <div className="flex min-h-screen bg-slate-950 text-slate-100 antialiased overflow-hidden relative">
+      <SidebarSkeleton />
+      <div className="flex-1 flex flex-col min-w-0">
+        <HeaderSkeleton />
+        <main className="flex-1 overflow-y-auto">
+          <ContentSkeleton />
+        </main>
       </div>
-
-      <ContentSkeleton />
     </div>
   );
 };
