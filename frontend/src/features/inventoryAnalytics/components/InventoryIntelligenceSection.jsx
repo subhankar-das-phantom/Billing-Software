@@ -20,7 +20,8 @@ import { formatCurrency } from '../../../utils/formatters';
 import { useToast } from '../../../contexts/ToastContext';
 
 export function InventoryIntelligenceSection() {
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [expiryData, setExpiryData] = useState(null);
   const [velocityData, setVelocityData] = useState(null);
   const [stockRiskData, setStockRiskData] = useState(null);
@@ -28,15 +29,17 @@ export function InventoryIntelligenceSection() {
 
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [activeDateFrom, setActiveDateFrom] = useState('');
+  const [activeDateTo, setActiveDateTo] = useState('');
 
   const { showToast } = useToast();
 
-  const fetchIntelligence = useCallback(async () => {
+  const fetchIntelligence = useCallback(async (from = activeDateFrom, to = activeDateTo) => {
     try {
-      setLoading(true);
+      setIsUpdating(true);
       const params = {};
-      if (dateFrom) params.dateFrom = dateFrom;
-      if (dateTo) params.dateTo = dateTo;
+      if (from) params.dateFrom = from;
+      if (to) params.dateTo = to;
 
       const [expiryRes, velocityRes, riskRes, procurementRes] = await Promise.all([
         inventoryAnalyticsService.getBatchExpiryIntelligence(),
@@ -52,15 +55,30 @@ export function InventoryIntelligenceSection() {
     } catch (err) {
       showToast('Failed to load inventory intelligence', 'error');
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
+      setIsUpdating(false);
     }
-  }, [dateFrom, dateTo, showToast]);
+  }, [activeDateFrom, activeDateTo, showToast]);
 
   useEffect(() => {
-    fetchIntelligence();
-  }, [fetchIntelligence]);
+    fetchIntelligence('', '');
+  }, []);
 
-  if (loading) {
+  const handleApplyFilter = () => {
+    setActiveDateFrom(dateFrom);
+    setActiveDateTo(dateTo);
+    fetchIntelligence(dateFrom, dateTo);
+  };
+
+  const handleClearFilter = () => {
+    setDateFrom('');
+    setDateTo('');
+    setActiveDateFrom('');
+    setActiveDateTo('');
+    fetchIntelligence('', '');
+  };
+
+  if (initialLoading) {
     return (
       <div className="glass-card p-12 text-center text-slate-400">
         <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-400 mb-3" />
@@ -88,7 +106,13 @@ export function InventoryIntelligenceSection() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 relative">
+      {isUpdating && (
+        <div className="absolute top-2 right-4 z-20 flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-300 text-xs font-semibold backdrop-blur-md">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          Refreshing metrics...
+        </div>
+      )}
       {/* ─── SECTION 1: BATCH EXPIRY INTELLIGENCE ─── */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -173,21 +197,37 @@ export function InventoryIntelligenceSection() {
               <p className="text-xs text-slate-400">Deterministic movement rate based on invoice sales in selected period</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <input
               type="date"
-              className="input text-xs py-1 px-2 h-8"
+              className="input text-xs py-1 px-2.5 h-8 w-36"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
               placeholder="From"
             />
             <input
               type="date"
-              className="input text-xs py-1 px-2 h-8"
+              className="input text-xs py-1 px-2.5 h-8 w-36"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
               placeholder="To"
             />
+            <button
+              onClick={handleApplyFilter}
+              disabled={isUpdating}
+              className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all flex items-center gap-1 h-8"
+            >
+              Apply Filter
+            </button>
+            {(dateFrom || dateTo) && (
+              <button
+                onClick={handleClearFilter}
+                disabled={isUpdating}
+                className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium transition-all h-8"
+              >
+                Clear
+              </button>
+            )}
           </div>
         </div>
 

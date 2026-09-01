@@ -19,23 +19,26 @@ import { useToast } from '../../contexts/ToastContext';
 import { useMotionConfig } from '../../hooks';
 
 export default function PurchaseReportsPage() {
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [summary, setSummary] = useState(null);
   const [supplierData, setSupplierData] = useState([]);
   const [productData, setProductData] = useState([]);
   
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [activeDateFrom, setActiveDateFrom] = useState('');
+  const [activeDateTo, setActiveDateTo] = useState('');
 
   const { showToast } = useToast();
   const motionConfig = useMotionConfig();
 
-  const fetchReports = useCallback(async () => {
+  const fetchReports = useCallback(async (from = activeDateFrom, to = activeDateTo) => {
     try {
-      setLoading(true);
+      setIsUpdating(true);
       const params = {};
-      if (dateFrom) params.dateFrom = dateFrom;
-      if (dateTo) params.dateTo = dateTo;
+      if (from) params.dateFrom = from;
+      if (to) params.dateTo = to;
       
       const [sumData, supData, prodData] = await Promise.all([
         purchaseReportService.getPurchaseSummary(params),
@@ -49,16 +52,31 @@ export default function PurchaseReportsPage() {
     } catch (error) {
       showToast('Failed to load purchase reports', 'error');
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
+      setIsUpdating(false);
     }
-  }, [dateFrom, dateTo, showToast]);
+  }, [activeDateFrom, activeDateTo, showToast]);
 
   useEffect(() => {
-    fetchReports();
-  }, [fetchReports]);
+    fetchReports('', '');
+  }, []);
+
+  const handleApplyFilter = () => {
+    setActiveDateFrom(dateFrom);
+    setActiveDateTo(dateTo);
+    fetchReports(dateFrom, dateTo);
+  };
+
+  const handleClearFilter = () => {
+    setDateFrom('');
+    setDateTo('');
+    setActiveDateFrom('');
+    setActiveDateTo('');
+    fetchReports('', '');
+  };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
       {/* Header & Date Filters */}
       <div className="glass-card p-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
@@ -71,10 +89,16 @@ export default function PurchaseReportsPage() {
               <p className="text-xs text-slate-400 mt-0.5">Comprehensive vendor and item purchase breakdown</p>
             </div>
           </div>
+          {isUpdating && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-300 text-xs font-semibold backdrop-blur-md">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              Updating reports...
+            </div>
+          )}
         </div>
 
         {/* Date Filter Bar */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-4 border-t border-slate-700/50">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-slate-700/50">
           <div>
             <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">From Date</label>
             <input
@@ -93,10 +117,20 @@ export default function PurchaseReportsPage() {
               onChange={(e) => setDateTo(e.target.value)}
             />
           </div>
+          <div className="flex items-end">
+            <button
+              onClick={handleApplyFilter}
+              disabled={isUpdating}
+              className="btn btn-primary text-xs h-10 w-full flex items-center justify-center gap-1.5"
+            >
+              Apply Filter
+            </button>
+          </div>
           {(dateFrom || dateTo) && (
             <div className="flex items-end">
               <button
-                onClick={() => { setDateFrom(''); setDateTo(''); }}
+                onClick={handleClearFilter}
+                disabled={isUpdating}
                 className="btn btn-secondary text-xs h-10 w-full flex items-center justify-center gap-1.5"
               >
                 <XCircle className="w-4 h-4" />
@@ -107,7 +141,7 @@ export default function PurchaseReportsPage() {
         </div>
       </div>
 
-      {loading ? (
+      {initialLoading ? (
         <div className="glass-card p-12 text-center text-slate-400">
           <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-400 mb-3" />
           <p>Loading purchase reports...</p>
