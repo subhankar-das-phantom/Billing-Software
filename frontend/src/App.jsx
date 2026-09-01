@@ -163,9 +163,10 @@ function AppRoutes() {
           <Route path="/credits" element={<PermissionRoute resource="creditNotes"><CreditsPage /></PermissionRoute>} />
           <Route path="/collections" element={<PermissionRoute resource="payments"><CollectionsPage /></PermissionRoute>} />
           <Route path="/reports" element={<PermissionRoute resource="reports"><ReportsPage /></PermissionRoute>} />
-          <Route path="/reports/purchases" element={<Navigate to="/reports" replace />} />
-          <Route path="/reports/inventory-movements" element={<Navigate to="/reports" replace />} />
-          <Route path="/reports/gst" element={<Navigate to="/reports" replace />} />
+          <Route path="/reports/purchases" element={<PermissionRoute resource="reports"><ReportsPage defaultTab="purchases" /></PermissionRoute>} />
+          <Route path="/reports/gst" element={<PermissionRoute resource="reports"><ReportsPage defaultTab="gst-report" /></PermissionRoute>} />
+          <Route path="/reports/inventory" element={<PermissionRoute resource="reports"><ReportsPage defaultTab="inventory-intelligence" /></PermissionRoute>} />
+          <Route path="/reports/inventory-movements" element={<Navigate to="/inventory/ledger" replace />} />
           <Route 
             path="/settings" 
             element={

@@ -17,6 +17,7 @@ import { purchaseReportService } from '../../services/reports/purchaseReportServ
 import { formatCurrency } from '../../utils/formatters';
 import { useToast } from '../../contexts/ToastContext';
 import { useMotionConfig } from '../../hooks';
+import { ShimmerBone } from '../../features/salesAnalytics/components/SkeletonCards';
 
 export default function PurchaseReportsPage() {
   const [initialLoading, setInitialLoading] = useState(true);
@@ -142,9 +143,35 @@ export default function PurchaseReportsPage() {
       </div>
 
       {initialLoading ? (
-        <div className="glass-card p-12 text-center text-slate-400">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-400 mb-3" />
-          <p>Loading purchase reports...</p>
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="glass-card p-5">
+                <div className="flex items-center justify-between mb-2">
+                  <ShimmerBone className="h-3.5 w-24 rounded" />
+                  <ShimmerBone className="w-8 h-8 rounded-xl" />
+                </div>
+                <ShimmerBone className="h-7 w-28 rounded mb-1.5" />
+                <ShimmerBone className="h-3 w-36 rounded" />
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {[1, 2].map(i => (
+              <div key={i} className="glass-card p-5">
+                <ShimmerBone className="h-5 w-44 rounded mb-4" />
+                <div className="space-y-3">
+                  {[1, 2, 3, 4, 5].map(j => (
+                    <div key={j} className="flex justify-between items-center py-2 border-b border-slate-800/40">
+                      <ShimmerBone className="h-4 w-32 rounded" />
+                      <ShimmerBone className="h-4 w-20 rounded" />
+                      <ShimmerBone className="h-4 w-24 rounded" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       ) : (
         <div className="space-y-6">
