@@ -14,7 +14,6 @@ const mongoose = require('mongoose');
 
 import Plan from '../saas/models/Plan';
 import { PlanCode, Feature } from '../saas/shared/features';
-import { hasFeatureAccess } from '../saas/services/featureService';
 
 async function verify() {
   try {
