@@ -22,9 +22,11 @@ import { manualEntryService } from '../../../services/entries/manualEntryService
 import { customerService } from '../../../services/customers/customerService';
 import { creditNoteService } from '../../../services/credits/creditNoteService';
 import { formatCurrency, formatDate } from '../../../utils/formatters';
+import { invalidateCachePattern } from '../../../hooks';
 import CustomDropdown from '../Dropdowns/CustomDropdown';
 
 const roundCurrency = (value) => Math.round(((Number(value) || 0) + Number.EPSILON) * 100) / 100;
+const getCustomerOutstanding = (cust) => cust?.calculatedOutstanding ?? cust?.outstandingBalance ?? cust?.balance ?? 0;
 
 const getInvoiceId = (invoice) => invoice?._id?.toString();
 const isPayablePaymentStatus = (status) => !status || ['Unpaid', 'Partial'].includes(status);
@@ -519,6 +521,13 @@ export default function RecordPaymentModal({
         });
         setSuccess(true);
 
+        // Invalidate caches across the app so Dashboard, Collections, Invoices, and Ledgers immediately refresh
+        invalidateCachePattern('dashboard');
+        invalidateCachePattern('collections');
+        invalidateCachePattern('invoices');
+        invalidateCachePattern('customer');
+        invalidateCachePattern('credit');
+
         setTimeout(() => {
           onClose();
           if (onSuccess) onSuccess();
@@ -607,6 +616,13 @@ export default function RecordPaymentModal({
 
         setSuccess(true);
         
+        // Invalidate caches across the app so Dashboard, Collections, Invoices, and Ledgers immediately refresh
+        invalidateCachePattern('dashboard');
+        invalidateCachePattern('collections');
+        invalidateCachePattern('invoices');
+        invalidateCachePattern('customer');
+        invalidateCachePattern('credit');
+
         // Close modal first, then refresh data AFTER modal is closed
         setTimeout(() => {
           onClose();
@@ -870,7 +886,8 @@ export default function RecordPaymentModal({
                           Matching Customers ({customerResults.length})
                         </p>
                         {customerResults.map((cust) => {
-                          const hasDue = (cust.balance || cust.outstanding || 0) > 0;
+                          const outstanding = getCustomerOutstanding(cust);
+                          const hasDue = outstanding > 0;
                           return (
                             <button
                               key={cust._id}
@@ -893,9 +910,9 @@ export default function RecordPaymentModal({
                               </div>
                               <div className="text-right">
                                 <p className={`text-xs font-semibold ${hasDue ? 'text-rose-400' : 'text-slate-400'}`}>
-                                  {formatCurrency(cust.balance || cust.outstanding || 0)}
+                                  {formatCurrency(outstanding)}
                                 </p>
-                                <p className="text-[11px] text-slate-500">Balance</p>
+                                <p className="text-[11px] text-slate-500">Outstanding</p>
                               </div>
                             </button>
                           );
@@ -935,13 +952,21 @@ export default function RecordPaymentModal({
                           <p className="text-xs text-slate-400">{activeCustomer.phone || 'No phone'}</p>
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={handleClearCustomer}
-                        className="text-xs text-blue-400 hover:text-blue-300 font-medium px-2 py-1 rounded bg-blue-500/10 hover:bg-blue-500/20 transition-colors"
-                      >
-                        Change Customer
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <p className={`text-xs font-semibold ${getCustomerOutstanding(activeCustomer) > 0 ? 'text-rose-400' : 'text-slate-400'}`}>
+                            {formatCurrency(getCustomerOutstanding(activeCustomer))}
+                          </p>
+                          <p className="text-[10px] text-slate-400">Outstanding</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleClearCustomer}
+                          className="text-xs text-blue-400 hover:text-blue-300 font-medium px-2 py-1 rounded bg-blue-500/10 hover:bg-blue-500/20 transition-colors"
+                        >
+                          Change Customer
+                        </button>
+                      </div>
                     </div>
                   )}
 

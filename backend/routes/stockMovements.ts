@@ -10,7 +10,7 @@ router.use(protect);
 router.use(checkSubscription);
 router.use(checkFeatureAccess(Feature.INVENTORY_LEDGER));
 
-router.get('/export', requirePermission('inventory', 'view'), exportStockMovements);
-router.get('/', requirePermission('inventory', 'view'), getStockMovements);
+router.get('/export', requirePermission('ledger', 'view', 'inventory'), exportStockMovements);
+router.get('/', requirePermission('ledger', 'view', 'inventory'), getStockMovements);
 
 export = router;

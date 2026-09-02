@@ -523,10 +523,50 @@ exports.searchCustomers = async (req, res, next) => {
       $or: conditions
     }).limit(10);
 
+    let customersWithOutstanding = customers;
+    if (customers.length > 0) {
+      const customerIds = customers.map(c => c._id);
+
+      const [invoiceOutstanding, manualOutstanding, creditNoteDeductions] = await Promise.all([
+        Invoice.aggregate([
+          { $match: { 'customer._id': { $in: customerIds }, status: { $ne: 'Cancelled' } } },
+          { $project: { customerId: '$customer._id', remaining: { $subtract: ['$totals.netTotal', { $ifNull: ['$paidAmount', 0] }] } } },
+          { $match: { remaining: { $gt: 0 } } },
+          { $group: { _id: '$customerId', total: { $sum: '$remaining' } } }
+        ]),
+        ManualEntry.aggregate([
+          { $match: { customer: { $in: customerIds }, entryType: 'opening_balance', paymentType: 'Credit' } },
+          { $project: { customerId: '$customer', remaining: { $subtract: ['$amount', { $ifNull: ['$paidAmount', 0] }] } } },
+          { $match: { remaining: { $gt: 0 } } },
+          { $group: { _id: '$customerId', total: { $sum: '$remaining' } } }
+        ]),
+        CreditNote.aggregate([
+          { $match: { tenantId, 'customer._id': { $in: customerIds } } },
+          { $group: { _id: '$customer._id', total: { $sum: '$totals.netTotal' } } }
+        ])
+      ]);
+
+      const invoiceMap = new Map(invoiceOutstanding.map(row => [row._id.toString(), row.total || 0]));
+      const manualMap = new Map(manualOutstanding.map(row => [row._id.toString(), row.total || 0]));
+      const creditNoteMap = new Map(creditNoteDeductions.map(row => [row._id.toString(), row.total || 0]));
+
+      customersWithOutstanding = customers.map(c => {
+        const base = c.toObject();
+        const key = c._id.toString();
+        const total = (invoiceMap.get(key) || 0) + (manualMap.get(key) || 0) - (creditNoteMap.get(key) || 0);
+        const liveDue = round2(Math.max(0, total));
+        return {
+          ...base,
+          calculatedOutstanding: liveDue,
+          outstandingBalance: liveDue
+        };
+      });
+    }
+
     res.status(200).json({
       success: true,
-      count: customers.length,
-      customers
+      count: customersWithOutstanding.length,
+      customers: customersWithOutstanding
     });
   } catch (error) {
     next(error);

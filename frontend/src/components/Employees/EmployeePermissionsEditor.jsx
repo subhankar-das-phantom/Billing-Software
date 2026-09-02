@@ -9,6 +9,7 @@ const PERMISSION_MODULES = {
   products: { label: 'Products', actions: ['view', 'create', 'edit', 'delete'] },
   invoices: { label: 'Invoices', actions: ['view', 'create', 'edit', 'cancel'] },
   payments: { label: 'Payments', actions: ['view', 'create', 'edit', 'delete'] },
+  collections: { label: 'Collections', actions: ['view'] },
   creditNotes: { label: 'Credit Notes', actions: ['view', 'create', 'edit'] },
   notes: { label: 'Notes', actions: ['view', 'create', 'edit', 'delete'] },
   reports: { label: 'Reports', actions: ['view'] },

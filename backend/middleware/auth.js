@@ -150,8 +150,11 @@ const getAttribution = (req) => {
 /**
  * Require permission for a specific module and action
  * Must be used AFTER protect middleware
+ * @param {string} moduleName - Primary module name
+ * @param {string} action - Action (e.g. 'view', 'create')
+ * @param {string} [fallbackModule] - Fallback module if primary module not configured
  */
-const requirePermission = (moduleName, action) => {
+const requirePermission = (moduleName, action, fallbackModule) => {
   return (req, res, next) => {
     // Admins have full access
     if (req.userRole === 'admin') {
@@ -160,7 +163,12 @@ const requirePermission = (moduleName, action) => {
 
     // Check if employee has the requested permission
     try {
-      const perms = req.user.permissions?.get(moduleName);
+      let perms = req.user.permissions?.get(moduleName);
+      
+      // If module is unconfigured, check fallback module
+      if (!perms && fallbackModule) {
+        perms = req.user.permissions?.get(fallbackModule);
+      }
       
       if (!perms || !perms[action]) {
         return res.status(403).json({

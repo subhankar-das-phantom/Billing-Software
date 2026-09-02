@@ -3,6 +3,7 @@ const PERMISSIONS_REGISTRY = {
   products: ['view', 'create', 'edit', 'delete'],
   invoices: ['view', 'create', 'edit', 'cancel'],
   payments: ['view', 'create', 'edit', 'delete'],
+  collections: ['view'],
   creditNotes: ['view', 'create', 'edit'],
   notes: ['view', 'create', 'edit', 'delete'],
   reports: ['view'],
@@ -43,6 +44,7 @@ const ROLE_PRESETS = {
     products: ['view'],
     invoices: ['view'],
     payments: ['view'],
+    collections: ['view'],
     creditNotes: ['view'],
     notes: ['view'],
     reports: ['view'],
@@ -54,6 +56,7 @@ const ROLE_PRESETS = {
   }, false),
   payment_collector: buildPermissions({
     payments: ['view', 'create'],
+    collections: ['view'],
     customers: ['view'], // contextual
     invoices: ['view']   // contextual
   }, false),
@@ -62,6 +65,7 @@ const ROLE_PRESETS = {
     products: ['view'],
     invoices: ['view', 'create', 'cancel'],
     payments: ['view', 'create'],
+    collections: ['view'],
     notes: ['view', 'create'],
     suppliers: ['view'],
     purchases: ['view']

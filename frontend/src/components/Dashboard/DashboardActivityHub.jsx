@@ -15,8 +15,17 @@ export const DashboardActivityHub = ({
 }) => {
   const [activeTab, setActiveTab] = useState('invoices');
 
+  const getDerivedPaymentStatus = (inv) => {
+    if (inv?.paymentStatus) return inv.paymentStatus;
+    const netTotal = inv?.totals?.netTotal || 0;
+    const paid = inv?.paidAmount || 0;
+    if (paid >= netTotal && netTotal > 0) return 'Paid';
+    if (paid > 0) return 'Partial';
+    return 'Unpaid';
+  };
+
   const pendingInvoices = recentInvoices.filter(
-    inv => inv.status !== 'Cancelled' && (inv.paymentStatus === 'Unpaid' || inv.paymentStatus === 'Partial' || !inv.paymentStatus)
+    inv => inv.status !== 'Cancelled' && getDerivedPaymentStatus(inv) !== 'Paid'
   );
 
   const tabs = [
@@ -119,7 +128,7 @@ export const DashboardActivityHub = ({
                         <span className="font-semibold text-xs sm:text-sm text-white truncate">
                           {inv.invoiceNumber}
                         </span>
-                        {getStatusBadge(inv.status, inv.paymentStatus)}
+                        {getStatusBadge(inv.status, getDerivedPaymentStatus(inv))}
                       </div>
                       <p className="text-xs text-slate-400 truncate mt-0.5">
                         {inv.customer?.customerName || 'Walk-in Customer'}

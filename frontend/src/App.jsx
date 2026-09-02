@@ -217,7 +217,7 @@ function AppRoutes() {
           <Route path="/purchases/:id" element={<PermissionRoute resource="purchases" feature={Feature.PURCHASES}><PurchaseDetailsPage /></PermissionRoute>} />
           
           {/* Business & Pro Tier: Inventory Ledger */}
-          <Route path="/inventory/ledger" element={<PermissionRoute resource="inventory" action="view" feature={Feature.INVENTORY_LEDGER}><InventoryLedgerPage /></PermissionRoute>} />
+          <Route path="/inventory/ledger" element={<PermissionRoute resource="ledger" action="view" feature={Feature.INVENTORY_LEDGER}><InventoryLedgerPage /></PermissionRoute>} />
           
           {/* Invoices */}
           <Route path="/invoices" element={<PermissionRoute resource="invoices"><InvoicesPage /></PermissionRoute>} />
@@ -230,7 +230,7 @@ function AppRoutes() {
           <Route path="/credit-notes/:id" element={<PermissionRoute resource="creditNotes" feature={Feature.CREDIT_NOTES}><CreditNoteViewPage /></PermissionRoute>} />
           <Route path="/credits" element={<PermissionRoute resource="creditNotes" feature={Feature.CREDIT_NOTES}><CreditsPage /></PermissionRoute>} />
           <Route path="/notes" element={<PermissionRoute resource="notes" feature={Feature.NOTES}><NotesPage /></PermissionRoute>} />
-          <Route path="/collections" element={<PermissionRoute resource="payments" feature={Feature.COLLECTIONS}><CollectionsPage /></PermissionRoute>} />
+          <Route path="/collections" element={<PermissionRoute resource="collections" action="view" feature={Feature.COLLECTIONS}><CollectionsPage /></PermissionRoute>} />
           
           {/* Reports Hub */}
           <Route path="/reports" element={<PermissionRoute resource="reports"><ReportsPage /></PermissionRoute>} />
