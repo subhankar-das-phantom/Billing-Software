@@ -7,3 +7,4 @@ export { useMediaQuery } from './useMediaQuery';
 export { useTransitionDelay } from './useTransitionDelay';
 export { useCustomerFilters, DEFAULT_FILTERS } from './useCustomerFilters';
 export { useStockSSE } from './useStockSSE';
+export { usePerformanceMode, PERFORMANCE_THRESHOLDS } from './usePerformanceMode';
