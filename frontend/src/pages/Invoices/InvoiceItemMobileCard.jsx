@@ -84,6 +84,11 @@ export default function InvoiceItemMobileCard({
               type="number"
               value={item.quantitySold}
               onChange={(e) => updateItemQuantity(index, 'quantitySold', e.target.value)}
+              onBlur={() => {
+                if (item.quantitySold === "" || Number(item.quantitySold) < 1) {
+                  updateItemQuantity(index, 'quantitySold', 1);
+                }
+              }}
               className="input w-full py-2 text-center text-sm"
               min="1"
               max={maxSoldQuantity}
@@ -95,6 +100,11 @@ export default function InvoiceItemMobileCard({
               type="number"
               value={item.freeQuantity}
               onChange={(e) => updateItemQuantity(index, 'freeQuantity', e.target.value)}
+              onBlur={() => {
+                if (item.freeQuantity === "" || Number(item.freeQuantity) < 0) {
+                  updateItemQuantity(index, 'freeQuantity', 0);
+                }
+              }}
               className="input w-full py-2 text-center text-sm"
               min="0"
             />

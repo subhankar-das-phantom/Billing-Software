@@ -1113,9 +1113,25 @@ export default function InvoiceCreatePage() {
   };
 
   const scheduleBatchPreview = (product, requestedQuantity, sourceItem) => {
-    const productId = String(product._id);
+    const rawId = product?._id || product?.id || product;
+    const productId =
+      typeof rawId === "object"
+        ? String(rawId?._id || rawId?.id || rawId)
+        : String(rawId);
     const previousTimer = batchPreviewTimersRef.current.get(productId);
     if (previousTimer) clearTimeout(previousTimer);
+
+    if (requestedQuantity <= 0) {
+      setInvoiceItems((prev) =>
+        prev.map((item) =>
+          String(item.product?._id || item.product?.id || item.product) ===
+          productId
+            ? { ...item, _batchPreviewPending: false }
+            : item,
+        ),
+      );
+      return;
+    }
 
     const timer = setTimeout(async () => {
       const requestId = ++batchPreviewRequestRef.current;
@@ -1140,6 +1156,18 @@ export default function InvoiceCreatePage() {
               String(item.product?._id || item.product?.id || item.product) ===
               productIdString,
           );
+
+          if (firstIndex === -1) return prev;
+
+          // Safety guard: if rows is empty, NEVER delete the item!
+          if (!rows || rows.length === 0) {
+            return prev.map((item) =>
+              String(item.product?._id || item.product?.id || item.product) ===
+              productIdString
+                ? { ...item, _batchPreviewPending: false }
+                : item,
+            );
+          }
 
           const next = prev.filter(
             (item) =>
@@ -1316,6 +1344,7 @@ export default function InvoiceCreatePage() {
     ) {
       const updated = [...invoiceItems];
       const changedItem = { ...updated[index] };
+      const isEmpty = value === "";
       let newValue = parseFloat(value);
       if (Number.isNaN(newValue)) newValue = 0;
 
@@ -1360,13 +1389,13 @@ export default function InvoiceCreatePage() {
       }
 
       if (field === "quantitySold") {
-        changedItem.quantitySold = Math.max(0, newValue);
+        changedItem.quantitySold = isEmpty ? "" : Math.max(0, newValue);
       } else {
-        changedItem.freeQuantity = Math.max(0, newValue);
+        changedItem.freeQuantity = isEmpty ? "" : Math.max(0, newValue);
       }
 
       const amounts = calculateItemAmounts(
-        changedItem.quantitySold,
+        Number(changedItem.quantitySold) || 0,
         changedItem.baseRate,
         changedItem.product.gstPercentage,
         changedItem.schemeDiscount,
@@ -1379,7 +1408,6 @@ export default function InvoiceCreatePage() {
             (1 + changedItem.product.gstPercentage / 100),
           2,
         ),
-        _batchPreviewPending: true,
       };
 
       const nextSnapshot = {
@@ -1393,11 +1421,25 @@ export default function InvoiceCreatePage() {
         schemeDiscount: changedItem.schemeDiscount || 0,
       };
 
+      const totalRequested =
+        nextSnapshot.quantitySold + nextSnapshot.freeQuantity;
+
+      if (totalRequested <= 0) {
+        // User cleared quantity (backspace) or set to 0.
+        // Retain the item row without deleting it, and cancel any pending batch simulation.
+        updated[index]._batchPreviewPending = false;
+        const previousTimer = batchPreviewTimersRef.current.get(productId);
+        if (previousTimer) clearTimeout(previousTimer);
+        setInvoiceItems(updated);
+        return;
+      }
+
+      updated[index]._batchPreviewPending = true;
       setInvoiceItems(updated);
 
       scheduleBatchPreview(
         nextSnapshot.product,
-        nextSnapshot.quantitySold + nextSnapshot.freeQuantity,
+        totalRequested,
         nextSnapshot,
       );
       return;
@@ -1406,7 +1448,9 @@ export default function InvoiceCreatePage() {
     setInvoiceItems((prev) => {
       const updated = [...prev];
       const item = { ...updated[index] };
-      let newValue = parseFloat(value) || 0;
+      const isEmpty = value === "";
+      let newValue = parseFloat(value);
+      if (Number.isNaN(newValue)) newValue = 0;
 
       // A line can use the database stock plus this invoice's original allocation.
       // Recalculate it from the current draft so decreasing a line immediately
@@ -1432,11 +1476,13 @@ export default function InvoiceCreatePage() {
       );
       const remainingForLine = Math.max(0, maxStock - quantityInOtherLines);
       if (field === "quantitySold") {
-        const maxAllowed = remainingForLine - item.freeQuantity;
+        const maxAllowed = remainingForLine - (Number(item.freeQuantity) || 0);
         newValue = Math.min(Math.max(0, newValue), Math.max(0, maxAllowed));
+        item.quantitySold = isEmpty ? "" : newValue;
       } else if (field === "freeQuantity") {
-        const maxAllowed = remainingForLine - item.quantitySold;
+        const maxAllowed = remainingForLine - (Number(item.quantitySold) || 0);
         newValue = Math.min(Math.max(0, newValue), Math.max(0, maxAllowed));
+        item.freeQuantity = isEmpty ? "" : newValue;
       }
 
       if (
@@ -1453,7 +1499,7 @@ export default function InvoiceCreatePage() {
         // Work backwards: totalAmount = taxable + gst = taxable * (1 + gstPercentage/100)
         // And taxable = baseRate * qty * (1 - discount/100)
         // So: totalAmount = baseRate * qty * (1 - discount/100) * (1 + gstPercentage/100)
-        const qty = item.quantitySold || 1;
+        const qty = Number(item.quantitySold) || 1;
         const discountMultiplier = (100 - (item.schemeDiscount || 0)) / 100;
         const gstMultiplier = (100 + item.product.gstPercentage) / 100;
 
@@ -1466,7 +1512,7 @@ export default function InvoiceCreatePage() {
 
         // Recalculate other amounts based on new baseRate
         const amounts = calculateItemAmounts(
-          item.quantitySold,
+          Number(item.quantitySold) || 0,
           item.baseRate,
           item.product.gstPercentage,
           item.schemeDiscount,
@@ -1491,7 +1537,7 @@ export default function InvoiceCreatePage() {
 
           // Recalculate all amounts based on new baseRate
           const amounts = calculateItemAmounts(
-            item.quantitySold,
+            Number(item.quantitySold) || 0,
             item.baseRate,
             item.product.gstPercentage,
             item.schemeDiscount,
@@ -1502,13 +1548,13 @@ export default function InvoiceCreatePage() {
         }
       } else if (field === "baseAmount") {
         // baseAmount = baseRate * qty, so baseRate = baseAmount / qty
-        const qty = item.quantitySold || 1;
+        const qty = Number(item.quantitySold) || 1;
         item.baseRate = round(newValue / qty, 2);
         item.baseAmount = newValue;
 
         // Recalculate all amounts based on new baseRate
         const amounts = calculateItemAmounts(
-          item.quantitySold,
+          Number(item.quantitySold) || 0,
           item.baseRate,
           item.product.gstPercentage,
           item.schemeDiscount,
@@ -1520,11 +1566,13 @@ export default function InvoiceCreatePage() {
         );
         updated[index] = { ...item, ...amounts, baseAmount: newValue, netRate };
       } else {
-        item[field] = newValue;
+        if (field !== "quantitySold" && field !== "freeQuantity") {
+          item[field] = newValue;
+        }
 
         // Use baseRate for calculations (this is the rate without GST)
         const amounts2 = calculateItemAmounts(
-          item.quantitySold,
+          Number(item.quantitySold) || 0,
           item.baseRate,
           item.product.gstPercentage,
           item.schemeDiscount,
@@ -2316,6 +2364,11 @@ export default function InvoiceCreatePage() {
                                       e.target.value,
                                     )
                                   }
+                                  onBlur={() => {
+                                    if (item.quantitySold === "" || Number(item.quantitySold) < 1) {
+                                      updateItemQuantity(index, "quantitySold", 1);
+                                    }
+                                  }}
                                   className="input py-1.5 text-center"
                                   min="1"
                                   max={maxSoldQuantity}
@@ -2332,6 +2385,11 @@ export default function InvoiceCreatePage() {
                                       e.target.value,
                                     )
                                   }
+                                  onBlur={() => {
+                                    if (item.freeQuantity === "" || Number(item.freeQuantity) < 0) {
+                                      updateItemQuantity(index, "freeQuantity", 0);
+                                    }
+                                  }}
                                   className="input py-1.5 text-center"
                                   min="0"
                                 />
