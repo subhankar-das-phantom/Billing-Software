@@ -199,11 +199,11 @@ const ComparisonRowSkeleton = () => (
 );
 
 export const EmployeeAnalyticsPageSkeleton = () => (
-  <div className="p-6 max-w-7xl mx-auto">
+  <div className="px-3.5 py-4 sm:px-6 sm:py-6 md:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8">
     <AnalyticsHeaderSkeleton />
 
     {/* Overview stats */}
-    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3.5 md:gap-4">
       {Array.from({ length: 6 }).map((_, i) => (
         <AnalyticsStatSkeleton key={i} />
       ))}
@@ -212,22 +212,22 @@ export const EmployeeAnalyticsPageSkeleton = () => (
     <SessionPanelSkeleton />
 
     {/* Leaderboards */}
-    <div className="grid md:grid-cols-3 gap-4 mb-8">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
       <LeaderboardSkeleton />
       <LeaderboardSkeleton />
       <LeaderboardSkeleton />
     </div>
 
     {/* Performance Comparison */}
-    <div className="bg-slate-800/50 rounded-xl p-5 border border-slate-700">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <div className="bg-slate-800/50 rounded-xl p-4 sm:p-5 md:p-6 border border-slate-700/80">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
         <div className="flex items-center gap-2">
           <ShimmerBone className="w-5 h-5 rounded" />
           <ShimmerBone className="h-5 w-44" />
         </div>
         <ShimmerBone className="h-8 w-32 rounded-lg" />
       </div>
-      <div className="space-y-3">
+      <div className="space-y-2.5 sm:space-y-3">
         {Array.from({ length: 4 }).map((_, i) => (
           <ComparisonRowSkeleton key={i} />
         ))}
