@@ -22,6 +22,7 @@ import { manualEntryService } from '../../../services/entries/manualEntryService
 import { customerService } from '../../../services/customers/customerService';
 import { creditNoteService } from '../../../services/credits/creditNoteService';
 import { formatCurrency, formatDate } from '../../../utils/formatters';
+import { invalidateCachePattern } from '../../../hooks';
 import CustomDropdown from '../Dropdowns/CustomDropdown';
 
 const roundCurrency = (value) => Math.round(((Number(value) || 0) + Number.EPSILON) * 100) / 100;
@@ -519,6 +520,13 @@ export default function RecordPaymentModal({
         });
         setSuccess(true);
 
+        // Invalidate caches across the app so Dashboard, Collections, Invoices, and Ledgers immediately refresh
+        invalidateCachePattern('dashboard');
+        invalidateCachePattern('collections');
+        invalidateCachePattern('invoices');
+        invalidateCachePattern('customer');
+        invalidateCachePattern('credit');
+
         setTimeout(() => {
           onClose();
           if (onSuccess) onSuccess();
@@ -607,6 +615,13 @@ export default function RecordPaymentModal({
 
         setSuccess(true);
         
+        // Invalidate caches across the app so Dashboard, Collections, Invoices, and Ledgers immediately refresh
+        invalidateCachePattern('dashboard');
+        invalidateCachePattern('collections');
+        invalidateCachePattern('invoices');
+        invalidateCachePattern('customer');
+        invalidateCachePattern('credit');
+
         // Close modal first, then refresh data AFTER modal is closed
         setTimeout(() => {
           onClose();

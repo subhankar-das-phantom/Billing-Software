@@ -20,7 +20,7 @@ router.use(checkSubscription);
 router.use(checkFeatureAccess(Feature.PAYMENTS));
 
 // Collections route (must be before /:id to avoid param collision)
-router.get('/collections', requirePermission('payments', 'view'), getCollections);
+router.get('/collections', requirePermission('collections', 'view', 'payments'), getCollections);
 
 // Payment routes
 router.route('/')

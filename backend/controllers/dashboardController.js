@@ -161,7 +161,7 @@ exports.getStats = async (req, res, next) => {
       Invoice.find(nonCancelledInvoiceQuery)
         .sort({ createdAt: -1 })
         .limit(5)
-        .select('invoiceNumber invoiceDate customer.customerName totals.netTotal status')
+        .select('invoiceNumber invoiceDate customer.customerName totals.netTotal status paymentStatus paidAmount paymentType')
     ]);
 
     // Extract aggregation results

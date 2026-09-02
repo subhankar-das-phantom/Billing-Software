@@ -290,7 +290,17 @@ export const AuthProvider = ({ children }) => {
     if (userRole === 'admin') return true;
     if (!user || !user.permissions) return false;
     const modulePerms = user.permissions[moduleName];
-    return !!(modulePerms && modulePerms[action]);
+    if (modulePerms !== undefined) {
+      return !!modulePerms[action];
+    }
+    // Backward-compatibility fallback for legacy unconfigured sessions
+    if (moduleName === 'collections') {
+      return !!user.permissions.payments?.[action];
+    }
+    if (moduleName === 'ledger') {
+      return !!user.permissions.inventory?.[action];
+    }
+    return false;
   }, [userRole, user]);
 
   return (
