@@ -6,6 +6,29 @@ For full release notes with implementation details, see [GitHub Releases](https:
 
 ---
 
+## [v2.2.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.2.0) — 2026-09-02 — Custom Role-Tailored Employee Dashboard & Financial Data Isolation
+
+### 🛡️ Role-Tailored Employee Dashboard & Sensitive Data Protection
+Version 2.2.0 introduces a dedicated operational workspace for employee users that completely shields administrator-only business intelligence and company-wide financial metrics at both the backend data layer and the frontend presentation layer.
+
+---
+
+### 🔒 Dual-Layer Security Model & Backend Data Isolation
+- **Early-Branching Backend Controller** — In `dashboardController.js`, `req.userRole === 'employee'` branches immediately before constructing any executive database aggregations. Company-wide lifetime revenue (`totalInvoiceAmount`), total daily sales (`todaySales`), monthly sales (`monthSales`), previous month sales (`prevMonthSales`), and business growth rate percentages (`growth`) are completely skipped and strictly omitted from the response JSON payload.
+- **Strict Schema Attribution** — Today's employee operational metrics (`todayInvoicesCreated`, `todaySalesHandled`, `todayPaymentsRecorded`, `todayPaymentsAmount`) and recent invoices are strictly scoped via `createdBy.user === req.user._id` and `createdBy.userModel === 'Employee'`.
+- **Permission-Guarded Low Stock** — Low stock operational count and product alerts are guarded by `inventory.view` or `ledger.view`. Items display strictly operational information (product name, SKU, current stock) with wholesale purchase rates, supplier prices, and profit margins completely concealed.
+- **Zero 403 Network Errors** — `DashboardPage.jsx` implements conditional SWR null keys (`isAdmin ? key : null`) for all administrator-only sales analytics and credit endpoints, completely preventing unauthorized network requests and eliminating console errors.
+
+---
+
+### 💻 Dedicated Frontend Employee Dashboard (`EmployeeDashboard.jsx`)
+- **Personalized Operational Hero** — Welcomes employees by name (`Welcome back, {user.name}`), features an active Operational Desk indicator, live IST date/time, and a role badge dynamically derived from schema role definitions (`Billing Operator`, `Payment Collector`, `Inventory Manager`, `Full Operational Access`, `Operational Viewer`, or `Custom Operations`).
+- **Personal Operational KPIs** — Focuses purely on personal operational contributions: *Invoices Created by Me* (today's count & career total), *Sales Handled by Me* (today's volume & career volume), *Collections Logged by Me* (today's receipts & career collections), and *Inventory Stock Alerts*.
+- **Role-Aware Quick Actions** — Dynamically renders only the operational workflows authorized by the employee's assigned permissions (`+ New Invoice`, `+ Record Payment`, `Product Catalog`, `Inventory Ledger`, `Customer Directory`, `Inward Purchase`, and `Collections Hub`).
+- **My Recent Invoices Feed** — Fast, high-density table displaying recent invoices created by this employee, with customer name, invoice number, amount, date, dynamic payment status badge (Paid / Partial / Unpaid), and direct view navigation.
+
+---
+
 ## [v2.1.1](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.1.1) — 2026-09-02 — RBAC Inventory Ledger Enforcement, Collections Permission & Live Customer Outstanding
 
 ### 🛡️ RBAC Permissions & Financial Data Accuracy
