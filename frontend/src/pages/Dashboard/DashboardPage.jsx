@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import { dashboardService } from '../../services/dashboard/dashboardService';
 import { salesAnalyticsApi } from '../../features/salesAnalytics/api/salesAnalyticsApi';
 import creditService from '../../services/credits/creditService';
@@ -6,6 +7,7 @@ import { useSWR } from '../../hooks';
 import { DashboardPageSkeleton } from './DashboardPageSkeleton';
 
 // Subcomponents
+import { EmployeeDashboard } from '../../components/Dashboard/EmployeeDashboard';
 import { DashboardHero } from '../../components/Dashboard/DashboardHero';
 import { DashboardKPIGrid } from '../../components/Dashboard/DashboardKPIGrid';
 import { DashboardChartsSection } from '../../components/Dashboard/DashboardChartsSection';
@@ -14,6 +16,12 @@ import { DashboardAlertsAndTopProducts } from '../../components/Dashboard/Dashbo
 import { DashboardQuickActions } from '../../components/Dashboard/DashboardQuickActions';
 
 export default function DashboardPage() {
+  const { userRole, hasPermission } = useAuth();
+  const isAdmin = userRole === 'admin';
+  const isEmployee = userRole === 'employee';
+
+  const canViewInventory = isAdmin || hasPermission('inventory', 'view') || hasPermission('ledger', 'view');
+
   // Global time horizon: 'today' | '7d' | '30d' | 'month' | 'year'
   const [timeRange, setTimeRange] = useState('30d');
 
@@ -29,7 +37,7 @@ export default function DashboardPage() {
     }
   }, [timeRange]);
 
-  // 1. Primary Dashboard Stats
+  // 1. Primary Dashboard Stats (safe for both: returns executive stats for admin, employeeStats for employee)
   const { 
     data: statsData, 
     isLoading: statsLoading, 
@@ -40,73 +48,73 @@ export default function DashboardPage() {
     { ttl: 2 * 60 * 1000 }
   );
 
-  // 2. Low Stock Alerts
+  // 2. Low Stock Alerts (fetched if admin or permitted employee)
   const { 
     data: lowStockData, 
     isLoading: lowStockLoading, 
     isValidating: lowStockValidating 
   } = useSWR(
-    'dashboard-low-stock',
+    canViewInventory ? 'dashboard-low-stock' : null,
     () => dashboardService.getLowStock(10),
     { ttl: 5 * 60 * 1000 }
   );
 
-  // 3. Sales & Collections Daily Analytics
+  // 3. Sales & Collections Daily Analytics (ADMIN ONLY - conditional null key avoids 403)
   const { 
     data: dailySalesData, 
     isValidating: dailyValidating 
   } = useSWR(
-    `dashboard-daily-sales-${periodParam}`,
+    isAdmin ? `dashboard-daily-sales-${periodParam}` : null,
     () => salesAnalyticsApi.getDailySales({ period: periodParam }),
     { ttl: 2 * 60 * 1000 }
   );
 
-  // 4. Monthly Trend Analytics
+  // 4. Monthly Trend Analytics (ADMIN ONLY - conditional null key avoids 403)
   const { 
     data: monthlySalesData, 
     isValidating: monthlyValidating 
   } = useSWR(
-    'dashboard-monthly-sales',
+    isAdmin ? 'dashboard-monthly-sales' : null,
     () => salesAnalyticsApi.getMonthlySales({ year: new Date().getFullYear() }),
     { ttl: 5 * 60 * 1000 }
   );
 
-  // 5. High-Level Sales Overview
+  // 5. High-Level Sales Overview (ADMIN ONLY - conditional null key avoids 403)
   const { 
     data: overviewDataResponse, 
     isValidating: overviewValidating 
   } = useSWR(
-    `dashboard-sales-overview-${periodParam}`,
+    isAdmin ? `dashboard-sales-overview-${periodParam}` : null,
     () => salesAnalyticsApi.getOverview({ period: periodParam }),
     { ttl: 2 * 60 * 1000 }
   );
 
-  // 6. Top Selling Products
+  // 6. Top Selling Products (ADMIN ONLY - conditional null key avoids 403)
   const { 
     data: topProductsResponse, 
     isValidating: topProductsValidating 
   } = useSWR(
-    `dashboard-top-products-${periodParam}`,
+    isAdmin ? `dashboard-top-products-${periodParam}` : null,
     () => salesAnalyticsApi.getTopProducts({ period: periodParam, limit: 5 }),
     { ttl: 5 * 60 * 1000 }
   );
 
-  // 7. Credit & Receivables Summary
+  // 7. Credit & Receivables Summary (ADMIN ONLY - conditional null key avoids 403)
   const { 
     data: creditStatsData, 
     isValidating: creditValidating 
   } = useSWR(
-    'dashboard-credit-stats',
+    isAdmin ? 'dashboard-credit-stats' : null,
     () => creditService.getCreditStats(),
     { ttl: 2 * 60 * 1000 }
   );
 
-  // 8. Recent Payments
+  // 8. Recent Payments (ADMIN ONLY - conditional null key avoids 403)
   const { 
     data: recentPaymentsData, 
     isValidating: paymentsValidating 
   } = useSWR(
-    'dashboard-recent-payments',
+    isAdmin ? 'dashboard-recent-payments' : null,
     () => creditService.getRecentPayments(6),
     { ttl: 2 * 60 * 1000 }
   );
@@ -123,10 +131,24 @@ export default function DashboardPage() {
   const recentPayments = recentPaymentsData?.payments || [];
 
   const isValidating = statsValidating || lowStockValidating || dailyValidating || monthlyValidating || overviewValidating || topProductsValidating || creditValidating || paymentsValidating;
-  const initialLoading = (statsLoading || lowStockLoading) && !stats;
+  
+  const initialLoading = isEmployee
+    ? statsLoading && !statsData
+    : (statsLoading || lowStockLoading) && !stats;
 
   if (initialLoading) {
     return <DashboardPageSkeleton />;
+  }
+
+  // Employee Operational Dashboard (dedicated layout, no executive widgets mounted)
+  if (isEmployee) {
+    return (
+      <EmployeeDashboard
+        statsData={statsData}
+        lowStockData={lowStockData}
+        isValidating={statsValidating || lowStockValidating}
+      />
+    );
   }
 
   return (
