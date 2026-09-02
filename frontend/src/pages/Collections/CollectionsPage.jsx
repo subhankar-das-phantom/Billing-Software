@@ -333,8 +333,19 @@ export default function CollectionsPage() {
               </div>
             </div>
           ) : (
-            <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 text-center text-xs text-slate-400">
-              No payment receipts recorded for {dateLabel}. Click <strong>Record Payment</strong> to log customer collections.
+            <div className="py-5 px-5 rounded-xl bg-slate-800/40 border border-slate-700/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+              <div>
+                <p className="text-sm font-medium text-white">No collections recorded for {dateLabel}</p>
+                <p className="text-xs text-slate-400 mt-0.5">Start logging customer cash receipts, UPI, or bank transfers</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowRecordModal(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl text-xs font-semibold shadow-lg shadow-emerald-500/20 transition-all hover:scale-[1.02] active:scale-95 shrink-0"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Record Payment
+              </button>
             </div>
           )}
         </div>
