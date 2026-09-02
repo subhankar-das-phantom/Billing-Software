@@ -6,6 +6,31 @@ For full release notes with implementation details, see [GitHub Releases](https:
 
 ---
 
+## [v2.2.1](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.2.1) — 2026-09-02 — Enterprise Dashboard Polish & Contextual Payment Entry-Point Enforcement
+
+### 🎨 Enterprise Polish & Workflow Cohesion
+Version 2.2.1 delivers an aesthetic overhaul eliminating AI/vibecoded tropes in favor of a crisp, high-density enterprise SaaS layout, and enforces intelligent contextual guards for payment collection actions across the dashboard.
+
+---
+
+### 🛡️ Contextual Payment Entry-Point Enforcement
+- **Accessible Entry-Point Requirement** — Fixed a workflow contradiction where an employee with `payments.create` could still see a *"Record Payment"* quick action pointing to `/collections?action=record` even when `collections`, `customers`, and `invoices` were all disabled by the administrator.
+- **Dynamic Contextual Routing** — In `EmployeeDashboard.jsx`, the *"Record Payment"* quick action, top header button, and collections KPI card now require `canViewCollections || canViewCustomers || canViewInvoices`:
+  - **Collections Permitted**: Routes directly to `/collections?action=record`.
+  - **Collections Restricted, Customers Permitted**: Routes dynamically to `/customers` to allow recording payment against a customer account.
+  - **Collections & Customers Restricted, Invoices Permitted**: Routes dynamically to `/invoices` to allow recording payment against an invoice.
+  - **All Three Restricted**: Cleanly hides the *"Record Payment"* action and collections KPI card, preventing unauthorized 403 navigation errors.
+
+---
+
+### 💻 Enterprise Dashboard Aesthetic Redesign
+- **Stripped "Vibecoded" Artifacts** — Removed ambient background glow blobs (`blur-3xl`), rainbow gradient text clips (`bg-gradient-to-r`), saturated gradient action tiles, and decorative `Sparkles` icons.
+- **High-Density Enterprise Layout** — Realigned typography, spacing, and card tokens with the unified enterprise design system (`bg-slate-900 border-slate-800 rounded-xl`).
+- **Dynamic Responsive Grid** — Removed dummy greyed-out *"Restricted Module"* placeholder cards. The KPI grid now dynamically formats into 2, 3, or 4 columns based purely on permitted operational metrics.
+- **Clean Document Table & Stock Alerts** — Formatted recent employee invoices with monospaced numbers, dark discrete payment status badges (`Paid`, `Partial`, `Unpaid`), and non-financial operational stock warning chips.
+
+---
+
 ## [v2.2.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.2.0) — 2026-09-02 — Custom Role-Tailored Employee Dashboard & Financial Data Isolation
 
 ### 🛡️ Role-Tailored Employee Dashboard & Sensitive Data Protection
