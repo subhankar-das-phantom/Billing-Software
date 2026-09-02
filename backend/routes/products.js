@@ -19,9 +19,13 @@ const {
   adjustStockValidator,
   mongoIdParam 
 } = require('../middleware/validators');
+const { checkSubscription, checkFeatureAccess, checkWriteAccess } = require('../saas/middleware');
+const { Feature } = require('../saas/shared/features');
 
-// Apply protection to all routes
+// Apply protection and subscription check to all routes
 router.use(protect);
+router.use(checkSubscription);
+router.use(checkFeatureAccess(Feature.PRODUCTS));
 
 router.get('/stats', requirePermission('products', 'view'), getProductStats);
 router.get('/stock/low', requirePermission('inventory', 'view'), getLowStock);
@@ -29,15 +33,15 @@ router.get('/export', requirePermission('reports', 'view'), exportProducts);
 
 router.route('/')
   .get(requirePermission('products', 'view'), getProducts)
-  .post(requirePermission('products', 'create'), createProductValidator, createProduct);
+  .post(checkWriteAccess, requirePermission('products', 'create'), createProductValidator, createProduct);
 
 router.get('/:id/stock-history', requirePermission('inventory', 'view'), mongoIdParam, getStockHistory);
 
 router.route('/:id')
   .get(requirePermission('products', 'view'), mongoIdParam, getProduct)
-  .put(requirePermission('products', 'edit'), updateProductValidator, updateProduct)
-  .delete(requirePermission('products', 'delete'), mongoIdParam, deleteProduct);
+  .put(checkWriteAccess, requirePermission('products', 'edit'), updateProductValidator, updateProduct)
+  .delete(checkWriteAccess, requirePermission('products', 'delete'), mongoIdParam, deleteProduct);
 
-router.put('/:id/stock', requirePermission('inventory', 'create'), adjustStockValidator, adjustStock);
+router.put('/:id/stock', checkWriteAccess, requirePermission('inventory', 'create'), adjustStockValidator, adjustStock);
 
 module.exports = router;

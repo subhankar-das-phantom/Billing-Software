@@ -16,7 +16,9 @@ import {
   FileBarChart,
   Clock,
   Settings,
-  PlusCircle
+  PlusCircle,
+  CreditCard,
+  Gift
 } from 'lucide-react';
 
 /**
@@ -216,6 +218,24 @@ export const NAVIGATION_SECTIONS = [
     title: 'SYSTEM',
     items: [
       {
+        id: 'subscription',
+        path: '/subscription',
+        label: 'Subscription',
+        icon: CreditCard,
+        adminOnly: true,
+      },
+      {
+        id: 'referral',
+        path: '/referral',
+        label: 'Refer & Earn',
+        icon: Gift,
+        adminOnly: true,
+        badge: {
+          text: 'Free Days',
+          color: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30',
+        },
+      },
+      {
         id: 'settings',
         path: '/settings',
         label: 'Settings',
@@ -271,6 +291,24 @@ export const QUICK_ACTIONS = [
     keywords: ['purchase', 'vendor', 'supplier invoice', 'buy', 'stock in'],
   },
   {
+    id: 'action-record-payment',
+    label: 'Record Payment Receipt',
+    category: 'Quick Actions',
+    path: '/collections',
+    icon: Banknote,
+    permission: { module: 'payments', action: 'create' },
+    keywords: ['payment', 'collection', 'receipt', 'collect money'],
+  },
+  {
+    id: 'action-create-credit-note',
+    label: 'Create Credit Note',
+    category: 'Quick Actions',
+    path: '/invoices',
+    icon: Wallet,
+    permission: { module: 'creditNotes', action: 'create' },
+    keywords: ['credit note', 'return', 'credit', 'refund'],
+  },
+  {
     id: 'action-manual-entry',
     label: 'Create Manual Entry',
     category: 'Quick Actions',
@@ -282,21 +320,29 @@ export const QUICK_ACTIONS = [
 ];
 
 /**
- * Filter navigation sections based on user role and permissions.
- * Any section with 0 accessible items will be omitted completely.
+ * Filter navigation configuration based on user permissions, role, and subscription status
  */
-export function getFilteredNavigation({ isAdmin, hasPermission, dynamicData = {} }) {
+export function getFilteredNavigation({
+  isAdmin = false,
+  hasPermission = null,
+  canAccessRoute = null,
+  dynamicData = null,
+}) {
   const checkAccess = (item) => {
     // If adminOnly, require isAdmin
     if (item.adminOnly && !isAdmin) {
       return false;
     }
-    // If permission defined, verify either isAdmin or hasPermission
-    if (item.permission) {
+    // If permission defined and user is not admin, verify hasPermission
+    if (item.permission && !isAdmin) {
       const { module, action } = item.permission;
-      if (!isAdmin && (!hasPermission || !hasPermission(module, action))) {
+      if (!hasPermission || !hasPermission(module, action)) {
         return false;
       }
+    }
+    // If employee and feature is not in tenant's plan, hide from employee
+    if (!isAdmin && canAccessRoute && !canAccessRoute(item.path)) {
+      return false;
     }
     return true;
   };

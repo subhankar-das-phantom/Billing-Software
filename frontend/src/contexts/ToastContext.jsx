@@ -79,10 +79,21 @@ const ToastContainer = ({ toasts, removeToast }) => {
   );
 };
 
+const fallbackToast = {
+  toasts: [],
+  addToast: (msg, type = 'info') => console.log(`[Toast ${type}]:`, msg),
+  showToast: (msg, type = 'info') => console.log(`[Toast ${type}]:`, msg),
+  removeToast: () => {},
+  success: (msg) => console.log('[Toast success]:', msg),
+  error: (msg) => console.error('[Toast error]:', msg),
+  info: (msg) => console.log('[Toast info]:', msg),
+};
+
 export const useToast = () => {
   const context = useContext(ToastContext);
   if (!context) {
-    throw new Error('useToast must be used within a ToastProvider');
+    console.warn('useToast was called outside a ToastProvider. Using fallback logger.');
+    return fallbackToast;
   }
   return context;
 };

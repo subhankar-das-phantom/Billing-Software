@@ -9,6 +9,8 @@ import {
   ChevronDown,
   ChevronRight,
   User,
+  CreditCard,
+  Gift,
   PanelLeftClose,
   PanelLeftOpen,
 } from 'lucide-react';
@@ -235,21 +237,55 @@ export default function Header({
                   {/* Actions */}
                   <div className="p-1 space-y-0.5">
                     {isAdmin && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfileOpen(false);
-                          navigate('/settings');
-                        }}
-                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
-                          location.pathname === '/settings'
-                            ? 'bg-blue-500/20 text-blue-400'
-                            : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                        }`}
-                      >
-                        <Settings size={15} />
-                        <span>Settings</span>
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProfileOpen(false);
+                            navigate('/subscription');
+                          }}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+                            location.pathname === '/subscription'
+                              ? 'bg-blue-500/20 text-blue-400'
+                              : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                          }`}
+                        >
+                          <CreditCard size={15} />
+                          <span>Subscription</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProfileOpen(false);
+                            navigate('/referral');
+                          }}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+                            location.pathname === '/referral'
+                              ? 'bg-blue-500/20 text-blue-400'
+                              : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                          }`}
+                        >
+                          <Gift size={15} />
+                          <span>Refer & Earn</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProfileOpen(false);
+                            navigate('/settings');
+                          }}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+                            location.pathname === '/settings'
+                              ? 'bg-blue-500/20 text-blue-400'
+                              : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                          }`}
+                        >
+                          <Settings size={15} />
+                          <span>Settings</span>
+                        </button>
+                      </>
                     )}
 
                     <button

@@ -105,10 +105,10 @@ const PageTransition = ({
 }) => {
   const motionConfig = useMotionConfig();
   
-  // Use simpler variants on mobile for better performance
+  // Use simpler variants on mobile or low-performance desktop for better performance
   const getVariant = () => {
-    // On mobile, simplify complex variants to basic fade
-    if (motionConfig.isMobile && ['flip', 'blur', 'rotate'].includes(variant)) {
+    // On mobile or low-performance desktop, simplify complex GPU-intensive variants to basic fade
+    if ((motionConfig.isMobile || motionConfig.allowComplexVariants === false) && ['flip', 'blur', 'rotate'].includes(variant)) {
       return transitionVariants.fadeUp;
     }
     return transitionVariants[variant] || transitionVariants.fadeUp;

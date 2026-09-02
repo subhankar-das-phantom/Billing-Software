@@ -101,6 +101,15 @@ exports.register = async (req, res, next) => {
       firmDL: firmDL || ''
     });
 
+    // Automatically provision a Free Trial subscription for the new user!
+    try {
+      const { createTrialSubscription } = require('../saas/services/subscriptionService');
+      await createTrialSubscription(admin._id.toString());
+    } catch (trialErr) {
+      console.error('Failed to create trial subscription:', trialErr);
+      // We don't block registration, but this should ideally be logged to an error tracker
+    }
+
     // Generate token with admin role
     const token = generateToken(admin._id, 'admin');
 
@@ -191,7 +200,7 @@ exports.login = async (req, res, next) => {
     }
 
     // If not an Admin, try Employee
-    const employee = await Employee.findOne({ email: email.toLowerCase() }).select('+password');
+    const employee = await Employee.findOne({ email: email.toLowerCase() }).select('+password').populate('createdByAdmin', 'firmName');
 
     if (employee) {
       // Check if employee is active
@@ -234,7 +243,7 @@ exports.login = async (req, res, next) => {
         success: true,
         role: 'employee',
         token,
-        employee: await getPopulatedEmployeeProfile(employee)
+        employee: { ...(await getPopulatedEmployeeProfile(employee)), firmName: employee.createdByAdmin?.firmName || 'Your firm' }
       });
     }
 
@@ -266,7 +275,7 @@ exports.employeeLogin = async (req, res, next) => {
     // Find employee by email
     const employee = await Employee.findOne({ 
       email: email.toLowerCase() 
-    }).select('+password');
+    }).select('+password').populate('createdByAdmin', 'firmName');
 
     if (!employee) {
       return res.status(401).json({
@@ -315,7 +324,7 @@ exports.employeeLogin = async (req, res, next) => {
       success: true,
       role: 'employee',
       token,
-      employee: await getPopulatedEmployeeProfile(employee)
+      employee: { ...(await getPopulatedEmployeeProfile(employee)), firmName: employee.createdByAdmin?.firmName || 'Your firm' }
     });
   } catch (error) {
     next(error);
@@ -336,10 +345,11 @@ exports.getMe = async (req, res, next) => {
       }
 
       // Return employee profile
+      const employee = await Employee.findById(req.user._id).populate('createdByAdmin', 'firmName');
       res.status(200).json({
         success: true,
         role: 'employee',
-        user: await getPopulatedEmployeeProfile(req.user)
+        user: { ...(await getPopulatedEmployeeProfile(employee)), firmName: employee.createdByAdmin?.firmName || 'Your firm' }
       });
     } else {
       // Return admin profile

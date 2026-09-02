@@ -4,6 +4,7 @@ import {
   FileBarChart, 
   TrendingUp, 
   Sparkles, 
+  Lock, 
   Clock, 
   ShieldAlert, 
   Truck, 
@@ -17,11 +18,14 @@ import GstReportPage from './GstReportPage';
 import PurchaseReportsPage from './PurchaseReportsPage';
 import { SalesAnalyticsSection } from '../../features/salesAnalytics/components/SalesAnalyticsSection';
 import { InventoryIntelligenceSection } from '../../features/inventoryAnalytics/components/InventoryIntelligenceSection';
+import { useSubscription } from '../../contexts/SubscriptionContext';
+import { Feature } from '../../saas/features';
 
 export default function ReportsPage({ defaultTab }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const { canAccess } = useSubscription();
 
   // Determine initial tab from prop, URL search param (?tab=purchases), or location path
   const getInitialTab = () => {
@@ -47,6 +51,33 @@ export default function ReportsPage({ defaultTab }) {
     setActiveTab(tabId);
     setSearchParams({ tab: tabId }, { replace: true });
   };
+
+  // If reports feature is completely blocked for Starter
+  if (canAccess && !canAccess(Feature.REPORTS) && !canAccess(Feature.ADVANCED_REPORTING) && !canAccess(Feature.PURCHASE_REPORTS)) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 px-4 text-center h-full">
+        <div className="glass-card p-8 max-w-md w-full border-slate-800 bg-slate-900/80 shadow-xl">
+          <div className="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center mx-auto mb-4 text-slate-300">
+            <Lock className="w-6 h-6" />
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2">Business Reports Hub</h2>
+          <p className="text-xs text-slate-400 mb-6 leading-relaxed">
+            Sales analytics, purchase reporting, and inventory intelligence are available on Business and Professional plans.
+          </p>
+          <button
+            onClick={() => navigate('/subscription')}
+            className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-all"
+          >
+            Contact us to upgrade this plan.
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const hasPurchaseReports = canAccess ? canAccess(Feature.PURCHASE_REPORTS) : true;
+  const hasInventoryIntelligence = canAccess ? canAccess(Feature.INVENTORY_INTELLIGENCE) : true;
+  const hasGstReports = canAccess ? canAccess(Feature.GST_REPORTS) : true;
 
   return (
     <div className="space-y-6">
@@ -84,6 +115,11 @@ export default function ReportsPage({ defaultTab }) {
         >
           <ShoppingCart className="w-3.5 h-3.5" />
           Purchase Reports
+          {!hasPurchaseReports && (
+            <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30">
+              <Lock className="w-2.5 h-2.5" /> BIZ
+            </span>
+          )}
         </button>
 
         <button
@@ -96,6 +132,11 @@ export default function ReportsPage({ defaultTab }) {
         >
           <BarChart3 className="w-3.5 h-3.5" />
           Inventory Intelligence
+          {!hasInventoryIntelligence && (
+            <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30">
+              <Lock className="w-2.5 h-2.5" /> PRO
+            </span>
+          )}
         </button>
 
         <button
@@ -108,6 +149,11 @@ export default function ReportsPage({ defaultTab }) {
         >
           <FileBarChart className="w-3.5 h-3.5" />
           GST Report
+          {!hasGstReports && (
+            <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30">
+              <Lock className="w-2.5 h-2.5" /> PRO
+            </span>
+          )}
         </button>
       </div>
 
@@ -133,7 +179,41 @@ export default function ReportsPage({ defaultTab }) {
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.15 }}
           >
-            <PurchaseReportsPage />
+            {!hasPurchaseReports ? (
+              <div className="glass-card p-6 lg:p-8 border border-slate-800 bg-slate-900/70 max-w-3xl mx-auto rounded-2xl">
+                <div className="flex items-center justify-between pb-5 border-b border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                      <ShoppingCart className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-base font-bold text-white">Purchase Reports & Analytics</h3>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                          Business Plan
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-0.5">Supplier procurement performance, order volume breakdowns, and spending analytics</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-6">
+                  <span className="text-xs text-slate-400">
+                    Purchase analytics and supplier reports are available on Business and Professional plans.
+                  </span>
+                  <button
+                    onClick={() => navigate('/subscription')}
+                    className="w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-all flex items-center justify-center gap-1.5"
+                  >
+                    Contact us to upgrade this plan.
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <PurchaseReportsPage />
+            )}
           </motion.div>
         )}
 
@@ -145,7 +225,75 @@ export default function ReportsPage({ defaultTab }) {
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.15 }}
           >
-            <InventoryIntelligenceSection />
+            {!hasInventoryIntelligence ? (
+              <div className="glass-card p-6 lg:p-8 border border-slate-800 bg-slate-900/70 max-w-3xl mx-auto rounded-2xl">
+                <div className="flex items-center justify-between pb-5 border-b border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                      <BarChart3 className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-base font-bold text-white">Inventory Intelligence Engine</h3>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                          Professional Plan
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-0.5">Advanced operational telemetry and predictive stock intelligence</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3 Clean Feature Capabilities */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 my-6">
+                  <div className="p-4 rounded-xl bg-slate-950/40 border border-slate-800/80">
+                    <div className="flex items-center gap-2 text-amber-400 mb-2">
+                      <Clock className="w-4 h-4" />
+                      <span className="text-xs font-semibold">Expiry Horizon</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      6-tier expiration horizon analysis and critical 30-day stockout alerts.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-slate-950/40 border border-slate-800/80">
+                    <div className="flex items-center gap-2 text-emerald-400 mb-2">
+                      <TrendingUp className="w-4 h-4" />
+                      <span className="text-xs font-semibold">Sales Velocity</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      Quartile ranking of fast-moving vs stagnant items with turnover metrics.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-slate-950/40 border border-slate-800/80">
+                    <div className="flex items-center gap-2 text-blue-400 mb-2">
+                      <Truck className="w-4 h-4" />
+                      <span className="text-xs font-semibold">Procurement Activity</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      Supplier fulfillment frequency, base vs free unit audits, and spend history.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Action Bar */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-800">
+                  <span className="text-xs text-slate-400">
+                    Deep analytics across your entire catalog.
+                  </span>
+                  <button
+                    onClick={() => navigate('/subscription')}
+                    className="w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-all flex items-center justify-center gap-1.5"
+                  >
+                    Contact us to upgrade this plan.
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <InventoryIntelligenceSection />
+            )}
           </motion.div>
         )}
 
@@ -157,7 +305,41 @@ export default function ReportsPage({ defaultTab }) {
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.15 }}
           >
-            <GstReportPage />
+            {!hasGstReports ? (
+              <div className="glass-card p-6 lg:p-8 border border-slate-800 bg-slate-900/70 max-w-3xl mx-auto rounded-2xl">
+                <div className="flex items-center justify-between pb-5 border-b border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                      <FileBarChart className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-base font-bold text-white">GST Compliance Reporting</h3>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                          Professional Plan
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-0.5">Itemized tax breakdowns, GSTR slab distributions, and tax compliance summaries</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-6">
+                  <span className="text-xs text-slate-400">
+                    Tax compliance reports are available on the Professional tier.
+                  </span>
+                  <button
+                    onClick={() => navigate('/subscription')}
+                    className="w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-all flex items-center justify-center gap-1.5"
+                  >
+                    Contact us to upgrade this plan.
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <GstReportPage />
+            )}
           </motion.div>
         )}
       </AnimatePresence>

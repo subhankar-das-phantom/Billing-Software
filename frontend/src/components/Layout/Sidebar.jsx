@@ -4,12 +4,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LogOut,
   X,
-  ChevronLeft,
   ChevronRight,
   PanelLeftClose,
   PanelLeftOpen,
+  Lock,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSubscription } from '../../contexts/SubscriptionContext';
+import UpgradeBadge from '../Subscription/UpgradeBadge';
 import { invoiceService } from '../../services/invoices/invoiceService';
 import { useSWR } from '../../hooks';
 import {
@@ -21,11 +23,15 @@ import {
  * Collapsed Tooltip Component
  * Displays label, section category, and badge details on hover
  */
-const NavItemTooltip = memo(({ label, sectionTitle, badge }) => (
+const NavItemTooltip = memo(({ label, sectionTitle, badge, isLocked }) => (
   <div className="fixed left-[72px] z-50 pointer-events-none px-3 py-2 bg-slate-900/95 backdrop-blur-md border border-slate-700/80 rounded-xl shadow-xl shadow-black/50 whitespace-nowrap animate-in fade-in zoom-in-95 duration-150">
     <div className="flex items-center gap-2">
       <span className="text-xs font-semibold text-white">{label}</span>
-      {badge && (
+      {isLocked ? (
+        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+          <Lock size={10} /> Upgrade
+        </span>
+      ) : badge ? (
         <span
           className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
             badge.color || 'bg-blue-500/20 text-blue-300'
@@ -33,7 +39,7 @@ const NavItemTooltip = memo(({ label, sectionTitle, badge }) => (
         >
           {badge.text}
         </span>
-      )}
+      ) : null}
     </div>
     <div className="text-[10px] text-slate-400 font-medium tracking-wide uppercase mt-0.5">
       {sectionTitle}
@@ -55,15 +61,18 @@ const SidebarNavItem = memo(
     onClose,
     hoveredItem,
     setHoveredItem,
+    canAccessRoute,
   }) => {
-    const isActive = isRouteActive(item.path, currentPath);
+    const isLocked = canAccessRoute && !canAccessRoute(item.path);
+    const destinationPath = isLocked ? '/subscription' : item.path;
+    const isActive = !isLocked && isRouteActive(item.path, currentPath);
     const Icon = item.icon;
     const isHovered = hoveredItem === item.path;
 
     return (
       <li className="relative">
         <Link
-          to={item.path}
+          to={destinationPath}
           onClick={onClose}
           aria-label={item.label}
           aria-current={isActive ? 'page' : undefined}
@@ -76,6 +85,8 @@ const SidebarNavItem = memo(
           } ${
             isActive
               ? 'bg-gradient-to-r from-blue-600/20 to-accent-600/20 border border-blue-500/30 text-blue-400 font-semibold shadow-sm'
+              : isLocked
+              ? 'text-slate-400/90 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
               : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 border border-transparent'
           }`}
         >
@@ -96,11 +107,17 @@ const SidebarNavItem = memo(
               className={`transition-colors duration-150 ${
                 isActive
                   ? 'text-blue-400'
+                  : isLocked
+                  ? 'text-slate-400 group-hover:text-slate-300'
                   : 'text-slate-400 group-hover:text-slate-200'
               }`}
             />
-            {/* Subtle indicator dot when collapsed and item has a badge */}
-            {isCollapsed && !isMobile && item.badge && (
+            {/* Lock indicator in collapsed mode */}
+            {isCollapsed && !isMobile && isLocked && (
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-slate-900 flex items-center justify-center" />
+            )}
+            {/* Indicator dot when collapsed and item has a badge */}
+            {isCollapsed && !isMobile && !isLocked && item.badge && (
               <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-blue-500 ring-2 ring-slate-900" />
             )}
           </div>
@@ -109,7 +126,9 @@ const SidebarNavItem = memo(
           {(!isCollapsed || isMobile) && (
             <div className="flex items-center justify-between flex-1 min-w-0">
               <span className="truncate text-sm font-medium">{item.label}</span>
-              {item.badge && (
+              {isLocked ? (
+                <UpgradeBadge variant="lock" />
+              ) : item.badge ? (
                 <span
                   className={`text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0 ml-2 ${
                     item.badge.color ||
@@ -118,7 +137,7 @@ const SidebarNavItem = memo(
                 >
                   {item.badge.text}
                 </span>
-              )}
+              ) : null}
             </div>
           )}
         </Link>
@@ -129,6 +148,7 @@ const SidebarNavItem = memo(
             label={item.label}
             sectionTitle={sectionTitle}
             badge={item.badge}
+            isLocked={isLocked}
           />
         )}
       </li>
@@ -145,6 +165,7 @@ export default function Sidebar({
 }) {
   const location = useLocation();
   const { admin, user, isAdmin, hasPermission, logout } = useAuth();
+  const { canAccessRoute } = useSubscription();
   const [hoveredItem, setHoveredItem] = useState(null);
 
   // Cached Invoice count query for dynamic badge
@@ -166,9 +187,10 @@ export default function Sidebar({
     return getFilteredNavigation({
       isAdmin,
       hasPermission,
+      canAccessRoute,
       dynamicData: { invoiceCount },
     });
-  }, [isAdmin, hasPermission, invoiceCount]);
+  }, [isAdmin, hasPermission, canAccessRoute, invoiceCount]);
 
   // User identity details
   const displayName = isAdmin
@@ -286,6 +308,7 @@ export default function Sidebar({
                   onClose={isMobile ? onClose : undefined}
                   hoveredItem={hoveredItem}
                   setHoveredItem={setHoveredItem}
+                  canAccessRoute={canAccessRoute}
                 />
               ))}
             </ul>

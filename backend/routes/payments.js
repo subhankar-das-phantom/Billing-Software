@@ -11,9 +11,13 @@ const {
   deletePayment
 } = require('../controllers/paymentController');
 const { protect, requirePermission } = require('../middleware/auth');
+const { checkSubscription, checkFeatureAccess, checkWriteAccess } = require('../saas/middleware');
+const { Feature } = require('../saas/shared/features');
 
 // All routes require authentication
 router.use(protect);
+router.use(checkSubscription);
+router.use(checkFeatureAccess(Feature.PAYMENTS));
 
 // Collections route (must be before /:id to avoid param collision)
 router.get('/collections', requirePermission('payments', 'view'), getCollections);
@@ -21,12 +25,12 @@ router.get('/collections', requirePermission('payments', 'view'), getCollections
 // Payment routes
 router.route('/')
   .get(requirePermission('payments', 'view'), getPayments)
-  .post(requirePermission('payments', 'create'), createPayment);
+  .post(checkWriteAccess, requirePermission('payments', 'create'), createPayment);
 
 router.route('/:id')
   .get(requirePermission('payments', 'view'), getPayment)
-  .put(requirePermission('payments', 'edit'), updatePayment)
-  .delete(requirePermission('payments', 'delete'), deletePayment);
+  .put(checkWriteAccess, requirePermission('payments', 'edit'), updatePayment)
+  .delete(checkWriteAccess, requirePermission('payments', 'delete'), deletePayment);
 
 router.get('/customer/:customerId', requirePermission('payments', 'view'), getPaymentsByCustomer);
 router.get('/invoice/:invoiceId', requirePermission('payments', 'view'), getPaymentsByInvoice);

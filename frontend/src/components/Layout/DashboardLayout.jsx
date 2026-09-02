@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight } from 'lucide-react';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import SubscriptionBanner from '../Subscription/SubscriptionBanner';
 import CommandPalette from './CommandPalette';
 import { RouteTransition } from '../Common/Motion/PageTransition';
 import { useMotionConfig } from '../../hooks';
@@ -103,6 +104,135 @@ export default function DashboardLayout() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isDesktop, mobileDrawerOpen, tabletDrawerOpen, handleToggleDesktopCollapse, navigate]);
+
+  // Touch / Swipe gesture handling for Sidebar (open by right swipe, close by left swipe)
+  useEffect(() => {
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchStartTime = 0;
+    let isTracking = false;
+    let isVerticalScroll = false;
+
+    const handleTouchStart = (e) => {
+      // Only track single touch
+      if (!e.touches || e.touches.length !== 1) {
+        isTracking = false;
+        return;
+      }
+
+      // Ignore touches starting on interactive elements (inputs, textareas, selects, sliders)
+      const target = e.target;
+      if (
+        target?.closest &&
+        target.closest('input, textarea, select, [contenteditable="true"], [role="slider"], .no-swipe')
+      ) {
+        isTracking = false;
+        return;
+      }
+
+      const touch = e.touches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+      touchStartTime = Date.now();
+      isTracking = true;
+      isVerticalScroll = false;
+    };
+
+    const handleTouchMove = (e) => {
+      if (!isTracking || isVerticalScroll || !e.touches || e.touches.length === 0) return;
+
+      const touch = e.touches[0];
+      const deltaX = touch.clientX - touchStartX;
+      const deltaY = touch.clientY - touchStartY;
+      const absX = Math.abs(deltaX);
+      const absY = Math.abs(deltaY);
+
+      // If user has moved noticeably vertical before horizontal, it's a page scroll
+      if (absY > 35 && absY > absX * 1.5) {
+        isVerticalScroll = true;
+      }
+    };
+
+    const handleTouchEnd = (e) => {
+      if (!isTracking || isVerticalScroll) {
+        isTracking = false;
+        return;
+      }
+      isTracking = false;
+
+      if (!e.changedTouches || e.changedTouches.length === 0) return;
+
+      const touch = e.changedTouches[0];
+      const deltaX = touch.clientX - touchStartX;
+      const deltaY = touch.clientY - touchStartY;
+      const elapsedTime = Date.now() - touchStartTime;
+
+      const absX = Math.abs(deltaX);
+      const absY = Math.abs(deltaY);
+
+      // Must be primarily horizontal gesture and within 1 second
+      if (absX < 35 || absX < absY * 1.2 || elapsedTime > 1000) {
+        return;
+      }
+
+      const isDrawerCurrentlyOpen = mobileDrawerOpen || tabletDrawerOpen;
+
+      // ─── Case 1: Drawer is OPEN -> Left swipe closes it ───
+      if (isDrawerCurrentlyOpen) {
+        if (deltaX < -35) {
+          setMobileDrawerOpen(false);
+          setTabletDrawerOpen(false);
+        }
+        return;
+      }
+
+      // ─── Case 2: Drawer / Sidebar is CLOSED -> Right swipe opens it ───
+      if (deltaX > 35) {
+        // Expanded touch zone: allow swipe right starting anywhere across the left half of the screen or header
+        const isFromLeftZone = touchStartX <= Math.max(180, window.innerWidth * 0.50);
+        const isFromHeader = touchStartY <= 80;
+
+        if (isFromLeftZone || isFromHeader) {
+          if (isDesktop) {
+            // On desktop touch screen: if collapsed, right swipe expands
+            if (sidebarCollapsed) {
+              setSidebarCollapsed(false);
+              try {
+                localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, JSON.stringify(false));
+              } catch {}
+            }
+          } else if (isTablet) {
+            setTabletDrawerOpen(true);
+          } else {
+            setMobileDrawerOpen(true);
+          }
+        }
+      } else if (isDesktop && !sidebarCollapsed && deltaX < -50 && touchStartX <= 280) {
+        // On desktop touch screen: left swipe on expanded sidebar collapses it
+        setSidebarCollapsed(true);
+        try {
+          localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, JSON.stringify(true));
+        } catch {}
+      }
+    };
+
+    const handleTouchCancel = () => {
+      isTracking = false;
+      isVerticalScroll = false;
+    };
+
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: true });
+    window.addEventListener('touchend', handleTouchEnd, { passive: true });
+    window.addEventListener('touchcancel', handleTouchCancel, { passive: true });
+
+    return () => {
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+      window.removeEventListener('touchcancel', handleTouchCancel);
+    };
+  }, [mobileDrawerOpen, tabletDrawerOpen, isDesktop, isTablet, sidebarCollapsed]);
 
   // Close overlays on route change
   useEffect(() => {
@@ -215,6 +345,7 @@ export default function DashboardLayout() {
           className="flex-1 p-4 sm:p-6 lg:p-8 xl:p-10 overflow-y-auto overflow-x-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 min-w-0"
         >
           <div className="max-w-[1600px] mx-auto w-full">
+            <SubscriptionBanner />
             <RouteTransition
               location={location}
               variant="fadeUp"

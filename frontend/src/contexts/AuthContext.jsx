@@ -477,7 +477,7 @@ export const AdminRoute = ({ children }) => {
   const { user, userRole, loading } = useAuth();
 
   if (loading) {
-    return null;
+    return <AppShellSkeleton />;
   }
 
   if (!user || userRole !== 'admin') {
