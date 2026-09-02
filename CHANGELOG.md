@@ -6,6 +6,39 @@ For full release notes with implementation details, see [GitHub Releases](https:
 
 ---
 
+## [v2.1.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.1.0) — 2026-09-02 — Collections Analytics & Standalone Payment Recording
+
+### 💰 Collections Analytics & Standalone Payment Recording
+Version 2.1.0 delivers powerful collection-method visibility, fixes the monthly collections trend aggregation, and streamlines the payment recording workflow with a standalone customer search modal and direct quick action routing.
+
+---
+
+### 📈 Monthly Sales & Collections Trend Fix
+- **Parallel Collections Aggregation** — Fixed `SalesAnalyticsService.getMonthlySales` to aggregate `Payment` records in parallel with `Invoice` revenue, grouped by month using `Asia/Kolkata` timezone semantics.
+- **Accurate Monthly Cash Flow** — Guarantees all 12 monthly data points contain numeric `revenue` and `collections`, defaulting to `0` for months without payment receipts. The green Collections area in the Dashboard "Sales & Collections Trend" chart now renders real collected cash volumes.
+
+---
+
+### 💳 Standalone Record Payment Modal
+- **Decoupled Customer Selection** — Extended `RecordPaymentModal` to function seamlessly without requiring a pre-selected customer prop, while maintaining 100% backward compatibility for invoice and customer profile pages.
+- **Debounced Customer Search** — Instant, real-time client search across customer name, phone number, and GSTIN with balance indicators, loading feedback, and empty-state messaging.
+- **Automatic Dues Fetching** — Automatically queries and loads unpaid invoices (`customerService.getCustomerInvoices`), opening balances (`manualEntryService.getUnpaidOpeningBalances`), and credit notes (`creditNoteService.getCreditNotesByCustomer`) upon customer selection.
+- **Integrated FIFO & Single Allocations** — Feeds seamlessly into the existing single-document payment selection or automated chronological FIFO allocation queue.
+- **Change Customer Action** — Allows switching between clients directly inside the modal without closing and reopening.
+
+---
+
+### 📊 Collections Page Visual Analytics & Quick Actions
+- **Header Action Button** — Added a prominent `+ Record Payment` action button in the Collections page header.
+- **Dashboard Quick Action Linkage** — Updated Dashboard Quick Actions to route to `/collections?action=record`, automatically launching `RecordPaymentModal` and safely consuming the query parameter to prevent reopening loops.
+- **Visual Payment Method Share Bar** — Multi-segmented progress bar visually displaying proportional collection volumes across payment channels (Cash, UPI, Bank Transfer, Cheque, NEFT/RTGS).
+- **Payment Method Analytics Cards** — Detailed channel breakdown cards with total collected amounts, transaction counts, and share percentages.
+- **Collection KPIs** — Added **Average Payment Size** and **Top Payment Method** metric cards.
+- **Actionable Empty States** — Replaced passive informational notices with direct `Record Payment` call-to-action buttons in both the analytics and payment details empty states.
+- **Instant Cache Synchronization** — Automatically invalidates collections cache (`invalidateCachePattern('collections')`) and triggers SWR revalidation upon payment recording, immediately refreshing metrics, charts, and tables without browser reloads.
+
+---
+
 ## [v2.0.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.0.0) — 2026-09-02 — Complete Inventory & Purchasing Evolution
 
 ### 🚀 Major Product Milestone
