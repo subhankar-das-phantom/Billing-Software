@@ -1112,7 +1112,12 @@ export default function InvoiceCreatePage() {
     });
   };
 
-  const scheduleBatchPreview = (product, requestedQuantity, sourceItem) => {
+  const scheduleBatchPreview = (
+    product,
+    requestedQuantity,
+    sourceItem,
+    immediate = false,
+  ) => {
     const rawId = product?._id || product?.id || product;
     const productId =
       typeof rawId === "object"
@@ -1184,12 +1189,17 @@ export default function InvoiceCreatePage() {
           const usedOldRowIds = new Set();
 
           const mergedRows = rows.map((newRow) => {
-            const oldRow = oldItems.find(
-              (old) =>
-                old._batchId === newRow._batchId &&
-                old._rowId &&
-                !usedOldRowIds.has(old._rowId),
-            );
+            const oldRow =
+              oldItems.find(
+                (old) =>
+                  old._batchId === newRow._batchId &&
+                  old._rowId &&
+                  !usedOldRowIds.has(old._rowId),
+              ) ||
+              (oldItems.length === 1 && !usedOldRowIds.has(oldItems[0]._rowId)
+                ? oldItems[0]
+                : null);
+
             if (oldRow) {
               newRow._rowId = oldRow._rowId;
               usedOldRowIds.add(oldRow._rowId);
@@ -1231,7 +1241,7 @@ export default function InvoiceCreatePage() {
           batchPreviewTimersRef.current.delete(productId);
         }
       }
-    }, 150);
+    }, immediate ? 0 : 150);
     batchPreviewTimersRef.current.set(productId, timer);
   };
 
@@ -1269,7 +1279,7 @@ export default function InvoiceCreatePage() {
     };
   };
 
-  const handleProductSelect = async (product) => {
+  const handleProductSelect = (product) => {
     const rawId = product?._id || product?.id || product;
     const productIdString =
       typeof rawId === "object"
@@ -1295,45 +1305,17 @@ export default function InvoiceCreatePage() {
       return;
     }
 
-    // 3. AUTO + Batch Tracking: directly resolve FIFO allocation before rendering
-    if (enableBatchTracking && allocationMode === "AUTO") {
-      const baseItem = createBaseInvoiceItem(product);
-      try {
-        const rows = await simulateBatchAllocation(product, 1, baseItem);
-        if (rows && rows.length > 0) {
-          setInvoiceItems((prev) => {
-            const alreadyExistsIndex = prev.findIndex(
-              (item) =>
-                String(item.product?._id || item.product?.id || item.product) ===
-                productIdString,
-            );
-            if (alreadyExistsIndex !== -1) {
-              return prev;
-            }
-            return [...rows, ...prev];
-          });
-          return;
-        }
-      } catch (err) {
-        console.error("Failed to allocate batch via FIFO:", err);
-      }
-
-      // Fallback if no batches found or simulation failed
-      setInvoiceItems((prev) => {
-        const alreadyExistsIndex = prev.findIndex(
-          (item) =>
-            String(item.product?._id || item.product?.id || item.product) ===
-            productIdString,
-        );
-        if (alreadyExistsIndex !== -1) return prev;
-        return [baseItem, ...prev];
-      });
-      return;
-    }
-
-    // 4. Batch tracking disabled or MANUAL mode: insert baseItem directly
+    // 3. Optimistically insert base item IMMEDIATELY (0ms UI latency!)
     const baseItem = createBaseInvoiceItem(product);
+    if (enableBatchTracking && allocationMode === "AUTO") {
+      baseItem._batchPreviewPending = true;
+    }
     setInvoiceItems((prev) => [baseItem, ...prev]);
+
+    // 4. If AUTO batch tracking is active, resolve FIFO allocation immediately in background
+    if (enableBatchTracking && allocationMode === "AUTO") {
+      scheduleBatchPreview(product, 1, baseItem, true);
+    }
   };
 
   const updateItemQuantity = (index, field, value) => {
@@ -2211,6 +2193,15 @@ export default function InvoiceCreatePage() {
                     return (
                       <motion.button
                         key={product._id}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          handleProductSelect(product);
+                        }}
+                        onMouseEnter={() => {
+                          if (enableBatchTracking && allocationMode === "AUTO") {
+                            productService.getBatches(product._id);
+                          }
+                        }}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleProductSelect(product);
