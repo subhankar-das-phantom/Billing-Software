@@ -6,6 +6,32 @@ For full release notes with implementation details, see [GitHub Releases](https:
 
 ---
 
+## [v2.1.1](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.1.1) — 2026-09-02 — RBAC Inventory Ledger Enforcement, Collections Permission & Live Customer Outstanding
+
+### 🛡️ RBAC Permissions & Financial Data Accuracy
+Version 2.1.1 delivers crucial access control fixes for the inventory ledger, introduces independent employee permission controls for the collections module, ensures live financial dues are calculated in customer search, and fixes real-time payment status updates on the dashboard.
+
+---
+
+### 🔒 Granular RBAC: Inventory Ledger & Collections Permissions
+- **Enforced Inventory Ledger Permission Decline** — Fixed access control for `/inventory/ledger` where declining `ledger` permission in the Employee Permissions Editor previously allowed access because routes and navigation checked general `inventory`. Updated backend `stockMovements.ts`, frontend route guards in `App.jsx`, and sidebar navigation in `navigationConfig.js` to strictly enforce `ledger` view permission.
+- **Dedicated Collections Permission** — Added `collections: ['view']` to `PERMISSIONS_REGISTRY` and `ROLE_PRESETS`. Organization Admins can now independently grant or decline Collections access in `EmployeePermissionsEditor.jsx`, with dedicated route guards in `App.jsx` and endpoint protection in `routes/payments.js`.
+
+---
+
+### 💳 Live Customer Outstanding in Search & Payment Recording
+- **Accurate Dues Aggregation in Customer Search** — Updated `searchCustomers` in `customerController.js` to run parallel aggregations (`Invoice.aggregate`, `ManualEntry.aggregate`, `CreditNote.aggregate`). Real-time calculated dues (including credit note return deductions) are now accurately returned in search results.
+- **Live Outstanding Display in Modal** — Fixed `RecordPaymentModal.jsx` to display `cust.calculatedOutstanding ?? cust.outstandingBalance` instead of nonexistent fields, showing accurate live dues (e.g. ₹2,522.08) in both the search list and active customer card.
+
+---
+
+### ⚡ Real-Time Dashboard Invoices Payment Status
+- **Included Payment Fields in Dashboard Stats** — Updated `Invoice.find` in `dashboardController.js` to include `paymentStatus`, `paidAmount`, and `paymentType` in the select projection.
+- **Dynamic Status Badging** — `DashboardActivityHub.jsx` now correctly renders Paid (emerald), Partial (amber), and Unpaid (slate) badges in real-time, accurately decrementing Pending Dues counts when bills are settled.
+- **App-Wide Cache Invalidation** — Recording payments from any modal now broadcasts cache invalidations across `'dashboard'`, `'collections'`, `'invoices'`, `'customer'`, and `'credit'`.
+
+---
+
 ## [v2.1.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.1.0) — 2026-09-02 — Collections Analytics & Standalone Payment Recording
 
 ### 💰 Collections Analytics & Standalone Payment Recording
