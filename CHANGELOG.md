@@ -6,7 +6,87 @@ For full release notes with implementation details, see [GitHub Releases](https:
 
 ---
 
+## [v2.0.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.0.0) — 2026-09-02 — Complete Inventory & Purchasing Evolution
+
+### 🚀 Major Product Milestone
+Version 2.0.0 marks a transformative evolution of Bharat Enterprise Billing System, expanding it from an invoice and billing utility into a comprehensive, multi-tenant business operations platform. This release introduces complete supplier procurement workflows, inward purchase entries with atomic inventory synchronization, an immutable inventory movement ledger, multi-tiered batch and FIFO stock allocation, operational intelligence reporting, and extensive performance and UX optimizations across desktop and mobile.
+
+---
+
+### 🧾 Purchase Management & Supplier Operations
+- **Supplier Master Management** — Full-featured vendor directory tracking trade names, contact persons, phone numbers, email addresses, billing addresses, GSTIN numbers, state codes, payment terms, opening balances, and vendor notes.
+- **Inward Purchase Entry** — Streamlined recording of incoming inventory bills with supplier reference numbers, invoice dates, purchase rates, selling rates, MRP, batch lots, manufacturing/expiry dates, and multi-slab GST taxes and discounts.
+- **Purchase Lifecycle (`COMPLETED → CANCELLED`)** — Clear, auditable purchase workflow. Submitting a purchase immediately marks it as **COMPLETED**, atomically incrementing warehouse inventory and recording lot batches. Completed purchases can be **CANCELLED** by authorized staff, atomically reversing previously applied stock additions to prevent phantom warehouse inventory.
+- **Session Form Recovery** — Integrated client-side form autosave in `sessionStorage` to safeguard unsaved invoice drafts and prevent data loss during active data entry.
+- **Purchase History & Management** — Searchable, filterable purchase list with date-range filters, supplier filters, status indicators, and detailed purchase inspection drawers.
+
+---
+
+### 📦 Advanced Inventory & Batch/FIFO Architecture
+- **Dual Inventory Tracking Modes** — Seamless support for both standard quantity-based inventory and batch-tracked inventory configured at the individual product level.
+- **Automated FIFO Allocation** — Intelligent First-In-First-Out (FIFO) algorithm automatically allocates oldest received/unexpired batch lots during sales invoicing, minimizing waste and product expiration risk.
+- **Manual Batch Allocation & Modal Controls** — Flexible modal interface empowering operators to override automatic FIFO allocation, pick specific lot numbers, split quantities across multiple batches, and update prices on the fly.
+- **Lazy/JIT Batch Migration** — Zero-downtime lazy migration strategy ensuring existing un-batched product stock effortlessly transitions into batch tracking without requiring database migrations.
+- **Universal Availability** — Batch tracking and FIFO allocation tools are fully accessible across all subscription tiers (Starter, Business, and Professional).
+
+---
+
+### 📜 Immutable Inventory Ledger & Stock Movement Audit Trail
+- **StockMovement Ledger** — Centralized, immutable ledger tracking all stock mutations across the system: inward purchases (`PURCHASE`), sales deductions (`SALE`), credit note customer returns (`RETURN`), and administrative inventory adjustments (`ADJUSTMENT`).
+- **Granular Movement Traceability** — Tracks movement quantities, pre- and post-transaction balance snapshots, batch lot numbers, user attribution, and linked document references.
+- **Operational Inflow/Outflow Visibility** — Provides operators with an auditable trail of why and when stock changed, eliminating mysterious inventory variances.
+
+---
+
+### 📊 Purchase & Operational Flow Reports
+- **Supplier-Wise Purchase Analysis** — Aggregated procurement summaries breaking down total spend, tax paid, and invoiced volumes across suppliers.
+- **Product-Wise Inward Tracking** — Detailed reporting on product procurement volumes, purchase rates, and supplier sources over customizable date ranges.
+- **Inventory Flow & Movement Reports** — Clear operational visibility into stock additions, sales velocity, returns, and net stock changes.
+- **Operational Report Distinction** — Explicit disclaimers clarifying that reports are operational visibility tools rather than statutory financial accounting, COGS certification, or tax advice.
+
+---
+
+### 🧠 Professional Inventory Intelligence
+- **Batch Expiry Horizon** — Real-time tracking of upcoming batch expiries (e.g. 30, 60, 90-day horizons) to prevent dead inventory and spoilage.
+- **Product Velocity & Risk Indicators** — Operational signals highlighting fast-moving vs. slow-moving stock lines to inform reordering decisions.
+- **Supplier Procurement Patterns** — Insights into vendor order frequencies and pricing trends over time.
+
+---
+
+### 👥 Team & Access Control (Tenant-Controlled RBAC)
+- **Granular Module Permissions** — Organization Admins can grant or restrict employee capabilities across discrete modules (Customers, Products, Invoices, Payments, Purchases, Suppliers, and Reports).
+- **Action-Level Security** — Granular permissions for viewing, creating, editing, deleting, or cancelling entries strictly enforced via backend middleware.
+- **Employee Activity & Audit Logs** — Operational action logging linking transactions and updates to specific team member accounts for administrative accountability.
+
+---
+
+### 💳 SaaS Subscription Tier Expansion
+- **Starter (₹299/mo)** — Essential billing and invoicing, basic inventory tracking, Batch & FIFO allocation, and single employee seat.
+- **Business (₹499/mo)** — Everything in Starter plus Payments, Collections, Credit Notes, Customer Outstanding Ledger, Supplier Management, Purchase Entry, Purchase Reports, and Inventory Movement Ledger.
+- **Professional (₹699/mo)** — Everything in Business plus Employee Management, Role-Based Access Control (RBAC), Employee Analytics, Activity Logs, GST Reports, Advanced Reporting, and Professional Inventory Intelligence.
+- **Non-Destructive Plan Transitions** — Changing or downgrading subscription plans dynamically adjusts feature access while permanently preserving all historical business records, invoices, purchases, and ledger entries.
+
+---
+
+### ⚡ Performance, UX & Desktop Optimization
+- **Independent Performance Detection Hook (`usePerformanceMode`)** — Lightweight, synchronous hardware-aware detection hook that evaluates logical CPU cores and device memory without running heavy benchmarks. Low-end desktop PCs (such as 2nd/3rd gen Intel Core i3/i5 systems with 4GB RAM) automatically disable expensive 3D perspective mousemove transforms and GPU fragment blur filters to guarantee silky 60fps operation.
+- **Preserved Mobile Optimization Layer** — `useDeviceType` remains completely independent and dedicated to responsive layout classification and mobile animation suppression.
+- **Zero-Lag Batch Allocation Modal** — Added 30-second TTL request caching to `productService.getBatches`, reducing batch modal opening delay to 0ms for previously loaded products and rendering an immediate loading skeleton.
+- **Stable Invoice Row Rendering** — Transitioned invoice item identity to unique, immutable `_rowId` values, and refactored `handleProductSelect` to await batch allocation asynchronously before state commit, eliminating transient duplicate row cards and exit animation glitches.
+- **Mobile Sidebar Swipe Gestures** — Added responsive, passive touch listeners allowing operators to swipe right from the screen edge to open the navigation drawer and swipe left to close it.
+- **Hardened ToastProvider Architecture** — Lifted `<ToastProvider>` to top-level app mounting and introduced safe fallback handlers to prevent unhandled exceptions during rapid page transitions or HMR intervals.
+
+---
+
+### 🛡️ System Resilience & Architecture
+- **Atomic Stock Operations** — Purchase completion and cancellation execute within atomic database updates, preventing race conditions and inventory corruption.
+- **Strict Multi-Tenant Isolation** — Multi-tenant partitioning enforced across all new Purchase, Supplier, Batch, and Movement collections at both query and indexing layers.
+- **Optimistic UI with Reversion** — Robust user experience patterns across preferences and table views with automatic reversion on failure.
+
+---
+
 ## [v1.26.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v1.26.0) — Employee Enhancements & Validation Fixes
+
 
 ### Added
 - **Employee Date of Birth (DOB)** — Added a dedicated Date of Birth field to the Employee profile, seamlessly integrated into the backend schema, the employee creation/edit modal, and the employee details page.

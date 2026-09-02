@@ -171,7 +171,7 @@ export default function DashboardLayout() {
       const absY = Math.abs(deltaY);
 
       // Must be primarily horizontal gesture and within 1 second
-      if (absX < 45 || absX < absY * 1.3 || elapsedTime > 1000) {
+      if (absX < 35 || absX < absY * 1.2 || elapsedTime > 1000) {
         return;
       }
 
@@ -179,7 +179,7 @@ export default function DashboardLayout() {
 
       // ─── Case 1: Drawer is OPEN -> Left swipe closes it ───
       if (isDrawerCurrentlyOpen) {
-        if (deltaX < -40) {
+        if (deltaX < -35) {
           setMobileDrawerOpen(false);
           setTabletDrawerOpen(false);
         }
@@ -187,12 +187,12 @@ export default function DashboardLayout() {
       }
 
       // ─── Case 2: Drawer / Sidebar is CLOSED -> Right swipe opens it ───
-      if (deltaX > 40) {
-        // Swipe must start from the left edge zone or the top Header bar
-        const isFromLeftEdge = touchStartX <= Math.max(90, window.innerWidth * 0.22);
-        const isFromHeader = touchStartY <= 70;
+      if (deltaX > 35) {
+        // Expanded touch zone: allow swipe right starting anywhere across the left half of the screen or header
+        const isFromLeftZone = touchStartX <= Math.max(180, window.innerWidth * 0.50);
+        const isFromHeader = touchStartY <= 80;
 
-        if (isFromLeftEdge || isFromHeader) {
+        if (isFromLeftZone || isFromHeader) {
           if (isDesktop) {
             // On desktop touch screen: if collapsed, right swipe expands
             if (sidebarCollapsed) {

@@ -4,21 +4,39 @@ import {
   ArrowLeft, Shield, FileText, Users, Eye, Lock, Scale,
   UserCheck, ShieldCheck, HardDrive, Trash2, Bell, Mail,
   Heart, Gavel, Globe, CreditCard, Laptop, BookOpen,
-  AlertTriangle, Rocket, Ban, Server, ScrollText, Gift
+  AlertTriangle, Rocket, Ban, Server, ScrollText, Gift,
+  Package, Truck, ShoppingCart, Layers, BarChart3
 } from 'lucide-react';
 
 const sections = [
   {
     id: 'tc-introduction',
     num: '1',
-    title: 'Introduction',
+    title: 'Introduction & Service Description',
     icon: ScrollText,
     color: 'from-blue-500 to-accent2-500',
     content: (
       <>
-        <p>Welcome to <strong>Bharat Enterprise Billing System</strong> ("Platform", "Service", "we", "us", or "our"). These Terms & Conditions ("Terms") govern your access to and use of our cloud-based billing, invoicing, and inventory management platform.</p>
-        <p>By creating an account, accessing, or using the Platform, you agree to be bound by these Terms. If you do not agree, please do not use the Platform.</p>
-        <p>We recommend reading these Terms alongside our <Link to="/privacy-policy" className="text-blue-400 hover:text-blue-300 transition-colors">Privacy Policy</Link>, which explains how we handle your data.</p>
+        <p>Welcome to <strong>Bharat Enterprise Billing System</strong> ("Platform", "Service", "we", "us", or "our"). These Terms & Conditions ("Terms") govern your access to and use of our cloud-based business management, billing, invoicing, inventory, purchasing, and operational analytics platform.</p>
+        <p>The Platform provides software tools to facilitate business administration, record-keeping, and operational visibility, including:</p>
+        <ul>
+          <li><strong>Customer & Product Management</strong> — Customer profiles, outstanding balances, product catalogs, and pricing rules.</li>
+          <li><strong>Invoicing & Billing</strong> — Generation of tax invoices, proforma bills, credit notes, and delivery slips.</li>
+          <li><strong>Payments & Collections</strong> — Customer receipt recording, payment allocations, credit adjustments, and outstanding ledger tracking.</li>
+          <li><strong>Supplier Management</strong> — Supplier vendor master records, payment terms, and vendor contact profiles.</li>
+          <li><strong>Purchase Entry & Stock Inward</strong> — Recording inward supplier invoices, lots, rates, taxes, and supplier invoice details.</li>
+          <li><strong>Inventory Management & Modes</strong> — Warehouse stock tracking supporting both standard unit-based inventory tracking and batch-based inventory tracking depending on product configuration.</li>
+          <li><strong>Batch Tracking & FIFO Allocation</strong> — Product lot numbering, expiry horizon tracking, automated First-In-First-Out (FIFO) allocation algorithms, and manual batch allocation controls.</li>
+          <li><strong>Inventory Movement Ledger</strong> — Comprehensive stock movement transaction audit history tracking purchases, sales, returns, and manual adjustments.</li>
+          <li><strong>Operational Reporting & Analytics</strong> — Inward/outward movement reports, purchase summaries, supplier-wise and product-wise analysis, and inventory intelligence indicators.</li>
+          <li><strong>Employee Management & RBAC</strong> — Team member provisioning with tenant-controlled, role-based granular permissions.</li>
+          <li><strong>GST-Related Reporting Tools</strong> — Generation of tax summaries and reports based strictly on user-entered transaction data.</li>
+          <li><strong>Subscription-Based Feature Access</strong> — Multi-tiered SaaS access plans tailored to evolving business sizes.</li>
+        </ul>
+        <div className="pp-callout">
+          <strong>Important Notice:</strong> Bharat Enterprise Billing System provides business software tools. We do <strong>not</strong> provide certified accounting services, professional financial advice, statutory auditing, or legal tax filing services.
+        </div>
+        <p>We recommend reading these Terms alongside our <Link to="/privacy-policy" className="text-blue-400 hover:text-blue-300 transition-colors">Privacy Policy</Link>, which explains how we process and protect your business data.</p>
       </>
     )
   },
@@ -31,10 +49,10 @@ const sections = [
     content: (
       <>
         <ul>
-          <li>By registering or using the Platform, you confirm that you have read, understood, and agree to these Terms.</li>
-          <li>If you are using the Platform on behalf of a business, you represent that you have the authority to bind that entity.</li>
-          <li>Continued use after modifications constitutes acceptance of updated Terms.</li>
-          <li>If you do not agree to any part, you must stop using the Platform and request account termination.</li>
+          <li>By registering, accessing, or using the Platform, you confirm that you have read, understood, and unconditionally agree to these Terms.</li>
+          <li>If you are using the Platform on behalf of a company, partnership, or enterprise, you represent and warrant that you possess the legal authority to bind that business entity to these Terms.</li>
+          <li>Continued access to or use of the Platform following any modifications or version releases constitutes acceptance of the updated Terms.</li>
+          <li>If you do not agree with any provision of these Terms, you must immediately discontinue use of the Platform and request account closure.</li>
         </ul>
       </>
     )
@@ -48,10 +66,10 @@ const sections = [
     content: (
       <>
         <ul>
-          <li>The Platform is designed for <strong>businesses and professionals</strong>, not personal use.</li>
-          <li>You must be at least <strong>18 years old</strong> to create an account.</li>
-          <li>The Platform currently targets <strong>Indian businesses</strong>, including pharmaceutical distributors, retailers, and SMEs.</li>
-          <li>You confirm you are operating a lawful business compliant with applicable laws.</li>
+          <li>The Platform is designed strictly for <strong>commercial, professional, and business use</strong>, not personal or consumer use.</li>
+          <li>You must be at least <strong>18 years of age</strong> and legally competent to enter into binding agreements.</li>
+          <li>The Platform is tailored primarily for <strong>Indian businesses</strong>, including pharmaceutical distributors, wholesalers, retail enterprises, and small-to-medium businesses (SMBs).</li>
+          <li>You represent that your business operates in full compliance with all applicable local, state, and national laws and regulations.</li>
         </ul>
       </>
     )
@@ -59,17 +77,17 @@ const sections = [
   {
     id: 'tc-account',
     num: '4',
-    title: 'Account Responsibilities',
+    title: 'Account Responsibilities & Security',
     icon: UserCheck,
     color: 'from-amber-500 to-orange-500',
     content: (
       <>
         <ul>
-          <li><strong>Account Security</strong> — Keep your login credentials confidential and do not share them.</li>
-          <li><strong>Accurate Information</strong> — Provide accurate, current, and complete information during registration.</li>
-          <li><strong>Unauthorized Access</strong> — Notify us immediately of any suspected unauthorized use.</li>
-          <li><strong>Single Admin Ownership</strong> — Each tenant is owned by one Admin, responsible for all tenant activity.</li>
-          <li><strong>No Account Sharing</strong> — Do not share, sell, or transfer your account without our consent.</li>
+          <li><strong>Credential Confidentiality</strong> — You are responsible for safeguarding your login credentials and ensuring they are not shared with unauthorized individuals.</li>
+          <li><strong>Accurate Registration</strong> — You must provide accurate, complete, and current business and contact information during signup and keep it updated.</li>
+          <li><strong>Notification of Breach</strong> — You must notify us immediately at our official support address if you suspect any unauthorized access or compromise of your account.</li>
+          <li><strong>Single Admin Ownership</strong> — Each tenant is registered to and owned by one primary Admin account holder, who assumes legal responsibility for all activity within that tenant.</li>
+          <li><strong>No Reselling or Transfers</strong> — You may not sublicense, sell, rent, or transfer your account or tenant access to any third party without our prior written consent.</li>
         </ul>
       </>
     )
@@ -77,17 +95,17 @@ const sections = [
   {
     id: 'tc-multi-tenant',
     num: '5',
-    title: 'Multi-Tenant Access Rules',
+    title: 'Multi-Tenant Architecture & Data Isolation',
     icon: Lock,
     color: 'from-cyan-500 to-blue-500',
     content: (
       <>
-        <p>The Platform operates on a <strong>multi-tenant SaaS architecture</strong> with strict data isolation.</p>
+        <p>The Platform operates on a secure <strong>multi-tenant cloud architecture</strong> where multiple organizations utilize shared application infrastructure while maintaining logical separation of data.</p>
         <ul>
-          <li><strong>Tenant Isolation</strong> — Your data is logically separated. You cannot access other tenants' data.</li>
-          <li><strong>Admin Ownership</strong> — All business data belongs to the tenant, not individual users.</li>
-          <li><strong>No Cross-Tenant Interference</strong> — Attempting to access other tenants' data violates these Terms.</li>
-          <li><strong>Breach Consequences</strong> — Circumventing tenant isolation may result in immediate termination.</li>
+          <li><strong>Logical Isolation</strong> — All database records, catalog items, invoices, purchases, and settings are strictly partitioned by tenant. You cannot view, query, or modify another organization's data.</li>
+          <li><strong>Admin Control</strong> — All business data belongs to the organization (tenant Admin), not individual employee or user accounts.</li>
+          <li><strong>Prohibition of Cross-Tenant Intrusion</strong> — Any attempt to exploit, probe, scan, or breach multi-tenant barriers constitutes a material violation of these Terms.</li>
+          <li><strong>Remedies</strong> — Circumventing tenant isolation will result in immediate termination of service and may lead to legal action under applicable cybersecurity laws.</li>
         </ul>
       </>
     )
@@ -95,328 +113,382 @@ const sections = [
   {
     id: 'tc-employee-access',
     num: '6',
-    title: 'Employee Access & Permissions',
+    title: 'Employee Access & Role-Based Permissions (RBAC)',
     icon: Users,
     color: 'from-rose-500 to-pink-500',
     content: (
       <>
+        <p>The Platform enables organization administrators to provision employee user accounts and configure granular access controls across different business workflows.</p>
         <ul>
-          <li><strong>Admin-Managed Access</strong> — Admins create Employee accounts with permitted access levels.</li>
-          <li><strong>Employee Responsibility</strong> — Employees operate under the Admin's responsibility.</li>
-          <li><strong>Access Revocation</strong> — Admins must revoke access for departing employees promptly.</li>
-          <li><strong>No Independent Ownership</strong> — Employees do not own tenant data; access is inherited from Admin.</li>
-          <li><strong>Activity Tracking</strong> — Employee actions may be logged for audit purposes.</li>
+          <li><strong>Admin-Managed Authorization</strong> — Business Admins configure and manage employee roles and module permissions (such as viewing, creating, editing, deleting, or cancelling entries in Customers, Products, Invoices, Payments, Purchases, and Reports).</li>
+          <li><strong>Subordinate Access</strong> — Employees operate solely under the authority and supervision of the tenant Admin. Employees have no independent ownership claim over tenant business data.</li>
+          <li><strong>Prompt Revocation</strong> — Admins are solely responsible for promptly deactivating, suspending, or revoking access for departing or re-assigned employees.</li>
+          <li><strong>Audit & Activity Logging</strong> — Employee actions within the Platform (including creation, updates, and cancellations of transactions) may be recorded in activity logs for administrative accountability, compliance, and dispute resolution.</li>
+          <li><strong>Plan Availability</strong> — The capacity to provision employee accounts and utilize advanced granular permissions varies according to your active subscription plan.</li>
         </ul>
       </>
     )
   },
   {
-    id: 'tc-billing',
+    id: 'tc-inventory-responsibility',
     num: '7',
-    title: 'Billing & Financial Responsibility',
+    title: 'Inventory Tracking & User Responsibility',
+    icon: Package,
+    color: 'from-indigo-500 to-purple-500',
+    content: (
+      <>
+        <p>The Platform provides robust inventory tracking tools supporting both <strong>standard quantity-based inventory</strong> and <strong>batch-tracked inventory</strong> depending on product configuration.</p>
+        <ul>
+          <li><strong>Data Entry Responsibility</strong> — You are solely responsible for inputting accurate product names, HSN codes, batch numbers, manufacturing dates, expiry dates, purchase prices, MRP, selling rates, and stock quantities.</li>
+          <li><strong>Workflow Calculations</strong> — All automated stock balances, lot allocations, and inventory ledger records depend strictly upon the transactions, returns, and adjustments entered by your organization.</li>
+          <li><strong>Mandatory Verification</strong> — Users are advised to periodically conduct physical stock audits and verify digital inventory records against physical warehouse stock before making significant purchasing, sales, or financial decisions.</li>
+          <li><strong>No Absolute Certification</strong> — Bharat Enterprise does not warrant that system-computed inventory balances will perfectly reflect physical warehouse conditions without regular reconciliation, shrinkage accounting, and physical verifications by the user.</li>
+        </ul>
+      </>
+    )
+  },
+  {
+    id: 'tc-suppliers-purchases',
+    num: '8',
+    title: 'Supplier Management & Purchase Entry',
+    icon: Truck,
+    color: 'from-amber-500 to-yellow-500',
+    content: (
+      <>
+        <p>The Platform offers dedicated supplier management and purchase recording tools for tracking inward inventory and vendor relationships.</p>
+        <ul>
+          <li><strong>Supplier Information</strong> — Users may store supplier profiles including trade names, contact persons, phone numbers, email addresses, billing addresses, GSTIN numbers, state codes, payment terms, opening balances, and operational notes.</li>
+          <li><strong>No Independent Verification</strong> — Bharat Enterprise does not independently verify, authenticate, or guarantee the accuracy, legal standing, or tax compliance of supplier information entered by users.</li>
+          <li><strong>Purchase Entry Recording</strong> — Users may record inward purchases by capturing supplier details, inward invoice/reference numbers, purchase dates, product line items, invoiced quantities, free promotional quantities, purchase rates, selling rates, MRP, batch lots, expiry dates, and applicable GST taxes and trade discounts.</li>
+        </ul>
+      </>
+    )
+  },
+  {
+    id: 'tc-purchase-lifecycle',
+    num: '9',
+    title: 'Purchase Lifecycle & Inventory Integration',
+    icon: ShoppingCart,
+    color: 'from-emerald-500 to-cyan-500',
+    content: (
+      <>
+        <p>Purchases recorded on the Platform operate under an explicit operational lifecycle:</p>
+        <div className="pp-callout">
+          <strong>COMPLETED &rarr; CANCELLED</strong>
+        </div>
+        <ul>
+          <li><strong>Purchase Completion</strong> — Submitting a purchase entry commits the transaction as <strong>Completed</strong>. This atomically updates product stock levels, establishes or supplements batch inventory lots, and records corresponding entries in the Inventory Ledger.</li>
+          <li><strong>Purchase Cancellation</strong> — Completed purchase records may be cancelled by authorized administrators or permitted personnel. Cancellation atomically reverses the inventory additions previously applied to current stock and batch allocations, preventing overstatement of physical inventory.</li>
+          <li><strong>Immutable Audit Records</strong> — To protect operational and financial integrity, completed and cancelled purchase transactions and their associated stock movements are permanently preserved in transaction logs and cannot be erased.</li>
+          <li><strong>In-Browser Drafts</strong> — Temporary form inputs during active purchase composition may be held in local browser session storage for convenience; such unsaved data is not committed to system records until explicitly submitted.</li>
+        </ul>
+      </>
+    )
+  },
+  {
+    id: 'tc-batch-fifo',
+    num: '10',
+    title: 'Batch Tracking & FIFO Inventory Allocation',
+    icon: Layers,
+    color: 'from-violet-500 to-indigo-500',
+    content: (
+      <>
+        <p>The Platform includes specialized features for managing batch-tracked goods, such as pharmaceuticals, consumables, and perishable merchandise.</p>
+        <ul>
+          <li><strong>First-In-First-Out (FIFO) Allocation</strong> — When billing batch-tracked items, the Platform provides automated FIFO allocation algorithms to suggest or deduct older valid stock lots first based on recorded receipt or expiry dates.</li>
+          <li><strong>Manual Batch Selection</strong> — Where preferred or required by customer request, users may manually select specific batch lots, adjust quantities across multiple batches, and override default allocations.</li>
+          <li><strong>Universal Capability</strong> — Batch tracking and FIFO allocation tools are supported across our standard billing tiers (Starter, Business, and Professional) according to individual product settings.</li>
+        </ul>
+      </>
+    )
+  },
+  {
+    id: 'tc-operational-reports',
+    num: '11',
+    title: 'Operational Reports & Business Disclaimers',
+    icon: BarChart3,
+    color: 'from-blue-500 to-teal-500',
+    content: (
+      <>
+        <p>The Platform generates a variety of operational reports, including Purchase Summaries, Supplier-wise Reports, Product-wise Purchase Breakdown, Inventory Movement Ledgers, and Professional Inventory Intelligence.</p>
+        <div className="pp-callout pp-callout-warning">
+          <strong>Operational Purpose Only:</strong> All reports, dashboards, metrics, and stock valuations provided by the Platform are intended strictly for <em>internal operational management and visibility</em>. They do <strong>not</strong> constitute certified financial statements, formal Cost of Goods Sold (COGS) audit valuations, statutory Profit & Loss (P&L) statements, or tax filings.
+        </div>
+        <ul>
+          <li><strong>User Review Required</strong> — Users must review and reconcile all operational reports before relying on them for commercial commitments, financial audits, or tax submissions.</li>
+          <li><strong>Consultation</strong> — Users must consult certified Chartered Accountants or professional financial advisors for statutory tax filings, audited financial statements, and compliance matters.</li>
+        </ul>
+      </>
+    )
+  },
+  {
+    id: 'tc-billing-financial',
+    num: '12',
+    title: 'Billing & Customer Ledger Responsibility',
     icon: CreditCard,
     color: 'from-yellow-500 to-amber-500',
     content: (
       <>
         <ul>
-          <li><strong>Data Accuracy</strong> — You are solely responsible for the accuracy of all financial data entered.</li>
-          <li><strong>No Financial Advice</strong> — The Platform is a software tool, not an accounting or tax advisor.</li>
-          <li><strong>No Payment Processing</strong> — We do not process or store credit card, debit card, UPI, or bank details.</li>
-          <li><strong>Calculation Basis</strong> — Automatic calculations are based entirely on your data and configurations.</li>
-          <li><strong>Record Keeping</strong> — Maintain independent records of critical financial data.</li>
+          <li><strong>Accuracy of Invoices</strong> — You are solely responsible for the prices, discounts, line items, customer details, and payment terms specified on invoices and credit notes.</li>
+          <li><strong>No Payment Handling</strong> — The Platform does not process, receive, or hold payments between you and your customers. Customer payment and collection entries recorded in the Platform are internal accounting records entered by you.</li>
+          <li><strong>Calculation Basis</strong> — Automated calculations (such as totals, GST amounts, discounts, and round-offs) depend strictly upon user-configured settings and transaction inputs.</li>
+          <li><strong>Independent Records</strong> — You are advised to maintain secure, independent backups of essential business, billing, and accounting records.</li>
         </ul>
       </>
     )
   },
   {
     id: 'tc-gst',
-    num: '8',
-    title: 'GST & Legal Compliance Disclaimer',
+    num: '13',
+    title: 'GST & Statutory Compliance Disclaimer',
     icon: Scale,
     color: 'from-accent2-500 to-accent-500',
     content: (
       <>
         <ul>
-          <li><strong>Your Responsibility</strong> — Ensure invoices, tax rates, HSN/SAC codes, and GSTIN comply with applicable laws.</li>
-          <li><strong>Not a Tax Advisor</strong> — We do not verify accuracy or legality of your tax configurations.</li>
-          <li><strong>Regulatory Changes</strong> — Stay updated on tax law changes and adjust accordingly.</li>
-          <li><strong>Jurisdiction</strong> — The Platform follows Indian GST conventions; verify compliance with local regulations.</li>
+          <li><strong>Tax Calculation Tools</strong> — The Platform provides GST-related reporting and calculation tools based on the tax rates, HSN/SAC codes, and state configurations selected by the user.</li>
+          <li><strong>No Compliance Guarantee</strong> — Bharat Enterprise does <strong>not</strong> guarantee statutory tax compliance, correctness of rates, or acceptance of filings by tax authorities.</li>
+          <li><strong>Your Responsibility</strong> — You are solely responsible for ensuring that all tax invoices, credit notes, e-way bill details, and tax filings strictly adhere to applicable GST legislation and regulations.</li>
+          <li><strong>Regulatory Changes</strong> — Tax laws and statutory reporting requirements evolve. You are responsible for configuring rates, rules, and classifications in accordance with current laws.</li>
         </ul>
         <div className="pp-callout pp-callout-warning">
-          <strong>Disclaimer:</strong> Consult a qualified Chartered Accountant or tax professional for all GST compliance and filing matters.
+          <strong>Disclaimer:</strong> Always consult a qualified Chartered Accountant or tax professional for statutory GST compliance and tax filing obligations.
         </div>
       </>
     )
   },
   {
     id: 'tc-data-ownership',
-    num: '9',
-    title: 'Data Ownership',
+    num: '14',
+    title: 'Data Ownership & Confidentiality',
     icon: ShieldCheck,
     color: 'from-teal-500 to-emerald-500',
     content: (
       <>
         <ul>
-          <li><strong>Your Data</strong> — All business data you enter remains your property.</li>
-          <li><strong>Tenant Data</strong> — Data belongs to the tenant (Admin), not individual employee accounts.</li>
-          <li><strong>Limited License</strong> — You grant us a limited license to store and process your data to provide the Service.</li>
-          <li><strong>No Sale of Data</strong> — We never sell or rent your business data to third parties.</li>
-          <li><strong>Data Portability</strong> — We may provide export tools or assistance upon request.</li>
-          <li><strong>Anonymized Analytics</strong> — Anonymized aggregate data may be used to improve the Platform.</li>
+          <li><strong>Customer Ownership</strong> — All proprietary business data, customer records, supplier profiles, inventory data, purchase entries, and invoices entered into the Platform remain your exclusive property.</li>
+          <li><strong>Tenant Entity</strong> — Business data belongs to the tenant organization (Admin), not to individual employee users.</li>
+          <li><strong>Limited Processing License</strong> — You grant us a limited, worldwide, non-exclusive license to host, store, process, and back up your data solely for the purpose of operating, maintaining, and delivering the Platform.</li>
+          <li><strong>No Sale of Data</strong> — We never sell, rent, monetize, or trade your commercial or customer data to third parties.</li>
+          <li><strong>Aggregated Insights</strong> — We may generate anonymized, aggregated statistical metrics that cannot identify you or your customers to monitor system performance and platform health.</li>
         </ul>
       </>
     )
   },
   {
     id: 'tc-acceptable-use',
-    num: '10',
+    num: '15',
     title: 'Acceptable Use Policy',
     icon: Ban,
     color: 'from-red-500 to-rose-500',
     content: (
       <>
-        <p>You agree to use the Platform only for lawful business purposes. You may <strong>not</strong>:</p>
+        <p>You agree to use the Platform exclusively for legitimate, lawful business operations. You must <strong>not</strong>:</p>
         <ul>
-          <li>Use the Platform for illegal, fraudulent, or harmful activity.</li>
-          <li>Attempt to access other tenants' data or systems.</li>
-          <li>Reverse engineer, decompile, or derive source code from the Platform.</li>
-          <li>Resell, sublicense, or redistribute Platform access without consent.</li>
-          <li>Upload malicious content or disruptive code.</li>
-          <li>Use automated bots or scrapers without authorization.</li>
-          <li>Impersonate any person or entity.</li>
-          <li>Circumvent security measures or tenant isolation.</li>
+          <li>Engage in unlawful, fraudulent, deceptive, or prohibited trade practices.</li>
+          <li>Attempt to breach, probe, or bypass tenant isolation or access controls.</li>
+          <li>Reverse engineer, decompile, disassemble, or derive source code from the Platform.</li>
+          <li>Resell, white-label, sublicense, or commercially exploit Platform access without authorization.</li>
+          <li>Upload malicious payloads, viruses, scripts, or disruptive code.</li>
+          <li>Utilize automated crawlers, scrapers, or bots to extract data from the Platform.</li>
+          <li>Impersonate any person, business entity, or administrative authority.</li>
         </ul>
         <div className="pp-callout pp-callout-warning">
-          <strong>Warning:</strong> Violations may result in immediate account suspension or termination without prior notice.
+          <strong>Enforcement:</strong> Violations of our Acceptable Use Policy may result in immediate suspension or permanent termination of access without refund.
         </div>
       </>
     )
   },
   {
     id: 'tc-availability',
-    num: '11',
-    title: 'Service Availability',
+    num: '16',
+    title: 'Service Availability & Cloud Dependencies',
     icon: Laptop,
     color: 'from-blue-500 to-cyan-500',
     content: (
       <>
         <ul>
-          <li><strong>Best Effort</strong> — We strive for reliability but the Platform may experience downtime.</li>
-          <li><strong>No Guarantee</strong> — We do not guarantee uninterrupted, error-free, or always-available access.</li>
-          <li><strong>Scheduled Maintenance</strong> — Temporary outages may occur with advance notice when possible.</li>
-          <li><strong>Third-Party Dependencies</strong> — Downtime from Vercel, Render, or MongoDB Atlas is beyond our control.</li>
-          <li><strong>Force Majeure</strong> — We are not liable for disruptions from natural disasters, outages, or government actions.</li>
+          <li><strong>Best-Effort Availability</strong> — We implement modern engineering practices to deliver high reliability and performance, but we do not guarantee 100% uninterrupted or error-free service.</li>
+          <li><strong>Maintenance Windows</strong> — Periodic scheduled maintenance or infrastructure upgrades may cause brief temporary downtime, communicated in advance when practical.</li>
+          <li><strong>Cloud Infrastructure</strong> — The Platform relies on industry-standard cloud providers, including <strong>MongoDB Atlas</strong>, <strong>Vercel</strong>, and <strong>Render</strong>. We are not liable for outages resulting from third-party hosting, carrier network failures, or upstream cloud disruptions.</li>
+          <li><strong>Force Majeure</strong> — We are not responsible for service delays or failures caused by natural disasters, telecommunications outages, government actions, or events beyond our reasonable control.</li>
         </ul>
       </>
     )
   },
   {
     id: 'tc-backups',
-    num: '12',
+    num: '17',
     title: 'Backups & Disaster Recovery',
     icon: HardDrive,
     color: 'from-sky-500 to-blue-500',
     content: (
       <>
         <ul>
-          <li><strong>Automated Backups</strong> — MongoDB Atlas maintains automated backups.</li>
-          <li><strong>Disaster Recovery</strong> — Backups may restore service after data loss or failure.</li>
-          <li><strong>Backup Retention</strong> — Backups may persist temporarily after deletion, with same security protections.</li>
-          <li><strong>No Guaranteed Recovery</strong> — Reasonable efforts are made but full recovery is not guaranteed.</li>
-          <li><strong>User Responsibility</strong> — Maintain your own independent records of critical data.</li>
+          <li><strong>Automated Cloud Backups</strong> — MongoDB Atlas performs regular automated database snapshots for disaster recovery.</li>
+          <li><strong>Recovery Protocols</strong> — In the event of an infrastructure incident, backups are utilized to restore service integrity.</li>
+          <li><strong>User Archival Responsibility</strong> — While we maintain system-level disaster recovery backups, users are strongly encouraged to routinely export and maintain independent local archives of their critical invoices, ledgers, and financial records.</li>
         </ul>
       </>
     )
   },
   {
     id: 'tc-ip',
-    num: '13',
+    num: '18',
     title: 'Intellectual Property',
     icon: BookOpen,
     color: 'from-accent-500 to-accent-500',
     content: (
       <>
         <ul>
-          <li><strong>Platform Ownership</strong> — Design, code, features, branding, and documentation are our intellectual property.</li>
-          <li><strong>Limited License</strong> — You receive a limited, non-exclusive, revocable license for internal business use.</li>
-          <li><strong>Restrictions</strong> — Do not copy, modify, distribute, sell, or create derivative works without consent.</li>
-          <li><strong>Your Content</strong> — You retain ownership of your business data.</li>
-          <li><strong>Feedback</strong> — Suggestions may be used without compensation obligation.</li>
+          <li><strong>Platform Rights</strong> — All software code, algorithms, user interfaces, design elements, visual themes, documentation, and trademarks associated with Bharat Enterprise are our proprietary intellectual property.</li>
+          <li><strong>Limited License</strong> — You are granted a revocable, non-exclusive, non-transferable license to access and use the Platform during your active subscription.</li>
+          <li><strong>Restrictions</strong> — You may not duplicate, redistribute, modify, or create derivative works of any Platform software or user interface components.</li>
         </ul>
       </>
     )
   },
   {
     id: 'tc-third-party',
-    num: '14',
-    title: 'Third-Party Services',
+    num: '19',
+    title: 'Third-Party Services & Payment Gateway',
     icon: Server,
     color: 'from-emerald-500 to-green-500',
     content: (
       <>
         <ul>
-          <li>The Platform relies on <strong>MongoDB Atlas</strong>, <strong>Vercel</strong>, and <strong>Render</strong> for infrastructure.</li>
-          <li>We use <strong>Razorpay</strong> as our secure third-party payment gateway for processing subscription payments.</li>
-          <li>We are not responsible for availability or security of third-party services.</li>
-          <li>No current integration with social logins or ad networks.</li>
+          <li>The Platform utilizes <strong>MongoDB Atlas</strong> for cloud database storage, <strong>Vercel</strong> for frontend distribution, and <strong>Render</strong> for backend API hosting.</li>
+          <li>We partner with secure third-party payment gateways for subscription billing. All payment processing is subject to industry-standard payment security protocols. We do not store credit cards, debit cards, or UPI PINs.</li>
+          <li>We do not share your commercial business data with external advertising networks or social media tracking pixels.</li>
         </ul>
       </>
     )
   },
   {
     id: 'tc-liability',
-    num: '15',
+    num: '20',
     title: 'Limitation of Liability',
     icon: AlertTriangle,
     color: 'from-slate-500 to-slate-600',
     content: (
       <>
         <ul>
-          <li>The Platform is provided <strong>"as is"</strong> and <strong>"as available"</strong> without warranties.</li>
-          <li>We do not warrant uninterrupted, error-free, or completely secure operation.</li>
-          <li>We are not liable for indirect, incidental, special, or consequential damages.</li>
-          <li>We are not responsible for calculation accuracy based on user-provided data.</li>
-          <li>Total liability is limited to fees paid (if any) in the 12 months preceding the claim.</li>
-          <li>We are not liable for third-party provider outages.</li>
+          <li>The Platform is provided on an <strong>"as is"</strong> and <strong>"as available"</strong> basis without warranties of any kind, whether express or implied.</li>
+          <li>We do not warrant that the Platform will meet every unique business requirement or operate continuously without defect.</li>
+          <li>To the maximum extent permitted by law, Bharat Enterprise and its operators shall not be liable for any indirect, consequential, special, punitive, or incidental damages, including loss of business, revenue, profits, or data.</li>
+          <li>Our total cumulative liability arising out of or related to these Terms or the Platform shall not exceed the subscription fees paid by you in the <strong>twelve (12) months</strong> immediately preceding the event giving rise to the claim.</li>
         </ul>
       </>
     )
   },
   {
     id: 'tc-termination',
-    num: '16',
+    num: '21',
     title: 'Suspension & Account Termination',
     icon: Trash2,
     color: 'from-red-500 to-rose-500',
     content: (
       <>
-        <h4>Voluntary Termination</h4>
+        <h4>Voluntary Closure</h4>
         <ul>
-          <li>Request termination at any time by contacting support.</li>
-          <li>Data deletion completed within <strong>90 days</strong>, subject to legal requirements.</li>
-          <li>Export important data before requesting termination.</li>
+          <li>You may terminate your account at any time by contacting our support team.</li>
+          <li>Before requesting closure, please export all required financial, customer, and tax records.</li>
+          <li>Following closure, your data is scheduled for secure purging within <strong>90 days</strong>, subject to statutory retention obligations.</li>
         </ul>
-        <h4>Involuntary Termination</h4>
+        <h4>Involuntary Suspension</h4>
         <ul>
-          <li>We may suspend accounts that violate these Terms, pose security risks, or engage in illegal activity.</li>
-        </ul>
-        <h4>Post-Termination</h4>
-        <ul>
-          <li>All tenant data is permanently deleted.</li>
-          <li>Anonymized data may be retained for analytics.</li>
-          <li>Backups may persist temporarily before purge cycles.</li>
-        </ul>
-      </>
-    )
-  },
-  {
-    id: 'tc-modifications',
-    num: '17',
-    title: 'Modifications to the Service',
-    icon: Bell,
-    color: 'from-orange-500 to-amber-500',
-    content: (
-      <>
-        <ul>
-          <li>We may modify, update, or discontinue any part of the Platform at any time.</li>
-          <li>Significant changes will be communicated via in-app notifications or email.</li>
-          <li>Continued use after modifications constitutes acceptance.</li>
+          <li>We reserve the right to suspend or terminate accounts that breach these Terms, engage in fraudulent activities, or threaten multi-tenant system security.</li>
         </ul>
       </>
     )
   },
   {
     id: 'tc-subscription',
-    num: '18',
-    title: 'Subscription & Billing Terms',
+    num: '22',
+    title: 'Subscription Plans & Feature Availability',
     icon: Rocket,
     color: 'from-pink-500 to-rose-500',
     content: (
       <>
-        <p>The Platform operates on a <strong>Subscription SaaS model</strong> with three tiers:</p>
+        <p>The Platform operates on a <strong>Subscription SaaS model</strong> offering tiered feature access:</p>
         <div className="pp-table-wrap">
           <table>
             <thead>
-              <tr><th>Plan</th><th>Price</th><th>Highlights</th></tr>
+              <tr><th>Plan</th><th>Price</th><th>Key Capabilities</th></tr>
             </thead>
             <tbody>
-              <tr><td>Starter</td><td>₹299/mo</td><td>Up to 100 invoices, 1 employee, basic GST billing</td></tr>
-              <tr><td>Business</td><td>₹499/mo</td><td>Unlimited invoices, 3 employees, payments & collections</td></tr>
-              <tr><td>Professional</td><td>₹699/mo</td><td>Unlimited employees, analytics, GST reports, activity logs</td></tr>
+              <tr>
+                <td><strong>Starter</strong></td>
+                <td>₹299/mo</td>
+                <td>Core billing and invoicing, basic inventory tracking, Batch & FIFO allocation support, single employee seat.</td>
+              </tr>
+              <tr>
+                <td><strong>Business</strong></td>
+                <td>₹499/mo</td>
+                <td>Everything in Starter plus Payments, Collections, Credit Notes, Customer Outstanding Ledger, Supplier Management, Purchase Entry, Purchase Reports, and Inventory Movement Ledger.</td>
+              </tr>
+              <tr>
+                <td><strong>Professional</strong></td>
+                <td>₹699/mo</td>
+                <td>Everything in Business plus Employee Management, Role-Based Access Control (RBAC), Employee Analytics, Activity Logs, GST Reports, Advanced Reporting, and Professional Inventory Intelligence.</td>
+              </tr>
             </tbody>
           </table>
         </div>
         <ul>
-          <li><strong>14-Day Free Trial</strong> — New accounts receive a 14-day free trial on the Professional plan with full feature access. No credit card required.</li>
-          <li><strong>Billing Cycles</strong> — Subscriptions are billed in advance: 1 month, 3 months (5% off), 6 months (10% off), or 1 year (20% off).</li>
-          <li><strong>Proration</strong> — When switching plans, your remaining balance is prorated and converted into days on the new plan based on the price difference.
-            <br/><span className="text-sm text-slate-400 mt-2 block border-l-2 border-blue-500 pl-3">
-              <em>Example:</em> Upgrading from Starter (₹299/mo) to Professional (₹699/mo) with 30 days remaining:<br/>
-              • 30 days × (299 / 699) = ~12.8 converted days.<br/>
-              • You receive the 30 days of Professional you purchased, plus the converted 12.8 days = 42.8 days total.
-            </span>
-          </li>
-          <li><strong>Grace Period</strong> — After subscription expiry, a 7-day grace period allows continued access. After the grace period, your account enters read-only mode until renewed.</li>
-          <li><strong>No Refunds</strong> — All subscription payments are final and non-refundable, except where required by law.</li>
-          <li><strong>Payment Processing</strong> — Subscriptions are securely processed via Razorpay. We do not store your payment credentials.</li>
+          <li><strong>14-Day Free Trial</strong> — New registrations receive a complimentary 14-day trial of the Professional plan. No credit card is required.</li>
+          <li><strong>Billing Cycles</strong> — Subscriptions are billed in advance: 1 month, 3 months (5% discount), 6 months (10% discount), or 12 months (20% discount).</li>
+          <li><strong>Proration on Upgrades</strong> — Upgrading plans prorates remaining credit into active days on the new plan based on the price differential.</li>
+          <li><strong>Grace Period & Read-Only Mode</strong> — Following subscription expiration, a 7-day grace period is provided. Thereafter, the account shifts to read-only access until renewed.</li>
+          <li><strong>Subscription Changes & Data Integrity</strong> — Changing or downgrading subscription tiers adjusts access to features specific to higher tiers. However, subscription plan changes do <strong>not</strong> automatically delete your historical business records, invoices, purchase transactions, or inventory movement history.</li>
+          <li><strong>Refund Policy</strong> — All subscription payments are final and non-refundable, except where mandated by applicable consumer laws.</li>
         </ul>
-        <div className="pp-callout">
-          <strong>Note:</strong> Failure to renew an expired subscription will result in your account entering a grace period, followed by restricted read-only access until renewed.
-        </div>
       </>
     )
   },
   {
     id: 'tc-referral',
-    num: '19',
+    num: '23',
     title: 'Referral Program',
     icon: Gift,
     color: 'from-emerald-500 to-cyan-500',
     content: (
       <>
-        <p>The Platform offers a <strong>Referral Program</strong> that rewards users for inviting new businesses to the Platform.</p>
+        <p>The Platform provides an optional <strong>Referral Program</strong> rewarding users who invite other businesses:</p>
         <ul>
-          <li><strong>How It Works</strong> — Each user receives a unique referral code and shareable link. When a new user signs up using that link and makes their first paid subscription purchase, both parties earn rewards.</li>
-          <li><strong>Rewards</strong> — The referrer receives <strong>+30 free days</strong> added to their subscription, and the referred user receives <strong>+15 free days</strong>. Reward amounts may vary by active campaign.</li>
-          <li><strong>Eligibility</strong> — Rewards are granted only when the referred user completes a paid subscription purchase. Signing up alone does not trigger rewards.</li>
-          <li><strong>One-Time Use</strong> — Each referral code can only be applied once per referred account. Users who already have an active subscription or have previously applied a referral code cannot apply another.</li>
-          <li><strong>No Self-Referral</strong> — Users may not use their own referral code. Self-referral attempts will be rejected.</li>
-          <li><strong>Campaign Limits</strong> — Referral campaigns may have maximum referral limits per user. Once the limit is reached, no further referral rewards will be issued.</li>
-          <li><strong>Modification & Termination</strong> — We reserve the right to modify, suspend, or terminate the Referral Program at any time. Existing earned rewards will be honored.</li>
-          <li><strong>Abuse Prevention</strong> — Fraudulent or abusive use of the Referral Program (e.g., creating fake accounts) may result in forfeiture of rewards and account suspension.</li>
+          <li><strong>How It Works</strong> — Users receive a unique referral link. When a referred business signs up and completes their first paid subscription, reward days are credited.</li>
+          <li><strong>Rewards</strong> — Referrers earn <strong>+30 free subscription days</strong>, and the referred business receives <strong>+15 free days</strong>, subject to active campaign terms.</li>
+          <li><strong>Conditions</strong> — Rewards require completion of a paid subscription purchase. Codes may only be used once per new business, self-referrals are prohibited, and rewards hold no monetary or cash value.</li>
         </ul>
-        <div className="pp-callout">
-          <strong>Note:</strong> Referral rewards are applied as subscription day extensions and have no cash value. They cannot be transferred, exchanged, or refunded.
-        </div>
       </>
     )
   },
   {
     id: 'tc-governing-law',
-    num: '20',
-    title: 'Governing Law',
+    num: '24',
+    title: 'Governing Law & Jurisdiction',
     icon: Gavel,
     color: 'from-accent2-500 to-blue-500',
     content: (
       <>
         <ul>
-          <li>These Terms are governed by the laws of <strong>India</strong>.</li>
-          <li>Disputes shall be subject to the exclusive jurisdiction of <strong>Indian courts</strong>.</li>
-          <li>If any provision is found invalid, remaining provisions continue in effect.</li>
-          <li>Failure to enforce any provision does not constitute a waiver.</li>
+          <li>These Terms shall be governed by and construed in accordance with the laws of <strong>India</strong>.</li>
+          <li>Any legal suit, action, or proceeding arising out of or related to these Terms shall be instituted exclusively in the competent courts in India.</li>
+          <li>If any provision of these Terms is held invalid or unenforceable, the remaining provisions shall remain in full force and effect.</li>
         </ul>
       </>
     )
   },
   {
     id: 'tc-contact',
-    num: '21',
+    num: '25',
     title: 'Contact Information',
     icon: Mail,
     color: 'from-emerald-500 to-teal-500',
     content: (
       <>
-        <p>For questions or requests regarding these Terms & Conditions:</p>
+        <p>For questions, clarifications, or notices regarding these Terms & Conditions:</p>
         <div className="pp-table-wrap">
           <table>
             <tbody>
@@ -454,11 +526,11 @@ export default function TermsPage() {
           <div className="pp-header-content">
             <div className="pp-header-badge">
               <Gavel className="w-4 h-4" />
-              Legal Document
+              Legal Document — Version 2.0.0
             </div>
             <h1 className="pp-title">Terms & Conditions</h1>
             <p className="pp-subtitle">Bharat Enterprise Billing System</p>
-            <p className="pp-last-updated">Last Updated: June 16, 2026</p>
+            <p className="pp-last-updated">Last Updated: September 2, 2026</p>
           </div>
         </div>
       </header>
@@ -508,7 +580,7 @@ export default function TermsPage() {
               <div className="pp-section-icon bg-gradient-to-br from-blue-500 to-accent-500">
                 <FileText className="w-5 h-5 text-white" />
               </div>
-              <h2 className="pp-section-title">Quick Summary</h2>
+              <h2 className="pp-section-title">Quick Summary of Key Terms</h2>
             </div>
             <div className="pp-section-body">
               <div className="pp-table-wrap">
@@ -520,20 +592,19 @@ export default function TermsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr><td>Account Ownership</td><td>Admin owns tenant; responsible for all activity</td></tr>
-                    <tr><td>Multi-Tenant Isolation</td><td>Strict data isolation; no cross-tenant access</td></tr>
-                    <tr><td>Employee Access</td><td>Admin-managed; employees don't own data</td></tr>
-                    <tr><td>Financial Data</td><td>Users responsible for accuracy</td></tr>
-                    <tr><td>GST Compliance</td><td>Users must verify compliance in their jurisdiction</td></tr>
-                    <tr><td>Payment Data</td><td>Subscription payments handled securely by Razorpay; no cards stored</td></tr>
-                    <tr><td>Service Availability</td><td>Best effort; no 100% uptime guarantee</td></tr>
-                    <tr><td>Backups</td><td>For disaster recovery; may persist temporarily</td></tr>
-                    <tr><td>Acceptable Use</td><td>No abuse, reverse engineering, or resale</td></tr>
-                    <tr><td>Intellectual Property</td><td>Platform IP belongs to Bharat Enterprise</td></tr>
-                    <tr><td>Subscriptions</td><td>3 tiers (Starter/Business/Professional); 14-day free trial; prorated plan changes</td></tr>
-                    <tr><td>Referral Program</td><td>Earn free days by referring new users; one-time use; no cash value</td></tr>
-                    <tr><td>Governing Law</td><td>Indian law; Indian courts</td></tr>
-                    <tr><td>Target Market</td><td>Indian businesses (pharma, retail, SMBs)</td></tr>
+                    <tr><td>Account Ownership</td><td>Admin owns tenant organization and is responsible for all activity.</td></tr>
+                    <tr><td>Multi-Tenant Isolation</td><td>Strict logical data separation; no cross-tenant access.</td></tr>
+                    <tr><td>Employee Access & RBAC</td><td>Admin configures granular module permissions; access is subordinate to Admin.</td></tr>
+                    <tr><td>Inventory Responsibility</td><td>Users are responsible for entering accurate stock, batch, and expiry data.</td></tr>
+                    <tr><td>Suppliers & Purchases</td><td>Supplier data is user-managed; purchase entries record inward stock.</td></tr>
+                    <tr><td>Purchase Lifecycle</td><td>Completed purchases update stock; cancellation reverses stock; records are preserved.</td></tr>
+                    <tr><td>Batch & FIFO</td><td>Platform provides automated FIFO and manual allocation across tiers.</td></tr>
+                    <tr><td>Operational Reports</td><td>Provided for operational management only; not certified financial, COGS, or tax advice.</td></tr>
+                    <tr><td>GST Compliance</td><td>Platform provides tax calculation tools; users must verify statutory compliance.</td></tr>
+                    <tr><td>Payment Data</td><td>Subscriptions processed securely via authorized payment gateways; no payment card data stored.</td></tr>
+                    <tr><td>Subscription Tiers</td><td>Starter (₹299), Business (₹499), Professional (₹699); downgrades preserve historical data.</td></tr>
+                    <tr><td>Referral Program</td><td>Earn free subscription days for referring new businesses; no cash value.</td></tr>
+                    <tr><td>Governing Law</td><td>Indian law; exclusive jurisdiction of Indian courts.</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -545,7 +616,7 @@ export default function TermsPage() {
       {/* Footer */}
       <footer className="pp-footer">
         <div className="pp-footer-inner">
-          <p>These Terms & Conditions are effective as of June 16, 2026.</p>
+          <p>These Terms & Conditions are effective as of September 2, 2026 (Version 2.0.0).</p>
           <p className="pp-footer-copyright">
             © {new Date().getFullYear()} Bharat Enterprise Billing System. All rights reserved.
           </p>

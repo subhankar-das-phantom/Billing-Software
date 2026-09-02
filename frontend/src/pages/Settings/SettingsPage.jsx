@@ -734,7 +734,7 @@ export default function SettingsPage() {
           
           <div className="mt-6 flex items-center gap-2 text-xs text-slate-500">
             <div className="w-1.5 h-1.5 rounded-full bg-slate-500" />
-            Billing is processed securely via Razorpay. To view detailed plan comparisons, click the upgrade button.
+            Billing is processed securely. To view detailed plan comparisons, click the upgrade button.
           </div>
         </div>
       </div>
