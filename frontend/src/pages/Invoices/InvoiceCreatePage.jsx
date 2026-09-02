@@ -222,6 +222,7 @@ export default function InvoiceCreatePage() {
   const [allocationMode, setAllocationMode] = useState("AUTO");
   const [batchModal, setBatchModal] = useState({
     open: false,
+    loading: false,
     itemIndex: null,
     batches: [],
     requiredQty: 0,
@@ -1548,26 +1549,38 @@ export default function InvoiceCreatePage() {
   };
 
   const openBatchModal = async (index, item) => {
+    const requiredQty =
+      (Number(item.quantitySold) || 0) + (Number(item.freeQuantity) || 0);
+
+    const initialAllocations = {};
+    if (item.manualAllocations) {
+      item.manualAllocations.forEach((a) => {
+        initialAllocations[a.batchId] = a.quantity;
+      });
+    }
+
+    // Open modal immediately so user gets instant 0ms UI response
+    setBatchModal({
+      open: true,
+      loading: true,
+      itemIndex: index,
+      batches: [],
+      requiredQty,
+      allocations: initialAllocations,
+    });
+
     try {
       const data = await productService.getBatches(item.product._id);
-      const requiredQty =
-        (Number(item.quantitySold) || 0) + (Number(item.freeQuantity) || 0);
-
-      const initialAllocations = {};
-      if (item.manualAllocations) {
-        item.manualAllocations.forEach((a) => {
-          initialAllocations[a.batchId] = a.quantity;
-        });
-      }
-
-      setBatchModal({
-        open: true,
-        itemIndex: index,
-        batches: data.batches || [],
-        requiredQty,
-        allocations: initialAllocations,
+      setBatchModal((prev) => {
+        if (!prev.open || prev.itemIndex !== index) return prev;
+        return {
+          ...prev,
+          loading: false,
+          batches: data.batches || [],
+        };
       });
     } catch (err) {
+      setBatchModal((prev) => ({ ...prev, loading: false }));
       error("Failed to load batches");
     }
   };
@@ -2703,7 +2716,14 @@ export default function InvoiceCreatePage() {
           </div>
 
           <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1 custom-scrollbar">
-            {batchModal.batches.length === 0 ? (
+            {batchModal.loading ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-3 text-slate-400 bg-slate-800/50 rounded-lg border border-slate-700">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
+                <p className="text-sm font-medium text-slate-300">
+                  Loading available batches...
+                </p>
+              </div>
+            ) : batchModal.batches.length === 0 ? (
               <div className="text-center py-8 text-slate-400 bg-slate-800/50 rounded-lg border border-slate-700">
                 No available batches found for this product
               </div>
@@ -2812,7 +2832,11 @@ export default function InvoiceCreatePage() {
             >
               Cancel
             </button>
-            <button onClick={saveBatchAllocations} className="btn btn-primary">
+            <button
+              onClick={saveBatchAllocations}
+              disabled={batchModal.loading}
+              className={`btn btn-primary ${batchModal.loading ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
               Save Allocations
             </button>
           </div>

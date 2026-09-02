@@ -601,10 +601,21 @@ export const productService = {
    * @param {string} productId - Product ID
    * @returns {Promise<{batches: array}>}
    */
-  getBatches: async (productId) => {
+  getBatches: async (productId, useCache = true) => {
     try {
       const rawId = productId?._id || productId?.id || productId;
       const pidStr = typeof rawId === 'object' ? String(rawId?._id || rawId?.id || rawId) : String(rawId);
+      if (useCache) {
+        const { data } = await cachedRequest(
+          {
+            method: 'GET',
+            url: '/batches',
+            params: { productId: pidStr }
+          },
+          30 * 1000 // 30s cache for fast modal opens
+        );
+        return data;
+      }
       const response = await api.get('/batches', { params: { productId: pidStr } });
       return response.data;
     } catch (error) {
