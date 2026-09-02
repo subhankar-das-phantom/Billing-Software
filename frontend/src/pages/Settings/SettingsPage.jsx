@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useSubscription } from '../../contexts/SubscriptionContext';
 import { 
   Settings, 
   Building2, 
@@ -18,7 +20,8 @@ import {
   Palette,
   Bell,
   ChevronRight,
-  CreditCard
+  CreditCard,
+  Crown
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -29,6 +32,7 @@ import SettingsPageSkeleton from './SettingsPageSkeleton';
 export default function SettingsPage() {
   const { user, userRole, updateAdmin, updateUserPreferences } = useAuth();
   const { success: showSuccess, error: showError } = useToast();
+  const { subscription, isExpired, isGrace, isTrial, planName, daysRemaining } = useSubscription();
   const motionConfig = useMotionConfig();
 
   const [activeTab, setActiveTab] = useState(userRole === 'admin' ? 'general' : 'preferences');
@@ -60,7 +64,8 @@ export default function SettingsPage() {
 
   // Preferences form state
   const [preferences, setPreferences] = useState({
-    showCalculator: true
+    showCalculator: true,
+    enableBatchTracking: false
   });
   const [preferencesLoading, setPreferencesLoading] = useState(false);
 
@@ -93,7 +98,8 @@ export default function SettingsPage() {
     }
     if (user && user.preferences) {
       setPreferences({
-        showCalculator: user.preferences.showCalculator !== false
+        showCalculator: user.preferences.showCalculator !== false,
+        enableBatchTracking: user.preferences.enableBatchTracking === true
       });
     }
   }, [user, userRole]);
@@ -147,6 +153,26 @@ export default function SettingsPage() {
     }
   };
 
+  const handleToggleBatchTracking = async () => {
+    if (userRole !== 'admin') return;
+    const newEnableBatchTracking = !preferences.enableBatchTracking;
+    setPreferences({ ...preferences, enableBatchTracking: newEnableBatchTracking });
+    setPreferencesLoading(true);
+    
+    try {
+      const result = await authService.updatePreferences({ enableBatchTracking: newEnableBatchTracking });
+      if (result.success) {
+        updateUserPreferences({ enableBatchTracking: newEnableBatchTracking });
+        showSuccess(`Batch & FIFO Tracking is now ${newEnableBatchTracking ? 'enabled' : 'disabled'}`);
+      }
+    } catch (err) {
+      setPreferences({ ...preferences, enableBatchTracking: !newEnableBatchTracking });
+      showError(err.message || 'Failed to update preferences');
+    } finally {
+      setPreferencesLoading(false);
+    }
+  };
+
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
 
@@ -185,6 +211,7 @@ export default function SettingsPage() {
   // Tabs Configuration
   const tabs = [
     ...(userRole === 'admin' ? [{ id: 'general', label: 'General', icon: Building2, desc: 'Business details' }] : []),
+    ...(userRole === 'admin' ? [{ id: 'subscription', label: 'Subscription', icon: Crown, desc: 'Plan & Billing' }] : []),
     { id: 'preferences', label: 'Preferences', icon: Palette, desc: 'App customization' },
     { id: 'security', label: 'Security', icon: Shield, desc: 'Password & auth' }
   ];
@@ -485,6 +512,37 @@ export default function SettingsPage() {
             </button>
           </div>
 
+          {/* Custom Pill Toggle for Batch & FIFO Tracking (Admin Only) */}
+          {userRole === 'admin' && (
+            <div className="flex items-start sm:items-center justify-between p-5 bg-slate-950/40 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-blue-500/10 rounded-xl shadow-[0_0_15px_rgba(59,130,246,0.1)]">
+                  <FileText className="w-6 h-6 text-blue-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-white text-base">Enable Batch & FIFO Tracking</h3>
+                  <p className="text-sm text-slate-400 mt-0.5 max-w-sm">Use comprehensive batch management, expiry tracking, and FIFO or Manual allocation for inventory.</p>
+                </div>
+              </div>
+              
+              <button 
+                onClick={handleToggleBatchTracking}
+                disabled={preferencesLoading}
+                className={`relative inline-flex h-7 w-14 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-opacity-75 disabled:opacity-50 disabled:cursor-wait ${
+                  preferences.enableBatchTracking ? 'bg-blue-500' : 'bg-slate-700'
+                }`}
+              >
+                <span className="sr-only">Toggle Batch Tracking</span>
+                <span
+                  aria-hidden="true"
+                  className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg ring-0 transition duration-300 ease-in-out ${
+                    preferences.enableBatchTracking ? 'translate-x-7' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+          )}
+
           {/* Placeholder for future preferences */}
           <div className="flex items-start sm:items-center justify-between p-5 bg-slate-950/40 rounded-2xl border border-white/5 opacity-50 cursor-not-allowed">
             <div className="flex items-center gap-4">
@@ -622,6 +680,67 @@ export default function SettingsPage() {
     </div>
   );
 
+  const renderSubscriptionTab = () => (
+    <div className="space-y-6">
+      <div className="mb-6">
+        <h2 className="text-xl font-bold text-white mb-1">Subscription & Billing</h2>
+        <p className="text-slate-400 text-sm">Manage your SaaS plan and view billing status.</p>
+      </div>
+
+      <div className="bg-slate-900/60 backdrop-blur-2xl border border-white/5 rounded-2xl p-6 lg:p-8 shadow-2xl relative overflow-hidden">
+        {/* Decorative ambient gradient */}
+        {(planName === 'Professional' || planName === 'Business') ? (
+          <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+        ) : (
+          <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+        )}
+
+        <div className="relative z-10">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-slate-950/40 rounded-2xl border border-white/5 p-6 hover:border-white/10 transition-colors">
+            <div className="flex items-center gap-5 w-full md:w-auto">
+              <div className="p-4 bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl border border-white/5 shadow-inner">
+                <CreditCard className="w-8 h-8 text-blue-400" />
+              </div>
+              <div>
+                <p className="text-slate-400 text-sm mb-1 uppercase tracking-wider font-semibold">Current Plan</p>
+                <div className="flex items-center gap-3">
+                  <h3 className="text-2xl font-bold text-white">{planName}</h3>
+                  {isTrial && <span className="px-2 py-0.5 rounded text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30">TRIAL</span>}
+                </div>
+              </div>
+            </div>
+
+            <div className="w-full md:w-auto flex flex-col md:items-end">
+              <p className="text-slate-400 text-sm mb-1 uppercase tracking-wider font-semibold">Status</p>
+              {isExpired ? (
+                <span className="text-red-400 font-medium">Expired</span>
+              ) : isGrace ? (
+                <span className="text-amber-400 font-medium">Grace Period ({daysRemaining} days left)</span>
+              ) : (
+                <span className="text-emerald-400 font-medium">Active ({daysRemaining} days remaining)</span>
+              )}
+            </div>
+
+            <div className="w-full md:w-auto mt-4 md:mt-0">
+              <Link
+                to="/subscription"
+                className="w-full md:w-auto px-6 py-3 font-medium bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl shadow-[0_0_20px_rgba(37,99,235,0.2)] flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95"
+              >
+                <Crown className="w-5 h-5" />
+                {isExpired ? 'Renew Now' : 'Upgrade Plan'}
+              </Link>
+            </div>
+          </div>
+          
+          <div className="mt-6 flex items-center gap-2 text-xs text-slate-500">
+            <div className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+            Billing is processed securely. To view detailed plan comparisons, click the upgrade button.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   if (loading) {
     return <SettingsPageSkeleton />;
   }
@@ -684,6 +803,7 @@ export default function SettingsPage() {
         {/* Content Area */}
         <div className="flex-1 min-w-0">
           {activeTab === 'general' && renderGeneralTab()}
+          {activeTab === 'subscription' && renderSubscriptionTab()}
           {activeTab === 'preferences' && renderPreferencesTab()}
           {activeTab === 'security' && renderSecurityTab()}
         </div>

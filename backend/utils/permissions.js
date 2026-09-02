@@ -7,7 +7,10 @@ const PERMISSIONS_REGISTRY = {
   notes: ['view', 'create', 'edit', 'delete'],
   reports: ['view'],
   inventory: ['view', 'create', 'edit', 'delete'],
-  ledger: ['view']
+  batches: ['view', 'create', 'edit', 'delete'],
+  ledger: ['view'],
+  suppliers: ['view', 'create', 'edit', 'delete'],
+  purchases: ['view', 'create', 'edit', 'cancel']
 };
 
 const buildPermissions = (modules, defaultAccess = false) => {
@@ -44,7 +47,10 @@ const ROLE_PRESETS = {
     notes: ['view'],
     reports: ['view'],
     inventory: ['view'],
-    ledger: ['view']
+    batches: ['view'],
+    ledger: ['view'],
+    suppliers: ['view'],
+    purchases: ['view']
   }, false),
   payment_collector: buildPermissions({
     payments: ['view', 'create'],
@@ -56,11 +62,17 @@ const ROLE_PRESETS = {
     products: ['view'],
     invoices: ['view', 'create', 'cancel'],
     payments: ['view', 'create'],
-    notes: ['view', 'create']
+    notes: ['view', 'create'],
+    suppliers: ['view'],
+    purchases: ['view']
   }, false),
   inventory_manager: buildPermissions({
     products: ['view', 'create', 'edit'],
-    inventory: ['view', 'create', 'edit']
+    inventory: ['view', 'create', 'edit'],
+    batches: ['view', 'create', 'edit', 'delete'],
+    ledger: ['view'],
+    suppliers: ['view', 'create', 'edit'],
+    purchases: ['view', 'create', 'edit']
   }, false),
   custom: {} // Custom implies it's managed fully by the admin, not pre-filled
 };

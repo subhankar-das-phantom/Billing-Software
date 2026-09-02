@@ -9,7 +9,10 @@ export default function InvoiceItemMobileCard({
   updateItemQuantity,
   removeItem,
   availableStock,
-  maxSoldQuantity
+  maxSoldQuantity,
+  enableBatchTracking,
+  allocationMode,
+  openBatchModal
 }) {
   return (
     <motion.div
@@ -23,8 +26,13 @@ export default function InvoiceItemMobileCard({
       <div className="p-4 border-b border-slate-700 bg-slate-800/50">
         <div className="flex justify-between items-start gap-4">
           <div>
-            <h3 className="font-semibold text-white text-base leading-tight">
+            <h3 className="font-semibold text-white text-base leading-tight flex items-center gap-2 flex-wrap">
               {item.product.productName}
+              {item._batchPreview && (
+                <span className="text-[10px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded border border-blue-500/20 font-normal">
+                  FIFO
+                </span>
+              )}
             </h3>
             {item.product.hsnCode && (
               <p className="text-xs text-slate-400 mt-1">HSN: {item.product.hsnCode}</p>
@@ -37,14 +45,33 @@ export default function InvoiceItemMobileCard({
             </span>
             {item.product.newMRP != null && (
               <p className="text-xs text-slate-500 px-1">
-                MRP: ₹{item.product.newMRP}
+                MRP: {formatCurrency(item.product.newMRP)}
               </p>
             )}
           </div>
         </div>
-        <div className="mt-2 text-xs text-slate-400">
-          GST: <span className="text-slate-300 font-medium">{item.product.gstPercentage}%</span> (₹{item.gstAmount.toFixed(2)})
+        <div className="mt-2 text-xs text-slate-400 flex items-center justify-between">
+          <span>
+            GST: <span className="text-slate-300 font-medium">{item.product.gstPercentage}%</span> ({formatCurrency(item.gstAmount || 0)})
+          </span>
+          {enableBatchTracking && (
+            <span className="text-emerald-400 text-[11px] bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 font-mono">
+              Batch: {item.product?.batchNo || item.batchNo || 'No Batch #'}
+            </span>
+          )}
         </div>
+        
+        {enableBatchTracking && allocationMode === 'MANUAL' && (
+          <div className="mt-2">
+            <button 
+              onClick={() => openBatchModal(index, item)}
+              className="text-xs text-blue-400 hover:text-blue-300 underline"
+            >
+              {item.manualAllocations ? 'Edit Batch Allocation' : 'Select Batches'} 
+              {item.manualAllocations && ` (${item.manualAllocations.reduce((s, a) => s + a.quantity, 0)}/${(Number(item.quantitySold) || 0) + (Number(item.freeQuantity) || 0)})`}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Body: Inputs */}
@@ -57,6 +84,11 @@ export default function InvoiceItemMobileCard({
               type="number"
               value={item.quantitySold}
               onChange={(e) => updateItemQuantity(index, 'quantitySold', e.target.value)}
+              onBlur={() => {
+                if (item.quantitySold === "" || Number(item.quantitySold) < 1) {
+                  updateItemQuantity(index, 'quantitySold', 1);
+                }
+              }}
               className="input w-full py-2 text-center text-sm"
               min="1"
               max={maxSoldQuantity}
@@ -68,6 +100,11 @@ export default function InvoiceItemMobileCard({
               type="number"
               value={item.freeQuantity}
               onChange={(e) => updateItemQuantity(index, 'freeQuantity', e.target.value)}
+              onBlur={() => {
+                if (item.freeQuantity === "" || Number(item.freeQuantity) < 0) {
+                  updateItemQuantity(index, 'freeQuantity', 0);
+                }
+              }}
               className="input w-full py-2 text-center text-sm"
               min="0"
             />
@@ -136,13 +173,16 @@ export default function InvoiceItemMobileCard({
       </div>
 
       {/* Footer: Actions */}
-      <div className="p-3 border-t border-slate-700 bg-slate-900/30 flex justify-end">
+      <div className="p-3 border-t border-slate-700 bg-slate-900/30 flex items-center justify-between">
+        <div className="text-xs text-slate-400">
+          Total: <span className="text-sm font-semibold text-emerald-400">{formatCurrency(item.totalAmount ?? ((Number(item.baseAmount) || 0) + (Number(item.gstAmount) || 0)))}</span>
+        </div>
         <button
           onClick={() => removeItem(index)}
-          className="flex items-center justify-center gap-2 px-4 py-2 text-sm text-red-400 hover:text-white hover:bg-red-500 rounded-lg transition-colors w-full sm:w-auto"
+          className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs text-red-400 hover:text-white hover:bg-red-500 rounded-lg transition-colors"
         >
-          <Trash2 className="w-4 h-4" />
-          Remove Item
+          <Trash2 className="w-3.5 h-3.5" />
+          Remove
         </button>
       </div>
     </motion.div>

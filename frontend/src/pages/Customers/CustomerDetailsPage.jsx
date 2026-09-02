@@ -230,13 +230,13 @@ function PrintLedgerContent({ admin, customer, ledgerData, formatDate }) {
    A4 preview inside a horizontally-scrollable container so the
    wide table doesn't break out of the viewport.
 ───────────────────────────────────────────────────────────── */
-function MobilePrintPreview({ ledgerPrintRef, admin, customer, ledgerData, formatDate }) {
+function MobilePrintPreview({ admin, customer, ledgerData, formatDate }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="lg:hidden no-print-hide mt-4 px-1">
+    <div className="lg:hidden no-print mt-4 px-1">
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between gap-2 px-4 py-3 rounded-xl bg-slate-800/80 border border-slate-700/50 text-slate-200 text-sm font-medium active:scale-95 transition-transform"
+        className="w-full flex items-center justify-between gap-2 px-4 py-3 rounded-xl bg-slate-800/80 border border-slate-700/50 text-slate-200 text-sm font-medium active:scale-95 transition-transform no-print"
       >
         <span className="flex items-center gap-2">
           <Printer className="w-4 h-4 text-blue-400" />
@@ -249,7 +249,6 @@ function MobilePrintPreview({ ledgerPrintRef, admin, customer, ledgerData, forma
         <div className="mt-3 rounded-xl border border-slate-700/50 overflow-x-auto bg-white shadow-lg" style={{ WebkitOverflowScrolling: 'touch' }}>
           {/* The actual A4 content — ref is applied here so printing still works */}
           <div
-            ref={ledgerPrintRef}
             className="invoice-print"
             style={{ width: '210mm', fontSize: '11px', color: '#000', padding: '2mm' }}
           >
@@ -1729,7 +1728,7 @@ export default function CustomerDetailsPage() {
 
       {/* Printable Ledger Preview (visible on screen + used for print) */}
       {ledgerData.ledger.length > 0 && customer && activeTab === 'ledger' && (
-        <>
+        <div className="print-preview-container">
           {/* Desktop: full A4 preview — hidden below lg */}
           <div className="hidden lg:flex justify-center no-print-hide">
             <motion.div
@@ -1749,14 +1748,15 @@ export default function CustomerDetailsPage() {
           </div>
 
           {/* Mobile: collapsible print preview */}
-          <MobilePrintPreview
-            ledgerPrintRef={ledgerPrintRef}
-            admin={admin}
-            customer={customer}
-            ledgerData={ledgerData}
-            formatDate={formatDate}
-          />
-        </>
+          <div className="no-print">
+            <MobilePrintPreview
+              admin={admin}
+              customer={customer}
+              ledgerData={ledgerData}
+              formatDate={formatDate}
+            />
+          </div>
+        </div>
       )}
 
 

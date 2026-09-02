@@ -627,19 +627,48 @@ function WhyChooseSection({ reduceMotion }) {
 // ════════════════════════════════════════════════════
 //                PRICING SECTION
 // ════════════════════════════════════════════════════
-const pricingFeatures = [
-  'Unlimited invoices',
-  'Unlimited products & customers',
-  'GST-compliant billing',
-  'Customer credit tracking',
-  'Financial ledger',
-  'Analytics & reports dashboard',
-  'Export to PDF, CSV & Excel',
-  'Role-based access control',
-  'Activity logging',
-  'Mobile-first responsive design',
-  'Credit notes & returns',
-  'Payment tracking',
+const plans = [
+  {
+    name: 'Starter',
+    price: '299',
+    desc: 'Perfect for small businesses needing only billing and invoicing.',
+    features: [
+      'Unlimited invoices',
+      'Unlimited products & customers',
+      'GST-compliant billing',
+      'Basic dashboard',
+    ],
+    color: 'from-blue-500 to-blue-600',
+    popular: false,
+  },
+  {
+    name: 'Business',
+    price: '499',
+    desc: 'For growing businesses needing payments, collections, and ledger tracking.',
+    features: [
+      'Everything in Starter',
+      'Payment tracking',
+      'Customer credit tracking',
+      'Financial ledger',
+      'Credit notes & returns',
+    ],
+    color: 'from-accent-500 to-accent-600',
+    popular: true,
+  },
+  {
+    name: 'Professional',
+    price: '699',
+    desc: 'Full suite with employees, analytics, activity logs, and GST reports.',
+    features: [
+      'Everything in Business',
+      'Role-based access control',
+      'Analytics & reports dashboard',
+      'Activity logging',
+      'Advanced GST reports',
+    ],
+    color: 'from-emerald-500 to-emerald-600',
+    popular: false,
+  },
 ];
 
 function PricingSection({ reduceMotion, isLoggedIn }) {
@@ -649,80 +678,81 @@ function PricingSection({ reduceMotion, isLoggedIn }) {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] rounded-full" style={{ background: 'radial-gradient(ellipse at center, rgba(59,130,246,0.03) 0%, transparent 70%)' }} />
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center mb-14 lg:mb-16">
           <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium mb-6">
             <IndianRupee className="w-3.5 h-3.5" />
             Simple Pricing
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight mb-5">
-            Start free.{' '}
+            Plans that grow with{' '}
             <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
-              No credit card needed.
+              your business.
             </span>
           </h2>
           <p className="text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
-            Every feature is available from day one. No limits, no locked features, no surprise charges.
+            Start with a 14-day free trial on any plan. No credit card required.
           </p>
         </div>
 
-        {/* Pricing card */}
-        <motion.div
-          whileHover={reduceMotion ? undefined : { y: -6 }}
-          transition={{ duration: 0.3 }}
-          className="relative bg-slate-800/80 border border-slate-700/50 rounded-3xl overflow-hidden shadow-2xl max-w-lg mx-auto"
-        >
-          {/* Top gradient bar */}
-          <div className="h-1.5 bg-gradient-to-r from-blue-500 via-accent-500 to-emerald-500" />
-
-          {/* Shimmer */}
-          {!reduceMotion && (
+        {/* Pricing cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          {plans.map((plan, i) => (
             <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent"
-              animate={{ x: ['-100%', '200%'] }}
-              transition={{ duration: 3, repeat: Infinity, ease: 'linear', repeatDelay: 2 }}
-            />
-          )}
-
-          <div className="relative z-10 p-8 sm:p-10">
-            {/* Price */}
-            <div className="text-center mb-8">
-              <p className="text-sm font-semibold text-accent-400 mb-3 uppercase tracking-wider">Currently Free</p>
-              <div className="flex items-baseline justify-center gap-1">
-                <span className="text-6xl sm:text-7xl font-extrabold text-white">₹0</span>
-                <span className="text-xl text-slate-400 font-medium">/month</span>
-              </div>
-              <p className="text-slate-400 mt-2">No upfront cost. No credit card required.</p>
-            </div>
-
-            {/* Divider */}
-            <div className="h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent mb-8" />
-
-            {/* Features list */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-10">
-              {pricingFeatures.map((f) => (
-                <div key={f} className="flex items-center gap-3">
-                  <div className="flex-shrink-0 w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                    <Check className="w-3 h-3 text-emerald-400" />
-                  </div>
-                  <span className="text-sm text-slate-300">{f}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* CTA */}
-            <Link
-              to={isLoggedIn ? '/' : '/register'}
-              className="flex items-center justify-center gap-2 w-full py-4 text-base font-semibold text-white bg-gradient-to-r from-blue-600 to-accent2-600 rounded-xl hover:from-blue-500 hover:to-accent2-500 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all no-underline hover:scale-[1.02] active:scale-[0.98]"
+              key={plan.name}
+              whileHover={reduceMotion ? undefined : { y: -6 }}
+              transition={{ duration: 0.3 }}
+              className={`relative bg-slate-800/80 border ${plan.popular ? 'border-accent-500/50 shadow-2xl shadow-accent-500/10' : 'border-slate-700/50 shadow-xl'} rounded-3xl overflow-hidden flex flex-col`}
             >
-              {isLoggedIn ? 'Go to Dashboard' : 'Get Started Free'}
-              <ArrowRight className="w-5 h-5" />
-            </Link>
-            <p className="text-center text-xs text-slate-500 mt-4">
-              Pricing may evolve as we grow — early users always get the best deal.
-            </p>
-          </div>
-        </motion.div>
+              {plan.popular && (
+                <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-accent-400 to-accent-600" />
+              )}
+              {plan.popular && (
+                <div className="absolute top-5 right-5">
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-accent-500/20 text-accent-400 text-xs font-bold uppercase tracking-wider">
+                    <Star className="w-3.5 h-3.5 fill-current" />
+                    Most Popular
+                  </span>
+                </div>
+              )}
+
+              <div className="p-8 sm:p-10 flex-1 flex flex-col">
+                <h3 className="text-xl font-bold text-white mb-2">{plan.name}</h3>
+                <p className="text-sm text-slate-400 mb-6 min-h-[40px]">{plan.desc}</p>
+                
+                <div className="flex items-baseline gap-1 mb-8">
+                  <span className="text-5xl font-extrabold text-white">₹{plan.price}</span>
+                  <span className="text-slate-400 font-medium">/month</span>
+                </div>
+
+                <div className="flex-1">
+                  <ul className="space-y-4 mb-8">
+                    {plan.features.map((f) => (
+                      <li key={f} className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center mt-0.5">
+                          <Check className="w-3 h-3 text-emerald-400" />
+                        </div>
+                        <span className="text-sm text-slate-300">{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <Link
+                  to={isLoggedIn ? '/settings/subscription' : '/register'}
+                  className={`flex items-center justify-center gap-2 w-full py-3.5 text-sm font-semibold rounded-xl transition-all no-underline ${
+                    plan.popular 
+                      ? 'bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-500 hover:to-accent-400 text-white shadow-lg shadow-accent-500/25' 
+                      : 'bg-slate-700 hover:bg-slate-600 text-white'
+                  }`}
+                >
+                  {isLoggedIn ? 'Upgrade Plan' : 'Start Free Trial'}
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </motion.div>
+          ))}
+        </div>
       </div>
     </Reveal>
   );

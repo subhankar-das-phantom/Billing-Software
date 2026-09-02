@@ -226,8 +226,9 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatCurrency, obs
                   className="min-h-[72px]"
                   itemClassName="border-b border-slate-700/50"
                   renderItem={(product) => {
-                    const lowStock = product.currentStockQty <= 30;
-                    const outOfStock = product.currentStockQty === 0;
+                    const effectiveStock = product.effectiveStockQty ?? product.currentStockQty ?? 0;
+                    const lowStock = effectiveStock <= 30;
+                    const outOfStock = effectiveStock === 0;
 
                     return (
                       <div className="grid grid-cols-[minmax(260px,2fr)_120px_180px_120px_100px_150px_130px] items-center px-4 py-3 hover:bg-slate-700/50 transition-colors">
@@ -286,7 +287,7 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatCurrency, obs
                               }`}
                           >
                             <Layers className="w-3 h-3" />
-                            {product.currentStockQty} {product.unit}
+                            {effectiveStock} {product.unit}
                           </span>
                         </div>
                         <div className="flex justify-center gap-2">
@@ -320,8 +321,9 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatCurrency, obs
       gap={16}
       className="min-h-[220px]"
       renderItem={(product) => {
-        const lowStock = product.currentStockQty <= 30;
-        const outOfStock = product.currentStockQty === 0;
+        const effectiveStock = product.effectiveStockQty ?? product.currentStockQty ?? 0;
+        const lowStock = effectiveStock <= 30;
+        const outOfStock = effectiveStock === 0;
 
         return (
           <div className="glass-card p-4 flex flex-col gap-4 relative overflow-hidden">
@@ -384,7 +386,7 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatCurrency, obs
                     }`}
                 >
                   <Layers className="w-3.5 h-3.5" />
-                  <span className="font-medium">{product.currentStockQty}</span>
+                  <span className="font-medium">{effectiveStock}</span>
                   <span className="text-[10px] opacity-90">{product.unit}</span>
                 </span>
               </div>
@@ -496,13 +498,14 @@ export default function ProductsPage() {
     if (observer.current) observer.current.disconnect();
 
     if (node) {
+      const scrollParent = node.closest('main') || null;
       observer.current = new IntersectionObserver(
         entries => {
           if (entries[0].isIntersecting && !isValidating && hasMore) {
             setPage(p => p + 1);
           }
         },
-        { threshold: 0.1 }
+        { root: scrollParent, threshold: 0.1 }
       );
       observer.current.observe(node);
     }

@@ -14,19 +14,23 @@ const {
   updateNoteValidator, 
   mongoIdParam 
 } = require('../middleware/validators');
+const { checkSubscription, checkFeatureAccess, checkWriteAccess } = require('../saas/middleware');
+const { Feature } = require('../saas/shared/features');
 
-// Apply protection to all routes
+// Apply protection and subscription check to all routes
 router.use(protect);
+router.use(checkSubscription);
+router.use(checkFeatureAccess(Feature.NOTES));
 
 router.route('/')
   .get(requirePermission('notes', 'view'), getNotes)
-  .post(requirePermission('notes', 'create'), createNoteValidator, createNote);
+  .post(checkWriteAccess, requirePermission('notes', 'create'), createNoteValidator, createNote);
 
 router.route('/:id')
   .get(requirePermission('notes', 'view'), mongoIdParam, getNote)
-  .put(requirePermission('notes', 'edit'), updateNoteValidator, updateNote)
-  .delete(requirePermission('notes', 'delete'), mongoIdParam, deleteNote);
+  .put(checkWriteAccess, requirePermission('notes', 'edit'), updateNoteValidator, updateNote)
+  .delete(checkWriteAccess, requirePermission('notes', 'delete'), mongoIdParam, deleteNote);
 
-router.patch('/:id/pin', requirePermission('notes', 'edit'), mongoIdParam, togglePin);
+router.patch('/:id/pin', checkWriteAccess, requirePermission('notes', 'edit'), mongoIdParam, togglePin);
 
 module.exports = router;

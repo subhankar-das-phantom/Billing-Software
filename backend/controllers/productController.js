@@ -1,4 +1,6 @@
 const mongoose = require('mongoose');
+const Admin = require('../models/Admin');
+const { assertFreeStockMutationAllowed, ensureProductMigratedToBatch, getProductEffectiveStock, buildEffectiveStockAggregation, recordStockMovement } = require('../services/inventoryService');
 const Product = require('../models/Product');
 const { LOW_STOCK_THRESHOLD } = require('../config/constants');
 const { getAttribution } = require('../middleware/auth');
@@ -30,10 +32,16 @@ exports.getProducts = async (req, res, next) => {
       ];
     }
 
-    const products = await Product.find(query)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+    const tenant = await Admin.findById(tenantId).select('preferences').lean();
+    const enableBatchTracking = tenant?.preferences?.enableBatchTracking === true;
+
+    const products = await Product.aggregate([
+      { $match: query },
+      ...buildEffectiveStockAggregation(tenantId, enableBatchTracking),
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit }
+    ]);
 
     const total = await Product.countDocuments(query);
 
@@ -72,17 +80,35 @@ exports.getProductStats = async (req, res, next) => {
       ];
     }
 
-    const [
-      total,
-      lowStock,
-      outOfStock,
-      expiringSoon
-    ] = await Promise.all([
-      Product.countDocuments(baseQuery),
-      Product.countDocuments({ ...baseQuery, currentStockQty: { $lte: LOW_STOCK_THRESHOLD, $gt: 0 } }),
-      Product.countDocuments({ ...baseQuery, currentStockQty: 0 }),
-      Product.countDocuments({ ...baseQuery, expiryDate: { $gt: today, $lte: threshold } })
+    const tenant = await Admin.findById(tenantId).select('preferences').lean();
+    const enableBatchTracking = tenant?.preferences?.enableBatchTracking === true;
+
+    // Use aggregation to count total, low stock, and out of stock
+    const statsResult = await Product.aggregate([
+      { $match: baseQuery },
+      ...buildEffectiveStockAggregation(tenantId, enableBatchTracking),
+      {
+        $facet: {
+          totalCount: [{ $count: 'count' }],
+          lowStockCount: [
+            { $match: { effectiveStockQty: { $lte: LOW_STOCK_THRESHOLD, $gt: 0 } } },
+            { $count: 'count' }
+          ],
+          outOfStockCount: [
+            { $match: { effectiveStockQty: { $lte: 0 } } },
+            { $count: 'count' }
+          ]
+        }
+      }
     ]);
+
+    const total = statsResult[0]?.totalCount[0]?.count || 0;
+    const lowStock = statsResult[0]?.lowStockCount[0]?.count || 0;
+    const outOfStock = statsResult[0]?.outOfStockCount[0]?.count || 0;
+
+    // Expiring soon is kept simple based on the Product's expiryDate
+    // For a fully robust batch expiry check, we would aggregate on Batches.
+    const expiringSoon = await Product.countDocuments({ ...baseQuery, expiryDate: { $gt: today, $lte: threshold } });
 
     res.status(200).json({
       success: true,
@@ -102,10 +128,22 @@ exports.getProductStats = async (req, res, next) => {
 exports.getProduct = async (req, res, next) => {
   try {
     const tenantId = getTenantId(req);
+    try {
+      await ensureProductMigratedToBatch(tenantId, req.params.id);
+    } catch (err) {
+      if (err.message === 'Migration in progress') {
+        return res.status(409).json({ 
+          success: false, 
+          message: 'Product is currently migrating to batch inventory. Please try again.' 
+        });
+      }
+      throw err;
+    }
+
     const product = await Product.findOne({
       _id: req.params.id,
       tenantId
-    });
+    }).lean();
 
     if (!product) {
       return res.status(404).json({
@@ -114,9 +152,15 @@ exports.getProduct = async (req, res, next) => {
       });
     }
 
+    const stockInfo = await getProductEffectiveStock(tenantId, product);
+
     res.status(200).json({
       success: true,
-      product
+      product: {
+        ...product,
+        effectiveStockQty: stockInfo.effectiveStockQty,
+        inventoryRepresentation: stockInfo.inventoryRepresentation
+      }
     });
   } catch (error) {
     next(error);
@@ -171,6 +215,21 @@ exports.createProduct = async (req, res, next) => {
     // Track employee activity
     trackActivity(req, ACTIVITY_TYPES.PRODUCT_ADDED);
 
+    if (openingStockQty && openingStockQty > 0) {
+      await recordStockMovement({
+        tenantId: getTenantId(req),
+        productId: product._id,
+        batchId: null,
+        type: 'OPENING_STOCK',
+        quantity: openingStockQty,
+        rate: rate || 0,
+        totalValue: (rate || 0) * openingStockQty,
+        referenceType: 'Product',
+        referenceId: String(product._id),
+        createdBy: getAttribution(req)
+      });
+    }
+
     res.status(201).json({
       success: true,
       product
@@ -196,6 +255,11 @@ exports.updateProduct = async (req, res, next) => {
         success: false,
         message: 'Product not found'
       });
+    }
+
+    // If request tries to modify currentStockQty, assert it's allowed
+    if (req.body.currentStockQty !== undefined && Number(req.body.currentStockQty) !== product.currentStockQty) {
+      await assertFreeStockMutationAllowed(tenantId);
     }
 
     const {
@@ -248,6 +312,9 @@ exports.adjustStock = async (req, res, next) => {
   try {
     const { quantity, type, reason } = req.body;
     const tenantId = getTenantId(req);
+    
+    // Assert free stock mutation is allowed
+    await assertFreeStockMutationAllowed(tenantId);
     
     // Validate required fields
     if (quantity === undefined || quantity === null || quantity <= 0) {
@@ -322,6 +389,19 @@ exports.adjustStock = async (req, res, next) => {
       });
     }
 
+    await recordStockMovement({
+      tenantId,
+      productId: product._id,
+      batchId: null,
+      type: type === 'in' ? 'MANUAL_ADJUSTMENT_IN' : 'MANUAL_ADJUSTMENT_OUT',
+      quantity: Math.abs(adjustment),
+      rate: product.rate || 0,
+      totalValue: (product.rate || 0) * Math.abs(adjustment),
+      referenceType: 'ProductAdjustment',
+      referenceId: String(product._id),
+      createdBy: getAttribution(req)
+    });
+
     // Track employee activity
     trackActivity(req, ACTIVITY_TYPES.STOCK_ADJUSTED);
 
@@ -371,14 +451,15 @@ exports.getLowStock = async (req, res, next) => {
   try {
     const threshold = parseInt(req.query.threshold) || LOW_STOCK_THRESHOLD;
     const tenantId = getTenantId(req);
+    const tenant = await Admin.findById(tenantId).select('preferences').lean();
+    const enableBatchTracking = tenant?.preferences?.enableBatchTracking === true;
 
-    // Get all active products
-    const products = await Product.find({ tenantId, isActive: true });
-    
-    // Filter for low stock
-    const lowStockProducts = products
-      .filter(p => p.currentStockQty <= threshold)
-      .sort((a, b) => a.currentStockQty - b.currentStockQty);
+    const lowStockProducts = await Product.aggregate([
+      { $match: { tenantId, isActive: true } },
+      ...buildEffectiveStockAggregation(tenantId, enableBatchTracking),
+      { $match: { effectiveStockQty: { $lte: threshold } } },
+      { $sort: { effectiveStockQty: 1 } }
+    ]);
 
     res.status(200).json({
       success: true,

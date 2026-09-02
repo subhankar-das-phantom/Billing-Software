@@ -1,35 +1,37 @@
-import { useState, useEffect } from 'react';
+import { useSyncExternalStore, useCallback } from 'react';
 
+/**
+ * High-performance, tear-free media query hook using React 19's useSyncExternalStore.
+ * Zero CPU overhead, no polling, and no unnecessary re-renders.
+ */
 export function useMediaQuery(query: string): boolean {
-  // Synchronously initialize with the correct value so there is no layout flash
-  const [matches, setMatches] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      return window.matchMedia(query).matches;
-    }
-    return false;
-  });
+  const subscribe = useCallback(
+    (callback: () => void) => {
+      if (typeof window === 'undefined') return () => {};
+      const matchMedia = window.matchMedia(query);
+      
+      if (matchMedia.addEventListener) {
+        matchMedia.addEventListener('change', callback);
+        return () => matchMedia.removeEventListener('change', callback);
+      } else if ('addListener' in matchMedia) {
+        // @ts-ignore
+        matchMedia.addListener(callback);
+        // @ts-ignore
+        return () => matchMedia.removeListener(callback);
+      }
+      return () => {};
+    },
+    [query]
+  );
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    
-    const media = window.matchMedia(query);
-    if (media.matches !== matches) {
-      setMatches(media.matches);
-    }
-    
-    const listener = () => setMatches(media.matches);
-    
-    // Modern browsers support addEventListener, fallback to addListener for older
-    if (media.addEventListener) {
-      media.addEventListener('change', listener);
-      return () => media.removeEventListener('change', listener);
-    } else if ('addListener' in media) {
-      // @ts-ignore - legacy support
-      media.addListener(listener);
-      // @ts-ignore - legacy support
-      return () => media.removeListener(listener);
-    }
-  }, [matches, query]);
+  const getSnapshot = useCallback(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia(query).matches;
+  }, [query]);
 
-  return matches;
+  const getServerSnapshot = useCallback(() => false, []);
+
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
+
+export default useMediaQuery;

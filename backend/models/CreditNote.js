@@ -1,11 +1,19 @@
 const mongoose = require('mongoose');
 
 const creditNoteItemSchema = new mongoose.Schema({
+  invoiceItemId: {
+    type: mongoose.Schema.Types.ObjectId
+  },
   productId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Product',
     required: true
   },
+  batchId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Batch'
+  },
+  batchNo: String,
   productName: {
     type: String,
     required: true

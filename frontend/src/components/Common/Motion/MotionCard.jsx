@@ -60,8 +60,8 @@ const MotionCard = ({
   const variants = motionConfig.isDesktop ? desktopVariants : mobileVariants;
   const selectedVariant = variants[variant] || variants.default;
 
-  // On mobile, fallback tilt to lift (no 3D rotation - expensive)
-  if (variant === 'tilt' && motionConfig.isDesktop) {
+  // On mobile or low-end desktop, fallback tilt to lift (no expensive 3D rotation math)
+  if (variant === 'tilt' && motionConfig.isDesktop && motionConfig.allow3DTilt !== false) {
     return <TiltCard delay={delay} className={className} {...props}>
       {children}
     </TiltCard>;

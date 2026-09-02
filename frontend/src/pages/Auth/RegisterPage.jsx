@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   UserPlus, 
@@ -20,6 +20,7 @@ import {
 import { authService } from '../../services/auth/authService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
+import { subscriptionService } from '../../services/saas/subscriptionService';
 
 // Detect if we should reduce motion for performance
 const getReducedMotionPreference = () => {
@@ -81,7 +82,11 @@ export default function RegisterPage() {
   const [focusedField, setFocusedField] = useState(null);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { error: showError, success: showSuccess } = useToast();
+  
+  // Extract referral code from URL
+  const refCode = useMemo(() => new URLSearchParams(location.search).get('ref'), [location.search]);
 
   // Memoize motion preference to avoid recalculating on every render
   const shouldReduceMotion = useMemo(() => getReducedMotionPreference(), []);
@@ -125,8 +130,19 @@ export default function RegisterPage() {
       const result = await authService.register(registerData);
       
       if (result.success) {
-        // Auto-login: Set user state and redirect to dashboard
+        // Auto-login: Set user state
         updateAdmin(result.admin);
+        
+        // Apply referral code if present
+        if (refCode) {
+          try {
+            await subscriptionService.applyReferralCode(refCode);
+          } catch (refErr) {
+            console.error('Failed to apply referral code:', refErr);
+            // We don't block registration for a failed referral
+          }
+        }
+        
         showSuccess('Account created successfully! Welcome to Bharat Enterprise.');
         navigate('/');
       }
@@ -304,6 +320,12 @@ export default function RegisterPage() {
                 <Shield className="w-4 h-4" />
                 Join Bharat Enterprise
               </p>
+              {refCode && (
+                <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Referral code '{refCode}' applied!
+                </div>
+              )}
             </motion.div>
           </motion.div>
 

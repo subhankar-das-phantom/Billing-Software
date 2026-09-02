@@ -37,6 +37,9 @@ Test Credentials:
   - Accurate stock with minimal operations
 
 ### Core Functionality
+- ✅ **Multi-Tenant SaaS Architecture** — Built-in isolation for multiple distinct businesses with their own customers, products, and invoices.
+- ✅ **Subscription & Billing Layer** — Automated SaaS subscription management, 14-day free trials, grace periods, prorated plan upgrades, and secure Razorpay integration.
+- ✅ **Referral Program** — Built-in viral loop where users can share custom links, auto-apply codes on signup, and automatically earn free subscription days upon successful conversion.
 - ✅ **Invoice & Payment Engine** — Multi-item GST calculations, full/partial payment tracking, and GST-compliant sales returns (Credit Notes)
 - ✅ **FIFO Payment Allocation** — Optional chronological bulk payment settlement across multiple invoices with opening balance support
 - ✅ **Credit Note-Aware Settlements** — Outstanding balances account for both payments and credit notes across the entire application
@@ -73,13 +76,14 @@ Test Credentials:
 | Layer | Technology |
 |-------|------------|
 | Backend | Node.js + Express.js |
-| Backend (Modules) | TypeScript (Export Engine, Sales Analytics) |
+| Backend (Modules) | TypeScript (Export Engine, Sales Analytics, SaaS Module) |
 | Database | MongoDB + Mongoose |
 | Frontend | React 18 + Vite |
 | State & Data | SWR, TanStack Query, TanStack Virtual |
 | Animations | Framer Motion |
 | Styling | Tailwind CSS |
 | Auth | JWT + Bcrypt |
+| Payments | Razorpay SDK |
 | HTTP | Axios |
 
 ## Architecture Overview
@@ -188,6 +192,7 @@ bharat-billing/
 ## API Endpoints
 
 ### Authentication
+- `POST /api/auth/register` - Tenant registration (SaaS)
 - `POST /api/auth/login` - Admin login
 - `POST /api/auth/employee/login` - Employee login
 - `GET /api/auth/me` - Get current user
@@ -195,6 +200,18 @@ bharat-billing/
 - `PUT /api/auth/change-password` - Change password
 - `POST /api/auth/heartbeat` - Session heartbeat
 - `PUT /api/auth/profile` - Update profile (Admin only)
+
+### SaaS & Subscriptions
+- `GET /api/saas/plans` - List available subscription tiers
+- `GET /api/saas/subscription` - Get current tenant subscription status
+- `POST /api/saas/subscription/checkout` - Initiate Razorpay checkout
+- `POST /api/saas/subscription/verify` - Verify Razorpay signature and activate
+- `GET /api/saas/subscription/history` - View payment history
+
+### Referral System
+- `GET /api/saas/referral/stats` - Get user referral stats and history
+- `POST /api/saas/referral/code` - Generate or retrieve unique referral code
+- `POST /api/saas/referral/apply` - Apply a referral code during signup
 
 ### Products
 - `GET /api/products` - List products (with pagination)
@@ -344,9 +361,15 @@ MONGODB_URI=mongodb://localhost:27017/bharat-billing
 JWT_SECRET=your-secret-key
 JWT_EXPIRE=7d
 FRONTEND_URL=http://localhost:3000
+
+# Super Admin (Optional, if using env seeder)
 ADMIN_EMAIL=admin@bharat.com
 ADMIN_PASSWORD=admin123
 FIRM_NAME=Bharat Enterprise
+
+# Razorpay (For SaaS subscriptions)
+RAZORPAY_KEY_ID=rzp_test_xxxxxxx
+RAZORPAY_KEY_SECRET=your_secret
 ```
 
 ### Frontend (.env)

@@ -1,513 +1,390 @@
-import { useState, useEffect, useMemo, memo } from 'react';
+import { useState, useMemo, memo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  LayoutDashboard, 
-  Package, 
-  Users, 
-  FilePlus, 
-  FileText, 
+import {
   LogOut,
   X,
   ChevronRight,
-
-  BarChart3,
-  Sparkles,
-  User,
-  Settings,
-  StickyNote,
-  Wallet,
-  Banknote,
-  UsersRound,
-  Shield,
-  FileBarChart
+  PanelLeftClose,
+  PanelLeftOpen,
+  Lock,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSubscription } from '../../contexts/SubscriptionContext';
+import UpgradeBadge from '../Subscription/UpgradeBadge';
 import { invoiceService } from '../../services/invoices/invoiceService';
-import { useMotionConfig, useSWR } from '../../hooks';
+import { useSWR } from '../../hooks';
+import {
+  getFilteredNavigation,
+  isRouteActive,
+} from './navigationConfig';
 
-const getMenuItems = (invoiceCount, hasPermission, isAdmin) => {
-  const items = [];
-  items.push({ path: '/', label: 'Dashboard', icon: LayoutDashboard, badge: null });
+/**
+ * Collapsed Tooltip Component
+ * Displays label, section category, and badge details on hover
+ */
+const NavItemTooltip = memo(({ label, sectionTitle, badge, isLocked }) => (
+  <div className="fixed left-[72px] z-50 pointer-events-none px-3 py-2 bg-slate-900/95 backdrop-blur-md border border-slate-700/80 rounded-xl shadow-xl shadow-black/50 whitespace-nowrap animate-in fade-in zoom-in-95 duration-150">
+    <div className="flex items-center gap-2">
+      <span className="text-xs font-semibold text-white">{label}</span>
+      {isLocked ? (
+        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+          <Lock size={10} /> Upgrade
+        </span>
+      ) : badge ? (
+        <span
+          className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+            badge.color || 'bg-blue-500/20 text-blue-300'
+          }`}
+        >
+          {badge.text}
+        </span>
+      ) : null}
+    </div>
+    <div className="text-[10px] text-slate-400 font-medium tracking-wide uppercase mt-0.5">
+      {sectionTitle}
+    </div>
+  </div>
+));
+NavItemTooltip.displayName = 'NavItemTooltip';
 
-  if (isAdmin || hasPermission('products', 'view')) {
-    items.push({ path: '/products', label: 'Products', icon: Package, badge: null });
-  }
-  if (isAdmin || hasPermission('customers', 'view')) {
-    items.push({ path: '/customers', label: 'Customers', icon: Users, badge: null });
-  }
-  if (isAdmin || hasPermission('invoices', 'create')) {
-    items.push({ path: '/invoices/create', label: 'Create Invoice', icon: FilePlus, badge: 'New', badgeColor: 'bg-emerald-500' });
-  }
-  if (isAdmin || hasPermission('invoices', 'view')) {
-    items.push({ path: '/invoices', label: 'All Invoices', icon: FileText, badge: invoiceCount > 0 ? String(invoiceCount) : null, badgeColor: 'bg-blue-500' });
-  }
-  if (isAdmin || hasPermission('creditNotes', 'view')) {
-    items.push({ path: '/credits', label: 'Credits', icon: Wallet, badge: null });
-  }
-  if (isAdmin || hasPermission('payments', 'view')) {
-    items.push({ path: '/collections', label: 'Collections', icon: Banknote, badge: null });
-  }
+/**
+ * Individual Navigation Item
+ */
+const SidebarNavItem = memo(
+  ({
+    item,
+    sectionTitle,
+    isCollapsed,
+    isMobile,
+    currentPath,
+    onClose,
+    hoveredItem,
+    setHoveredItem,
+    canAccessRoute,
+  }) => {
+    const isLocked = canAccessRoute && !canAccessRoute(item.path);
+    const destinationPath = isLocked ? '/subscription' : item.path;
+    const isActive = !isLocked && isRouteActive(item.path, currentPath);
+    const Icon = item.icon;
+    const isHovered = hoveredItem === item.path;
 
-  return items;
-};
-
-// Quick actions - some are admin only
-const getQuickActions = (isAdmin, hasPermission) => {
-  const actions = [];
-  
-  if (isAdmin || hasPermission('notes', 'view')) {
-    actions.push({ path: '/notes', label: 'Notes', icon: StickyNote });
-  }
-  
-  // Admin-only menu items
-  if (isAdmin) {
-    actions.push(
-      { path: '/settings', label: 'Settings', icon: Settings },
-      { path: '/employees', label: 'Employees', icon: UsersRound, badge: 'Admin', badgeColor: 'bg-accent-500' },
-      { path: '/employee-analytics', label: 'Employee Analytics', icon: BarChart3 },
-      { path: '/manual-entries', label: 'Manual Entries', icon: Shield, badge: 'Admin', badgeColor: 'bg-accent-500' },
-      { path: '/reports', label: 'Reports', icon: FileBarChart }
-    );
-  }
-  
-  return actions;
-};
-
-
-const createMenuContainerVariants = (isMobile, shouldStagger) => ({
-  open: {
-    transition: {
-      staggerChildren: shouldStagger ? 0.05 : 0,
-      delayChildren: 0  // No delay on mobile or desktop
-    }
-  },
-  closed: {
-    transition: {
-      staggerChildren: 0,
-      staggerDirection: -1
-    }
-  }
-});
-
-const createMenuItemVariants = (isMobile) => ({
-  open: {
-    x: 0,
-    opacity: 1,
-    transition: isMobile
-      ? { type: 'tween', duration: 0.1, ease: 'easeOut' }  // Instant
-      : { type: 'spring', stiffness: 300, damping: 24 }
-  },
-  closed: {
-    x: -10,
-    opacity: 0
-  }
-});
-
-function useMediaQuery(query) {
-  const [matches, setMatches] = useState(false);
-
-  useEffect(() => {
-    const media = window.matchMedia(query);
-    if (media.matches !== matches) {
-      setMatches(media.matches);
-    }
-    const listener = () => setMatches(media.matches);
-    media.addEventListener('change', listener);
-    return () => media.removeEventListener('change', listener);
-  }, [matches, query]);
-
-  return matches;
-}
-
-const MemoizedMenuItem = memo(({ item, index, location, onClose, hoveredItem, setHoveredItem, menuItemVariants, motionConfig }) => {
-  const isEditPage = location.pathname.includes('/edit');
-  
-  let isActive;
-  if (item.path === '/invoices/create') {
-    isActive = location.pathname === '/invoices/create' || isEditPage;
-  } else if (item.path === '/invoices') {
-    isActive = location.pathname === '/invoices' || 
-      (location.pathname.startsWith('/invoices/') && !isEditPage && !location.pathname.includes('/create'));
-  } else {
-    isActive = location.pathname === item.path || 
-      (item.path !== '/' && location.pathname.startsWith(item.path));
-  }
-  
-  return (
-    <motion.li 
-      variants={menuItemVariants}
-      onHoverStart={() => setHoveredItem(item.path)}
-      onHoverEnd={() => setHoveredItem(null)}
-      initial={motionConfig.isMobile ? false : undefined}
-      animate={motionConfig.isMobile ? false : undefined}
-    >
-      <Link
-        to={item.path}
-        onClick={onClose}
-        className="relative block"
-      >
-        {/* Active indicator background */}
-        {isActive && (
-          <motion.div
-            layoutId="activeTab"
-            className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-accent-600/20 border border-blue-500/30 rounded-xl"
-            initial={false}
-            transition={{ 
-              type: "spring", 
-              stiffness: 500, 
-              damping: 30,
-              mass: 0.8
-            }}
-          />
-        )}
-        
-        {/* Hover background */}
-        <AnimatePresence>
-          {hoveredItem === item.path && !isActive && (
+    return (
+      <li className="relative">
+        <Link
+          to={destinationPath}
+          onClick={onClose}
+          aria-label={item.label}
+          aria-current={isActive ? 'page' : undefined}
+          onMouseEnter={() => setHoveredItem(item.path)}
+          onMouseLeave={() => setHoveredItem(null)}
+          className={`group relative flex items-center gap-3 rounded-xl transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+            isCollapsed && !isMobile
+              ? 'justify-center p-3 my-1'
+              : 'px-3.5 py-2.5 my-0.5'
+          } ${
+            isActive
+              ? 'bg-gradient-to-r from-blue-600/20 to-accent-600/20 border border-blue-500/30 text-blue-400 font-semibold shadow-sm'
+              : isLocked
+              ? 'text-slate-400/90 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
+              : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 border border-transparent'
+          }`}
+        >
+          {/* Active Accent Bar on Left */}
+          {isActive && (
             <motion.div
-              className="absolute inset-0 bg-slate-800/50 rounded-xl"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.15 }}
+              layoutId={isMobile ? undefined : 'sidebarActiveIndicator'}
+              className="absolute left-0 w-1 h-5 bg-gradient-to-b from-blue-400 to-accent-400 rounded-r-full"
+              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
             />
           )}
-        </AnimatePresence>
 
-        <div className={`relative flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
-          isActive ? 'text-blue-400' : 'text-slate-400 hover:text-white'
-        }`}>
-          {/* Icon */}
-          <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-          
-          <span className="font-medium flex-1">{item.label}</span>
-          
-          {/* Badge */}
-          {item.badge && (
-            <motion.span
-              className={`${item.badgeColor || 'bg-blue-500'} text-white text-xs px-2 py-0.5 rounded-full font-semibold`}
-              initial={motionConfig.isMobile ? false : { scale: 0, opacity: 0 }}
-              animate={motionConfig.isMobile ? false : { scale: 1, opacity: 1 }}
-              transition={{ 
-                type: 'spring',
-                stiffness: 500,
-                damping: 15,
-                delay: 0.3 + index * 0.05
-              }}
-            >
-              {item.badge}
-            </motion.span>
-          )}
-          
-          {/* Hover arrow */}
-          <AnimatePresence>
-            {hoveredItem === item.path && (
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                transition={{ duration: 0.2 }}
-              >
-                <ChevronRight size={16} />
-              </motion.div>
+          {/* Icon with potential notification/badge dot in collapsed mode */}
+          <div className="relative flex items-center justify-center shrink-0">
+            <Icon
+              size={isCollapsed && !isMobile ? 22 : 19}
+              strokeWidth={isActive ? 2.5 : 2}
+              className={`transition-colors duration-150 ${
+                isActive
+                  ? 'text-blue-400'
+                  : isLocked
+                  ? 'text-slate-400 group-hover:text-slate-300'
+                  : 'text-slate-400 group-hover:text-slate-200'
+              }`}
+            />
+            {/* Lock indicator in collapsed mode */}
+            {isCollapsed && !isMobile && isLocked && (
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-slate-900 flex items-center justify-center" />
             )}
-          </AnimatePresence>
-        </div>
-      </Link>
-    </motion.li>
-  );
-});
+            {/* Indicator dot when collapsed and item has a badge */}
+            {isCollapsed && !isMobile && !isLocked && item.badge && (
+              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-blue-500 ring-2 ring-slate-900" />
+            )}
+          </div>
 
-const MemoizedQuickAction = memo(({ item, onClose, menuItemVariants, motionConfig }) => (
-  <motion.li 
-    variants={menuItemVariants}
-    whileHover={motionConfig.shouldHover ? { x: 4 } : undefined}
-    initial={motionConfig.isMobile ? false : undefined}
-    animate={motionConfig.isMobile ? false : undefined}
-  >
-    <Link
-      to={item.path}
-      onClick={onClose}
-      className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/50 transition-colors group"
-    >
-      <item.icon size={18} />
-      <span className="text-sm font-medium flex-1">{item.label}</span>
-      {item.badge && (
-        <span className={`${item.badgeColor || 'bg-blue-500'} text-white text-[10px] px-1.5 py-0.5 rounded font-semibold`}>
-          {item.badge}
-        </span>
-      )}
-    </Link>
-  </motion.li>
-));
+          {/* Label and Badge (Expanded or Mobile mode) */}
+          {(!isCollapsed || isMobile) && (
+            <div className="flex items-center justify-between flex-1 min-w-0">
+              <span className="truncate text-sm font-medium">{item.label}</span>
+              {isLocked ? (
+                <UpgradeBadge variant="lock" />
+              ) : item.badge ? (
+                <span
+                  className={`text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0 ml-2 ${
+                    item.badge.color ||
+                    'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                  }`}
+                >
+                  {item.badge.text}
+                </span>
+              ) : null}
+            </div>
+          )}
+        </Link>
 
-export default function Sidebar({ isOpen, onClose }) {
+        {/* Rich Floating Tooltip in Collapsed Rail Mode */}
+        {isCollapsed && !isMobile && isHovered && (
+          <NavItemTooltip
+            label={item.label}
+            sectionTitle={sectionTitle}
+            badge={item.badge}
+            isLocked={isLocked}
+          />
+        )}
+      </li>
+    );
+  }
+);
+SidebarNavItem.displayName = 'SidebarNavItem';
+
+export default function Sidebar({
+  isCollapsed = false,
+  onToggleCollapse,
+  isMobile = false,
+  onClose,
+}) {
   const location = useLocation();
   const { admin, user, isAdmin, hasPermission, logout } = useAuth();
-  const isDesktop = useMediaQuery('(min-width: 1024px)');
-  const shouldShow = isOpen || isDesktop;
+  const { canAccessRoute } = useSubscription();
   const [hoveredItem, setHoveredItem] = useState(null);
 
-  // Lock body scroll when mobile sidebar is open
-  useEffect(() => {
-    if (isOpen && !isDesktop) {
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-      
-      if (isIOS) {
-        const scrollY = window.scrollY;
-        document.body.style.position = 'fixed';
-        document.body.style.top = `-${scrollY}px`;
-        document.body.style.width = '100%';
-      } else {
-        document.body.style.overflow = 'hidden';
-      }
-      
-      return () => {
-        if (isIOS) {
-          const scrollY = document.body.style.top;
-          document.body.style.position = '';
-          document.body.style.top = '';
-          document.body.style.width = '';
-          window.scrollTo(0, parseInt(scrollY || '0') * -1);
-        } else {
-          document.body.style.overflow = '';
-        }
-      };
-    }
-  }, [isOpen, isDesktop]);
-  
-  // Adaptive motion configuration
-  const motionConfig = useMotionConfig();
-  
-  const menuContainerVariants = useMemo(
-    () => createMenuContainerVariants(motionConfig.isMobile, motionConfig.shouldStagger), 
-    [motionConfig.isMobile, motionConfig.shouldStagger]
-  );
-  const menuItemVariants = useMemo(
-    () => createMenuItemVariants(motionConfig.isMobile), 
-    [motionConfig.isMobile]
-  );
-
+  // Cached Invoice count query for dynamic badge
   const { data: invoiceCount = 0 } = useSWR(
     'invoices-count-sidebar',
     async () => {
-      const data = await invoiceService.getInvoices({ limit: 1 });
-      return data.total || 0;
+      try {
+        const data = await invoiceService.getInvoices({ limit: 1 });
+        return data.total || 0;
+      } catch {
+        return 0;
+      }
     },
     { ttl: 60 * 1000 }
   );
 
-  const menuItems = getMenuItems(invoiceCount, hasPermission, isAdmin);
-  const quickActions = getQuickActions(isAdmin, hasPermission);
+  // Filter accessible navigation categories & items
+  const filteredNavigation = useMemo(() => {
+    return getFilteredNavigation({
+      isAdmin,
+      hasPermission,
+      canAccessRoute,
+      dynamicData: { invoiceCount },
+    });
+  }, [isAdmin, hasPermission, canAccessRoute, invoiceCount]);
+
+  // User identity details
+  const displayName = isAdmin
+    ? admin?.firmName || 'Bharat Enterprise'
+    : user?.name || 'Employee';
+  const displayEmail = isAdmin
+    ? admin?.email || 'admin@bharat.com'
+    : user?.email || 'employee';
+  const userInitial = displayName.charAt(0).toUpperCase() || 'B';
 
   return (
-    <>
-      
-      {/* Sidebar - static in mobile wrapper or desktop layout */}
-      <aside className="sidebar h-full w-64 bg-slate-900/95 border-r border-slate-700 flex flex-col md:translate-x-0 md:static md:backdrop-blur-xl backdrop-blur-none shadow-md md:shadow-2xl contain-layout contain-paint">
-        {/* Logo Section */}
-        <motion.div 
-          className="p-6 border-b border-slate-700 flex justify-between items-center"
-          initial={motionConfig.isMobile ? false : { opacity: 0, y: -20 }}
-          animate={motionConfig.isMobile ? false : { opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
+    <aside
+      className={`h-full bg-slate-900/95 border-r border-slate-800/80 flex flex-col backdrop-blur-xl transition-all duration-300 select-none no-print ${
+        isMobile ? 'w-full' : isCollapsed ? 'w-[68px]' : 'w-64'
+      }`}
+    >
+      {/* ─── Header: Brand & Collapse Toggle ────────────────────────────── */}
+      <div
+        className={`shrink-0 flex items-center border-b border-slate-800/80 h-16 ${
+          isCollapsed && !isMobile
+            ? 'justify-center px-2'
+            : 'justify-between px-4'
+        }`}
+      >
+        <Link
+          to="/"
+          onClick={onClose}
+          className="flex items-center gap-3 group focus-visible:outline-none"
+          title="Bharat Enterprise"
         >
-          <Link to="/" className="flex items-center gap-3 group" onClick={onClose}>
-            <motion.div 
-              className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-accent-600 flex items-center justify-center shadow-lg shadow-blue-500/20 relative overflow-hidden"
-              whileHover={{ scale: 1.05, rotate: 5 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <span className="text-white font-bold text-lg relative z-10">B</span>
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-br from-accent-600 to-blue-500"
-                initial={{ scale: 0, opacity: 0 }}
-                whileHover={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.3 }}
-              />
-            </motion.div>
-            <div>
-              <motion.h1 
-                className="font-bold text-lg text-white tracking-tight"
-                initial={{ x: -10, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 0.15 }}
-              >
+          {/* Logo Badge */}
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-accent-600 flex items-center justify-center shadow-lg shadow-blue-500/20 shrink-0 group-hover:scale-105 transition-transform duration-200">
+            <span className="text-white font-bold text-base">B</span>
+          </div>
+
+          {/* Brand Name (Expanded/Mobile) */}
+          {(!isCollapsed || isMobile) && (
+            <div className="min-w-0">
+              <h1 className="font-bold text-base text-white tracking-tight leading-none truncate">
                 Bharat
-              </motion.h1>
-              <motion.p 
-                className="text-xs text-slate-400 font-medium"
-                initial={{ x: -10, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 0.2 }}
-              >
+              </h1>
+              <p className="text-[11px] text-slate-400 font-medium tracking-wide uppercase mt-0.5">
                 Enterprise
-              </motion.p>
+              </p>
             </div>
-          </Link>
-          
-          {/* Close button for mobile - stable 44x44px touch target */}
+          )}
+        </Link>
+
+        {/* Mobile Close Button (44x44px touch target) */}
+        {isMobile && (
           <button
-            onClick={onClose}
             type="button"
-            className="md:hidden p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 active:bg-slate-800/80 transition-colors group"
+            onClick={onClose}
+            className="w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 active:bg-slate-800/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
             aria-label="Close sidebar"
           >
-            <motion.div
-              whileHover={{ scale: 1.1, rotate: 90 }}
-              whileTap={{ scale: 0.9 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-            >
-              <X size={20} />
-            </motion.div>
+            <X size={20} />
           </button>
-        </motion.div>
+        )}
 
-        {/* Navigation */}
-        <nav className="flex-1 p-4 overflow-y-auto custom-scrollbar">
-          {/* Main Menu */}
-          <motion.div
-            variants={menuContainerVariants}
-            initial="closed"
-            animate={shouldShow ? "open" : "closed"}
+        {/* Desktop / Tablet Collapse Toggle Button */}
+        {!isMobile && onToggleCollapse && (
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            className={`p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 active:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+              isCollapsed ? 'hidden' : 'block'
+            }`}
+            title={isCollapsed ? 'Expand sidebar (Ctrl+B)' : 'Collapse sidebar (Ctrl+B)'}
+            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
-            <motion.div
-              variants={menuItemVariants}
-              className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 px-3"
-            >
-              Main Menu
-            </motion.div>
-            
-            <ul className="space-y-1">
-              {menuItems.map((item, index) => (
-                <MemoizedMenuItem 
-                  key={item.path}
+            {isCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+          </button>
+        )}
+      </div>
+
+      {/* ─── Expand button for Collapsed Rail Header ─────────────────── */}
+      {!isMobile && isCollapsed && onToggleCollapse && (
+        <div className="px-2 pt-2 flex justify-center">
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            className="w-full py-1.5 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            title="Expand sidebar (Ctrl+B)"
+            aria-label="Expand sidebar"
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* ─── Navigation Scroll Area ───────────────────────────────────── */}
+      <nav className="flex-1 p-2.5 overflow-y-auto custom-scrollbar space-y-4">
+        {filteredNavigation.map((section, sectionIdx) => (
+          <div key={section.id} className="space-y-1">
+            {/* Section Header */}
+            {(!isCollapsed || isMobile) ? (
+              <div className="text-[11px] font-semibold text-slate-400/90 tracking-wider uppercase px-3 py-1 mt-1">
+                {section.title}
+              </div>
+            ) : (
+              sectionIdx > 0 && <div className="border-t border-slate-800/70 my-2 mx-2" />
+            )}
+
+            {/* Section Items */}
+            <ul className="space-y-0.5">
+              {section.items.map((item) => (
+                <SidebarNavItem
+                  key={item.id}
                   item={item}
-                  index={index}
-                  location={location}
-                  onClose={onClose}
+                  sectionTitle={section.title}
+                  isCollapsed={isCollapsed}
+                  isMobile={isMobile}
+                  currentPath={location.pathname}
+                  onClose={isMobile ? onClose : undefined}
                   hoveredItem={hoveredItem}
                   setHoveredItem={setHoveredItem}
-                  menuItemVariants={menuItemVariants}
-                  motionConfig={motionConfig}
+                  canAccessRoute={canAccessRoute}
                 />
               ))}
             </ul>
+          </div>
+        ))}
+      </nav>
 
-            {/* Quick Actions */}
-            <motion.div
-              variants={menuItemVariants}
-              initial={motionConfig.isMobile ? false : undefined}
-              animate={motionConfig.isMobile ? false : undefined}
-              className="mt-6"
-            >
-              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 px-3">
-                Quick Actions
-              </div>
-              
-              <ul className="space-y-1">
-                {quickActions.map((item) => (
-                  <MemoizedQuickAction 
-                    key={item.path}
-                    item={item}
-                    onClose={onClose}
-                    menuItemVariants={menuItemVariants}
-                    motionConfig={motionConfig}
-                  />
-                ))}
-              </ul>
-            </motion.div>
-
-
-          </motion.div>
-        </nav>
-
-        {/* User Section */}
-        <motion.div 
-          className="p-4 border-t border-slate-700 bg-slate-900/50"
-          initial={motionConfig.isMobile ? false : { opacity: 0, y: 20 }}
-          animate={motionConfig.isMobile ? false : { opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <motion.div 
-            className="flex items-center gap-3 mb-4 p-2 rounded-xl hover:bg-slate-800/50 transition-colors cursor-pointer group"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <motion.div 
-              className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg relative overflow-hidden ${
-                isAdmin 
-                  ? 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/20'
-                  : 'bg-gradient-to-br from-blue-500 to-accent-600 shadow-blue-500/20'
-              }`}
-              whileHover={{ scale: 1.1 }}
-            >
-              <span className="text-white font-semibold relative z-10">
-                {isAdmin ? (admin?.firmName?.charAt(0) || 'A') : (user?.name?.charAt(0) || 'E')}
-              </span>
-              <motion.div
-                className={`absolute inset-0 ${
-                  isAdmin 
-                    ? 'bg-gradient-to-br from-teal-600 to-emerald-500'
-                    : 'bg-gradient-to-br from-accent-600 to-blue-500'
+      {/* ─── Fixed Sticky Footer: User & Logout ───────────────────────── */}
+      <div className="shrink-0 p-3 border-t border-slate-800/80 bg-slate-950/40">
+        {(!isCollapsed || isMobile) ? (
+          <div className="space-y-2.5">
+            {/* User Profile Card */}
+            <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-800/40 border border-slate-700/40">
+              <div
+                className={`w-9 h-9 rounded-full flex items-center justify-center shadow-md shrink-0 text-white font-semibold text-sm ${
+                  isAdmin
+                    ? 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/20'
+                    : 'bg-gradient-to-br from-blue-500 to-accent-600 shadow-blue-500/20'
                 }`}
-                initial={{ scale: 0, opacity: 0 }}
-                whileHover={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.3 }}
-              />
-            </motion.div>
-            
-            <div className="flex-1 min-w-0">
-              <motion.p 
-                className="text-sm font-medium text-white truncate"
-                initial={{ x: -10, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 0.35 }}
               >
-                {isAdmin ? (admin?.firmName || 'Admin') : (user?.name || 'Employee')}
-              </motion.p>
-              <motion.p 
-                className="text-xs text-slate-400 flex flex-wrap items-center gap-1"
-                initial={{ x: -10, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 0.4 }}
-              >
-                <span className="truncate max-w-[140px]">
-                  {isAdmin ? (admin?.email || 'admin@bharat.com') : (user?.email || 'employee')}
-                </span>
-                {isAdmin && (
-                  <span className="text-[10px] px-1 py-0.5 bg-accent-500/20 text-accent-400 rounded flex-shrink-0">Admin</span>
-                )}
-              </motion.p>
+                {userInitial}
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-xs font-semibold text-white truncate">
+                    {displayName}
+                  </p>
+                  {isAdmin && (
+                    <span className="text-[9px] px-1.5 py-0.2 bg-teal-500/20 text-teal-300 border border-teal-500/30 rounded font-medium shrink-0">
+                      Admin
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-400 truncate">
+                  {displayEmail}
+                </p>
+              </div>
             </div>
 
+            {/* Logout Button */}
+            <button
+              type="button"
+              onClick={logout}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 border border-red-500/20 hover:border-red-500/30 transition-all text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+            >
+              <LogOut size={15} />
+              <span>Logout</span>
+            </button>
+          </div>
+        ) : (
+          /* Collapsed Rail Footer Mode */
+          <div className="flex flex-col items-center gap-2">
+            <div
+              className={`w-9 h-9 rounded-full flex items-center justify-center shadow-md text-white font-semibold text-sm cursor-default ${
+                isAdmin
+                  ? 'bg-gradient-to-br from-emerald-500 to-teal-600'
+                  : 'bg-gradient-to-br from-blue-500 to-accent-600'
+              }`}
+              title={`${displayName} (${displayEmail})`}
+            >
+              {userInitial}
+            </div>
 
-          </motion.div>
-          
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={logout}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors border border-red-500/10 hover:border-red-500/30 group relative overflow-hidden"
-          >
-            <motion.div
-              className="absolute inset-0 bg-red-500/20"
-              initial={{ x: '-100%' }}
-              whileHover={{ x: 0 }}
-              transition={{ duration: 0.3 }}
-            />
-            <motion.div
-              whileHover={{ rotate: 180 }}
-              transition={{ duration: 0.3 }}
-              className="relative z-10"
+            <button
+              type="button"
+              onClick={logout}
+              className="p-2 rounded-xl text-red-400 hover:bg-red-500/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+              title="Logout"
+              aria-label="Logout"
             >
               <LogOut size={18} />
-            </motion.div>
-            <span className="font-medium relative z-10">Logout</span>
-          </motion.button>
-        </motion.div>
-      </aside>
-    </>
+            </button>
+          </div>
+        )}
+      </div>
+    </aside>
   );
 }

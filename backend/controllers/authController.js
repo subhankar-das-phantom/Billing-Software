@@ -25,6 +25,20 @@ const generateToken = (id, role = 'admin') => {
   });
 };
 
+const getPopulatedEmployeeProfile = async (employee) => {
+  const profile = employee.getPublicProfile();
+  if (employee.createdByAdmin) {
+    const admin = await Admin.findById(employee.createdByAdmin).select('preferences').lean();
+    if (admin && admin.preferences) {
+      profile.preferences = {
+        ...admin.preferences,
+        ...profile.preferences
+      };
+    }
+  }
+  return profile;
+};
+
 /**
  * Create session for login tracking
  */
@@ -86,6 +100,15 @@ exports.register = async (req, res, next) => {
       firmGSTIN: firmGSTIN || '',
       firmDL: firmDL || ''
     });
+
+    // Automatically provision a Free Trial subscription for the new user!
+    try {
+      const { createTrialSubscription } = require('../saas/services/subscriptionService');
+      await createTrialSubscription(admin._id.toString());
+    } catch (trialErr) {
+      console.error('Failed to create trial subscription:', trialErr);
+      // We don't block registration, but this should ideally be logged to an error tracker
+    }
 
     // Generate token with admin role
     const token = generateToken(admin._id, 'admin');
@@ -177,7 +200,7 @@ exports.login = async (req, res, next) => {
     }
 
     // If not an Admin, try Employee
-    const employee = await Employee.findOne({ email: email.toLowerCase() }).select('+password');
+    const employee = await Employee.findOne({ email: email.toLowerCase() }).select('+password').populate('createdByAdmin', 'firmName');
 
     if (employee) {
       // Check if employee is active
@@ -220,7 +243,7 @@ exports.login = async (req, res, next) => {
         success: true,
         role: 'employee',
         token,
-        employee: employee.getPublicProfile()
+        employee: { ...(await getPopulatedEmployeeProfile(employee)), firmName: employee.createdByAdmin?.firmName || 'Your firm' }
       });
     }
 
@@ -252,7 +275,7 @@ exports.employeeLogin = async (req, res, next) => {
     // Find employee by email
     const employee = await Employee.findOne({ 
       email: email.toLowerCase() 
-    }).select('+password');
+    }).select('+password').populate('createdByAdmin', 'firmName');
 
     if (!employee) {
       return res.status(401).json({
@@ -301,7 +324,7 @@ exports.employeeLogin = async (req, res, next) => {
       success: true,
       role: 'employee',
       token,
-      employee: employee.getPublicProfile()
+      employee: { ...(await getPopulatedEmployeeProfile(employee)), firmName: employee.createdByAdmin?.firmName || 'Your firm' }
     });
   } catch (error) {
     next(error);
@@ -322,10 +345,11 @@ exports.getMe = async (req, res, next) => {
       }
 
       // Return employee profile
+      const employee = await Employee.findById(req.user._id).populate('createdByAdmin', 'firmName');
       res.status(200).json({
         success: true,
         role: 'employee',
-        user: req.user.getPublicProfile()
+        user: { ...(await getPopulatedEmployeeProfile(employee)), firmName: employee.createdByAdmin?.firmName || 'Your firm' }
       });
     } else {
       // Return admin profile
@@ -509,7 +533,7 @@ const VALID_INVOICE_COLUMNS = new Set([
 
 exports.updatePreferences = async (req, res, next) => {
   try {
-    const { showCalculator, invoiceColumns } = req.body;
+    const { showCalculator, invoiceColumns, enableBatchTracking } = req.body;
     
     let user;
     if (req.userRole === 'employee') {
@@ -554,6 +578,14 @@ exports.updatePreferences = async (req, res, next) => {
     }
 
     await user.save();
+
+    if (enableBatchTracking !== undefined && req.userRole === 'admin') {
+      const { toggleBatchTracking } = require('../services/inventoryService');
+      if (user.preferences.enableBatchTracking !== enableBatchTracking) {
+        await toggleBatchTracking(user._id, enableBatchTracking);
+        user = await Admin.findById(req.user._id);
+      }
+    }
 
     res.status(200).json({
       success: true,

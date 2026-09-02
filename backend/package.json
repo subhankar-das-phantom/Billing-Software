@@ -34,11 +34,12 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.0.1",
     "morgan": "^1.10.1",
-    "pdfkit": "^0.18.0"
+    "pdfkit": "^0.18.0",
+    "razorpay": "^2.9.6"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
-    "@types/node": "^22.0.0",
+    "@types/node": "^22.19.21",
     "@types/pdfkit": "^0.17.6",
     "axios": "^1.13.2",
     "tsx": "^4.19.0",
