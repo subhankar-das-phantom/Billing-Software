@@ -328,13 +328,13 @@ function AppRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <SubscriptionProvider>
-          <ToastProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <SubscriptionProvider>
             <AppRoutes />
-          </ToastProvider>
-        </SubscriptionProvider>
-      </AuthProvider>
+          </SubscriptionProvider>
+        </AuthProvider>
+      </ToastProvider>
     </BrowserRouter>
   );
 }

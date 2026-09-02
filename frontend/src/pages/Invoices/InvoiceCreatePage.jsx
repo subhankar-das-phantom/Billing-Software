@@ -128,6 +128,15 @@ const generateCreateRequestId = () => {
   return `invreq_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 };
 
+const generateRowId = (prefix = "row", id = "") => {
+  const cleanId = id ? `${id}_` : "";
+  const randomPart =
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  return `${prefix}_${cleanId}${randomPart}`;
+};
+
 // Helper to load draft from sessionStorage (tab-specific)
 const loadDraftFromStorage = () => {
   try {
@@ -692,6 +701,7 @@ export default function InvoiceCreatePage() {
           const restoredItems = savedDraft.invoiceItems.map((item) => {
             const currentStockData = stockMap.get(item.product._id);
             return {
+              _rowId: item._rowId || generateRowId("restored", item.product?._id),
               ...item,
               product: {
                 ...item.product,
@@ -747,6 +757,7 @@ export default function InvoiceCreatePage() {
               .map((item) => {
                 const data = stockMap.get(item.product._id);
                 return {
+                  _rowId: item._rowId || generateRowId("restored", item.product?._id),
                   ...item,
                   product: {
                     ...item.product,
@@ -785,6 +796,7 @@ export default function InvoiceCreatePage() {
               );
 
               return {
+                _rowId: item._rowId || generateRowId("edit", item.product?._id),
                 product: {
                   ...item.product,
                   rate: item.product.newMRP,
@@ -841,6 +853,7 @@ export default function InvoiceCreatePage() {
             );
 
             return {
+              _rowId: item._rowId || generateRowId("edit", item.product?._id),
               product: {
                 ...item.product,
                 rate: item.product.newMRP,
@@ -933,8 +946,25 @@ export default function InvoiceCreatePage() {
       batch?.batchNumber ||
       (batch?._id === "UNNAMED" ? "UNNAMED" : "No Batch #");
 
+    const batchIdStr = batch?._id
+      ? String(batch._id)
+      : batch?.id
+        ? String(batch.id)
+        : null;
+    const pricingKey = getBatchPricingKey(batch);
+    const rawProdId =
+      sourceItem?.product?._id || sourceItem?.product?.id || sourceItem?.product;
+    const prodIdStr =
+      typeof rawProdId === "object"
+        ? String(rawProdId?._id || rawProdId?.id || rawProdId)
+        : String(rawProdId);
+
     return {
       ...sourceItem,
+      _rowId:
+        sourceItem?._rowId && sourceItem._batchId === batchIdStr
+          ? sourceItem._rowId
+          : generateRowId("batch", `${prodIdStr}_${batchIdStr || "unnamed"}`),
       product: {
         ...sourceItem.product,
         batchNo: batchNo || sourceItem.product?.batchNo || "No Batch #",
@@ -950,8 +980,8 @@ export default function InvoiceCreatePage() {
       ...(manualAllocations ? { manualAllocations } : {}),
       ...(batchIds.length > 0 ? { _batchIds: batchIds } : {}),
       ...amounts,
-      _batchId: batch?._id ? String(batch._id) : (batch?.id ? String(batch.id) : null),
-      _batchKey: `${batch?._id ? String(batch._id) : (batch?.id ? String(batch.id) : "batch")}|${getBatchPricingKey(batch)}`,
+      _batchId: batchIdStr,
+      _batchKey: `${batchIdStr || "batch"}|${pricingKey}`,
       _batchPreview: true,
     };
   };
@@ -1053,7 +1083,7 @@ export default function InvoiceCreatePage() {
       }
     }
 
-    return [...grouped.values()].map((group) => {
+    return [...grouped.values()].map((group, groupIdx) => {
       const item = buildItemFromBatchAllocation({
         sourceItem: sourceItem || {
           product,
@@ -1067,6 +1097,16 @@ export default function InvoiceCreatePage() {
         batchIds: group.batchIds,
         manualAllocations: group.manualAllocations,
       });
+      // If expanding from an existing sourceItem, only the first allocation preserves sourceItem._rowId
+      // Subsequent allocations must get a freshly generated unique _rowId to avoid key duplication
+      if (groupIdx === 0 && sourceItem?._rowId) {
+        item._rowId = sourceItem._rowId;
+      } else {
+        item._rowId = generateRowId(
+          "batch",
+          `${productIdStr}_${group.batch?._id || "unnamed"}`,
+        );
+      }
       return item;
     });
   };
@@ -1089,39 +1129,67 @@ export default function InvoiceCreatePage() {
 
         setInvoiceItems((prev) => {
           const rawId = product?._id || product?.id || product;
-          const productIdString = typeof rawId === "object" ? String(rawId?._id || rawId?.id || rawId) : String(rawId);
+          const productIdString =
+            typeof rawId === "object"
+              ? String(rawId?._id || rawId?.id || rawId)
+              : String(rawId);
 
           const firstIndex = prev.findIndex(
-            (item) => String(item.product?._id || item.product?.id || item.product) === productIdString,
+            (item) =>
+              String(item.product?._id || item.product?.id || item.product) ===
+              productIdString,
           );
 
           const next = prev.filter(
-            (item) => String(item.product?._id || item.product?.id || item.product) !== productIdString,
-          );
-          
-          const oldItems = prev.filter(
-            (item) => String(item.product?._id || item.product?.id || item.product) === productIdString,
+            (item) =>
+              String(item.product?._id || item.product?.id || item.product) !==
+              productIdString,
           );
 
-          const mergedRows = rows.map(newRow => {
-            const oldRow = oldItems.find(old => old._batchId === newRow._batchId);
+          const oldItems = prev.filter(
+            (item) =>
+              String(item.product?._id || item.product?.id || item.product) ===
+              productIdString,
+          );
+
+          const usedOldRowIds = new Set();
+
+          const mergedRows = rows.map((newRow) => {
+            const oldRow = oldItems.find(
+              (old) =>
+                old._batchId === newRow._batchId &&
+                old._rowId &&
+                !usedOldRowIds.has(old._rowId),
+            );
             if (oldRow) {
+              newRow._rowId = oldRow._rowId;
+              usedOldRowIds.add(oldRow._rowId);
               newRow.schemeDiscount = oldRow.schemeDiscount || 0;
-              if (oldRow.baseRate !== undefined) newRow.baseRate = oldRow.baseRate;
-              if (oldRow.netRate !== undefined) newRow.netRate = oldRow.netRate;
-              
+              if (oldRow.baseRate !== undefined)
+                newRow.baseRate = oldRow.baseRate;
+              if (oldRow.netRate !== undefined)
+                newRow.netRate = oldRow.netRate;
+
               const amounts = calculateItemAmounts(
                 newRow.quantitySold,
                 newRow.baseRate,
                 newRow.product.gstPercentage,
-                newRow.schemeDiscount
+                newRow.schemeDiscount,
               );
               return { ...newRow, ...amounts };
             }
+            if (!newRow._rowId || usedOldRowIds.has(newRow._rowId)) {
+              newRow._rowId = generateRowId(
+                "batch",
+                `${productIdString}_${newRow._batchId || "unnamed"}`,
+              );
+            }
+            usedOldRowIds.add(newRow._rowId);
             return newRow;
           });
 
-          const insertIndex = firstIndex !== -1 ? Math.min(firstIndex, next.length) : 0;
+          const insertIndex =
+            firstIndex !== -1 ? Math.min(firstIndex, next.length) : 0;
           next.splice(insertIndex, 0, ...mergedRows);
           return next;
         });
@@ -1141,10 +1209,16 @@ export default function InvoiceCreatePage() {
   const createBaseInvoiceItem = (product) => {
     const baseRate = removeGST(product.rate, product.gstPercentage);
     const amounts = calculateItemAmounts(1, baseRate, product.gstPercentage, 0);
+    const rawId = product?._id || product?.id || product;
+    const productIdString =
+      typeof rawId === "object"
+        ? String(rawId?._id || rawId?.id || rawId)
+        : String(rawId);
 
     return {
+      _rowId: generateRowId("base", productIdString),
       product: {
-        _id: product._id,
+        _id: productIdString,
         productName: product.productName,
         hsnCode: product.hsnCode,
         newMRP: product.newMRP,
@@ -1166,33 +1240,71 @@ export default function InvoiceCreatePage() {
     };
   };
 
-  const handleProductSelect = (product) => {
-    const productIdString = String(product._id);
+  const handleProductSelect = async (product) => {
+    const rawId = product?._id || product?.id || product;
+    const productIdString =
+      typeof rawId === "object"
+        ? String(rawId?._id || rawId?.id || rawId)
+        : String(rawId);
+
+    // 1. Close dropdown and clear search immediately
+    setProductSearch("");
+    setProductResults([]);
+    setShowProductDropdown(false);
+
+    // 2. Check if product already exists in the invoice items
     const existingIndex = invoiceItems.findIndex(
-      (item) => String(item.product._id) === productIdString,
+      (item) =>
+        String(item.product?._id || item.product?.id || item.product) ===
+        productIdString,
     );
 
     if (existingIndex !== -1) {
       const existingItem = invoiceItems[existingIndex];
       const currentQty = Number(existingItem.quantitySold) || 0;
       updateItemQuantity(existingIndex, "quantitySold", currentQty + 1);
-
-      setProductSearch("");
-      setProductResults([]);
-      setShowProductDropdown(false);
       return;
     }
 
-    const baseItem = createBaseInvoiceItem(product);
-    setInvoiceItems((prev) => [baseItem, ...prev]);
-
+    // 3. AUTO + Batch Tracking: directly resolve FIFO allocation before rendering
     if (enableBatchTracking && allocationMode === "AUTO") {
-      scheduleBatchPreview(product, 1, baseItem);
+      const baseItem = createBaseInvoiceItem(product);
+      try {
+        const rows = await simulateBatchAllocation(product, 1, baseItem);
+        if (rows && rows.length > 0) {
+          setInvoiceItems((prev) => {
+            const alreadyExistsIndex = prev.findIndex(
+              (item) =>
+                String(item.product?._id || item.product?.id || item.product) ===
+                productIdString,
+            );
+            if (alreadyExistsIndex !== -1) {
+              return prev;
+            }
+            return [...rows, ...prev];
+          });
+          return;
+        }
+      } catch (err) {
+        console.error("Failed to allocate batch via FIFO:", err);
+      }
+
+      // Fallback if no batches found or simulation failed
+      setInvoiceItems((prev) => {
+        const alreadyExistsIndex = prev.findIndex(
+          (item) =>
+            String(item.product?._id || item.product?.id || item.product) ===
+            productIdString,
+        );
+        if (alreadyExistsIndex !== -1) return prev;
+        return [baseItem, ...prev];
+      });
+      return;
     }
 
-    setProductSearch("");
-    setProductResults([]);
-    setShowProductDropdown(false);
+    // 4. Batch tracking disabled or MANUAL mode: insert baseItem directly
+    const baseItem = createBaseInvoiceItem(product);
+    setInvoiceItems((prev) => [baseItem, ...prev]);
   };
 
   const updateItemQuantity = (index, field, value) => {
@@ -1507,7 +1619,7 @@ export default function InvoiceCreatePage() {
     let soldRemaining = Number(item.quantitySold) || 0;
     let freeRemaining = Number(item.freeQuantity) || 0;
 
-    const replacementRows = [...grouped.values()].map((group) => {
+    const replacementRows = [...grouped.values()].map((group, gIdx) => {
       const quantitySold = Math.min(soldRemaining, group.quantity);
       soldRemaining -= quantitySold;
       const freeQuantity = Math.min(
@@ -1516,7 +1628,7 @@ export default function InvoiceCreatePage() {
       );
       freeRemaining -= freeQuantity;
 
-      return buildItemFromBatchAllocation({
+      const repItem = buildItemFromBatchAllocation({
         sourceItem: item,
         batch: group.batch,
         quantitySold,
@@ -1524,6 +1636,15 @@ export default function InvoiceCreatePage() {
         batchIds: group.batchIds,
         manualAllocations: group.manualAllocations,
       });
+
+      repItem._rowId =
+        gIdx === 0 && item._rowId
+          ? item._rowId
+          : generateRowId(
+              "batch",
+              `${item.product?._id || "prod"}_${group.batch?._id || "unnamed"}`,
+            );
+      return repItem;
     });
 
     setInvoiceItems((prev) => {
@@ -2118,7 +2239,7 @@ export default function InvoiceCreatePage() {
 
                           return (
                             <motion.tr
-                              key={item._batchKey ? `${item._batchKey}-${index}` : `${item.product._id}-${index}`}
+                              key={item._rowId || item._batchKey || `product_${item.product?._id}_${index}`}
                               custom={index}
                               variants={tableRowVariants}
                               initial="hidden"
@@ -2311,7 +2432,7 @@ export default function InvoiceCreatePage() {
                   <AnimatePresence mode="popLayout">
                     {invoiceItems.map((item, index) => (
                       <InvoiceItemMobileCard
-                        key={item._batchKey ? `${item._batchKey}-${index}` : `${item.product._id}-${index}`}
+                        key={item._rowId || item._batchKey || `product_${item.product?._id}_${index}`}
                         item={item}
                         index={index}
                         updateItemQuantity={updateItemQuantity}
