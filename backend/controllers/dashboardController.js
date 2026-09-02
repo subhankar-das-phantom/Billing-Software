@@ -3,6 +3,7 @@ const Product = require('../models/Product');
 const Admin = require('../models/Admin');
 const { buildEffectiveStockAggregation } = require('../services/inventoryService');
 const Customer = require('../models/Customer');
+const Payment = require('../models/Payment');
 const { LOW_STOCK_THRESHOLD } = require('../config/constants');
 const getTenantId = require('../utils/getTenantId');
 
@@ -81,6 +82,102 @@ exports.getStats = async (req, res, next) => {
       prevMonthEnd
     } = getISTDateRanges();
     
+    // -----------------------------------------------------------------
+    // Early Branch: Dedicated Employee Operational Dashboard
+    // Genuine database isolation: skip all executive revenue / growth queries!
+    // -----------------------------------------------------------------
+    if (req.userRole === 'employee') {
+      const employeeId = req.user._id;
+
+      // 1. Employee today's invoices query (strictly scoped by attribution)
+      const todayInvoiceQuery = {
+        tenantId,
+        'createdBy.user': employeeId,
+        status: { $ne: 'Cancelled' },
+        invoiceDate: { $gte: todayStart, $lt: tomorrowStart }
+      };
+
+      // 2. Employee today's payments query (strictly scoped by attribution)
+      const todayPaymentQuery = {
+        tenantId,
+        'createdBy.user': employeeId,
+        paymentDate: { $gte: todayStart, $lt: tomorrowStart }
+      };
+
+      // 3. Permission checks for low-stock operational visibility
+      const hasInventoryPerm = !!(
+        req.user.permissions?.get?.('inventory')?.view ||
+        req.user.permissions?.inventory?.view ||
+        req.user.permissions?.get?.('ledger')?.view ||
+        req.user.permissions?.ledger?.view
+      );
+
+      const [
+        todayInvoicesCreated,
+        todaySalesAgg,
+        todayPaymentsRecorded,
+        todayPaymentsAgg,
+        recentInvoices,
+        lowStockCountAgg
+      ] = await Promise.all([
+        Invoice.countDocuments(todayInvoiceQuery),
+        Invoice.aggregate([
+          { $match: todayInvoiceQuery },
+          { $group: { _id: null, total: { $sum: '$totals.netTotal' } } }
+        ]),
+        Payment.countDocuments(todayPaymentQuery),
+        Payment.aggregate([
+          { $match: todayPaymentQuery },
+          { $group: { _id: null, total: { $sum: '$amount' } } }
+        ]),
+        Invoice.find({
+          tenantId,
+          'createdBy.user': employeeId,
+          status: { $ne: 'Cancelled' }
+        })
+          .sort({ createdAt: -1 })
+          .limit(5)
+          .select('invoiceNumber invoiceDate customer.customerName totals.netTotal status paymentStatus paidAmount paymentType'),
+        hasInventoryPerm
+          ? Product.aggregate([
+              { $match: { tenantId, isActive: true } },
+              ...buildEffectiveStockAggregation(tenantId, enableBatchTracking),
+              { $match: { effectiveStockQty: { $lte: LOW_STOCK_THRESHOLD } } },
+              { $count: 'count' }
+            ])
+          : Promise.resolve([])
+      ]);
+
+      const todaySalesHandled = todaySalesAgg[0]?.total || 0;
+      const todayPaymentsAmount = todayPaymentsAgg[0]?.total || 0;
+      const lowStockCount = lowStockCountAgg[0]?.count || 0;
+
+      // Extract career/lifetime metrics maintained in employee model
+      const myInvoicesCount = req.user.metrics?.invoicesCreatedCount || 0;
+      const myTotalSales = req.user.metrics?.totalSalesGenerated || 0;
+      const myPaymentsCount = req.user.metrics?.paymentsRecordedCount || 0;
+      const myPaymentsAmount = req.user.metrics?.paymentsAmountRecorded || 0;
+
+      return res.status(200).json({
+        success: true,
+        isEmployee: true,
+        employeeStats: {
+          employeeName: req.user.name,
+          role: req.user.role || 'custom',
+          myInvoicesCount,
+          myTotalSales,
+          myPaymentsCount,
+          myPaymentsAmount,
+          todayInvoicesCreated,
+          todaySalesHandled,
+          todayPaymentsRecorded,
+          todayPaymentsAmount
+        },
+        lowStockCount: hasInventoryPerm ? lowStockCount : undefined,
+        recentInvoices
+      });
+    }
+
     const nonCancelledInvoiceQuery = { ...matchStage, status: { $ne: 'Cancelled' } };
 
     // Helper function to calculate percentage change
@@ -206,6 +303,22 @@ exports.getStats = async (req, res, next) => {
 // @access  Private
 exports.getLowStock = async (req, res, next) => {
   try {
+    if (req.userRole === 'employee') {
+      const hasInventoryPerm = !!(
+        req.user.permissions?.get?.('inventory')?.view ||
+        req.user.permissions?.inventory?.view ||
+        req.user.permissions?.get?.('ledger')?.view ||
+        req.user.permissions?.ledger?.view
+      );
+      if (!hasInventoryPerm) {
+        return res.status(200).json({
+          success: true,
+          count: 0,
+          products: []
+        });
+      }
+    }
+
     const threshold = parseInt(req.query.threshold) || LOW_STOCK_THRESHOLD;
     const tenantId = getTenantId(req);
     const tenant = await Admin.findById(tenantId).select('preferences').lean();
