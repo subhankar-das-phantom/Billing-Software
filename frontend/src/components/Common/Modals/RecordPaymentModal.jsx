@@ -11,12 +11,16 @@ import {
   Loader2,
   Shield,
   ListOrdered,
-  AlertTriangle
+  AlertTriangle,
+  Search,
+  User
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { recordPayment, PAYMENT_METHODS } from '../../../services/credits/creditService';
 import { invoiceService } from '../../../services/invoices/invoiceService';
 import { manualEntryService } from '../../../services/entries/manualEntryService';
+import { customerService } from '../../../services/customers/customerService';
+import { creditNoteService } from '../../../services/credits/creditNoteService';
 import { formatCurrency, formatDate } from '../../../utils/formatters';
 import CustomDropdown from '../Dropdowns/CustomDropdown';
 
@@ -59,12 +63,30 @@ export default function RecordPaymentModal({
   isOpen,
   onClose,
   onSuccess,
-  customer,
-  invoices = [], // Unpaid/partial invoices for this customer
-  manualEntries = [], // Unpaid opening balance entries
+  customer: initialCustomer = null,
+  invoices: initialInvoices = [], // Unpaid/partial invoices for this customer
+  manualEntries: initialManualEntries = [], // Unpaid opening balance entries
   preSelectedInvoice = null,
-  creditNotes = [] // Credit notes for this customer
+  creditNotes: initialCreditNotes = [] // Credit notes for this customer
 }) {
+  // Standalone Customer State (when customer prop is not supplied)
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [customerResults, setCustomerResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [loadingCustomerData, setLoadingCustomerData] = useState(false);
+
+  // Standalone Dues State
+  const [standaloneInvoices, setStandaloneInvoices] = useState([]);
+  const [standaloneManualEntries, setStandaloneManualEntries] = useState([]);
+  const [standaloneCreditNotes, setStandaloneCreditNotes] = useState([]);
+
+  // Active sources: use prop if provided, else use standalone state
+  const activeCustomer = initialCustomer || selectedCustomer;
+  const invoices = initialCustomer ? initialInvoices : standaloneInvoices;
+  const manualEntries = initialCustomer ? initialManualEntries : standaloneManualEntries;
+  const creditNotes = initialCustomer ? initialCreditNotes : standaloneCreditNotes;
+
   const [formData, setFormData] = useState({
     selectionId: '', // Can be invoiceId or entryId
     selectionType: 'invoice', // 'invoice' or 'entry'
@@ -268,8 +290,97 @@ export default function RecordPaymentModal({
       setFifoProgress(null);
       setFifoConfirm(false);
       setFifoResult(null);
+
+      // Reset standalone selection when opened without pre-selected customer
+      if (!initialCustomer) {
+        setSelectedCustomer(null);
+        setCustomerSearch('');
+        setCustomerResults([]);
+        setStandaloneInvoices([]);
+        setStandaloneManualEntries([]);
+        setStandaloneCreditNotes([]);
+        setLoadingCustomerData(false);
+      }
     }
-  }, [isOpen, preSelectedInvoiceId]);
+  }, [isOpen, preSelectedInvoiceId, initialCustomer]);
+
+  // Debounced Customer Search for Standalone Mode
+  useEffect(() => {
+    if (!isOpen || initialCustomer || selectedCustomer) return;
+
+    if (!customerSearch || customerSearch.trim().length < 2) {
+      setCustomerResults([]);
+      setSearchLoading(false);
+      return;
+    }
+
+    setSearchLoading(true);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await customerService.searchCustomers(customerSearch.trim());
+        setCustomerResults(res.customers || []);
+      } catch (err) {
+        console.error('Failed to search customers:', err);
+        setCustomerResults([]);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [customerSearch, isOpen, initialCustomer, selectedCustomer]);
+
+  const handleSelectCustomer = async (cust) => {
+    setSelectedCustomer(cust);
+    setCustomerSearch('');
+    setCustomerResults([]);
+    setLoadingCustomerData(true);
+    setError('');
+    setFormData(prev => ({
+      ...prev,
+      selectionId: '',
+      selectionType: 'invoice',
+      amount: ''
+    }));
+
+    try {
+      const [invData, entryData, cnData] = await Promise.all([
+        customerService.getCustomerInvoices(cust._id, {
+          limit: 200,
+          paymentStatus: ['Unpaid', 'Partial'],
+          payableOnly: true
+        }).catch(() => ({ items: [] })),
+        manualEntryService.getUnpaidOpeningBalances(cust._id).catch(() => ({ manualEntries: [] })),
+        creditNoteService.getCreditNotesByCustomer(cust._id, { limit: 200 }).catch(() => ({ items: [] }))
+      ]);
+
+      setStandaloneInvoices(invData.items || invData.invoices || []);
+      setStandaloneManualEntries(entryData.manualEntries || []);
+      setStandaloneCreditNotes(cnData.items || cnData.creditNotes || []);
+    } catch (err) {
+      console.error('Failed to load customer payment records:', err);
+      setError('Failed to load customer dues and invoices');
+    } finally {
+      setLoadingCustomerData(false);
+    }
+  };
+
+  const handleClearCustomer = () => {
+    setSelectedCustomer(null);
+    setCustomerSearch('');
+    setCustomerResults([]);
+    setStandaloneInvoices([]);
+    setStandaloneManualEntries([]);
+    setStandaloneCreditNotes([]);
+    setLoadingCustomerData(false);
+    setError('');
+    setFormData(prev => ({
+      ...prev,
+      selectionId: '',
+      selectionType: 'invoice',
+      amount: ''
+    }));
+  };
 
   const handleSelectionChange = (value) => {
     if (value.startsWith('entry_')) {
@@ -576,8 +687,10 @@ export default function RecordPaymentModal({
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-white">Record Payment</h2>
-                  {customer && (
-                    <p className="text-sm text-slate-400">{customer.customerName}</p>
+                  {activeCustomer && (
+                    <p className="text-sm text-slate-400">
+                      {activeCustomer.customerName || activeCustomer.name}
+                    </p>
                   )}
                 </div>
               </div>
@@ -711,10 +824,127 @@ export default function RecordPaymentModal({
                   </div>
                 </motion.div>
 
-              /* ──── Main Form ──── */
+              /* ──── Main Form / Standalone Customer Search ──── */
+              ) : !activeCustomer ? (
+                /* Customer Search Screen (Standalone Mode) */
+                <div className="p-4 sm:p-6 space-y-4 overflow-y-auto">
+                  <div className="space-y-1.5">
+                    <label className="block text-sm font-medium text-slate-300">
+                      Select Customer <span className="text-red-400">*</span>
+                    </label>
+                    <p className="text-xs text-slate-400">
+                      Search by customer name, phone number, or GSTIN to record a payment
+                    </p>
+                    <div className="relative mt-2">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <input
+                        type="text"
+                        value={customerSearch}
+                        onChange={(e) => setCustomerSearch(e.target.value)}
+                        placeholder="Type customer name or phone..."
+                        className="w-full bg-slate-700/50 border border-slate-600 rounded-lg pl-9 pr-8 py-2.5 text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500 text-sm transition-colors"
+                        autoFocus
+                      />
+                      {customerSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setCustomerSearch('')}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-0.5"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Search Status & Results */}
+                  {searchLoading ? (
+                    <div className="py-8 text-center text-slate-400 space-y-2">
+                      <Loader2 className="w-6 h-6 animate-spin mx-auto text-emerald-400" />
+                      <p className="text-xs">Searching customers...</p>
+                    </div>
+                  ) : customerSearch.trim().length >= 2 ? (
+                    customerResults.length > 0 ? (
+                      <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 px-1">
+                          Matching Customers ({customerResults.length})
+                        </p>
+                        {customerResults.map((cust) => {
+                          const hasDue = (cust.balance || cust.outstanding || 0) > 0;
+                          return (
+                            <button
+                              key={cust._id}
+                              type="button"
+                              onClick={() => handleSelectCustomer(cust)}
+                              className="w-full text-left p-3 rounded-xl bg-slate-700/30 hover:bg-slate-700/70 border border-slate-600/40 hover:border-emerald-500/50 transition-all flex items-center justify-between group"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-sm group-hover:scale-105 transition-transform">
+                                  {cust.customerName?.charAt(0)?.toUpperCase() || 'C'}
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-white group-hover:text-emerald-300 transition-colors">
+                                    {cust.customerName}
+                                  </p>
+                                  <p className="text-xs text-slate-400">
+                                    {cust.phone || 'No phone'} {cust.gstin ? `• ${cust.gstin}` : ''}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className={`text-xs font-semibold ${hasDue ? 'text-rose-400' : 'text-slate-400'}`}>
+                                  {formatCurrency(cust.balance || cust.outstanding || 0)}
+                                </p>
+                                <p className="text-[11px] text-slate-500">Balance</p>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="py-8 text-center text-slate-400 space-y-1">
+                        <p className="text-sm font-medium">No customers found</p>
+                        <p className="text-xs text-slate-500">No records matching "{customerSearch}"</p>
+                      </div>
+                    )
+                  ) : (
+                    <div className="py-8 text-center text-slate-500 space-y-1">
+                      <User className="w-8 h-8 mx-auto text-slate-600" />
+                      <p className="text-xs">Type at least 2 characters to search</p>
+                    </div>
+                  )}
+                </div>
+              ) : loadingCustomerData ? (
+                <div className="p-12 text-center text-slate-400 space-y-3">
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto text-emerald-400" />
+                  <p className="text-sm font-medium text-white">Loading customer dues & invoices...</p>
+                  <p className="text-xs text-slate-500">Preparing payment allocations</p>
+                </div>
               ) : (
                 <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden w-full">
                   <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 w-full">
+                  {/* Standalone Selected Customer Card */}
+                  {!initialCustomer && activeCustomer && (
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-slate-700/40 border border-slate-600/50">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs">
+                          {activeCustomer.customerName?.charAt(0)?.toUpperCase() || 'C'}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-white">{activeCustomer.customerName}</p>
+                          <p className="text-xs text-slate-400">{activeCustomer.phone || 'No phone'}</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleClearCustomer}
+                        className="text-xs text-blue-400 hover:text-blue-300 font-medium px-2 py-1 rounded bg-blue-500/10 hover:bg-blue-500/20 transition-colors"
+                      >
+                        Change Customer
+                      </button>
+                    </div>
+                  )}
+
                   {/* Error Message */}
                   {error && (
                     <motion.div

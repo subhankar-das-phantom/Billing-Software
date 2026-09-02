@@ -21,7 +21,7 @@ export const DashboardQuickActions = () => {
       iconColor: 'text-blue-400'
     },
     {
-      to: '/collections',
+      to: '/collections?action=record',
       label: 'Record Payment',
       sublabel: 'Customer receipts',
       icon: Wallet,

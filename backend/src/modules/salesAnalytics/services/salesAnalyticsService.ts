@@ -156,25 +156,45 @@ export class SalesAnalyticsService {
     const end = new Date(`${year}-12-31T23:59:59.999Z`);
     const tenantObjectId = new mongoose.Types.ObjectId(tenantId.toString());
 
-    const agg = await Invoice.aggregate([
-      { 
-        $match: { 
-          tenantId: tenantObjectId, 
-          invoiceDate: { $gte: start, $lte: end },
-          status: { $ne: 'Cancelled' }
-        } 
-      },
-      {
-        $group: {
-          _id: { 
-            month: { $month: { date: '$invoiceDate', timezone: 'Asia/Kolkata' } }, 
-            year: { $year: { date: '$invoiceDate', timezone: 'Asia/Kolkata' } } 
-          },
-          revenue: { $sum: '$totals.netTotal' },
-          invoiceCount: { $sum: 1 }
-        }
-      },
-      { $sort: { '_id.month': 1 } }
+    const [invoiceAgg, paymentAgg] = await Promise.all([
+      Invoice.aggregate([
+        { 
+          $match: { 
+            tenantId: tenantObjectId, 
+            invoiceDate: { $gte: start, $lte: end },
+            status: { $ne: 'Cancelled' }
+          } 
+        },
+        {
+          $group: {
+            _id: { 
+              month: { $month: { date: '$invoiceDate', timezone: 'Asia/Kolkata' } }, 
+              year: { $year: { date: '$invoiceDate', timezone: 'Asia/Kolkata' } } 
+            },
+            revenue: { $sum: '$totals.netTotal' },
+            invoiceCount: { $sum: 1 }
+          }
+        },
+        { $sort: { '_id.month': 1 } }
+      ]),
+      Payment.aggregate([
+        { 
+          $match: { 
+            tenantId: tenantObjectId, 
+            paymentDate: { $gte: start, $lte: end }
+          } 
+        },
+        {
+          $group: {
+            _id: { 
+              month: { $month: { date: '$paymentDate', timezone: 'Asia/Kolkata' } }, 
+              year: { $year: { date: '$paymentDate', timezone: 'Asia/Kolkata' } } 
+            },
+            collections: { $sum: '$amount' }
+          }
+        },
+        { $sort: { '_id.month': 1 } }
+      ])
     ]);
 
     // Fill in missing months with 0
@@ -182,14 +202,22 @@ export class SalesAnalyticsService {
       month: i + 1,
       year,
       revenue: 0,
-      invoiceCount: 0
+      invoiceCount: 0,
+      collections: 0
     }));
 
-    agg.forEach((item: any) => {
+    invoiceAgg.forEach((item: any) => {
       const idx = item._id.month - 1;
       if (results[idx]) {
         results[idx].revenue = item.revenue;
         results[idx].invoiceCount = item.invoiceCount;
+      }
+    });
+
+    paymentAgg.forEach((item: any) => {
+      const idx = item._id.month - 1;
+      if (results[idx]) {
+        results[idx].collections = item.collections;
       }
     });
 
