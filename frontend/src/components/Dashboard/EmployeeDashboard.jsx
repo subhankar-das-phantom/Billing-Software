@@ -121,6 +121,14 @@ export const EmployeeDashboard = ({
   const canViewCollections = hasPermission('collections', 'view');
   const canViewInventory = hasPermission('inventory', 'view') || hasPermission('ledger', 'view');
 
+  // To record or view payments, employee must have at least one accessible entry point
+  const hasPaymentEntryPoint = canViewCollections || canViewCustomers || canViewInvoices;
+  const paymentRecordPath = canViewCollections
+    ? '/collections?action=record'
+    : canViewCustomers
+      ? '/customers'
+      : '/invoices';
+
   // Build active KPI list (never show dummy placeholder cards!)
   const kpiCards = useMemo(() => {
     const list = [
@@ -148,7 +156,7 @@ export const EmployeeDashboard = ({
       }
     ];
 
-    if (canViewPayments) {
+    if (canViewPayments && hasPaymentEntryPoint) {
       list.push({
         id: 'payments-collected',
         label: "Today's Collections",
@@ -158,7 +166,7 @@ export const EmployeeDashboard = ({
         subtext: `Total collected: ${formatCurrency(employeeStats.myPaymentsAmount ?? 0)}`,
         icon: Wallet,
         iconColor: 'text-teal-400',
-        linkTo: canViewCollections ? '/collections' : null
+        linkTo: canViewCollections ? '/collections' : canViewCustomers ? '/customers' : '/invoices'
       });
     }
 
@@ -193,11 +201,11 @@ export const EmployeeDashboard = ({
         iconColor: 'text-blue-400'
       });
     }
-    if (canCreatePayments) {
+    if (canCreatePayments && hasPaymentEntryPoint) {
       actions.push({
-        to: '/collections?action=record',
+        to: paymentRecordPath,
         label: 'Record Payment',
-        sublabel: 'Log cash or UPI payment',
+        sublabel: canViewCollections ? 'Log cash or UPI payment' : 'Log customer payment',
         icon: Wallet,
         shortcut: 'Collect',
         iconColor: 'text-emerald-400'
@@ -315,9 +323,9 @@ export const EmployeeDashboard = ({
                 New Invoice
               </Link>
             )}
-            {canCreatePayments && (
+            {canCreatePayments && hasPaymentEntryPoint && (
               <Link
-                to="/collections?action=record"
+                to={paymentRecordPath}
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition-colors"
               >
                 <Wallet className="w-3.5 h-3.5 text-emerald-400" />
