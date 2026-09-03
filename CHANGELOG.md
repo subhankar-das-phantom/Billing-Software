@@ -6,6 +6,26 @@ For full release notes with implementation details, see [GitHub Releases](https:
 
 ---
 
+## [v2.2.2](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.2.2) — 2026-09-03 — Mobile Responsive Subscription Notification & Dynamic Expiry Verification
+
+### 📱 Mobile Notification Layout & Dynamic Days Calculation
+Version 2.2.2 fixes the mobile responsive styling for subscription notifications and trial banners, adds direct support email mailto links, and verifies dynamic real-time calculation of remaining trial days.
+
+---
+
+### 🎨 Mobile Responsive Notification Styling (`SubscriptionBanner.jsx`)
+- **Responsive Flex Layout** — Replaced fixed horizontal flex row with a mobile-first responsive layout (`flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5 sm:gap-4`). On mobile viewports (< 640px), the banner no longer squishes message text or overflows horizontally.
+- **Full-Width Touch Targets** — On mobile devices, action buttons (`Upgrade Plan` / `Renew Plan`) now expand to a comfortable full-width touch target (`w-full sm:w-auto`), with clean, concise labels.
+- **Positioned Dismiss Button** — On mobile screens, the dismiss (`X`) button is anchored cleanly in the top-right corner (`absolute top-3 right-3 sm:static`), with padding buffer preventing text overlap.
+- **Direct Mailto Links** — Embedded clickable `mailto:support@bharatenterprise.com` links directly inside banner messages, allowing users on both mobile and desktop to open their email client instantly.
+
+---
+
+### 🔍 Dynamic Trial & Grace Days Verification
+- **Verified Non-Hardcoded Calculation** — Confirmed that the remaining days in *"Your trial of the Professional plan ends in 4 days"* is 100% dynamically computed. In `featureService.ts`, remaining duration is calculated in real time: `Math.max(0, Math.ceil((new Date(subscription.expiresAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))`, served via `/api/saas/subscription`, and consumed reactively by `SubscriptionContext.jsx`.
+
+---
+
 ## [v2.2.1](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.2.1) — 2026-09-02 — Enterprise Dashboard Polish & Contextual Payment Entry-Point Enforcement
 
 ### 🎨 Enterprise Polish & Workflow Cohesion

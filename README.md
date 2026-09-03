@@ -1,6 +1,6 @@
 # Bharat Enterprise - Billing & Business Operations Platform
 
-[![GitHub Tag](https://img.shields.io/badge/version-v2.2.1-emerald.svg)](https://github.com/subhankar-das-phantom/Billing-Software/releases)
+[![GitHub Tag](https://img.shields.io/badge/version-v2.2.2-emerald.svg)](https://github.com/subhankar-das-phantom/Billing-Software/releases)
 [![CI](https://github.com/subhankar-das-phantom/Billing-Software/actions/workflows/ci.yml/badge.svg)](https://github.com/subhankar-das-phantom/Billing-Software/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-ISC-blue.svg)](LICENSE)
 
