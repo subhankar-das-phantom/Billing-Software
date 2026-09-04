@@ -43,3 +43,18 @@ schema.index({ tenantId: 1, isActive: 1, createdAt: -1, currentStockQty: 1 });
 - **Atomic Concurrency**: Use `findOneAndUpdate` with `$inc` and `stockVersion` increments.
 - **Negative Stock Prevention**: Constrain updates with `{ currentStockQty: { $gte: requiredQty } }`.
 - **Immutable Ledger**: Atomically record all inventory mutations in `StockMovement`.
+
+### 6. Thin Controllers & Rich Service Layer (Anti-"Fat Controller")
+- **Controllers Must Be Thin Orchestrators**:
+  - Responsibilities limited to: HTTP input parsing/sanitization, auth/tenant extraction, calling service methods, and mapping domain outcomes to HTTP status codes (`200`, `201`, `400`, `404`).
+  - **Zero Business Logic in Controllers**: Tax calculations, FIFO batch allocations, ledger entries, and status transitions must reside strictly in dedicated domain services (`*Service.ts`).
+- **High Scalability & Stateless Architecture**:
+  - Keep request lifecycles 100% stateless to support horizontal clustering.
+  - Protect NodeJS event loop: offload heavy reports, use `.lean()` queries, stream massive exports, and avoid in-memory loops over thousands of unbounded records.
+
+### 7. ACID Transactions & Atomic Multi-Document Workflows
+- **Mandatory Multi-Document Transactions**:
+  - When a mutation spans multiple collections or documents (e.g. Invoice creation + Inventory deduction + Batch lot allocation + Stock movement log + Customer ledger balance), wrap the operation in a MongoDB ACID transaction (`mongoose.startSession()` with `session.withTransaction` or explicit commit/abort).
+- **Failure Atomicity**:
+  - Never allow partial database writes. If any step fails (insufficient stock, invalid batch, database glitch), abort the transaction immediately so the entire operation rolls back clean.
+

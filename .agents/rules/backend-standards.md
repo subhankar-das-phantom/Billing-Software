@@ -100,3 +100,88 @@ InvoiceSchema.index({ tenantId: 1, status: 1, invoiceDate: -1 });
   }
   ```
 - **Stock Movement Ledger**: Every inventory mutation must atomically record a corresponding `StockMovement` document with the pre-transaction balance, change quantity, post-transaction balance, and document reference.
+
+---
+
+## 🏛️ 5. Thin Controllers & Scalable Domain Services (Anti-"Fat Controller")
+
+### Architectural Separation
+Controllers should act strictly as HTTP gatekeepers, not business executors:
+- **Controller Responsibilities (Thin)**:
+  - Extract and sanitize query parameters, body, and path variables.
+  - Verify tenant context (`req.user.tenantId`) and user identity (`req.user.id`).
+  - Invoke domain services (`await invoiceService.createInvoice(...)`).
+  - Return clean HTTP responses (`res.status(200).json({ success: true, data })`) and delegate errors to the centralized error middleware.
+- **Service Layer Responsibilities (Rich)**:
+  - Complex tax, discount, and total calculations.
+  - FIFO batch allocation algorithms.
+  - Inventory balance validations and atomic ledger creation.
+  - Third-party API orchestrations (Razorpay, SMS/Email).
+
+```typescript
+// ❌ FAT CONTROLLER (Anti-pattern: business logic mixed with HTTP)
+export const createInvoice = async (req, res) => {
+  // 150 lines of tax math, batch loops, database queries, and manual rollbacks...
+};
+
+// ✅ THIN CONTROLLER + SERVICE LAYER (Senior pattern)
+export const createInvoice = async (req, res, next) => {
+  try {
+    const { tenantId, id: userId } = req.user;
+    const invoice = await invoiceService.createInvoice({
+      tenantId,
+      userId,
+      invoiceData: req.body
+    });
+    return res.status(201).json({ success: true, data: invoice });
+  } catch (error) {
+    next(error);
+  }
+};
+```
+
+### High-Scale Memory & Event Loop Discipline
+1. **Never Block the NodeJS Event Loop**:
+   - Avoid long synchronous loops over massive datasets.
+   - Use MongoDB aggregation pipelines to process sums, averages, and group counts inside the database engine rather than pulling raw documents into NodeJS memory.
+2. **Streaming for Massive Datasets**:
+   - When generating large CSV/Excel exports or historical audit reports, use cursor streaming (`Model.find().cursor()`) to stream chunks directly to the response instead of buffering 50,000 documents in RAM.
+3. **Stateless Clustering**:
+   - Never store user session state, pending batch allocations, or counters in in-memory global variables. All shared state must reside in MongoDB or Redis to allow zero-friction horizontal scaling.
+
+---
+
+## 🛡️ 6. Multi-Document ACID Transactions & Atomicity
+
+### When to Use MongoDB Multi-Document Transactions
+Whenever a business workflow updates **more than one document or collection** where partial success would cause data corruption:
+- Creating an Invoice $\rightarrow$ deducting product stocks $\rightarrow$ updating batch quantities $\rightarrow$ creating stock movements $\rightarrow$ incrementing customer outstanding balance.
+- Cancelling a Purchase Bill $\rightarrow$ restoring batch inventory $\rightarrow$ creating compensatory stock returns.
+- Processing a Credit Note $\rightarrow$ adjusting invoice balances $\rightarrow$ updating customer ledger.
+
+### Standard Transaction Template
+```typescript
+import mongoose from 'mongoose';
+
+export async function executeInTransaction<T>(
+  work: (session: mongoose.ClientSession) => Promise<T>
+): Promise<T> {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const result = await work(session);
+    await session.commitTransaction();
+    return result;
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
+}
+```
+
+### Single-Document vs Multi-Document Atomicity
+- **Use Multi-Document Transactions** when consistency across disparate collections (Invoices, Products, Batches, StockMovements, Ledgers) is required.
+- **Use Single-Document Atomic Operators** (`$inc`, `$set`, `$push`, `findOneAndUpdate` with conditional query filters) for localized operations (e.g. updating a counter or toggling a status flag), avoiding unnecessary transaction locking overhead.
+

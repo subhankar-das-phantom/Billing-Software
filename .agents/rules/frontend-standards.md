@@ -120,3 +120,55 @@ useEffect(() => {
   - Leverage `@tanstack/react-query` (`useQuery`, `useInfiniteQuery`) or SWR for declarative server-state management.
   - Configure sensible caching: `staleTime: 60 * 1000` (1 min) for read-heavy masters (products, customers), and `staleTime: 0` with targeted query invalidation (`queryClient.invalidateQueries(...)`) after mutations.
   - Pair `useInfiniteQuery` directly with `InfiniteVirtualizedList` (`fetchNextPage`, `hasNextPage`, `isFetchingNextPage`) to stream pages dynamically without layout shifting.
+
+### 7. Race Condition Prevention (Network, Events & Asynchronous State)
+Always identify and mitigate race conditions before starting implementation:
+
+1. **Network Out-of-Order Race Conditions (Stale Overwrites)**:
+   - **The Danger**: Request A (slow network) is sent, user changes filter/tab/search, Request B (fast network) is sent and resolves first. Request A resolves later and overwrites the newer data with stale data.
+   - **Standard Fixes**:
+     - **Abort In-Flight Requests**: Use `AbortController` in `useEffect` cleanups or pass `signal` to axios/fetch:
+       ```javascript
+       useEffect(() => {
+         const controller = new AbortController();
+         fetchData({ signal: controller.signal });
+         return () => controller.abort(); // Cancel if query/component changes
+       }, [searchQuery]);
+       ```
+     - **Active Component Flags**:
+       ```javascript
+       useEffect(() => {
+         let isCurrent = true;
+         api.get('/data').then(res => { if (isCurrent) setData(res.data); });
+         return () => { isCurrent = false; };
+       }, [query]);
+       ```
+     - **Query State Engines**: Use `@tanstack/react-query` or SWR which automatically discard out-of-order query responses for the same query key.
+
+2. **Double-Submit / Double-Execution Race Conditions**:
+   - **The Danger**: Rapid double-tapping or keyboard submissions of financial actions (creating an invoice, recording a payment, generating credit notes) firing two parallel network requests before React re-renders the disabled button state.
+   - **Standard Fixes**:
+     - **Synchronous Execution Lock via `useRef`**: React state updates are asynchronous; a ref updates synchronously:
+       ```javascript
+       const isSubmittingRef = useRef(false);
+       const handleSubmit = async () => {
+         if (isSubmittingRef.current) return;
+         isSubmittingRef.current = true;
+         setIsSubmitting(true);
+         try {
+           await createRecord();
+         } finally {
+           isSubmittingRef.current = false;
+           setIsSubmitting(false);
+         }
+       };
+       ```
+     - **Immediate UI Disabling**: `disabled={isSubmitting}` and `pointer-events-none` on the trigger button.
+
+3. **Asynchronous Background State Race Conditions**:
+   - **The Danger**: User modifies invoice rows (e.g. quantity, rate, discount) while an asynchronous batch resolution or FIFO simulation (`_batchPreviewPending`) is in-flight in the background.
+   - **Standard Fixes**:
+     - Assign immutable row identifiers (`_rowId: crypto.randomUUID()`) to state items rather than relying on index positions.
+     - When an async calculation completes, update strictly by `_rowId` rather than array index.
+     - Block dependent operations while `_batchPreviewPending` is active.
+

@@ -55,3 +55,7 @@ Before completing any frontend code change, verify that:
 - [ ] **Defensive Memoized Sorting**: Any list displayed to the user is explicitly wrapped in `useMemo` with an explicit sorting comparator (`(b.value - a.value)`).
 - [ ] **Contextual Permission Routing**: Buttons triggering protected flows (e.g. Record Payment) verify permission to at least one entry point and dynamically route or hide cleanly.
 - [ ] **Virtualization & Scale**: Collections with > 50 elements leverage `VirtualizedList` or `InfiniteVirtualizedList` with paginated query loading.
+- [ ] **Race Condition Immunity**:
+  - Out-of-order network calls aborted via `AbortController` or handled by TanStack Query.
+  - Submissions guarded by synchronous `useRef` locks (`isSubmittingRef`) to prevent rapid double-clicks.
+  - Asynchronous background tasks (FIFO/batch allocation) reference immutable item IDs (`_rowId`) rather than transient array indexes.
