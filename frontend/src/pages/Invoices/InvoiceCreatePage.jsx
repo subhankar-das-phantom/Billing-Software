@@ -1310,7 +1310,17 @@ export default function InvoiceCreatePage() {
     if (enableBatchTracking && allocationMode === "AUTO") {
       baseItem._batchPreviewPending = true;
     }
-    setInvoiceItems((prev) => [baseItem, ...prev]);
+    setInvoiceItems((prev) => {
+      const alreadyExists = prev.some(
+        (item) =>
+          String(item.product?._id || item.product?.id || item.product) ===
+          productIdString,
+      );
+      if (alreadyExists) {
+        return prev;
+      }
+      return [baseItem, ...prev];
+    });
 
     // 4. If AUTO batch tracking is active, resolve FIFO allocation immediately in background
     if (enableBatchTracking && allocationMode === "AUTO") {
@@ -2195,7 +2205,6 @@ export default function InvoiceCreatePage() {
                         key={product._id}
                         onMouseDown={(e) => {
                           e.preventDefault();
-                          handleProductSelect(product);
                         }}
                         onMouseEnter={() => {
                           if (enableBatchTracking && allocationMode === "AUTO") {
