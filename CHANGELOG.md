@@ -6,6 +6,21 @@ For full release notes with implementation details, see [GitHub Releases](https:
 
 ---
 
+## [v2.2.3](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.2.3) — 2026-09-04 — Fix Duplicate Product Addition When Batch Tracking Is Disabled
+
+### 🐛 Invoice Creation Bug Fix
+Version 2.2.3 fixes an issue where selecting a product from the search dropdown inserted the product twice when batch tracking was disabled, while preserving full batch and FIFO functionality.
+
+---
+
+### 🔧 Product Selection Deduplication (`InvoiceCreatePage.jsx`)
+- **Eliminated Redundant `onMouseDown` Selection Trigger** — Removed `handleProductSelect(product)` from the dropdown option's `onMouseDown` event handler. Previously, both `onMouseDown` and `onClick` were executing `handleProductSelect` on every mouse click. When batch tracking was disabled, this triggered two synchronous insertions before React could update state, resulting in duplicate product rows.
+- **Retained Dropdown Focus Protection** — Preserved `e.preventDefault()` on `onMouseDown` to prevent the search input from losing focus prematurely during selection, and retained `onMouseEnter` prefetching for batch cache warming.
+- **Added Atomic Insertion Guard** — Enhanced `setInvoiceItems` updater with an atomic guard (`prev.some(...)`) to ensure a product can never be prepended twice in rapid succession.
+- **Preserved Batch & FIFO Architecture** — Batch-tracking logic (`enableBatchTracking && allocationMode === 'AUTO'`), background FIFO simulation, and manual batch selection remain completely intact and untouched.
+
+---
+
 ## [v2.2.2](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.2.2) — 2026-09-03 — Mobile Responsive Subscription Notification & Dynamic Expiry Verification
 
 ### 📱 Mobile Notification Layout & Dynamic Days Calculation
