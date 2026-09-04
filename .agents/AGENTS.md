@@ -36,7 +36,7 @@ This document governs all agent operations, architectural decisions, coding patt
 - **Step 3 — Legal & Policy Review**: Audit `PrivacyPolicyPage.jsx`, `TermsPage.jsx`, and SaaS subscription tiers whenever changes touch authentication, telemetry, data storage, or billing.
 - **Step 4 — Build Verification**: Validate that both `npx tsc --noEmit` (backend) and `npm run build` (frontend) pass with 0 errors.
 - **Step 5 — Git Flow**:
-  - Commit to `dev`: `git commit -m "<type>(<scope>): <description>"`
-  - Merge into `master`: `git checkout master && git merge dev -m "..."`
+  - Commit to `dev`: Split into multiple granular commits as needed per purpose (`fix(...)` for bug fixes, `feat(...)` for feature/component creation, `docs(...)` for docs/changelog, `chore(...)` for rules/tooling).
+  - Merge into `master`: `git checkout master && git merge dev -m "..."` (Mandatory rich, multi-line message detailing problem, root cause, changes, new component rationale, and verification; no generic one-liners)
   - Signed tag: `git tag -s vX.Y.Z -m "Release vX.Y.Z - ..."`
   - Push to remote: `git push origin dev; git push origin master; git push origin vX.Y.Z`

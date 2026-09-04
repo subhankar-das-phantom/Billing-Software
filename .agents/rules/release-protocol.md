@@ -63,17 +63,41 @@ Execute both verification commands and confirm zero errors:
 
 ## 🚀 Git Flow & Signed Tagging Execution
 
-Once files and builds are validated, run the standard git sequence:
+Once files and builds are validated, run the standard git sequence.
+
+### Granular, Purpose-Driven Commits on `dev`
+Do **not** force unrelated changes into a single monolithic commit on `dev`. When a release spans multiple concerns (e.g. bug fixes, feature/component creations, documentation updates, or agent rules), split them into **multiple granular commits** structured by intent:
+- `fix(<scope>): ...` for bug fixes, corrections, and issue resolutions.
+- `feat(<scope>): ...` for new feature creation, new components, or newly introduced capabilities.
+- `docs(<scope>): ...` for CHANGELOG, README, positioning guides, and documentation.
+- `chore(<scope>): ...` or `style(<scope>): ...` for rule syncs, configuration, formatting, or agent definitions.
+
+> [!IMPORTANT]
+> **Mandatory Descriptive Merge Commits**: Every merge from `dev` into `master` must contain a comprehensive, multi-line commit message detailing the problem, root cause, architectural changes, rationale for any new components, modified files, and verification results. **Never use one-liners like `"sync dev to master"` or `"merge dev"`.**
 
 ```powershell
-# 1. Stage and commit on dev
+# 1. Stage and commit on dev — split into multiple commits if needed per purpose:
 git checkout dev
-git add .
-git commit -m "<type>(<scope>): <concise description of changes>"
 
-# 2. Switch to master and merge dev
+# Example: Commit bug fixes
+git add <fix-files>
+git commit -m "fix(<scope>): <description of fixes>"
+
+# Example: Commit newly created features / components
+git add <new-component-files>
+git commit -m "feat(<scope>): <description of new features>"
+
+# Example: Commit documentation and changelog
+git add CHANGELOG.md README.md <docs-files>
+git commit -m "docs(release): bump version to vX.Y.Z and update documentation"
+
+# Example: Commit agent rules or config
+git add .agents/
+git commit -m "chore(agents): update rules and guidelines"
+
+# 2. Switch to master and merge dev with a rich descriptive message
 git checkout master
-git merge dev -m "<type>(<scope>): sync vX.Y.Z <feature/fix> to master"
+git merge dev -m "<type>(<scope>): merge vX.Y.Z — <Release Title> into master`n`n### 🎯 Problem & Motivation`n- Concise explanation of the problem, bug, or business capability addressed.`n`n### 🔍 Root Cause Analysis`n- Technical explanation of why the issue occurred or why changes were needed.`n`n### 🛠️ Key Changes & Architectural Decisions`n- Detailed summary of fixes and enhancements.`n- If new components/files are introduced, explicitly document WHY they were added.`n`n### 📁 Key Files Modified`n- path/to/file1.jsx: Specific modifications`n- path/to/file2.ts: Specific modifications`n`n### ✅ Verification & Quality Assurance`n- Frontend build (npm run build): PASS (0 errors)`n- Backend verification: PASS`n- Document and visual verification summary"
 
 # 3. Create cryptographically signed tag
 git tag -s vX.Y.Z -m "Release vX.Y.Z - <Release Title>"

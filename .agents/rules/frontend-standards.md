@@ -176,4 +176,52 @@ Always identify and mitigate race conditions before starting implementation:
 - **Never Open Chrome Autonomously**: Do NOT launch Chrome or spawn browser testing subagents (`browser_subagent`) to test frontend changes unless the user explicitly commands it.
 - **Validation Methods**: Verify frontend correctness via production build checks (`npm run build`), TypeScript/linting validations, and structured manual verification steps provided to the user.
 
+### 9. Print Isolation Architecture & UI Concealment
+**Trap:**
+UI notifications (toasts, subscription/trial banners, background revalidation indicators), floating widgets, modals, and navigation chrome leaking into browser print previews, physical paper prints, or "Save as PDF" outputs when invoices, credit notes, or ledgers are printed.
+**Mandatory Two-Layer Print Isolation:**
+1. **Component-Level Canonical `.no-print` Standard**:
+   - Every single screen-only element, floating container, toast notification (`ToastContainer`), alert banner (`SubscriptionBanner`), revalidation indicator (`RefreshIndicator`), modal portal (`Modal`, `RecordPaymentModal`, `EditPaymentModal`, `ManualEntryModal`), dropdown menu (`CustomDropdown`), and floating utility (e.g. scroll-to-top button, calculator dock) MUST explicitly include the `.no-print` class on its root container.
+   - When wrapping layouts (e.g. `DashboardLayout`), defensively wrap notifications: `<div className="no-print"><SubscriptionBanner /></div>`.
+2. **Global `@media print` Defensive Concealment (`index.css`)**:
+   - Standardize `.no-print, .no-print * { display: none !important; }`.
+   - Explicitly conceal notification containers and status roles:
+     ```css
+     @media print {
+       .no-print,
+       .no-print *,
+       .toast-container,
+       .toast-container *,
+       .toast,
+       .toast *,
+       .subscription-banner,
+       .subscription-banner *,
+       [role="alert"],
+       [role="status"],
+       [role="dialog"],
+       [role="listbox"],
+       aside,
+       header,
+       nav,
+       button,
+       .sidebar,
+       .navbar,
+       [class*="backdrop-blur"] {
+         display: none !important;
+       }
+     }
+     ```
+3. **Avoid Overly Broad or Fragile Selectors**:
+   - Never use bare `[class*="pointer-events-none"]` or hide tags indiscriminately without checking printable templates. Do not break legitimate invoice/ledger layout (`.invoice-print`, `.invoice-copy`).
+4. **Zero-DOM Manipulation Print Rule**:
+   - NEVER use temporary JavaScript DOM deletion (`element.remove()`), inline display mutations (`element.style.display = 'none'`), or `beforeprint`/`afterprint` hacks. Print isolation must be pure, deterministic CSS to eliminate React render race conditions.
+
+### 10. Documentation & Path Hygiene (Repository-Relative References)
+**Trap:**
+Hardcoding machine-specific absolute file URLs (e.g. `file:///d:/...` or `C:\...`) into git-tracked markdown documentation (`*.md`), guides, or READMEs.
+**Standard:**
+- In all git-tracked documentation and markdown guides, NEVER include machine-specific absolute URLs (`file:///d:/...`, `C:\...`).
+- Always use clean repository-relative paths (e.g. `src/index.css`, `frontend/src/pages/Invoices/InvoiceViewPage.jsx`) or markdown backticks (`` `src/index.css` ``) so documentation remains portable, clean, and professional across all developers, environments, and GitHub.
+
+
 

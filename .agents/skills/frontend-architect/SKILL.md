@@ -46,6 +46,18 @@ This skill ensures that all UI development in the Bharat Enterprise platform adh
 
 ---
 
+## 🖨️ Print Isolation & Document Integrity Protocol
+
+1. **Two-Layer Defense Architecture**:
+   - **Layer 1 (Component-Level)**: All non-document UI (toasts, subscription/trial banners, refresh spinners, modals, dropdown menus, floating utilities) must include `no-print` on their root containers. Defensively wrap layout-level banners: `<div className="no-print"><SubscriptionBanner /></div>`.
+   - **Layer 2 (Global Print Stylesheet)**: `index.css` must maintain explicit `@media print` rules hiding `.no-print, .no-print *, .toast-container, .toast, .subscription-banner, [role="alert"], [role="status"], [role="dialog"], [role="listbox"]`.
+2. **Zero-DOM Manipulation**:
+   - Never use JavaScript DOM mutations (`element.remove()`, `display: none`) or `beforeprint` hooks right before `window.print()`. Use deterministic CSS so print preview and Save-as-PDF have zero race conditions with React rendering.
+3. **Selector Precision**:
+   - Never use fragile selectors like bare `[class*="pointer-events-none"]` or hide `header` without verifying printable templates. Protect `.invoice-print` and `.invoice-copy` structure.
+
+---
+
 ## 🛡️ Frontend Bug Prevention Checklist
 
 Before completing any frontend code change, verify that:
@@ -55,6 +67,11 @@ Before completing any frontend code change, verify that:
 - [ ] **Defensive Memoized Sorting**: Any list displayed to the user is explicitly wrapped in `useMemo` with an explicit sorting comparator (`(b.value - a.value)`).
 - [ ] **Contextual Permission Routing**: Buttons triggering protected flows (e.g. Record Payment) verify permission to at least one entry point and dynamically route or hide cleanly.
 - [ ] **Virtualization & Scale**: Collections with > 50 elements leverage `VirtualizedList` or `InfiniteVirtualizedList` with paginated query loading.
+- [ ] **Print Isolation Enforced**:
+  - Every screen-only element, toast, banner, spinner, modal, and floating action button carries `.no-print`.
+  - Notifications and transient UI are completely concealed in `@media print` without DOM manipulation.
+  - Printable documents (`.invoice-print`, `.invoice-copy`) remain untouched and render 100% cleanly in print preview / Save as PDF.
+- [ ] **Documentation Path Hygiene**: No machine-specific absolute file URLs (`file:///d:/...`, `C:\...`) in git-tracked markdown documentation. Always use repository-relative paths (`src/index.css`, `frontend/...`).
 - [ ] **Race Condition Immunity**:
   - Out-of-order network calls aborted via `AbortController` or handled by TanStack Query.
   - Submissions guarded by synchronous `useRef` locks (`isSubmittingRef`) to prevent rapid double-clicks.
