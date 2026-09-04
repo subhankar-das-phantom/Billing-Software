@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Clock, 
@@ -118,28 +118,36 @@ export function InventoryIntelligenceSection() {
   });
 
   // Velocity filtering
-  const displayedVelocityFast = (velocityData?.fastMovingTop || []).filter(item => {
-    if (!velocitySearch.trim()) return true;
-    const query = velocitySearch.toLowerCase();
-    return (
-      item.productName?.toLowerCase().includes(query) ||
-      item.hsnCode?.toLowerCase().includes(query) ||
-      item.manufacturer?.toLowerCase().includes(query)
-    );
-  });
+  const displayedVelocityFast = useMemo(() => {
+    return (velocityData?.fastMovingTop || [])
+      .filter(item => {
+        if (!velocitySearch.trim()) return true;
+        const query = velocitySearch.toLowerCase();
+        return (
+          item.productName?.toLowerCase().includes(query) ||
+          item.hsnCode?.toLowerCase().includes(query) ||
+          item.manufacturer?.toLowerCase().includes(query)
+        );
+      })
+      .sort((a, b) => (b.unitsSold - a.unitsSold) || (b.velocityRate - a.velocityRate));
+  }, [velocityData?.fastMovingTop, velocitySearch]);
 
-  const displayedVelocitySlow = [
-    ...(velocityData?.slowMovingTop || []),
-    ...(velocityData?.noSalesTop || [])
-  ].filter(item => {
-    if (!velocitySearch.trim()) return true;
-    const query = velocitySearch.toLowerCase();
-    return (
-      item.productName?.toLowerCase().includes(query) ||
-      item.hsnCode?.toLowerCase().includes(query) ||
-      item.manufacturer?.toLowerCase().includes(query)
-    );
-  });
+  const displayedVelocitySlow = useMemo(() => {
+    return [
+      ...(velocityData?.slowMovingTop || []),
+      ...(velocityData?.noSalesTop || [])
+    ]
+      .filter(item => {
+        if (!velocitySearch.trim()) return true;
+        const query = velocitySearch.toLowerCase();
+        return (
+          item.productName?.toLowerCase().includes(query) ||
+          item.hsnCode?.toLowerCase().includes(query) ||
+          item.manufacturer?.toLowerCase().includes(query)
+        );
+      })
+      .sort((a, b) => (a.unitsSold - b.unitsSold) || (b.currentStockQty - a.currentStockQty));
+  }, [velocityData?.slowMovingTop, velocityData?.noSalesTop, velocitySearch]);
 
   // Procurement filtering
   const displayedSuppliers = (procurementData?.suppliers || []).filter(item => {

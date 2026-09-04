@@ -226,11 +226,26 @@ export const inventoryAnalyticsService = {
       });
     }
 
+    // Fast moving products: sorted strictly descending by units sold and velocity rate
+    const fastMoving = sellingProducts
+      .filter(p => p.segment === 'FAST_MOVING')
+      .sort((a, b) => (b.unitsSold - a.unitsSold) || (b.velocityRate - a.velocityRate));
+
+    // Slow moving products: sorted ascending by units sold (least sold first), tie-break by highest stock on hand
+    const slowMoving = sellingProducts
+      .filter(p => p.segment === 'SLOW_MOVING')
+      .sort((a, b) => (a.unitsSold - b.unitsSold) || (b.currentStockQty - a.currentStockQty));
+
+    // Products with zero sales: sorted descending by current stock (highest stagnant dead stock first)
+    const noSales = productList
+      .filter(p => p.segment === 'NO_SALES')
+      .sort((a, b) => b.currentStockQty - a.currentStockQty);
+
     const segments = {
-      FAST_MOVING: productList.filter(p => p.segment === 'FAST_MOVING'),
-      NORMAL: productList.filter(p => p.segment === 'NORMAL'),
-      SLOW_MOVING: productList.filter(p => p.segment === 'SLOW_MOVING'),
-      NO_SALES: productList.filter(p => p.segment === 'NO_SALES')
+      FAST_MOVING: fastMoving,
+      NORMAL: sellingProducts.filter(p => p.segment === 'NORMAL'),
+      SLOW_MOVING: slowMoving,
+      NO_SALES: noSales
     };
 
     return {
