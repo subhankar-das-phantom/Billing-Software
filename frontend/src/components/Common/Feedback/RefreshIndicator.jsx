@@ -25,7 +25,7 @@ export default function RefreshIndicator({
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.8 }}
           transition={{ duration: 0.2 }}
-          className={`inline-flex items-center gap-1.5 text-slate-400 ${className}`}
+          className={`inline-flex items-center gap-1.5 text-slate-400 no-print ${className}`}
         >
           <motion.div
             animate={{ rotate: 360 }}
@@ -60,7 +60,7 @@ export function RefreshDot({ isRefreshing, className = '' }) {
             opacity: { duration: 1.5, repeat: Infinity },
             scale: { duration: 0.2 }
           }}
-          className={`w-2 h-2 rounded-full bg-blue-400 ${className}`}
+          className={`w-2 h-2 rounded-full bg-blue-400 no-print ${className}`}
         />
       )}
     </AnimatePresence>

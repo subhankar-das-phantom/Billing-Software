@@ -887,6 +887,12 @@
 @media print {
 
   .no-print,
+  .no-print *,
+  .toast-container,
+  .toast,
+  .subscription-banner,
+  [role="alert"],
+  [role="status"],
   nav,
   header,
   .sidebar,
@@ -978,15 +984,24 @@
 
   /* Hide all non-printable elements */
   .no-print,
+  .no-print *,
+  .toast-container,
+  .toast-container *,
+  .toast,
+  .toast *,
+  .subscription-banner,
+  .subscription-banner *,
+  [role="alert"],
+  [role="status"],
+  [role="dialog"],
+  [role="listbox"],
   aside,
   header,
   nav,
   button,
   .sidebar,
   .navbar,
-  [role="dialog"],
-  [class*="backdrop-blur"],
-  [class*="pointer-events-none"] {
+  [class*="backdrop-blur"] {
     display: none !important;
   }
 

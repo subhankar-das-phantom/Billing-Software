@@ -138,7 +138,7 @@ export default function CommandPalette({ isOpen, onClose }) {
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4">
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 no-print">
           {/* Backdrop */}
           <motion.div
             className="fixed inset-0 bg-slate-950/80 backdrop-blur-md"

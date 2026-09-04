@@ -136,7 +136,7 @@ export default function CustomDropdown({
       ref={menuRef}
       id={`${dropdownId}-listbox`}
       role="listbox"
-      className={`fixed z-[120] max-h-72 overflow-y-auto rounded-lg border border-slate-600 bg-slate-800 shadow-2xl shadow-black/30 py-1 ${menuClassName}`}
+      className={`fixed z-[120] max-h-72 overflow-y-auto rounded-lg border border-slate-600 bg-slate-800 shadow-2xl shadow-black/30 py-1 no-print ${menuClassName}`}
       style={{
         top: `${menuPosition.top}px`,
         left: `${menuPosition.left}px`,
