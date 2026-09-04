@@ -6,6 +6,35 @@ For full release notes with implementation details, see [GitHub Releases](https:
 
 ---
 
+## [v2.2.5](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.2.5) — 2026-09-04 — Complete UI Notification Elimination in Printed Documents (Invoices, Credit Notes, Ledgers)
+
+### 🖨️ Two-Layer Print Isolation Architecture
+Version 2.2.5 introduces a comprehensive, two-layer print isolation defense across the platform. Invoices, credit notes, customer ledgers, and supplier ledgers now contain strictly their intended financial, customer, and table content, with zero leakage of toasts, subscription/trial banners, background revalidation indicators, modals, or application chrome during browser print preview, physical printing, or "Save as PDF".
+
+---
+
+### 🛡️ Layer 1: Component-Level Print Protection
+- **Subscription Banners (`SubscriptionBanner.jsx` & `DashboardLayout.jsx`)** — Added `no-print` and `subscription-banner` to the root motion container and defensively wrapped `<SubscriptionBanner />` in `<div className="no-print">` in `DashboardLayout.jsx`. Active trial ("Trial Ending Soon"), grace period, and expired warnings remain visible on screen but are completely omitted from printed documents.
+- **Toast Notifications (`ToastContext.jsx` & `AuthContext.jsx`)** — Added `no-print` and `aria-live="polite"` to `ToastContainer` and the fallback toast wrapper. Success/error notifications (such as "Invoice created successfully!", "Credit note created successfully!", or "Invoice marked as printed") with 5-second lifetimes can never stamp into the top-right corner of documents when printing immediately.
+- **Background Revalidation Indicators (`RefreshIndicator.jsx`)** — Added `no-print` to `RefreshIndicator` and `RefreshDot`. Prevents animated spinning icons or "Refreshing..." text from appearing when window focus triggers SWR background revalidation during print dialogs.
+- **Portaled Modals, Dropdowns & Overlays (`Modal.jsx`, `RecordPaymentModal.jsx`, `EditPaymentModal.jsx`, `ManualEntryModal.jsx`, `CustomDropdown.jsx`, `CommandPalette.jsx`)** — Added `no-print` to all root portal containers to guarantee dialog backdrops and listboxes are excluded from the print stream.
+- **UI Chrome & Utilities (`DashboardLayout.jsx`)** — Added `no-print` to the floating scroll-to-top button.
+
+---
+
+### 🎨 Layer 2: Global Print Stylesheet Concealment (`index.css`)
+- **Canonical `.no-print` Standard** — Defined `.no-print, .no-print * { display: none !important; }` across all print media queries.
+- **Defensive Print Concealment Rules** — Expanded `@media print` rules with explicit selectors: `.toast-container`, `.toast`, `.subscription-banner`, `[role="alert"]`, `[role="status"]`, `[role="dialog"]`, `[role="listbox"]`.
+- **Eliminated Fragile Selectors** — Removed bare `[class*="pointer-events-none"]` from print rules to protect legitimate document content, while ensuring `.invoice-print` and `.invoice-copy` retain 100% layout fidelity.
+
+---
+
+### 📄 Documentation & Standards Synchronization
+- **Print Positioning Guide (`PRINT-POSITIONING-GUIDE.md`)** — Updated invoice print positioning guide to reflect current A4 defaults (`size: A4 portrait`, `margin: 6mm`, `width: 190mm`), cleaned file references to repository-relative paths, and documented the print isolation architecture.
+- **Agent Engineering Rules & Skills (`frontend-standards.md` & `frontend-architect/SKILL.md`)** — Codified the Two-Layer Print Isolation Architecture, canonical `.no-print` standard, and repository-relative path hygiene into workspace rules and the frontend bug prevention checklist.
+
+---
+
 ## [v2.2.4](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.2.4) — 2026-09-04 — Fix Sales Velocity Ranking & Sorting for Fast-Moving and Slow-Moving Inventory
 
 ### 📊 Inventory Intelligence Sorting & Ranking
