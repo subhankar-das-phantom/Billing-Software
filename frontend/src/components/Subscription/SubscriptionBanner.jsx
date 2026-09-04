@@ -95,7 +95,7 @@ export default function SubscriptionBanner() {
         animate={{ opacity: 1, y: 0, height: 'auto' }}
         exit={{ opacity: 0, y: -20, height: 0 }}
         transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-        className={`relative ${bgClass} border ${borderClass} rounded-xl p-3.5 sm:p-4 mb-4 sm:mb-6 shadow-sm`}
+        className={`relative ${bgClass} border ${borderClass} rounded-xl p-3.5 sm:p-4 mb-4 sm:mb-6 shadow-sm no-print subscription-banner`}
       >
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5 sm:gap-4">
           {/* Left: Icon & Text block */}

@@ -345,7 +345,9 @@ export default function DashboardLayout() {
           className="flex-1 p-4 sm:p-6 lg:p-8 xl:p-10 overflow-y-auto overflow-x-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 min-w-0"
         >
           <div className="max-w-[1600px] mx-auto w-full">
-            <SubscriptionBanner />
+            <div className="no-print">
+              <SubscriptionBanner />
+            </div>
             <RouteTransition
               location={location}
               variant="fadeUp"
@@ -388,7 +390,7 @@ export default function DashboardLayout() {
 
       {/* Scroll to top button */}
       <motion.button
-        className="fixed bottom-6 right-6 p-3 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-lg shadow-blue-600/30 z-30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+        className="fixed bottom-6 right-6 p-3 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-lg shadow-blue-600/30 z-30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 no-print"
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         whileHover={motionConfig.shouldHover ? { scale: 1.1 } : undefined}

@@ -332,7 +332,7 @@ export const AuthProvider = ({ children }) => {
       </AnimatePresence>
 
       {/* Toast notifications container */}
-      <div className="fixed top-4 right-4 z-[9999] pointer-events-none">
+      <div className="fixed top-4 right-4 z-[9999] pointer-events-none no-print">
         <AnimatePresence mode="wait">
           {toast && (
             <div className="pointer-events-auto">

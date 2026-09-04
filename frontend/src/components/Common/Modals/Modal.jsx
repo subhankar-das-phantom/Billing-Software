@@ -53,7 +53,7 @@ export default function Modal({
   return createPortal(
     <AnimatePresence mode="wait">
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-hidden">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-hidden no-print">
           {/* Backdrop Overlay */}
           <motion.div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -135,7 +135,7 @@ export function AlertModal({
   return (
     <AnimatePresence mode="wait">
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 no-print">
           <motion.div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             initial={{ opacity: 0 }}
@@ -219,7 +219,7 @@ export function SlideModal({
   return (
     <AnimatePresence mode="wait">
       {isOpen && (
-        <div className="fixed inset-0 z-50">
+        <div className="fixed inset-0 z-50 no-print">
           <motion.div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             initial={{ opacity: 0 }}
