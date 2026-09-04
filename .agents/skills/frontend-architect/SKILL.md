@@ -59,3 +59,5 @@ Before completing any frontend code change, verify that:
   - Out-of-order network calls aborted via `AbortController` or handled by TanStack Query.
   - Submissions guarded by synchronous `useRef` locks (`isSubmittingRef`) to prevent rapid double-clicks.
   - Asynchronous background tasks (FIFO/batch allocation) reference immutable item IDs (`_rowId`) rather than transient array indexes.
+- [ ] **No Autonomous Browser Launch**: Never open Chrome or invoke browser subagents for frontend testing unless explicitly directed by the user.
+

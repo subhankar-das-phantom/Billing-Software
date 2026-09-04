@@ -18,6 +18,7 @@ This document governs all agent operations, architectural decisions, coding patt
 - **Mobile-First & Touch-Aware**: Responsive breakpoints (`sm:`, `md:`, `lg:`), minimum 44px touch targets on mobile, edge-swipe gestures, full-width modal/banner buttons on small screens.
 - **Defensive Client Engineering & Race Condition Immunity**: Eliminate all race conditions before coding. Abort out-of-order network responses (`AbortController` / TanStack Query), prevent double-trigger event races (`onMouseDown` vs `onClick`), lock rapid double-submits synchronously with `useRef`, and anchor asynchronous background updates (FIFO/batch allocation) to immutable unique IDs (`_rowId`) rather than transient array indexes. Memoize sorted lists with `useMemo` and debounce search inputs (250-400ms).
 - **Scale, Virtualization & Query State**: Implement DOM virtualization (`@tanstack/react-virtual`, `VirtualizedList`/`InfiniteVirtualizedList`) for long collections (> 50 items). Implement numbered pagination for dense administrative audits and infinite scroll / lazy loading for interactive lookups and mobile views. Manage server cache and deduplication with `@tanstack/react-query` or SWR.
+- **Browser Subagent Restriction**: Never open Chrome or launch browser subagents to test frontend changes unless explicitly requested by the user.
 
 ### 3. Senior Backend Standards & Database Performance
 - **Zero N+1 Queries**: Never query the database inside loops or `Array.map`. Always batch using `$in`, aggregated `$lookup`, or single-pass in-memory Maps.

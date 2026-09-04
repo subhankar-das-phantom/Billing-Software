@@ -172,3 +172,8 @@ Always identify and mitigate race conditions before starting implementation:
      - When an async calculation completes, update strictly by `_rowId` rather than array index.
      - Block dependent operations while `_batchPreviewPending` is active.
 
+### 8. Verification & Browser Subagent Prohibition
+- **Never Open Chrome Autonomously**: Do NOT launch Chrome or spawn browser testing subagents (`browser_subagent`) to test frontend changes unless the user explicitly commands it.
+- **Validation Methods**: Verify frontend correctness via production build checks (`npm run build`), TypeScript/linting validations, and structured manual verification steps provided to the user.
+
+
