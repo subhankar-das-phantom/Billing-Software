@@ -17,6 +17,7 @@ This document governs all agent operations, architectural decisions, coding patt
 - **Color Discipline**: Deep Slate (`slate-950`/`slate-900`/`slate-800`), crisp muted borders (`border-slate-800/80`), purposeful status colors (Emerald for positive/verified, Amber for warnings/buffers, Rose for critical stock/deadlines, Sky/Blue for informational actions).
 - **Mobile-First & Touch-Aware**: Responsive breakpoints (`sm:`, `md:`, `lg:`), minimum 44px touch targets on mobile, edge-swipe gestures, full-width modal/banner buttons on small screens.
 - **Defensive Client Engineering**: Memoize sorted lists with `useMemo`, debounce searches (250-400ms), and prevent double-trigger event race conditions (`onMouseDown` vs `onClick`).
+- **Scale, Virtualization & Query State**: Implement DOM virtualization (`@tanstack/react-virtual`, `VirtualizedList`/`InfiniteVirtualizedList`) for long collections (> 50 items). Implement numbered pagination for dense administrative audits and infinite scroll / lazy loading for interactive lookups and mobile views. Manage server cache and deduplication with `@tanstack/react-query` or SWR.
 
 ### 3. Senior Backend Standards & Database Performance
 - **Zero N+1 Queries**: Never query the database inside loops or `Array.map`. Always batch using `$in`, aggregated `$lookup`, or single-pass in-memory Maps.

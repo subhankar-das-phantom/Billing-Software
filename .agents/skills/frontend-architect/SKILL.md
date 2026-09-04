@@ -32,6 +32,20 @@ This skill ensures that all UI development in the Bharat Enterprise platform adh
 
 ---
 
+## ⚡ Virtualization, Pagination & Query Strategy
+
+1. **Virtualization for Long Lists**:
+   - For collections exceeding 50 items (catalogs, ledgers, audit logs), wrap rows in `@tanstack/react-virtual` using `VirtualizedList` or `InfiniteVirtualizedList`.
+   - Never render hundreds of unbounded DOM nodes directly.
+2. **Scenario-Based Strategy**:
+   - **Numbered Pagination**: Administrative tables, financial reports, and audit trails where direct page access and exact print bounds are required.
+   - **Infinite Scroll / Lazy Loading**: Interactive lookups, search dropdowns, customer selectors, and mobile list views.
+3. **Declarative State & Caching**:
+   - Use `@tanstack/react-query` (`useQuery`, `useInfiniteQuery`) or SWR.
+   - Use `staleTime` caching for stable master entities (1-5 min) and trigger surgical cache invalidations on mutations.
+
+---
+
 ## 🛡️ Frontend Bug Prevention Checklist
 
 Before completing any frontend code change, verify that:
@@ -40,3 +54,4 @@ Before completing any frontend code change, verify that:
 - [ ] **Search Debouncing**: Every live search input is wrapped with a 250–400ms debounce hook before triggering filtering or API requests.
 - [ ] **Defensive Memoized Sorting**: Any list displayed to the user is explicitly wrapped in `useMemo` with an explicit sorting comparator (`(b.value - a.value)`).
 - [ ] **Contextual Permission Routing**: Buttons triggering protected flows (e.g. Record Payment) verify permission to at least one entry point and dynamically route or hide cleanly.
+- [ ] **Virtualization & Scale**: Collections with > 50 elements leverage `VirtualizedList` or `InfiniteVirtualizedList` with paginated query loading.

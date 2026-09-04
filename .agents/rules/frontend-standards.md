@@ -108,3 +108,15 @@ useEffect(() => {
 - **Top-Right Absolute Close Buttons**: On small screens (< 640px), position dismiss icons cleanly: `absolute top-3 right-3 sm:static`, with right padding buffer on text containers (`pr-8 sm:pr-0`).
 - **Clickable Contact Links**: Always render email addresses as `mailto:email@domain.com` and phone numbers as `tel:+91...`.
 - **Contextual Permission Guards**: Never render dead or forbidden action links (e.g., Record Payment shortcuts when collections/invoices are disabled). Check permissions dynamically and adapt the target route or hide the button.
+
+### 6. List Virtualization, Pagination & Infinite Scroll Architecture
+- **Mandatory Virtualization for Long Lists**:
+  - Whenever rendering large collections (> 50–100 items, such as product catalogs, customer ledgers, invoice histories, or inventory movements), use DOM virtualization via `@tanstack/react-virtual` (`VirtualizedList` / `InfiniteVirtualizedList`).
+  - Keeps DOM element count flat (< 30 nodes), prevents memory leaks and mobile browser crashes, and guarantees silky 60fps scrolling.
+- **Scenario-Based Loading Patterns**:
+  - **Numbered / Discrete Pagination**: Use for dense administrative audit tables, financial registers, and reports where users require exact page counts, direct page jumping, and deterministic print/export views.
+  - **Lazy Loading with Infinite Scroll**: Use for interactive product search dropdowns, customer selectors, mobile feeds, and operational logs where users browse progressively.
+- **Data Fetching & Cache Management (TanStack Query / SWR)**:
+  - Leverage `@tanstack/react-query` (`useQuery`, `useInfiniteQuery`) or SWR for declarative server-state management.
+  - Configure sensible caching: `staleTime: 60 * 1000` (1 min) for read-heavy masters (products, customers), and `staleTime: 0` with targeted query invalidation (`queryClient.invalidateQueries(...)`) after mutations.
+  - Pair `useInfiniteQuery` directly with `InfiniteVirtualizedList` (`fetchNextPage`, `hasNextPage`, `isFetchingNextPage`) to stream pages dynamically without layout shifting.
