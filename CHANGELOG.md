@@ -6,6 +6,22 @@ For full release notes with implementation details, see [GitHub Releases](https:
 
 ---
 
+## [v2.2.4](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.2.4) — 2026-09-04 — Fix Sales Velocity Ranking & Sorting for Fast-Moving and Slow-Moving Inventory
+
+### 📊 Inventory Intelligence Sorting & Ranking
+Version 2.2.4 fixes an issue in the Inventory Intelligence dashboard where "Top Fast-Moving Products" and "Slow-Moving & Zero-Sales" were displayed in MongoDB natural insertion order instead of ranked sales velocity order.
+
+---
+
+### 🔧 Velocity Service & UI Defensiveness (`inventoryAnalyticsService.ts` & `InventoryIntelligenceSection.jsx`)
+- **Strict Velocity Ranking in Service** — In `inventoryAnalyticsService.ts`, the final segment lists (`FAST_MOVING`, `SLOW_MOVING`, `NO_SALES`) now derive and filter from sorted velocity aggregations rather than unranked product collections:
+  - **Fast-Moving Products**: Filtered from `sellingProducts` and sorted descending by `unitsSold` (with `velocityRate` as secondary tie-breaker).
+  - **Slow-Moving Products**: Filtered from `sellingProducts` and sorted ascending by `unitsSold` (least sold first, with highest `currentStockQty` on hand as secondary tie-breaker).
+  - **Zero-Sales Products**: Filtered from `productList` and sorted descending by `currentStockQty` to highlight highest dead capital first.
+- **Client-Side Sorting Resilience** — In `InventoryIntelligenceSection.jsx`, wrapped `displayedVelocityFast` and `displayedVelocitySlow` in memoized sorting routines (`useMemo`) to guarantee immediate correct descending/ascending order even if stale or cached payload data is loaded.
+
+---
+
 ## [v2.2.3](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.2.3) — 2026-09-04 — Fix Duplicate Product Addition When Batch Tracking Is Disabled
 
 ### 🐛 Invoice Creation Bug Fix
