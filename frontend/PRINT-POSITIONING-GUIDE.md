@@ -6,36 +6,82 @@ Complete guide to control where and how your invoice prints on A4/A5 paper.
 
 ## 🎯 Quick Summary
 
-Your invoice positioning is controlled by **two main files**:
+Your invoice positioning and print behavior are controlled by **two main files**:
 
-1. **[index.css](file:///d:/SIDE%20PROJECTS/billing%20software%20supriyo%20da/frontend/src/index.css)** (lines 217-234) - Print styles
-2. **[InvoiceViewPage.jsx](file:///d:/SIDE%20PROJECTS/billing%20software%20supriyo%20da/frontend/src/pages/InvoiceViewPage.jsx)** (lines 241-247) - Invoice container
+1. **`src/index.css`** (lines 933–1065) — Global print styles, page size, margins, and notification concealment
+2. **`src/pages/Invoices/InvoiceViewPage.jsx`** (lines 893–918) — Printable invoice container (`.invoice-print`)
 
 ---
 
 ## 📐 Current Settings
 
-### **Page Settings** (index.css lines 218-221)
+### **Page Settings** (`index.css` lines 934–937)
 ```css
 @page {
-  size: A5 portrait;      /* Paper size & orientation */
-  margin: 5mm;            /* Distance from paper edges */
+  size: A4 portrait;      /* Paper size & orientation */
+  margin: 6mm;            /* Distance from paper edges */
 }
 ```
 
-### **Invoice Container** (InvoiceViewPage.jsx lines 241-247)
+### **Invoice Container** (`InvoiceViewPage.jsx` lines 893–905)
 ```jsx
-<div
-  className="invoice-print bg-white p-2"
-  style={{ 
-    width: '148mm',       /* Invoice width */
-    fontSize: '8px',      /* Base font size */
+<motion.div
+  ref={printRef}
+  variants={cardVariants}
+  className="invoice-print bg-white border-2 border-slate-300 shadow-lg"
+  style={{
+    width: '190mm',       /* Invoice width */
+    fontSize: '10px',     /* Base font size */
     color: '#000000',
     margin: '0 auto',     /* Centers horizontally */
-    padding: '3mm'        /* Internal spacing */
+    padding: '2mm'        /* Internal spacing */
   }}
 >
 ```
+
+---
+
+## 🛡️ Print Isolation & UI Concealment (`.no-print`)
+
+The platform enforces a strict **two-layer print isolation defense** to guarantee that printed documents (Invoices, Credit Notes, Customer Ledgers, Supplier Ledgers) contain **only** legitimate business content:
+
+### 1. The Canonical `.no-print` Class
+Any component or element that represents screen-only UI (such as action toolbars, navigation buttons, edit links, or modals) is marked with `no-print`. Inside `index.css`:
+```css
+@media print {
+  .no-print,
+  .no-print * {
+    display: none !important;
+  }
+}
+```
+
+### 2. Automatic Notification & Chrome Concealment
+Even if a notification or alert is active on the screen when `window.print()` is triggered (such as a 5-second "Invoice created successfully!" toast or a "Trial Ending Soon" banner), the global print stylesheet hides it automatically:
+```css
+@media print {
+  .no-print,
+  .no-print *,
+  .toast-container,
+  .toast,
+  .subscription-banner,
+  [role="alert"],
+  [role="status"],
+  [role="dialog"],
+  [role="listbox"],
+  aside,
+  header,
+  nav,
+  button,
+  .sidebar,
+  .navbar,
+  [class*="backdrop-blur"] {
+    display: none !important;
+  }
+}
+```
+
+This guarantees zero race conditions between UI state and print triggers.
 
 ---
 
