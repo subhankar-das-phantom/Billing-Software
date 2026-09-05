@@ -211,7 +211,7 @@ Violations may result in immediate account suspension or termination.
 | | |
 |---|---|
 | **Platform** | Bharat Enterprise Billing System |
-| **Email** | support.bharatenterprises@gmail.com |
+| **Email** | support.bharatenterprise@gmail.com |
 | **Region** | India |
 | **Response Time** | Within **7 business days** |
 

@@ -318,7 +318,7 @@ If you have any questions, concerns, or requests regarding this Privacy Policy o
 | | |
 |---|---|
 | **Platform** | Bharat Enterprise Billing System |
-| **Email** | [support.bharatenterprises@gmail.com] |
+| **Email** | support.bharatenterprise@gmail.com |
 | **Address** | India |
 | **Response Time** | We aim to respond to all privacy-related inquiries within **7 business days**. |
 

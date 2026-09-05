@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSubscription } from '../../contexts/SubscriptionContext';
 
-const SUPPORT_EMAIL = 'support@bharatenterprise.com';
+const SUPPORT_EMAIL = 'support.bharatenterprise@gmail.com';
 
 /**
  * SubscriptionBanner — shown in DashboardLayout when subscription
