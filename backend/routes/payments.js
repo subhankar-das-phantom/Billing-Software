@@ -10,6 +10,7 @@ const {
   updatePayment,
   deletePayment
 } = require('../controllers/paymentController');
+const { exportCollections } = require('../controllers/collectionExportController');
 const { protect, requirePermission } = require('../middleware/auth');
 const { checkSubscription, checkFeatureAccess, checkWriteAccess } = require('../saas/middleware');
 const { Feature } = require('../saas/shared/features');
@@ -19,7 +20,9 @@ router.use(protect);
 router.use(checkSubscription);
 router.use(checkFeatureAccess(Feature.PAYMENTS));
 
-// Collections route (must be before /:id to avoid param collision)
+// Collections routes (must be before /:id to avoid param collision)
+router.get('/export', requirePermission('collections', 'view', 'payments'), exportCollections);
+router.get('/collections/export', requirePermission('collections', 'view', 'payments'), exportCollections);
 router.get('/collections', requirePermission('collections', 'view', 'payments'), getCollections);
 
 // Payment routes

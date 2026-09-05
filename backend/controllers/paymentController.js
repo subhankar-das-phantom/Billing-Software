@@ -89,74 +89,105 @@ const buildCollectionSortDateExpression = (dateField) => {
   };
 };
 
+// IST date boundary parser for accurate Indian timezone filtering (UTC+5:30)
+const parseISTDateBoundary = (dateInput, endOfDay = false) => {
+  if (!dateInput) return null;
+  const raw = String(dateInput).trim();
+  const ymdMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (ymdMatch) {
+    const [, year, month, day] = ymdMatch;
+    const timePart = endOfDay ? '23:59:59.999' : '00:00:00.000';
+    const parsed = new Date(`${year}-${month}-${day}T${timePart}+05:30`);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+// Preserve explicit recording time when date is provided without a time component
+const resolvePaymentDate = (inputDate) => {
+  if (!inputDate) return new Date();
+  const raw = String(inputDate).trim();
+  const ymdMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (ymdMatch) {
+    const todayIST = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+    if (raw === todayIST) {
+      return new Date();
+    }
+    const now = new Date();
+    const [, year, month, day] = ymdMatch;
+    const istTimeStr = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Kolkata',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    }).format(now);
+    const parsed = new Date(`${year}-${month}-${day}T${istTimeStr}+05:30`);
+    return Number.isNaN(parsed.getTime()) ? new Date(raw) : parsed;
+  }
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+};
+
+const escapeRegex = (string) => {
+  return String(string || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
+const CANONICAL_PAYMENT_METHODS = ['Cash', 'UPI', 'Bank Transfer', 'Cheque', 'NEFT/RTGS'];
+
 // @desc    Get daily collections summary + payment list
 // @route   GET /api/payments/collections
 // @access  Private
 exports.getCollections = async (req, res, next) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 50;
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 50));
     const tenantId = getTenantId(req);
 
-    // Build date range
-    let startOfDay, endOfDay;
+    // Build IST date range
+    let startOfDay = null;
+    let endOfDay = null;
+
     if (req.query.date) {
-      const d = new Date(req.query.date);
-      startOfDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-      endOfDay = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+      startOfDay = parseISTDateBoundary(req.query.date, false);
+      endOfDay = parseISTDateBoundary(req.query.date, true);
     } else if (req.query.startDate || req.query.endDate) {
-      if (req.query.startDate) {
-        const s = new Date(req.query.startDate);
-        startOfDay = new Date(s.getFullYear(), s.getMonth(), s.getDate());
-      }
-      if (req.query.endDate) {
-        const e = new Date(req.query.endDate);
-        endOfDay = new Date(e.getFullYear(), e.getMonth(), e.getDate() + 1);
-      }
+      if (req.query.startDate) startOfDay = parseISTDateBoundary(req.query.startDate, false);
+      if (req.query.endDate) endOfDay = parseISTDateBoundary(req.query.endDate, true);
     } else {
-      const today = new Date();
-      startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+      const istTodayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+      startOfDay = parseISTDateBoundary(istTodayStr, false);
+      endOfDay = parseISTDateBoundary(istTodayStr, true);
     }
 
-    // Build payment query
+    // Shared base predicates (constructed once)
     const paymentQuery = { tenantId };
-    const paymentMatch = { tenantId };
-    if (startOfDay || endOfDay) {
-      paymentQuery.paymentDate = {};
-      paymentMatch.paymentDate = {};
-      if (startOfDay) { paymentQuery.paymentDate.$gte = startOfDay; paymentMatch.paymentDate.$gte = startOfDay; }
-      if (endOfDay) { paymentQuery.paymentDate.$lt = endOfDay; paymentMatch.paymentDate.$lt = endOfDay; }
-    }
-    if (req.query.paymentMethod) {
-      paymentQuery.paymentMethod = req.query.paymentMethod;
-      paymentMatch.paymentMethod = req.query.paymentMethod;
-    }
-    if (req.query.customerId) {
-      const mongoose = require('mongoose');
-      if (!mongoose.Types.ObjectId.isValid(req.query.customerId)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid customerId'
-        });
-      }
-      paymentQuery.customer = new mongoose.Types.ObjectId(req.query.customerId);
-      paymentMatch.customer = paymentQuery.customer;
-    }
-
-    // Build manual entry query (payment_adjustment and credit_adjustment)
     const meQuery = {
       tenantId,
       entryType: { $in: ['payment_adjustment', 'credit_adjustment'] }
     };
+
     if (startOfDay || endOfDay) {
+      paymentQuery.paymentDate = {};
       meQuery.entryDate = {};
-      if (startOfDay) meQuery.entryDate.$gte = startOfDay;
-      if (endOfDay) meQuery.entryDate.$lt = endOfDay;
+      if (startOfDay) {
+        paymentQuery.paymentDate.$gte = startOfDay;
+        meQuery.entryDate.$gte = startOfDay;
+      }
+      if (endOfDay) {
+        paymentQuery.paymentDate.$lte = endOfDay;
+        meQuery.entryDate.$lte = endOfDay;
+      }
     }
-    if (req.query.paymentMethod) {
+
+    // Payment method filter (canonical only)
+    if (req.query.paymentMethod && CANONICAL_PAYMENT_METHODS.includes(req.query.paymentMethod)) {
+      paymentQuery.paymentMethod = req.query.paymentMethod;
       meQuery.paymentMethod = req.query.paymentMethod;
     }
+
+    // Customer ID filter
     if (req.query.customerId) {
       const mongoose = require('mongoose');
       if (!mongoose.Types.ObjectId.isValid(req.query.customerId)) {
@@ -165,97 +196,193 @@ exports.getCollections = async (req, res, next) => {
           message: 'Invalid customerId'
         });
       }
-      meQuery.customer = new mongoose.Types.ObjectId(req.query.customerId);
+      const custId = new mongoose.Types.ObjectId(req.query.customerId);
+      paymentQuery.customer = custId;
+      meQuery.customer = custId;
     }
 
-    // Run all queries in parallel
-    const [summaryResult, payments, manualEntries] = await Promise.all([
-      Payment.aggregate([
-        { $match: paymentMatch },
-        {
-          $facet: {
-            totals: [{ $group: { _id: null, totalCollected: { $sum: '$amount' }, paymentCount: { $sum: 1 } } }],
-            byMethod: [{ $group: { _id: '$paymentMethod', count: { $sum: 1 }, total: { $sum: '$amount' } } }]
-          }
-        }
-      ]),
+    // Guarded search: prefix-indexed where possible, max 50 chars, bounded customer lookups
+    const rawSearch = String(req.query.search || '').trim().slice(0, 50);
+    if (rawSearch.length >= 2) {
+      const escaped = escapeRegex(rawSearch);
+      const prefixPattern = new RegExp(`^${escaped}`, 'i');
+      const containsPattern = new RegExp(escaped, 'i');
+
+      // Bounded customer lookup utilizing existing { tenantId: 1, customerName: 1 } / phone indexes
+      const matchingCustomers = await Customer.find({
+        tenantId,
+        $or: [
+          { customerName: prefixPattern },
+          { phone: prefixPattern }
+        ]
+      }).select('_id').limit(50).lean();
+
+      const matchingCustomerIds = matchingCustomers.map(c => c._id);
+
+      const paymentOr = [
+        { referenceNumber: containsPattern },
+        { notes: containsPattern },
+        { 'invoiceSnapshot.invoiceNumber': prefixPattern }
+      ];
+      if (matchingCustomerIds.length > 0) {
+        paymentOr.push({ customer: { $in: matchingCustomerIds } });
+      }
+
+      const meOr = [
+        { referenceNumber: containsPattern },
+        { description: containsPattern },
+        { notes: containsPattern }
+      ];
+      if (matchingCustomerIds.length > 0) {
+        meOr.push({ customer: { $in: matchingCustomerIds } });
+      }
+
+      paymentQuery.$and = paymentQuery.$and || [];
+      paymentQuery.$and.push({ $or: paymentOr });
+
+      meQuery.$and = meQuery.$and || [];
+      meQuery.$and.push({ $or: meOr });
+    }
+
+    // Run bounded queries in parallel with cashier attribution
+    const [payments, manualEntries] = await Promise.all([
       Payment.find(paymentQuery)
         .populate('customer', 'customerName phone')
         .populate('invoice', 'invoiceNumber totals.netTotal')
-        .sort({ paymentDate: -1, createdAt: -1 })
+        .populate('createdBy.user', 'name email')
+        .sort({ paymentDate: -1, createdAt: -1, _id: -1 })
         .lean(),
       ManualEntry.find(meQuery)
         .populate('customer', 'customerName phone')
+        .populate('createdBy.user', 'name email')
+        .sort({ entryDate: -1, createdAt: -1, _id: -1 })
         .lean()
     ]);
 
-    // Process payment aggregation
-    const payTotals = summaryResult[0]?.totals[0] || { totalCollected: 0, paymentCount: 0 };
-    const byMethodArray = summaryResult[0]?.byMethod || [];
+    // Normalize both collections into UnifiedCollectionRecord DTO
+    const getEffectiveDate = (primaryDate, fallbackCreatedAt) => {
+      if (primaryDate && hasExplicitTime(primaryDate)) return primaryDate;
+      if (fallbackCreatedAt) return fallbackCreatedAt;
+      return primaryDate;
+    };
 
-    // Merge manual entry payments into totals and byMethod
-    let meTotalCollected = 0;
-    let mePaymentCount = manualEntries.length;
-    const meByMethod = {};
+    const normalizedPayments = payments.map(p => ({
+      id: p._id.toString(),
+      sourceType: 'payment',
+      paymentDate: p.paymentDate,
+      createdAt: p.createdAt,
+      effectiveDate: getEffectiveDate(p.paymentDate, p.createdAt),
+      amount: round2(p.amount),
+      paymentMethod: p.paymentMethod || 'Cash',
+      referenceNumber: p.referenceNumber ? String(p.referenceNumber).trim() : null,
+      notes: p.notes ? String(p.notes).trim() : null,
+      customer: {
+        id: p.customer?._id?.toString() || '',
+        name: p.customer?.customerName || 'Unknown',
+        phone: p.customer?.phone || ''
+      },
+      invoice: p.invoice ? {
+        id: p.invoice._id?.toString() || '',
+        invoiceNumber: p.invoice.invoiceNumber || p.invoiceSnapshot?.invoiceNumber || '-',
+        netTotal: p.invoice.totals?.netTotal ?? p.invoiceSnapshot?.netTotal ?? null
+      } : (p.invoiceSnapshot?.invoiceNumber ? {
+        id: null,
+        invoiceNumber: p.invoiceSnapshot.invoiceNumber,
+        netTotal: p.invoiceSnapshot.netTotal ?? null
+      } : null),
+      entryType: null,
+      recordedBy: p.createdBy?.user ? {
+        name: p.createdBy.user.name || 'Admin',
+        email: p.createdBy.user.email || '',
+        role: p.createdBy.userModel || 'Admin'
+      } : null
+    }));
 
-    for (const me of manualEntries) {
-      meTotalCollected += me.amount;
-      const method = me.paymentMethod || 'Cash';
-      if (!meByMethod[method]) meByMethod[method] = { count: 0, total: 0 };
-      meByMethod[method].count += 1;
-      meByMethod[method].total += me.amount;
-    }
+    const normalizedME = manualEntries.map(me => ({
+      id: me._id.toString(),
+      sourceType: 'manual_entry',
+      paymentDate: me.entryDate,
+      createdAt: me.createdAt,
+      effectiveDate: getEffectiveDate(me.entryDate, me.createdAt),
+      amount: round2(me.amount),
+      paymentMethod: me.paymentMethod || 'Cash',
+      referenceNumber: me.referenceNumber ? String(me.referenceNumber).trim() : null,
+      notes: (me.description || me.notes) ? String(me.description || me.notes).trim() : null,
+      customer: {
+        id: me.customer?._id?.toString() || '',
+        name: me.customer?.customerName || 'Unknown',
+        phone: me.customer?.phone || ''
+      },
+      invoice: null,
+      entryType: me.entryType,
+      recordedBy: me.createdBy?.user ? {
+        name: me.createdBy.user.name || 'Admin',
+        email: me.createdBy.user.email || '',
+        role: me.createdBy.userModel || 'Admin'
+      } : null
+    }));
 
-    // Merge byMethod from both sources
-    const byMethod = {};
-    for (const m of byMethodArray) {
-      byMethod[m._id] = { count: m.count, total: round2(m.total) };
-    }
-    for (const [method, info] of Object.entries(meByMethod)) {
-      if (byMethod[method]) {
-        byMethod[method].count += info.count;
-        byMethod[method].total = round2(byMethod[method].total + info.total);
+    // Deterministic sort: event time DESC -> creation time DESC -> ID tie-breaker
+    const allRecords = [...normalizedPayments, ...normalizedME].sort((a, b) => {
+      const dateA = getCollectionSortDate(a).getTime();
+      const dateB = getCollectionSortDate(b).getTime();
+      if (dateB !== dateA) return dateB - dateA;
+      const createdA = new Date(a.createdAt || 0).getTime();
+      const createdB = new Date(b.createdAt || 0).getTime();
+      if (createdB !== createdA) return createdB - createdA;
+      return String(b.id).localeCompare(String(a.id));
+    });
+
+    // Compute executive summary metrics with reconciliation invariants
+    let cashCollected = 0;
+    let cashCount = 0;
+    let nonCashCollected = 0;
+    let nonCashCount = 0;
+
+    const byMethod = {
+      'Cash': { count: 0, total: 0 },
+      'UPI': { count: 0, total: 0 },
+      'Bank Transfer': { count: 0, total: 0 },
+      'Cheque': { count: 0, total: 0 },
+      'NEFT/RTGS': { count: 0, total: 0 }
+    };
+
+    for (const rec of allRecords) {
+      const m = (rec.paymentMethod in byMethod) ? rec.paymentMethod : 'Cash';
+      byMethod[m].count += 1;
+      byMethod[m].total = round2(byMethod[m].total + rec.amount);
+
+      if (m === 'Cash') {
+        cashCollected = round2(cashCollected + rec.amount);
+        cashCount += 1;
       } else {
-        byMethod[method] = { count: info.count, total: round2(info.total) };
+        nonCashCollected = round2(nonCashCollected + rec.amount);
+        nonCashCount += 1;
       }
     }
 
-    // Normalize manual entries to look like payments for frontend
-    const normalizedME = manualEntries.map(me => ({
-      _id: me._id,
-      paymentDate: me.entryDate,
-      createdAt: me.createdAt,
-      amount: me.amount,
-      paymentMethod: me.paymentMethod || 'Cash',
-      referenceNumber: me.referenceNumber || '',
-      notes: me.description || me.notes || '',
-      customer: me.customer,
-      invoice: null,
-      invoiceSnapshot: null,
-      isManualEntry: true,
-      entryType: me.entryType,
-      description: me.description
-    }));
+    const totalCollected = round2(cashCollected + nonCashCollected);
+    const paymentCount = cashCount + nonCashCount;
 
-    // Merge and sort all payments by effective event time descending
-    const allPayments = [...payments, ...normalizedME]
-      .sort((a, b) => getCollectionSortDate(b) - getCollectionSortDate(a));
-
-    const total = allPayments.length;
-    const paginatedPayments = allPayments.slice((page - 1) * limit, page * limit);
+    const total = allRecords.length;
+    const paginatedRecords = allRecords.slice((page - 1) * limit, page * limit);
 
     res.status(200).json({
       success: true,
       summary: {
-        totalCollected: round2(payTotals.totalCollected + meTotalCollected),
-        paymentCount: payTotals.paymentCount + mePaymentCount,
+        totalCollected,
+        paymentCount,
+        cashCollected,
+        cashCount,
+        nonCashCollected,
+        nonCashCount,
         byMethod
       },
-      count: paginatedPayments.length,
+      count: paginatedRecords.length,
       total,
       page,
-      pages: Math.ceil(total / limit),
-      payments: paginatedPayments
+      pages: Math.ceil(total / limit) || 1,
+      payments: paginatedRecords
     });
   } catch (error) {
     next(error);
@@ -354,7 +481,7 @@ exports.createPayment = async (req, res, next) => {
       invoice: invoiceId,
       customer: invoice.customer._id,
       amount: normalizedAmount,
-      paymentDate: paymentDate || new Date(),
+      paymentDate: resolvePaymentDate(paymentDate),
       paymentMethod: paymentMethod || 'Cash',
       referenceNumber: referenceNumber || '',
       notes: notes || '',
@@ -820,7 +947,7 @@ exports.updatePayment = async (req, res, next) => {
     }
 
     // Update other fields if provided
-    if (paymentDate !== undefined) payment.paymentDate = paymentDate;
+    if (paymentDate !== undefined) payment.paymentDate = resolvePaymentDate(paymentDate);
     if (paymentMethod !== undefined) payment.paymentMethod = paymentMethod;
     if (referenceNumber !== undefined) payment.referenceNumber = referenceNumber;
     if (notes !== undefined) payment.notes = notes;

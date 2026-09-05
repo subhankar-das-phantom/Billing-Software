@@ -4,6 +4,32 @@ const { getAttribution } = require('../middleware/auth');
 const getTenantId = require('../utils/getTenantId');
 const { escapeRegex } = require('../utils/searchUtils');
 
+// Preserve explicit recording time when date is provided without a time component
+const resolveEntryDate = (inputDate) => {
+  if (!inputDate) return new Date();
+  const raw = String(inputDate).trim();
+  const ymdMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (ymdMatch) {
+    const todayIST = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+    if (raw === todayIST) {
+      return new Date();
+    }
+    const now = new Date();
+    const [, year, month, day] = ymdMatch;
+    const istTimeStr = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Kolkata',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    }).format(now);
+    const parsed = new Date(`${year}-${month}-${day}T${istTimeStr}+05:30`);
+    return Number.isNaN(parsed.getTime()) ? new Date(raw) : parsed;
+  }
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+};
+
 /**
  * @desc    Create a new manual entry
  * @route   POST /api/manual-entries
@@ -68,7 +94,7 @@ exports.createManualEntry = async (req, res, next) => {
       entryType,
       paymentType,
       amount,
-      entryDate: entryDate || new Date(),
+      entryDate: resolveEntryDate(entryDate),
       description,
       notes: notes || '',
       affectInventory: false,
@@ -353,7 +379,7 @@ exports.recordPaymentAgainstEntry = async (req, res, next) => {
       entryType: 'payment_adjustment',
       paymentType: 'Cash',
       amount: amount,
-      entryDate: paymentDate || new Date(),
+      entryDate: resolveEntryDate(paymentDate),
       description: `Payment for ${manualEntry.entryType === 'opening_balance' ? 'Opening Balance' : 'Manual Bill'}`,
       notes: notes || '',
       paymentMethod: paymentMethod || 'Cash',
@@ -430,7 +456,7 @@ exports.updateManualEntry = async (req, res, next) => {
 
     // Update fields
     if (amount !== undefined && amount > 0) manualEntry.amount = amount;
-    if (entryDate !== undefined) manualEntry.entryDate = entryDate;
+    if (entryDate !== undefined) manualEntry.entryDate = resolveEntryDate(entryDate);
     if (description !== undefined) manualEntry.description = description;
     if (notes !== undefined) manualEntry.notes = notes;
     if (paymentMethod !== undefined) manualEntry.paymentMethod = paymentMethod;
