@@ -2,61 +2,92 @@ import React from 'react';
 import { ShimmerBone } from '../../features/salesAnalytics/components/SkeletonCards';
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   Collections Page Skeleton
-   1. Header (icon + title + date label)
-   2. Stat cards (4-col)
-   3. Filter panel
-   4. Payment table (desktop) / cards (mobile)
+   Enterprise Collections Page Skeleton
+   1. Executive Header (title, subtitle, action buttons)
+   2. 4-Col KPI Strip (Total, Cash, Non-Cash, Avg Receipt)
+   3. Channel Allocation Strip & Filter Pills
+   4. Search & Date Presets Filter Bar
+   5. Dense Table (desktop) / Cards (mobile)
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
 const HeaderSkeleton = () => (
   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
     <div>
-      <div className="flex items-center gap-3 mb-1">
+      <div className="flex items-center gap-3">
         <ShimmerBone className="w-10 h-10 rounded-xl" />
-        <ShimmerBone className="h-7 w-32" />
+        <div>
+          <ShimmerBone className="h-6 w-36" />
+          <ShimmerBone className="h-3.5 w-60 mt-1.5" />
+        </div>
       </div>
-      <ShimmerBone className="h-3.5 w-56 mt-1 ml-[52px]" />
     </div>
-    <div className="flex items-center gap-2">
-      <ShimmerBone className="w-4 h-4 rounded" />
-      <ShimmerBone className="h-4 w-28" />
+    <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+      <ShimmerBone className="h-9 w-28 rounded-xl" />
+      <ShimmerBone className="h-9 w-36 rounded-xl" />
+      <ShimmerBone className="h-9 w-32 rounded-xl" />
     </div>
   </div>
 );
 
-const StatCardSkeleton = () => (
-  <div className="glass-card p-5">
-    <div className="flex items-center justify-between mb-3">
-      <ShimmerBone className="w-10 h-10 rounded-xl" />
-    </div>
-    <ShimmerBone className="h-8 w-28 mb-1" />
-    <ShimmerBone className="h-3.5 w-24 mt-1" />
-  </div>
-);
-
-const FilterPanelSkeleton = () => (
-  <div className="glass-card p-4">
-    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-      <div className="flex items-center gap-2">
-        <ShimmerBone className="w-4 h-4 rounded" />
-        <ShimmerBone className="h-4 w-12" />
+const KPIGridSkeleton = () => (
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    {Array.from({ length: 4 }).map((_, i) => (
+      <div key={i} className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 space-y-3">
+        <div className="flex items-center justify-between">
+          <ShimmerBone className="h-3.5 w-24" />
+          <ShimmerBone className="w-7 h-7 rounded-lg" />
+        </div>
+        <ShimmerBone className="h-8 w-32" />
+        <div className="flex items-center justify-between pt-1 border-t border-slate-800/60">
+          <ShimmerBone className="h-3 w-16" />
+          <ShimmerBone className="h-3 w-12" />
+        </div>
       </div>
-      <ShimmerBone className="h-8 w-36 rounded-lg" />
-      <ShimmerBone className="h-8 w-32 rounded-lg" />
+    ))}
+  </div>
+);
+
+const ChannelStripSkeleton = () => (
+  <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 space-y-3">
+    <div className="flex items-center justify-between">
+      <ShimmerBone className="h-4 w-44" />
+      <ShimmerBone className="h-3.5 w-28" />
+    </div>
+    <ShimmerBone className="h-2.5 w-full rounded-full" />
+    <div className="flex items-center gap-2 pt-1 overflow-x-auto">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <ShimmerBone key={i} className="h-7 w-24 rounded-lg shrink-0" />
+      ))}
     </div>
   </div>
 );
 
-/* Desktop table: Time | Customer | Invoice | Amount | Method */
+const FilterBarSkeleton = () => (
+  <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4">
+    <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <ShimmerBone key={i} className="h-8 w-20 rounded-lg shrink-0" />
+        ))}
+      </div>
+      <div className="flex items-center gap-2 flex-1 lg:max-w-md">
+        <ShimmerBone className="h-9 w-full rounded-lg" />
+      </div>
+    </div>
+  </div>
+);
+
+/* Desktop table */
 const DesktopTableSkeleton = ({ rows = 8 }) => (
-  <div className="hidden md:block">
+  <div className="hidden md:block overflow-hidden">
     <div className="table-container">
       <table className="table">
         <thead>
           <tr>
-            {['Time', 'Customer', 'Invoice', 'Amount', 'Method'].map(h => (
-              <th key={h}><ShimmerBone className="h-3 w-14 inline-block" /></th>
+            {['Time & Date', 'Customer', 'Invoice / Allocation', 'Channel', 'UTR / Ref No', 'Amount', 'Recorded By', 'Actions'].map((h) => (
+              <th key={h} className="text-slate-400">
+                <ShimmerBone className="h-3 w-16 inline-block" />
+              </th>
             ))}
           </tr>
         </thead>
@@ -64,25 +95,34 @@ const DesktopTableSkeleton = ({ rows = 8 }) => (
           {Array.from({ length: rows }).map((_, i) => (
             <tr key={i}>
               <td>
-                <div className="flex items-center gap-1.5">
-                  <ShimmerBone className="w-3.5 h-3.5 rounded" />
-                  <ShimmerBone className="h-4 w-16" />
+                <div className="space-y-1">
+                  <ShimmerBone className="h-3.5 w-16" />
+                  <ShimmerBone className="h-2.5 w-20" />
                 </div>
               </td>
               <td>
-                <div className="flex items-center gap-2">
-                  <ShimmerBone className="w-4 h-4 rounded" />
+                <div className="space-y-1">
                   <ShimmerBone className="h-4 w-28" />
+                  <ShimmerBone className="h-3 w-20" />
                 </div>
               </td>
               <td>
-                <ShimmerBone className="h-4 w-20" />
+                <ShimmerBone className="h-5 w-24 rounded" />
               </td>
               <td>
-                <ShimmerBone className="h-4 w-20" />
+                <ShimmerBone className="h-6 w-20 rounded-full" />
               </td>
               <td>
-                <ShimmerBone className="h-6 w-24 rounded-full" />
+                <ShimmerBone className="h-4 w-24" />
+              </td>
+              <td className="text-right">
+                <ShimmerBone className="h-4 w-20 ml-auto" />
+              </td>
+              <td>
+                <ShimmerBone className="h-3.5 w-16" />
+              </td>
+              <td className="text-right">
+                <ShimmerBone className="h-7 w-16 rounded-lg ml-auto" />
               </td>
             </tr>
           ))}
@@ -96,20 +136,17 @@ const DesktopTableSkeleton = ({ rows = 8 }) => (
 const MobileCardsSkeleton = ({ count = 5 }) => (
   <div className="md:hidden p-3 space-y-3">
     {Array.from({ length: count }).map((_, i) => (
-      <div key={i} className="bg-slate-800/80 border border-slate-700/50 rounded-xl overflow-hidden">
-        <div className="p-4 flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <ShimmerBone className="w-9 h-9 rounded-lg shrink-0" />
-            <div className="min-w-0">
-              <ShimmerBone className="h-4 w-28 mb-1.5" />
-              <ShimmerBone className="h-3 w-16" />
-            </div>
+      <div key={i} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1">
+            <ShimmerBone className="h-4 w-32" />
+            <ShimmerBone className="h-3 w-20" />
           </div>
-          <ShimmerBone className="h-5 w-20 shrink-0" />
+          <ShimmerBone className="h-5 w-24" />
         </div>
-        <div className="px-4 py-3 border-t border-slate-700/50 bg-slate-800/30 flex items-center justify-between">
-          <ShimmerBone className="h-4 w-20" />
-          <ShimmerBone className="h-6 w-16 rounded-full" />
+        <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+          <ShimmerBone className="h-5 w-20 rounded-full" />
+          <ShimmerBone className="h-7 w-20 rounded-lg" />
         </div>
       </div>
     ))}
@@ -126,22 +163,13 @@ export const CollectionsTableSkeleton = () => (
 export const CollectionsPageSkeleton = () => (
   <div className="space-y-6">
     <HeaderSkeleton />
-
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <StatCardSkeleton />
-      <StatCardSkeleton />
-      <StatCardSkeleton />
-      <StatCardSkeleton />
-    </div>
-
-    <FilterPanelSkeleton />
-
-    <div className="glass-card overflow-hidden">
-      <div className="p-5 border-b border-slate-700">
-        <div className="flex items-center gap-2">
-          <ShimmerBone className="w-5 h-5 rounded" />
-          <ShimmerBone className="h-5 w-32" />
-        </div>
+    <KPIGridSkeleton />
+    <ChannelStripSkeleton />
+    <FilterBarSkeleton />
+    <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl overflow-hidden">
+      <div className="p-5 border-b border-slate-800/80 flex items-center justify-between">
+        <ShimmerBone className="h-5 w-36" />
+        <ShimmerBone className="h-4 w-24" />
       </div>
       <CollectionsTableSkeleton />
     </div>

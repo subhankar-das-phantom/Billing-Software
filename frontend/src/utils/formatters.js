@@ -186,10 +186,52 @@ export const formatDate = (date, format = 'medium') => {
   };
   
   try {
-    return new Intl.DateTimeFormat('en-IN', formats[format]).format(d);
+    const res = new Intl.DateTimeFormat('en-IN', formats[format]).format(d);
+    return res.replace(/\bSept\b/g, 'Sep');
   } catch (e) {
     return d.toLocaleDateString('en-IN');
   }
+};
+
+/**
+ * Check if a date string/object has an explicit time (not UTC midnight).
+ * Date-only strings (e.g. "2026-04-09") parse as UTC midnight,
+ * which incorrectly appears as 05:30 AM in Indian Standard Time (IST).
+ */
+export const hasExplicitTime = (dateValue) => {
+  if (!dateValue) return false;
+  const d = new Date(dateValue);
+  if (Number.isNaN(d.getTime())) return false;
+  return (
+    d.getUTCHours() !== 0 ||
+    d.getUTCMinutes() !== 0 ||
+    d.getUTCSeconds() !== 0 ||
+    d.getUTCMilliseconds() !== 0
+  );
+};
+
+/**
+ * Format collection/payment time accurately.
+ * If paymentDate has an explicit time, uses paymentDate;
+ * otherwise uses createdAt (the exact time recorded in DB) to avoid 05:30 AM UTC midnight artifacts.
+ * Guarantees uppercase meridiem (e.g., '09:23 PM').
+ */
+export const formatPaymentTime = (payment) => {
+  if (!payment) return '-';
+  const paymentDate = payment.paymentDate ? new Date(payment.paymentDate) : null;
+  const createdAt = payment.createdAt ? new Date(payment.createdAt) : null;
+
+  const sourceDate = (payment.paymentDate && hasExplicitTime(payment.paymentDate))
+    ? paymentDate
+    : (createdAt || paymentDate);
+
+  if (!sourceDate || Number.isNaN(sourceDate.getTime())) return '-';
+
+  return sourceDate.toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  }).toUpperCase();
 };
 
 /**
