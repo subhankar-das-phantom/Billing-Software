@@ -185,3 +185,26 @@ export async function executeInTransaction<T>(
 - **Use Multi-Document Transactions** when consistency across disparate collections (Invoices, Products, Batches, StockMovements, Ledgers) is required.
 - **Use Single-Document Atomic Operators** (`$inc`, `$set`, `$push`, `findOneAndUpdate` with conditional query filters) for localized operations (e.g. updating a counter or toggling a status flag), avoiding unnecessary transaction locking overhead.
 
+---
+
+## 📊 7. Export Engine Formatting, Bounds & Zero-Record Safeguards
+
+### Integer vs Decimal Number Formatting
+- **The Trap**: Routing all numerical values through a currency formatter (`#,##0.00`). Discrete count metrics (e.g. `Total Receipts Recorded`, `Total Purchases`, `Total Movement Records`, `itemCount`) get rendered as decimals (`3.00`, `42.00`).
+- **The Standard**:
+  1. Define explicit `'integer'` format in `ExportColumn` and `ExportDefinition.summary`.
+  2. In `formatValue` (`backend/utils/export/helpers.ts`), automatically detect integers via `Number.isInteger(num)` and format with zero decimal places (`maximumFractionDigits: 0`).
+  3. In Excel exports (`excel.ts`), map `'integer'` to cell format `#,##0` instead of `#,##0.00`.
+
+### Zero-Record Export Guard
+- **The Trap**: Allowing an export query with 0 matching records to proceed generates a blank, zero-row spreadsheet file that downloads silently.
+- **The Standard**:
+  - Always count documents before full retrieval.
+  - If `totalMatching === 0`, immediately return HTTP `404` with a descriptive message (`"No payments found for the selected period. Nothing to export."`).
+  - Enables frontend to display a clear notification toast instead of creating a confusing zero-byte download.
+
+### Guarded Date Span Bounds (365-Day Ceiling)
+- When supporting `isAllTime=true`, bound `startBoundary` from `todayStart.getTime() - 364 * 24 * 60 * 60 * 1000` to `todayEnd` (end of today IST).
+- Ensures `Math.ceil((endBoundary - startBoundary) / (1000 * 60 * 60 * 24))` evaluates to exactly 365 days, never exceeding the `MAX_EXPORT_DAYS` safety ceiling.
+
+
