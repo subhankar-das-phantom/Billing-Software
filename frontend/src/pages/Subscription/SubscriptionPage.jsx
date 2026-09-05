@@ -13,7 +13,7 @@ export default function SubscriptionPage() {
   const { user } = useAuth();
   const toast = useToast();
 
-  const SUPPORT_EMAIL = 'support@bharatenterprise.com';
+  const SUPPORT_EMAIL = 'support.bharatenterprise@gmail.com';
 
   const { data: plans = [], isLoading: loading, isError, error } = useSubscriptionPlansQuery();
   const [selectedDuration, setSelectedDuration] = useState(1); // 1, 3, 6, 12 months

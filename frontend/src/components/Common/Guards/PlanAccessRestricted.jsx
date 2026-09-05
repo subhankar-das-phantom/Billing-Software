@@ -7,7 +7,7 @@ export default function PlanAccessRestricted({ feature, currentPlan = 'Starter' 
   const navigate = useNavigate();
   const featureName = FEATURE_LABELS[feature] || 'Enterprise Capability';
   const requiredTier = FEATURE_TIER_NAMES[feature] || 'Business';
-  const SUPPORT_EMAIL = 'support@bharatenterprise.com';
+  const SUPPORT_EMAIL = 'support.bharatenterprise@gmail.com';
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] py-12 px-4 text-center">

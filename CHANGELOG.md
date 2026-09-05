@@ -4,6 +4,31 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.3.1](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.3.1) — 2026-09-06 — Canonical Support Email Standardization & Post-Versioning Release Note Automation
+
+### 📧 Canonical Support Email Standardization
+Version 2.3.1 is a targeted integrity patch establishing `support.bharatenterprise@gmail.com` as the canonical customer support and legal communications channel across the entire platform. This resolves inconsistencies where dummy domain addresses (`support@bharatenterprise.com`) and legacy plural addresses were referenced across subscription touchpoints, access control guards, and legal disclosure documentation.
+
+---
+
+### 🎨 Frontend & SaaS Subscription Touchpoints (`SubscriptionBanner.jsx`, `SubscriptionPage.jsx`, `PlanAccessRestricted.jsx`, `TermsPage.jsx`, `PrivacyPolicyPage.jsx`)
+- **Centralized Support Constant** — Standardized `SUPPORT_EMAIL = 'support.bharatenterprise@gmail.com'` across `SubscriptionBanner.jsx`, `SubscriptionPage.jsx`, and `PlanAccessRestricted.jsx`.
+- **Interactive Copy & Mailto Consistency** — Replaced legacy plural mailto and copy-to-clipboard targets in `TermsPage.jsx` and `PrivacyPolicyPage.jsx` with `support.bharatenterprise@gmail.com`.
+- **Changelog Historical Alignment** — Updated previous release documentation to point to the canonical mailto endpoint.
+
+---
+
+### 📋 Legal & Compliance Synchronization (`PRIVACY_POLICY.md`, `TERMS_AND_CONDITIONS.md`)
+- **Section 20 Terms & Conditions** — Updated official support contact table to `support.bharatenterprise@gmail.com`.
+- **Privacy Policy Section 13** — Standardized contact table row formatting with `support.bharatenterprise@gmail.com`.
+
+---
+
+### ⚙️ Workspace Governance & Release Protocol (`release-protocol.md`, `SKILL.md`, `AGENTS.md`)
+- **Mandatory Post-Versioning Release Notes** — Codified Step 6 into `.agents/rules/release-protocol.md`, `.agents/skills/release-manager/SKILL.md`, and `.agents/AGENTS.md` requiring automatic generation of complete, copy-paste-ready GitHub Release Notes with direct publication links upon completing version tagging and push.
+
+---
+
 ## [v2.3.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.3.0) — 2026-09-05 — Enterprise Collections Workstation, Cashier Reconciliation, Interactive Capsule Affordance & Shared Export Engine
 
 ### 🏛️ Operational Collections Workstation & Accounting Integrity
@@ -133,7 +158,7 @@ Version 2.2.2 fixes the mobile responsive styling for subscription notifications
 - **Responsive Flex Layout** — Replaced fixed horizontal flex row with a mobile-first responsive layout (`flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5 sm:gap-4`). On mobile viewports (< 640px), the banner no longer squishes message text or overflows horizontally.
 - **Full-Width Touch Targets** — On mobile devices, action buttons (`Upgrade Plan` / `Renew Plan`) now expand to a comfortable full-width touch target (`w-full sm:w-auto`), with clean, concise labels.
 - **Positioned Dismiss Button** — On mobile screens, the dismiss (`X`) button is anchored cleanly in the top-right corner (`absolute top-3 right-3 sm:static`), with padding buffer preventing text overlap.
-- **Direct Mailto Links** — Embedded clickable `mailto:support@bharatenterprise.com` links directly inside banner messages, allowing users on both mobile and desktop to open their email client instantly.
+- **Direct Mailto Links** — Embedded clickable `mailto:support.bharatenterprise@gmail.com` links directly inside banner messages, allowing users on both mobile and desktop to open their email client instantly.
 
 ---
 
