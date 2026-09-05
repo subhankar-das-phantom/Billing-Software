@@ -223,5 +223,40 @@ Hardcoding machine-specific absolute file URLs (e.g. `file:///d:/...` or `C:\...
 - In all git-tracked documentation and markdown guides, NEVER include machine-specific absolute URLs (`file:///d:/...`, `C:\...`).
 - Always use clean repository-relative paths (e.g. `src/index.css`, `frontend/src/pages/Invoices/InvoiceViewPage.jsx`) or markdown backticks (`` `src/index.css` ``) so documentation remains portable, clean, and professional across all developers, environments, and GitHub.
 
+### 11. Horizontal Scroll Affordance & Interactive Overflow Navigation (Capsule Peeking)
+**Trap:**
+Hiding scrollbars (`no-scrollbar` or `overflow-x-auto`) on mobile or desktop navigation strips (e.g. payment channel selector pills, date preset chips) leaves users unable to determine whether additional capsules or buttons extend beyond the visible screen edge ("peeking" ambiguity).
+**Standard:**
+Implement a dedicated `ScrollAffordanceContainer` incorporating:
+1. **Visual Edge Gradient Fades**: Subtle slate gradient masks (`bg-gradient-to-r from-slate-900 to-transparent`) indicating content clipping on the overflowing side.
+2. **Interactive Micro-Navigation Chevrons**: Floating, clickable chevrons (`ChevronLeft` / `ChevronRight`) with subtle backdrop blur (`bg-slate-900/90 border border-slate-700/80 hover:bg-slate-800 text-slate-300`).
+3. **Smooth Slide Action**: Clicking chevrons smoothly scrolls by a fixed quantum (`containerRef.current.scrollBy({ left: -180, behavior: 'smooth' })`).
+4. **Dynamic Overflow Detection**: Use `ResizeObserver` and `scroll` event listeners to dynamically reveal/hide arrows only when overflow is physically detected (`scrollLeft > 4` and `scrollLeft + clientWidth < scrollWidth - 4`).
+5. **Responsive Wrapping Fallback**: Add `sm:flex-wrap sm:overflow-visible` so arrows and gradient fades automatically disappear on desktop screens where wrapping is enabled.
+
+### 12. Mobile Modal Navigation & Back-Trap Elimination
+**Trap:**
+On mobile viewports (< 640px), centered dialogs relying solely on a small top-right `X` icon trap users who naturally expect mobile-native back navigation (top-left arrow or bottom close action).
+**Standard:**
+For all full-screen or large operational modals (e.g. `PaymentReceiptModal.jsx`, `DailyCloseoutPrintModal.jsx`, `RecordPaymentModal.jsx`):
+1. **Sticky Header Back Button**: Include a top-left `<ArrowLeft>` button on mobile (`block sm:hidden text-slate-300 hover:text-white p-1`) to serve as a back action.
+2. **Sticky Bottom Close Action**: On mobile/tablet, provide a full-width bottom "Close" button in the sticky footer.
+3. **Backdrop Tap Dismissal**: Tapping the dimmed backdrop (`onClick={onClose}`) dismisses the modal, guarded with `!isSubmitting` and `e.stopPropagation()` on the inner container.
+4. **Hardware/Keyboard Escape Support**: Listen for `Escape` keydown events on the `window` while the modal is open.
+
+### 13. Export Period Selector Design & Timezone-Immune Presets
+**Trap:**
+Export period dialogs defaulting to blank date ranges or `"all"` override the user's active page filters, causing unintentional data exports. Selecting presets with browser-local `new Date()` causes timezone rollback artifacts across boundaries (e.g. UTC vs IST).
+**Standard:**
+1. **Inherit Active Scope**: Pass `defaultPreset` and `initialDateRange` matching the active page filters (`datePreset`, `selectedDate`, `startDate`, `endDate`) rather than resetting to blank.
+2. **Timezone-Immune Arithmetic**: Calculate day offsets using pure UTC arithmetic anchored to Indian Standard Time (`Asia/Kolkata`):
+   ```javascript
+   const d = new Date(Date.UTC(currY, currM - 1, currD - daysBack));
+   const ymd = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+   ```
+3. **Interactive Scope Feedback**: Always render an active "Selected Export Scope" banner dynamically describing single-day dates (`Single Day · 05 Sep 2026`), multi-day ranges (`01 Sep 2026 — 05 Sep 2026`), or explicit All-Time windows (`Complete History (All Time · Up to 365 Days)`).
+4. **Explicit All-Time Contract**: Pass `isAllTime=true` rather than empty strings when exporting all-time data, preventing parent page handlers and backend controllers from falling back to today's date.
+
+
 
 

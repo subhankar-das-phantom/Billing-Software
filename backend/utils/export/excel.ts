@@ -115,7 +115,12 @@ export const buildWorkbook = async <T = any>(
       
       // Number / Currency / Date formatting
       if (col.format === 'currency') cell.numFmt = '₹#,##0.00';
-      if (col.format === 'number') cell.numFmt = '#,##0.00';
+      if (col.format === 'integer') cell.numFmt = '#,##0';
+      if (col.format === 'number') {
+        const rawVal = rowData[col.key as keyof T];
+        const numVal = Number(rawVal);
+        cell.numFmt = !isNaN(numVal) && Number.isInteger(numVal) ? '#,##0' : '#,##0.00';
+      }
       if (col.format === 'percentage') cell.numFmt = '0.00%';
       if (col.format === 'date') cell.numFmt = 'dd mmm yyyy';
       if (col.format === 'datetime') cell.numFmt = 'dd mmm yyyy hh:mm AM/PM';
@@ -123,7 +128,7 @@ export const buildWorkbook = async <T = any>(
       // Alignment
       if (col.align) {
         cell.alignment = { horizontal: col.align, vertical: 'middle' };
-      } else if (col.format === 'currency' || col.format === 'number' || col.format === 'percentage') {
+      } else if (col.format === 'currency' || col.format === 'number' || col.format === 'integer' || col.format === 'percentage') {
         cell.alignment = { horizontal: 'right', vertical: 'middle' };
       } else {
         cell.alignment = { vertical: 'middle' };
@@ -205,7 +210,11 @@ export const buildWorkbook = async <T = any>(
       const valCell = row.getCell(2);
       
       if (item.format === 'currency') valCell.numFmt = '₹#,##0.00';
-      if (item.format === 'number') valCell.numFmt = '#,##0.00';
+      if (item.format === 'integer') valCell.numFmt = '#,##0';
+      if (item.format === 'number') {
+        const numVal = Number(val);
+        valCell.numFmt = !isNaN(numVal) && Number.isInteger(numVal) ? '#,##0' : '#,##0.00';
+      }
       if (item.format === 'percentage') valCell.numFmt = '0.00%';
       
       valCell.font = { bold: true, color: { argb: 'FF059669' }, size: 12 };

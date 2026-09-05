@@ -3,7 +3,7 @@ export interface ExportColumn<T = Record<string, unknown>> {
   readonly header: string;
   readonly width?: number; // Used for Excel/PDF formatting
   readonly align?: 'left' | 'center' | 'right';
-  readonly format?: 'currency' | 'number' | 'text' | 'percentage' | 'date' | 'datetime' | 'boolean';
+  readonly format?: 'currency' | 'number' | 'integer' | 'text' | 'percentage' | 'date' | 'datetime' | 'boolean';
 }
 
 export interface ExportDefinition<T = Record<string, unknown>> {
@@ -20,6 +20,6 @@ export interface ExportDefinition<T = Record<string, unknown>> {
   readonly summary: ReadonlyArray<{
     readonly label: string;
     readonly value: string | number;
-    readonly format?: 'currency' | 'number' | 'text' | 'percentage';
+    readonly format?: 'currency' | 'number' | 'integer' | 'text' | 'percentage';
   }>;
 }

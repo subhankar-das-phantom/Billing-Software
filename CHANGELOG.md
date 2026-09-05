@@ -4,6 +4,38 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.3.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.3.0) — 2026-09-05 — Enterprise Collections Workstation, Cashier Reconciliation, Interactive Capsule Affordance & Shared Export Engine
+
+### 🏛️ Operational Collections Workstation & Accounting Integrity
+Version 2.3.0 is a milestone minor release elevating the Collections module (`/collections`) into a high-density, senior enterprise financial workstation. It enforces strict mathematical reconciliation (`Total Collections === Cash Collections + Non-Cash Collections`), eliminates UTC midnight 05:30 AM timestamp display artifacts, provides dedicated print isolation for customer payment receipts and cashier register closeout statements, introduces interactive horizontal scroll affordances with smooth chevron navigation, eliminates mobile modal navigation back-traps, integrates timezone-safe export period presets, and ensures integer count metrics never display with decimal currency formatters.
+
+---
+
+### 🎨 Frontend Workstation UI & Mobile Accessibility (`CollectionsPage.jsx`, `ExportModal.jsx`, `PaymentReceiptModal.jsx`, `DailyCloseoutPrintModal.jsx`, `formatters.js`)
+- **Pixel-Perfect 8-Column Table Alignment** — Explicitly aligned table headers (`th`) and body cells (`td`) with `text-left` for 6 informational columns and `text-right` for `Amount` and `Actions`.
+- **Narrow Monospace Reference / UTR Guard** — Bank reference numbers are styled with narrow monospace (`font-mono text-xs tracking-tight`), constrained with `max-w-[140px] truncate`, and equipped with a full-reference hover tooltip and 1-click clipboard copy.
+- **Enterprise Cashier Identity Presentation** — Displays cashier name first with operational role tag (`[Admin]` or `[Staff]`), shows full email on hover via tooltip, and restricts email prefix extraction to legacy fallbacks only.
+- **Interactive Capsule Scroll Affordance (`ScrollAffordanceContainer`)** — Engineered a dedicated container for horizontal capsule strips (channel allocation pills and date filter chips) featuring subtle edge gradient masks, dynamic overflow detection via `ResizeObserver`, and clickable left/right slide chevrons smoothly scrolling content by 180px increments.
+- **Mobile Modal Navigation & Back-Trap Elimination (`PaymentReceiptModal.jsx` & `DailyCloseoutPrintModal.jsx`)** — Added a sticky mobile header with `<ArrowLeft>` back button, a sticky full-width bottom dismiss button, backdrop tap-to-close dismissals, and `Escape` keyboard shortcuts so mobile users are never trapped inside dialogs.
+- **Comprehensive 8-Period Export Presets (`ExportModal.jsx`)** — Upgraded the export modal with an 8-preset responsive grid (`Today`, `Yesterday`, `Last 7 Days`, `This Month`, `Last Month`, `This Year`, `Last 30 Days`, `All Time`). Boundaries are calculated using timezone-immune UTC arithmetic anchored to Indian Standard Time (`Asia/Kolkata`).
+- **Active Export Scope Inheritance (`CollectionsPage.jsx`)** — Pre-populates the export modal with the parent page's active filter scope (`defaultPreset`, `initialDateRange`) and provides live visual scope feedback across single-day, multi-day, and all-time selections.
+- **Thermal & A5 Payment Receipt Voucher (`PaymentReceiptModal.jsx`)** — Renders isolated printable receipts via React Portals (`createPortal(..., document.body)`). Screens carry `.no-print`, while `.invoice-print` prints clean vouchers without background page screenshots.
+- **Daily Cashier Closeout Statement (`DailyCloseoutPrintModal.jsx`)** — Produces formal end-of-day register reconciliation statements with cash vs non-cash summaries, channel breakdowns, transaction ledgers, and signature sign-off lines.
+- **Accurate Financial Empty State (`CollectionsPage.jsx`)** — Replaced generic `"No collections found"` with domain-accurate `"No payments found"` accompanied by contextual period dates (e.g. `Yesterday (04 Sep 2026)`).
+- **Timestamp Standardization (`formatters.js`)** — Exported `hasExplicitTime`, `formatPaymentTime` (guaranteeing uppercase `AM`/`PM`), and 3-letter month formatting (`05 Sep 2026`).
+
+---
+
+### 🔧 Backend Service Layer & Export Engine (`paymentController.js`, `manualEntryController.js`, `collectionExportController.ts`, `excel.ts`, `helpers.ts`, `types.ts`)
+- **IST Business-Day Boundaries (`parseISTDateBoundary`)** — Single dates and date ranges are strictly parsed in `Asia/Kolkata` (UTC+5:30) with start-of-day (`00:00:00.000`) and end-of-day (`23:59:59.999`) bounds.
+- **Explicit Timestamp Preservation (`resolvePaymentDate` & `resolveEntryDate`)** — Preserves real-time hours, minutes, and seconds when recording payments or manual entries, preventing default UTC midnight serialization from generating 05:30 AM display artifacts.
+- **Cashier Attribution & Unified Normalization** — Queries `createdBy.user` and normalizes both `Payment` and `ManualEntry` records into a uniform DTO contract with cashier name, email, and role.
+- **Zero-N+1 Bounded Lookups** — Caps search lookup on customer name and phone to 50 matching IDs using compound B-Tree indexes `{ tenantId: 1, customerName: 1 }` and `{ tenantId: 1, phone: 1 }`.
+- **Shared Export Engine Integration (`collectionExportController.ts`)** — Standardized Excel (`.xlsx`), CSV (RFC-4180 with UTF-8 BOM), and PDF exports via `backend/utils/export` with a strict 5,000-record / 365-day boundary.
+- **Integer Metric Formatting (`helpers.ts`, `excel.ts`, `types.ts`)** — Introduced explicit `'integer'` formatting and auto-detection via `Number.isInteger(num)`. Discrete metrics (e.g. `Total Receipts Recorded`, `Total Purchases`, `Total Inventory Units`) render cleanly as integers (e.g. `3`, `42`) rather than decimal currency artifacts (`3.00`, `42.00`) across PDF and Excel exports.
+- **Guard-Safe All-Time Export Querying (`collectionExportController.ts`)** — Added explicit `isAllTime=true` support bounded precisely to 364 days ago from start of day IST to end of today IST, ensuring safe full-history exports without tripping the 365-day boundary guard.
+- **Zero-Record Export Guard (`collectionExportController.ts`)** — Added an early count verification returning HTTP `404` (`"No payments found for the selected period. Nothing to export."`) when matching records equal 0, preventing empty zero-row spreadsheet downloads.
+
 ---
 
 ## [v2.2.6](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.2.6) — 2026-09-05 — Employee Activity Log Reliability, Activity-First Querying & Daily Work Sessions
