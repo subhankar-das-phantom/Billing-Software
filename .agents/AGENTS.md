@@ -44,3 +44,4 @@ This document governs all agent operations, architectural decisions, coding patt
   - Merge into `master`: `git checkout master && git merge dev -m "..."` (Mandatory rich, multi-line message detailing problem, root cause, changes, new component rationale, and verification; no generic one-liners)
   - Signed tag: `git tag -s vX.Y.Z -m "Release vX.Y.Z - ..."`
   - Push to remote: `git push origin dev; git push origin master; git push origin vX.Y.Z`
+- **Step 6 — Post-Versioning Release Notes**: Always generate and present a comprehensive, copy-paste-ready GitHub Release Note immediately after versioning, tagging, and pushing. The release note must detail the release version, title, operational problem/motivation, root cause analysis, categorized changes (Frontend, Backend, Compliance, DevOps), modified files, verification status, and direct GitHub release link.

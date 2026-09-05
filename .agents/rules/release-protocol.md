@@ -23,10 +23,8 @@ graph TD
     B --> C[2. Update README.md Badge]
     C --> D[3. Audit Legal & Policy Pages]
     D --> E[4. Run Automated Build Checks]
-    E --> F[5. Git Commit on dev]
-    F --> G[6. Merge to master]
-    G --> H[7. Create Signed Tag]
-    H --> I[8. Push to origin dev, master, tag]
+    E --> F[5. Git Flow & Signed Tagging]
+    F --> G[6. Generate GitHub Release Notes]
 ```
 
 ### Step 1: Document in `CHANGELOG.md`
@@ -61,7 +59,7 @@ Execute both verification commands and confirm zero errors:
 
 ---
 
-## 🚀 Git Flow & Signed Tagging Execution
+## 🚀 Step 5: Git Flow & Signed Tagging Execution
 
 Once files and builds are validated, run the standard git sequence.
 
@@ -108,6 +106,20 @@ git checkout dev
 # 5. Push both branches and tag to origin
 git push origin dev; git push origin master; git push origin vX.Y.Z
 ```
+
+---
+
+### Step 6: Generate GitHub Release Notes
+Immediately following branch push and tag creation:
+- Generate and present a comprehensive, copy-paste-ready **GitHub Release Note** markdown document for the user.
+- The release note must include:
+  - **Release Header & Tag Reference**: `vX.Y.Z — <Release Title>`
+  - **Direct GitHub Release URL**: `https://github.com/subhankar-das-phantom/Billing-Software/releases/new?tag=vX.Y.Z&title=Release+vX.Y.Z+-+<Title>`
+  - **Overview & Operational Impact**: Executive summary of what the version delivers.
+  - **Problem & Root Cause**: Why the changes were necessary.
+  - **Categorized Change Highlights**: Grouped logically (`🎨 Frontend UI & Accessibility`, `🔧 Backend Services & APIs`, `📋 Legal & Compliance Documents`, `⚙️ Configuration & Tooling`).
+  - **Key Files Modified**: Clear bulleted list of modified files and what changed in each.
+  - **Verification & QA Status**: Confirmation that `tsc` and `npm run build` passed with 0 errors.
 
 > [!CAUTION]
 > Always verify that SSH or GPG signing is configured so `git tag -s` succeeds cleanly without prompt hangs.

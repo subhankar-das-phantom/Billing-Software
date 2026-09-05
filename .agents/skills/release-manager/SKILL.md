@@ -74,3 +74,17 @@ git checkout dev
 # 5. Push to GitHub
 git push origin dev; git push origin master; git push origin vX.Y.Z
 ```
+
+---
+
+### Step 6: Generate GitHub Release Notes
+Immediately following git push and tag creation:
+- Generate and present a complete, copy-paste-ready **GitHub Release Note** markdown artifact for the user.
+- The release note must include:
+  - **Release Header & Tag Reference**: `vX.Y.Z — <Release Title>`
+  - **Direct GitHub Release URL**: `https://github.com/subhankar-das-phantom/Billing-Software/releases/new?tag=vX.Y.Z&title=Release+vX.Y.Z+-+<Title>`
+  - **Overview & Operational Impact**: Executive summary of what the version delivers.
+  - **Problem & Root Cause**: Why the changes were necessary.
+  - **Categorized Change Highlights**: Grouped logically (`🎨 Frontend UI & Accessibility`, `🔧 Backend Services & APIs`, `📋 Legal & Compliance Documents`, `⚙️ Configuration & Tooling`).
+  - **Key Files Modified**: Clear bulleted list of modified files and what changed in each.
+  - **Verification & QA Status**: Confirmation that `npx tsc --noEmit` and `npm run build` passed with 0 errors.
