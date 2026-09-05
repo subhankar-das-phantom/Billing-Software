@@ -57,13 +57,18 @@ export const exportCollections = async (req: AuthenticatedRequest, res: Response
   try {
     const tenantId = getTenantId(req);
     const format = ((req.query.format as string) || 'excel').toLowerCase();
-    const { date, startDate, endDate, paymentMethod, customerId, search } = req.query as Record<string, string | undefined>;
+    const { date, startDate, endDate, paymentMethod, customerId, search, isAllTime } = req.query as Record<string, string | undefined>;
 
     // 1. Parse IST date range
     let startBoundary: Date | null = null;
     let endBoundary: Date | null = null;
 
-    if (date) {
+    if (isAllTime === 'true' || isAllTime === '1') {
+      const istTodayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+      const todayStart = parseISTDateBoundary(istTodayStr, false) || new Date();
+      startBoundary = new Date(todayStart.getTime() - 364 * 24 * 60 * 60 * 1000);
+      endBoundary = parseISTDateBoundary(istTodayStr, true);
+    } else if (date) {
       startBoundary = parseISTDateBoundary(date, false);
       endBoundary = parseISTDateBoundary(date, true);
     } else if (startDate || endDate) {

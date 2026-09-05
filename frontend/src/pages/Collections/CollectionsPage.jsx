@@ -435,10 +435,16 @@ export default function CollectionsPage() {
     try {
       const params = { format };
 
-      if (dateRange?.startDate) params.startDate = dateRange.startDate;
-      if (dateRange?.endDate) params.endDate = dateRange.endDate;
-
-      if (!params.startDate && !params.endDate) {
+      if (dateRange?.preset === 'all') {
+        params.isAllTime = 'true';
+      } else if (dateRange?.startDate || dateRange?.endDate) {
+        if (dateRange.startDate && dateRange.startDate === dateRange.endDate) {
+          params.date = dateRange.startDate;
+        } else {
+          if (dateRange.startDate) params.startDate = dateRange.startDate;
+          if (dateRange.endDate) params.endDate = dateRange.endDate;
+        }
+      } else {
         if (datePreset === 'today' || datePreset === 'yesterday') {
           params.date = selectedDate;
         } else if (startDate || endDate) {
@@ -1244,6 +1250,18 @@ export default function CollectionsPage() {
         entityType="collections"
         isExporting={isExporting}
         showDateRange={true}
+        defaultPreset={datePreset}
+        initialDateRange={
+          datePreset === 'today'
+            ? { startDate: selectedDate || getISTDateStr(0), endDate: selectedDate || getISTDateStr(0), preset: 'today' }
+            : datePreset === 'yesterday'
+            ? { startDate: selectedDate || getISTDateStr(1), endDate: selectedDate || getISTDateStr(1), preset: 'yesterday' }
+            : datePreset === 'last7Days'
+            ? { startDate: startDate || getISTDateStr(6), endDate: endDate || getISTDateStr(0), preset: 'last7Days' }
+            : datePreset === 'thisMonth' || datePreset === 'custom'
+            ? { startDate: startDate || '', endDate: endDate || '', preset: datePreset }
+            : undefined
+        }
       />
     </div>
   );

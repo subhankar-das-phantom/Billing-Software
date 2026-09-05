@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Download,
@@ -9,24 +9,34 @@ import {
   CheckCircle,
   Loader2
 } from 'lucide-react';
-import { formatCurrency } from '../../../utils/formatters';
+import { formatCurrency, formatDate } from '../../../utils/formatters';
 
-const ExportModal = ({ isOpen, onClose, data, onExport, stats, entityType = 'invoices', isExporting = false, showDateRange = true }) => {
+const ExportModal = ({
+  isOpen,
+  onClose,
+  data,
+  onExport,
+  stats,
+  entityType = 'invoices',
+  isExporting = false,
+  showDateRange = true,
+  defaultPreset = 'today',
+  initialDateRange
+}) => {
   const [exportFormat, setExportFormat] = useState('excel');
   const [exportDateRange, setExportDateRange] = useState({
     startDate: '',
     endDate: '',
-    preset: 'all'
+    preset: 'today'
   });
+
   const toLocalYMD = (date) => {
     if (!date) return '';
     const d = new Date(date);
     if (Number.isNaN(d.getTime())) return '';
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(d);
   };
+
   const parseLocalYMD = (dateStr) => {
     if (!dateStr) return null;
     const parts = dateStr.split('-').map(Number);
@@ -36,59 +46,63 @@ const ExportModal = ({ isOpen, onClose, data, onExport, stats, entityType = 'inv
   };
 
   const getPresetDates = (preset) => {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
+    const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+    const [currY, currM, currD] = todayStr.split('-').map(Number);
+
+    const getShiftedYMD = (daysBack) => {
+      const d = new Date(Date.UTC(currY, currM - 1, currD - daysBack));
+      const y = d.getUTCFullYear();
+      const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(d.getUTCDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+
     switch (preset) {
-      case 'all':
-        return { startDate: '', endDate: '', preset: 'all' };
+      case 'today':
+        return { startDate: todayStr, endDate: todayStr, preset: 'today' };
+      case 'yesterday': {
+        const yStr = getShiftedYMD(1);
+        return { startDate: yStr, endDate: yStr, preset: 'yesterday' };
+      }
+      case 'last7Days': {
+        return { startDate: getShiftedYMD(6), endDate: todayStr, preset: 'last7Days' };
+      }
       case 'thisMonth': {
-        const start = new Date(now.getFullYear(), now.getMonth(), 1);
-        return {
-          startDate: toLocalYMD(start),
-          endDate: toLocalYMD(today),
-          preset
-        };
+        const monthStart = `${currY}-${String(currM).padStart(2, '0')}-01`;
+        return { startDate: monthStart, endDate: todayStr, preset: 'thisMonth' };
       }
       case 'lastMonth': {
-        const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        const end = new Date(now.getFullYear(), now.getMonth(), 0);
-        return {
-          startDate: toLocalYMD(start),
-          endDate: toLocalYMD(end),
-          preset
-        };
+        const lastM = currM === 1 ? 12 : currM - 1;
+        const lastMY = currM === 1 ? currY - 1 : currY;
+        const lastMonthStart = `${lastMY}-${String(lastM).padStart(2, '0')}-01`;
+        const lastDayUtc = new Date(Date.UTC(currY, currM - 1, 0));
+        const lastMonthEnd = `${lastDayUtc.getUTCFullYear()}-${String(lastDayUtc.getUTCMonth() + 1).padStart(2, '0')}-${String(lastDayUtc.getUTCDate()).padStart(2, '0')}`;
+        return { startDate: lastMonthStart, endDate: lastMonthEnd, preset: 'lastMonth' };
       }
       case 'thisYear': {
-        const start = new Date(now.getFullYear(), 0, 1);
-        return {
-          startDate: toLocalYMD(start),
-          endDate: toLocalYMD(today),
-          preset
-        };
+        const yearStart = `${currY}-01-01`;
+        return { startDate: yearStart, endDate: todayStr, preset: 'thisYear' };
       }
       case 'last30Days': {
-        const start = new Date(today);
-        start.setDate(start.getDate() - 30);
-        return {
-          startDate: toLocalYMD(start),
-          endDate: toLocalYMD(today),
-          preset
-        };
+        return { startDate: getShiftedYMD(29), endDate: todayStr, preset: 'last30Days' };
       }
-      case 'last90Days': {
-        const start = new Date(today);
-        start.setDate(start.getDate() - 90);
-        return {
-          startDate: toLocalYMD(start),
-          endDate: toLocalYMD(today),
-          preset
-        };
-      }
+      case 'all':
+        return { startDate: '', endDate: '', preset: 'all' };
       default:
         return { startDate: '', endDate: '', preset: 'all' };
     }
   };
+
+  // Sync initial date range whenever modal opens
+  useEffect(() => {
+    if (isOpen) {
+      if (initialDateRange && (initialDateRange.startDate || initialDateRange.endDate || initialDateRange.preset)) {
+        setExportDateRange(initialDateRange);
+      } else if (defaultPreset) {
+        setExportDateRange(getPresetDates(defaultPreset));
+      }
+    }
+  }, [isOpen]);
 
   const handleExport = () => {
     if (isExporting) return;
@@ -123,12 +137,14 @@ const ExportModal = ({ isOpen, onClose, data, onExport, stats, entityType = 'inv
   ];
 
   const presets = [
-    { value: 'all', label: 'All Time', icon: '📅' },
+    { value: 'today', label: 'Today', icon: '⚡' },
+    { value: 'yesterday', label: 'Yesterday', icon: '⏮️' },
+    { value: 'last7Days', label: 'Last 7 Days', icon: '⏱️' },
     { value: 'thisMonth', label: 'This Month', icon: '📆' },
     { value: 'lastMonth', label: 'Last Month', icon: '📋' },
     { value: 'thisYear', label: 'This Year', icon: '🗓️' },
     { value: 'last30Days', label: 'Last 30 Days', icon: '⏰' },
-    { value: 'last90Days', label: 'Last 90 Days', icon: '📊' }
+    { value: 'all', label: 'All Time', icon: '🌐' }
   ];
 
   return (
@@ -225,21 +241,22 @@ const ExportModal = ({ isOpen, onClose, data, onExport, stats, entityType = 'inv
                 <>
                   <div>
                     <label className="block text-sm font-semibold text-white mb-3">Quick Select Period</label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
                       {presets.map((preset) => (
                         <motion.button
                           key={preset.value}
+                          type="button"
                           onClick={() => setExportDateRange(getPresetDates(preset.value))}
-                          className={`p-3 rounded-xl border-2 transition-all ${
+                          className={`p-2.5 sm:p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center text-center ${
                             exportDateRange.preset === preset.value
-                              ? 'border-emerald-500 bg-emerald-500/20 text-emerald-400'
-                              : 'border-slate-700 hover:border-slate-600 text-slate-300'
+                              ? 'border-emerald-500 bg-emerald-500/20 text-emerald-400 shadow-sm shadow-emerald-500/20'
+                              : 'border-slate-700/80 hover:border-slate-600 bg-slate-800/40 text-slate-300'
                           }`}
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
                         >
-                          <div className="text-2xl mb-1">{preset.icon}</div>
-                          <div className="text-sm font-medium">{preset.label}</div>
+                          <div className="text-xl sm:text-2xl mb-1">{preset.icon}</div>
+                          <div className="text-xs sm:text-sm font-semibold">{preset.label}</div>
                         </motion.button>
                       ))}
                     </div>
@@ -250,7 +267,7 @@ const ExportModal = ({ isOpen, onClose, data, onExport, stats, entityType = 'inv
                     <label className="block text-sm font-semibold text-white mb-3">Or Choose Custom Date Range</label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs text-slate-400 mb-2">Start Date</label>
+                        <label className="block text-xs text-slate-400 mb-2 font-medium">Start Date</label>
                         <div className="relative">
                           <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                           <input
@@ -263,12 +280,12 @@ const ExportModal = ({ isOpen, onClose, data, onExport, stats, entityType = 'inv
                                 preset: 'custom'
                               })
                             }
-                            className="input pl-10 w-full"
+                            className="input pl-10 w-full bg-slate-900 border-slate-700 text-slate-200 focus:border-emerald-500"
                           />
                         </div>
                       </div>
                       <div>
-                        <label className="block text-xs text-slate-400 mb-2">End Date</label>
+                        <label className="block text-xs text-slate-400 mb-2 font-medium">End Date</label>
                         <div className="relative">
                           <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                           <input
@@ -282,39 +299,52 @@ const ExportModal = ({ isOpen, onClose, data, onExport, stats, entityType = 'inv
                               })
                             }
                             min={exportDateRange.startDate}
-                            className="input pl-10 w-full"
+                            className="input pl-10 w-full bg-slate-900 border-slate-700 text-slate-200 focus:border-emerald-500"
                           />
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Selected Range Display */}
-                  {exportDateRange.startDate && exportDateRange.endDate && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="bg-blue-500/20 border border-blue-500/30 rounded-xl p-4"
-                    >
-                      <div className="flex items-center gap-2 text-blue-400">
-                        <Calendar className="w-5 h-5" />
-                        <span className="font-medium text-sm">
-                          Selected Period:{' '}
-                          {parseLocalYMD(exportDateRange.startDate)?.toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric'
-                          }) || exportDateRange.startDate}{' '}
-                          -{' '}
-                          {parseLocalYMD(exportDateRange.endDate)?.toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric'
-                          }) || exportDateRange.endDate}
-                        </span>
-                      </div>
-                    </motion.div>
-                  )}
+                  {/* Selected Range Display Feedback */}
+                  <motion.div
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-slate-900/80 border border-slate-800 rounded-xl p-3.5 flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2.5 text-slate-300">
+                      <Calendar className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span className="text-xs sm:text-sm font-medium">
+                        <span className="text-slate-400">Selected Export Scope:</span>{' '}
+                        {exportDateRange.preset === 'all' ? (
+                          <strong className="text-emerald-400 font-semibold">Complete History (All Time · Up to 365 Days)</strong>
+                        ) : exportDateRange.startDate && exportDateRange.endDate && exportDateRange.startDate === exportDateRange.endDate ? (
+                          <strong className="text-emerald-400 font-semibold">
+                            Single Day · {formatDate(parseLocalYMD(exportDateRange.startDate))}
+                          </strong>
+                        ) : exportDateRange.startDate && exportDateRange.endDate ? (
+                          <strong className="text-emerald-400 font-semibold">
+                            {formatDate(parseLocalYMD(exportDateRange.startDate))} — {formatDate(parseLocalYMD(exportDateRange.endDate))}
+                          </strong>
+                        ) : exportDateRange.startDate ? (
+                          <strong className="text-emerald-400 font-semibold">
+                            From {formatDate(parseLocalYMD(exportDateRange.startDate))}
+                          </strong>
+                        ) : exportDateRange.endDate ? (
+                          <strong className="text-emerald-400 font-semibold">
+                            Until {formatDate(parseLocalYMD(exportDateRange.endDate))}
+                          </strong>
+                        ) : (
+                          <span className="text-amber-400">No date bounds specified</span>
+                        )}
+                      </span>
+                    </div>
+                    {exportDateRange.preset && exportDateRange.preset !== 'custom' && (
+                      <span className="text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hidden sm:inline-block">
+                        Preset: {presets.find(p => p.value === exportDateRange.preset)?.label || exportDateRange.preset}
+                      </span>
+                    )}
+                  </motion.div>
                 </>
               )}
             </div>
