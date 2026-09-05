@@ -202,15 +202,25 @@ export const employeeService = {
   },
 
   /**
-   * Get detailed activity log with session and work attribution
-   * @param {number} hours - Time range in hours (default: 24, max: 72)
+   * Get detailed activity log with session and work attribution (Activity-First)
+   * @param {string|number} rangeOrHours - Time range ('today', 'yesterday', '24h', '7d', '30d') or numeric hours
    * @param {string} employeeId - Optional employee filter
-   * @returns {Promise<{success: boolean, timeRange: object, log: array}>}
+   * @param {string} startDate - Optional custom start date
+   * @param {string} endDate - Optional custom end date
+   * @returns {Promise<{success: boolean, timeRange: object, stats: object, count: number, employees: array, log: array}>}
    */
-  getActivityLog: async (hours = 24, employeeId = null) => {
+  getActivityLog: async (rangeOrHours = 'today', employeeId = null, startDate = null, endDate = null) => {
     try {
-      const params = { hours };
+      const params = {};
+      if (typeof rangeOrHours === 'number') {
+        params.hours = rangeOrHours;
+      } else if (rangeOrHours) {
+        params.range = rangeOrHours;
+      }
       if (employeeId) params.employeeId = employeeId;
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+
       const response = await api.get('/analytics/activity-log', { params });
       return response.data;
     } catch (error) {
