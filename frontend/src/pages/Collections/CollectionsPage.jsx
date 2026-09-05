@@ -86,9 +86,19 @@ function ScrollAffordanceContainer({ children, className = '' }) {
     const el = scrollRef.current;
     if (!el) return;
     const { scrollLeft, scrollWidth, clientWidth } = el;
-    setShowLeft(scrollLeft > 4);
-    setShowRight(scrollLeft + clientWidth < scrollWidth - 6);
+    setShowLeft(scrollLeft > 6);
+    setShowRight(scrollLeft + clientWidth < scrollWidth - 8);
   }, []);
+
+  const handleScroll = (direction) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const scrollAmount = Math.max(160, Math.floor(el.clientWidth * 0.65));
+    el.scrollBy({
+      left: direction === 'right' ? scrollAmount : -scrollAmount,
+      behavior: 'smooth'
+    });
+  };
 
   useEffect(() => {
     checkScroll();
@@ -109,9 +119,18 @@ function ScrollAffordanceContainer({ children, className = '' }) {
 
   return (
     <div className="relative min-w-0">
+      {/* Left Clickable Arrow with Gradient Edge Fade */}
       {showLeft && (
-        <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-7 bg-gradient-to-r from-slate-900 via-slate-900/90 to-transparent flex items-center justify-start pl-0.5 z-10 sm:hidden">
-          <ChevronLeft className="w-3.5 h-3.5 text-slate-400 drop-shadow" />
+        <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-9 bg-gradient-to-r from-slate-900 via-slate-900/95 to-transparent flex items-center justify-start pl-0.5 z-10">
+          <button
+            type="button"
+            onClick={() => handleScroll('left')}
+            className="pointer-events-auto w-6 h-6 rounded-full bg-slate-800/95 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 shadow-md shadow-black/50 flex items-center justify-center active:scale-90 transition-all"
+            title="Scroll left"
+            aria-label="Scroll left"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
 
@@ -123,9 +142,18 @@ function ScrollAffordanceContainer({ children, className = '' }) {
         {children}
       </div>
 
+      {/* Right Clickable Arrow with Gradient Edge Fade */}
       {showRight && (
-        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-7 bg-gradient-to-l from-slate-900 via-slate-900/90 to-transparent flex items-center justify-end pr-0.5 z-10 sm:hidden">
-          <ChevronRight className="w-3.5 h-3.5 text-slate-400 drop-shadow animate-pulse" />
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-9 bg-gradient-to-l from-slate-900 via-slate-900/95 to-transparent flex items-center justify-end pr-0.5 z-10">
+          <button
+            type="button"
+            onClick={() => handleScroll('right')}
+            className="pointer-events-auto w-6 h-6 rounded-full bg-slate-800/95 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 shadow-md shadow-black/50 flex items-center justify-center active:scale-90 transition-all"
+            title="Scroll right"
+            aria-label="Scroll right"
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
     </div>
