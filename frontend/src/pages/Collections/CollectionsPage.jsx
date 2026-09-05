@@ -882,7 +882,7 @@ export default function CollectionsPage() {
               <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-slate-800/60 border border-slate-700/60 mb-3 text-slate-400">
                 <Banknote className="w-7 h-7" />
               </div>
-              <p className="text-sm font-semibold text-white">No collections found</p>
+              <p className="text-sm font-semibold text-white">No payments found</p>
               <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
                 {hasActiveFilters
                   ? 'No payments match your current search and filter criteria. Try adjusting filters.'

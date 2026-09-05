@@ -170,6 +170,13 @@ export const exportCollections = async (req: AuthenticatedRequest, res: Response
     ]);
 
     const totalMatching = payCount + meCount;
+    if (totalMatching === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No payments found for the selected period. Nothing to export.'
+      });
+    }
+
     if (totalMatching > MAX_EXPORT_RECORDS) {
       return res.status(400).json({
         success: false,
