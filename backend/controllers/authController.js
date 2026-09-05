@@ -3,6 +3,8 @@ const Admin = require('../models/Admin');
 const Employee = require('../models/Employee');
 const Session = require('../models/Session');
 const { ROLE_PRESETS } = require('../utils/permissions');
+const employeeActivityService = require('../services/employeeActivityService');
+const ensureActiveWorkSession = employeeActivityService.ensureActiveWorkSession || employeeActivityService.default?.ensureActiveWorkSession;
 
 /**
  * Cookie options helper
@@ -507,10 +509,13 @@ exports.logout = async (req, res, next) => {
 // @access  Private
 exports.heartbeat = async (req, res, next) => {
   try {
-    const activeSession = await Session.getActiveSession(req.user._id, req.userModel);
-    
-    if (activeSession) {
-      await activeSession.updateActivity();
+    if (req.userRole === 'employee' && ensureActiveWorkSession) {
+      await ensureActiveWorkSession(req.user._id, 'Employee', req);
+    } else {
+      const activeSession = await Session.getActiveSession(req.user._id, req.userModel);
+      if (activeSession) {
+        await activeSession.updateActivity();
+      }
     }
 
     res.status(200).json({

@@ -84,6 +84,15 @@ const trackActivity = (req, action, value = 1) => {
   if (req.userRole === 'employee' && req.user) {
     // Run async, don't await - fire and forget
     updateEmployeeMetrics(req.user._id, action, value).catch(() => {});
+
+    // Maintain active work session asynchronously (non-blocking)
+    try {
+      const employeeActivityService = require('../services/employeeActivityService');
+      const ensureActiveWorkSession = employeeActivityService.ensureActiveWorkSession || employeeActivityService.default?.ensureActiveWorkSession;
+      if (ensureActiveWorkSession) {
+        ensureActiveWorkSession(req.user._id, 'Employee', req).catch(() => {});
+      }
+    } catch (_) {}
   }
 };
 
