@@ -21,6 +21,10 @@ const currencyFormatter = new Intl.NumberFormat('en-IN', {
   maximumFractionDigits: 2
 });
 
+const integerFormatter = new Intl.NumberFormat('en-IN', {
+  maximumFractionDigits: 0
+});
+
 const dateFormatter = new Intl.DateTimeFormat('en-IN', {
   timeZone: 'Asia/Kolkata',
   day: '2-digit',
@@ -43,8 +47,14 @@ export const formatValue = (value: unknown, format?: string): string => {
   switch (format) {
     case 'currency':
       return `₹ ${currencyFormatter.format(Number(value) || 0)}`;
-    case 'number':
-      return currencyFormatter.format(Number(value) || 0); // Reuse formatting for consistent decimals
+    case 'integer':
+      return integerFormatter.format(Math.round(Number(value) || 0));
+    case 'number': {
+      const num = Number(value);
+      if (Number.isNaN(num)) return '0';
+      if (Number.isInteger(num)) return integerFormatter.format(num);
+      return currencyFormatter.format(num);
+    }
     case 'percentage':
       return `${Number(value) || 0}%`;
     case 'date': {

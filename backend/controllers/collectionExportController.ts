@@ -316,7 +316,7 @@ export const exportCollections = async (req: AuthenticatedRequest, res: Response
         { label: 'Total Collections', value: totalCollected, format: 'currency' },
         { label: 'Cash Collections', value: cashCollected, format: 'currency' },
         { label: 'Non-Cash Collections', value: nonCashCollected, format: 'currency' },
-        { label: 'Total Receipts Recorded', value: dataRows.length, format: 'number' }
+        { label: 'Total Receipts Recorded', value: dataRows.length, format: 'integer' }
       ]
     };
 
