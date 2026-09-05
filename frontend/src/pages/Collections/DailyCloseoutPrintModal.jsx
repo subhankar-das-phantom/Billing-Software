@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
+  ArrowLeft,
   Printer,
   FileSpreadsheet,
   CheckCircle2,
@@ -36,6 +37,16 @@ export default function DailyCloseoutPrintModal({
   payments = []
 }) {
   const { admin } = useAuth();
+
+  // Keyboard shortcut: Escape to close
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -72,30 +83,46 @@ export default function DailyCloseoutPrintModal({
   return createPortal(
     <>
       {/* On-Screen Closeout Modal (no-print) */}
-      <div className="no-print fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+      <div
+        className="no-print fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm overflow-y-auto"
+        onClick={onClose}
+      >
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
           transition={{ duration: 0.2 }}
-          className="relative w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden my-6 max-h-[92vh] flex flex-col"
+          onClick={(e) => e.stopPropagation()}
+          className="relative w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col"
         >
           {/* Header */}
-          <div className="px-6 py-4 bg-slate-950/90 border-b border-slate-800 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-3">
+          <div className="px-4 sm:px-6 py-3.5 sm:py-4 bg-slate-950/90 border-b border-slate-800 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-1.5 -ml-1 sm:hidden rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                title="Back to Collections"
+                aria-label="Back to Collections"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
               <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                <FileSpreadsheet className="w-5 h-5 text-emerald-400" />
+                <FileSpreadsheet className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
               </div>
               <div>
-                <h2 className="text-base font-bold text-white">Daily Cashier Closeout & Reconciliation</h2>
-                <p className="text-xs text-slate-400">
+                <h2 className="text-sm sm:text-base font-bold text-white">Daily Cashier Closeout & Reconciliation</h2>
+                <p className="text-[11px] sm:text-xs text-slate-400">
                   Business Date: <span className="text-white font-medium">{dateLabel}</span> · Complete Day Scope
                 </p>
               </div>
             </div>
             <button
+              type="button"
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              className="p-1.5 sm:p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              title="Close modal"
+              aria-label="Close modal"
             >
               <X className="w-5 h-5" />
             </button>

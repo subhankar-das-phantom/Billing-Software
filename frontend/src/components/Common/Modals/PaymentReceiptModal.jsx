@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
+  ArrowLeft,
   Printer,
   Copy,
   Check,
@@ -42,6 +43,16 @@ export default function PaymentReceiptModal({ isOpen, onClose, payment }) {
   const { admin } = useAuth();
   const [copiedField, setCopiedField] = useState(null);
 
+  // Keyboard shortcut: Escape to close
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen || !payment) return null;
 
   const MethodIcon = METHOD_ICONS[payment.paymentMethod] || CreditCard;
@@ -71,37 +82,53 @@ export default function PaymentReceiptModal({ isOpen, onClose, payment }) {
   return createPortal(
     <>
       {/* On-Screen Modal Window (strictly hidden on print) */}
-      <div className="no-print fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+      <div
+        className="no-print fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm overflow-y-auto"
+        onClick={onClose}
+      >
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           transition={{ duration: 0.2 }}
-          className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden my-8"
+          onClick={(e) => e.stopPropagation()}
+          className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col"
         >
-          {/* Header */}
-          <div className="px-6 py-4 bg-slate-950/80 border-b border-slate-800/80 flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          {/* Header - Fixed & Pinned at Top */}
+          <div className="px-4 sm:px-6 py-3.5 sm:py-4 bg-slate-950/95 backdrop-blur-md border-b border-slate-800/80 flex items-center justify-between shrink-0 z-10">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-1.5 -ml-1 sm:hidden rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                title="Back to Collections"
+                aria-label="Back to Collections"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
               <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                <FileText className="w-5 h-5 text-emerald-400" />
+                <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
               </div>
               <div>
-                <h2 className="text-base font-semibold text-white">Payment Receipt Voucher</h2>
-                <p className="text-xs text-slate-400 font-mono">
+                <h2 className="text-sm sm:text-base font-semibold text-white">Payment Receipt Voucher</h2>
+                <p className="text-[11px] sm:text-xs text-slate-400 font-mono">
                   {displayId} · {displayDate}
                 </p>
               </div>
             </div>
             <button
+              type="button"
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              className="p-1.5 sm:p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              title="Close modal"
+              aria-label="Close modal"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Receipt Body */}
-          <div className="p-6 space-y-6">
+          {/* Receipt Body - Scrollable Area */}
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6 overscroll-contain">
             {/* Store & Identification Bar */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
               <div>
@@ -244,37 +271,49 @@ export default function PaymentReceiptModal({ isOpen, onClose, payment }) {
             </div>
           </div>
 
-          {/* Modal Footer Actions */}
-          <div className="px-6 py-4 bg-slate-950/80 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-end gap-3">
+          {/* Modal Footer Actions - Fixed & Pinned at Bottom */}
+          <div className="px-4 sm:px-6 py-3 sm:py-3.5 bg-slate-950/95 backdrop-blur-md border-t border-slate-800/80 flex flex-col-reverse sm:flex-row items-center justify-between gap-2.5 shrink-0 z-10">
             <button
               type="button"
-              onClick={() => {
-                const summaryText = `Payment Receipt ${displayId}\nCustomer: ${payment.customer?.name || 'Customer'}\nAmount: ${formatCurrency(payment.amount)}\nMethod: ${payment.paymentMethod}\nUTR: ${payment.referenceNumber || 'N/A'}\nDate: ${displayDate} ${displayTime}`;
-                copyToClipboard(summaryText, 'all');
-              }}
-              className="w-full sm:w-auto px-4 py-2 bg-slate-800 hover:bg-slate-750 text-slate-200 rounded-xl text-xs font-medium transition-colors flex items-center justify-center gap-2 border border-slate-700"
+              onClick={onClose}
+              className="w-full sm:w-auto px-4 py-2 bg-slate-800 hover:bg-slate-750 text-slate-300 hover:text-white rounded-xl text-xs font-medium transition-colors flex items-center justify-center gap-1.5 border border-slate-700/80"
+              id="close-receipt-modal-btn"
             >
-              {copiedField === 'all' ? (
-                <>
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                  Copied Details
-                </>
-              ) : (
-                <>
-                  <Copy className="w-3.5 h-3.5" />
-                  Copy Receipt Text
-                </>
-              )}
+              <X className="w-3.5 h-3.5" />
+              Close Receipt
             </button>
 
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="w-full sm:w-auto px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              Print Receipt Slip
-            </button>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => {
+                  const summaryText = `Payment Receipt ${displayId}\nCustomer: ${payment.customer?.name || 'Customer'}\nAmount: ${formatCurrency(payment.amount)}\nMethod: ${payment.paymentMethod}\nUTR: ${payment.referenceNumber || 'N/A'}\nDate: ${displayDate} ${displayTime}`;
+                  copyToClipboard(summaryText, 'all');
+                }}
+                className="flex-1 sm:flex-none px-3.5 py-2 bg-slate-800 hover:bg-slate-750 text-slate-200 rounded-xl text-xs font-medium transition-colors flex items-center justify-center gap-1.5 border border-slate-700"
+              >
+                {copiedField === 'all' ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    Copied
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5" />
+                    Copy Details
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={handlePrint}
+                className="flex-1 sm:flex-none px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-1.5"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                Print Slip
+              </button>
+            </div>
           </div>
         </motion.div>
       </div>
