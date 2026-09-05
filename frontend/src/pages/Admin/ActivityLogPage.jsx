@@ -95,19 +95,28 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
 
           {/* Duration Badge */}
           <div className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
-            session.isActive 
+            session?.isActive 
               ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
-              : 'bg-slate-700/50 text-slate-300'
+              : session
+                ? 'bg-slate-700/50 text-slate-300'
+                : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
           }`}>
-            {session.isActive ? (
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                Active
-              </span>
+            {session ? (
+              session.isActive ? (
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  Active
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5">
+                  <Clock size={14} />
+                  {formatDuration(session.duration)}
+                </span>
+              )
             ) : (
               <span className="flex items-center gap-1.5">
-                <Clock size={14} />
-                {formatDuration(session.duration)}
+                <Activity size={14} />
+                Direct Activity
               </span>
             )}
           </div>
@@ -115,14 +124,23 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
 
         {/* Time row */}
         <div className="flex items-center gap-4 text-sm mb-3 pl-1">
-          <div className="flex items-center gap-2">
-            <LogIn size={14} className="text-emerald-400" />
-            <span className="text-slate-300">{formatDateTime(session.loginTime)}</span>
-          </div>
-          {session.logoutTime && (
-            <div className="flex items-center gap-2">
-              <LogOutIcon size={14} className="text-red-400" />
-              <span className="text-slate-400">{formatTime(session.logoutTime)}</span>
+          {session ? (
+            <>
+              <div className="flex items-center gap-2">
+                <LogIn size={14} className="text-emerald-400" />
+                <span className="text-slate-300">{formatDateTime(session.loginTime)}</span>
+              </div>
+              {session.logoutTime && (
+                <div className="flex items-center gap-2">
+                  <LogOutIcon size={14} className="text-red-400" />
+                  <span className="text-slate-400">{formatTime(session.logoutTime)}</span>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="flex items-center gap-2 text-slate-400">
+              <Activity size={14} className="text-blue-400" />
+              <span>Authenticated work without separate login session</span>
             </div>
           )}
         </div>
@@ -261,7 +279,8 @@ export default function ActivityLogPage() {
   const [loading, setLoading] = useState(true);
   const [activityLog, setActivityLog] = useState([]);
   const [employees, setEmployees] = useState([]);
-  const [timeRange, setTimeRange] = useState(24);
+  const [serverStats, setServerStats] = useState(null);
+  const [timeRange, setTimeRange] = useState('today');
   const [employeeSearch, setEmployeeSearch] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
@@ -273,11 +292,11 @@ export default function ActivityLogPage() {
   const isFirstVisit = useFirstVisit('activity-log');
 
   const timeRangeOptions = [
-    { value: 6, label: 'Last 6h' },
-    { value: 12, label: 'Last 12h' },
-    { value: 24, label: 'Last 24h' },
-    { value: 48, label: 'Last 48h' },
-    { value: 72, label: 'Last 72h' }
+    { value: 'today', label: 'Today' },
+    { value: 'yesterday', label: 'Yesterday' },
+    { value: '24h', label: 'Last 24h' },
+    { value: '7d', label: 'Last 7 Days' },
+    { value: '30d', label: 'Last 30 Days' }
   ];
 
   const fetchActivityLog = useCallback(async () => {
@@ -286,6 +305,7 @@ export default function ActivityLogPage() {
       const data = await employeeService.getActivityLog(timeRange, selectedEmployee?.id || null);
       setActivityLog(data.log || []);
       setEmployees(data.employees || []);
+      setServerStats(data.stats || null);
       
       // If employee ID is in URL and we haven't loaded yet, select that employee
       const employeeIdFromUrl = searchParams.get('employee');
@@ -314,12 +334,17 @@ export default function ActivityLogPage() {
     emp.email.toLowerCase().includes(employeeSearch.toLowerCase())
   );
 
-  // Calculate totals
-  const totals = activityLog.reduce((acc, entry) => ({
-    sessions: acc.sessions + 1,
-    invoices: acc.invoices + entry.summary.invoiceCount,
-    payments: acc.payments + entry.summary.paymentCount,
-    sales: acc.sales + entry.summary.totalSales
+  // Calculate totals independently from serverStats or log entries
+  const totals = serverStats ? {
+    sessions: serverStats.totalSessions ?? 0,
+    invoices: serverStats.totalInvoices ?? 0,
+    payments: serverStats.totalPayments ?? 0,
+    sales: serverStats.totalSales ?? 0
+  } : activityLog.reduce((acc, entry) => ({
+    sessions: acc.sessions + (entry.session ? 1 : 0),
+    invoices: acc.invoices + (entry.summary?.invoiceCount || 0),
+    payments: acc.payments + (entry.summary?.paymentCount || 0),
+    sales: acc.sales + (entry.summary?.totalSales || 0)
   }), { sessions: 0, invoices: 0, payments: 0, sales: 0 });
 
   const clearEmployeeFilter = () => {
@@ -474,11 +499,11 @@ export default function ActivityLogPage() {
       ) : activityLog.length === 0 ? (
         <div className="text-center py-12 bg-slate-800/50 rounded-xl border border-slate-700">
           <Clock className="mx-auto text-slate-600 mb-4" size={48} />
-          <h3 className="text-lg font-medium text-slate-400">No sessions found</h3>
+          <h3 className="text-lg font-medium text-slate-400">No activities or sessions found</h3>
           <p className="text-slate-500 mt-1">
             {selectedEmployee 
               ? `No activity for ${selectedEmployee.name} in the selected time range`
-              : 'No activity in the selected time range'
+              : 'No activities or sessions found in the selected time range'
             }
           </p>
         </div>
@@ -486,7 +511,7 @@ export default function ActivityLogPage() {
         <div className="space-y-3">
           {activityLog.map((entry, index) => (
             <SessionCard 
-              key={entry.session.id || index} 
+              key={entry.session?.id || `direct-${entry.employee?.id || 'emp'}-${index}`} 
               entry={entry} 
               isMobile={isMobile}
               isFirstVisit={isFirstVisit}

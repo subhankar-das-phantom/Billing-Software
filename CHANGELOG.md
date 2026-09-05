@@ -6,6 +6,30 @@ For full release notes with implementation details, see [GitHub Releases](https:
 
 ---
 
+## [v2.2.6](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.2.6) — 2026-09-05 — Employee Activity Log Reliability, Activity-First Querying & Daily Work Sessions
+
+### ⚡ Activity-First Discovery Architecture
+Version 2.2.6 fixes an architectural flaw where employee activity in production (such as recorded payments and created invoices) was hidden whenever the employee had not performed an explicit login session within the short rolling time window (e.g. multi-day JWT lifespan). Activity discovery is now decoupled from session existence: activities are queried directly by tenant and employee attribution, while sessions serve as non-gating contextual metadata.
+
+---
+
+### 🔧 Backend Domain Service & Batched Queries (`employeeActivityService.ts` & `employeeAnalyticsController.js`)
+- **Activity-First Querying (`employeeActivityService.ts`)** — Replaced session-dependent iteration with parallel batched queries across Invoices, Payments, Products, and Sessions. Completely eliminated N+1 database queries.
+- **Independent Metrics & Direct Activities** — Returns independent counts for sessions, invoices, payments, and sales. Activities recorded outside explicit login sessions are retained and surfaced cleanly as Direct Activities rather than discarded.
+- **Robust IST Business-Day Boundaries** — Implemented `parseActivityTimeRange` supporting `today`, `yesterday`, `24h`, `7d`, and `30d` with accurate Asia/Kolkata date boundaries, removing the previous arbitrary 72-hour cap.
+- **Daily Work Session Maintenance (`authController.js` & `activityTracker.js`)** — Integrated `ensureActiveWorkSession` into the heartbeat endpoint and mutation tracker with in-flight mutex concurrency protection, safely maintaining one active daily session per employee without creating duplicate session documents.
+- **Thin Controller Pattern** — Refactored `getActivityLog` in `employeeAnalyticsController.js` to delegate orchestration to `employeeActivityService.ts`.
+
+---
+
+### 🎨 Frontend Activity Log Polish (`ActivityLogPage.jsx` & `employeeService.js`)
+- **Expanded Operational Time Range Filters** — Replaced the 72-hour dropdown with **Today**, **Yesterday**, **Last 24h**, **Last 7 Days**, and **Last 30 Days**.
+- **Defensive Session Rendering** — Updated `SessionCard` to seamlessly render direct activities when `entry.session` is null without null-reference errors, featuring a distinct "Direct Activity" badge.
+- **Independent KPI Summary Cards** — Wired KPI summary cards to `stats` from the backend, accurately displaying non-zero payment/invoice counts even when session count is zero.
+- **Updated Empty State** — Replaced misleading "No sessions found" with "No activities or sessions found in the selected time range".
+
+---
+
 ## [v2.2.5](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.2.5) — 2026-09-04 — Complete UI Notification Elimination in Printed Documents (Invoices, Credit Notes, Ledgers)
 
 ### 🖨️ Two-Layer Print Isolation Architecture

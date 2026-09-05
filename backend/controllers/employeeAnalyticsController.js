@@ -4,144 +4,26 @@ const Invoice = require('../models/Invoice');
 const Payment = require('../models/Payment');
 const Product = require('../models/Product');
 const getTenantId = require('../utils/getTenantId');
+const employeeActivityService = require('../services/employeeActivityService');
+const getActivityLogService = employeeActivityService.getActivityLog || employeeActivityService.default?.getActivityLog;
 
-// @desc    Get detailed activity log with session and work attribution
+// @desc    Get detailed activity log with session and work attribution (Activity-First)
 // @route   GET /api/analytics/activity-log
 // @access  Private (Admin only)
 exports.getActivityLog = async (req, res, next) => {
   try {
     const tenantId = getTenantId(req);
-    // Parse time range (default 24 hours, max 72 hours)
-    let hours = parseInt(req.query.hours) || 24;
-    hours = Math.min(hours, 72); // Cap at 72 hours
-    
-    const startTime = new Date();
-    startTime.setHours(startTime.getHours() - hours);
-    
-    const employeeId = req.query.employeeId;
-    const tenantEmployeeQuery = { createdByAdmin: tenantId };
-    if (employeeId) {
-      tenantEmployeeQuery._id = employeeId;
-    }
-    const tenantEmployees = await Employee.find(tenantEmployeeQuery).select('_id name email');
-    const tenantEmployeeIds = tenantEmployees.map((e) => e._id);
+    const { range, hours, employeeId, startDate, endDate } = req.query;
 
-    // Build session query
-    const sessionQuery = {
-      user: { $in: tenantEmployeeIds },
-      userModel: 'Employee',
-      loginTime: { $gte: startTime }
-    };
-
-    // Get all sessions in time range
-    const sessions = await Session.find(sessionQuery)
-      .populate('user', 'name email')
-      .sort({ loginTime: -1 });
-
-    // For each session, get activities performed during that session
-    const activityLog = await Promise.all(
-      sessions.map(async (session) => {
-        const sessionStart = session.loginTime;
-        const sessionEnd = session.logoutTime || new Date();
-
-        // Get invoices created during this session
-        const invoices = await Invoice.find({
-          tenantId,
-          'createdBy.user': session.user._id,
-          'createdBy.userModel': 'Employee',
-          createdAt: { $gte: sessionStart, $lte: sessionEnd }
-        }).select('invoiceNumber invoiceDate totals.netTotal customer.customerName createdAt');
-
-        // Get payments recorded during this session
-        const payments = await Payment.find({
-          tenantId,
-          'createdBy.user': session.user._id,
-          'createdBy.userModel': 'Employee',
-          createdAt: { $gte: sessionStart, $lte: sessionEnd }
-        }).select('amount paymentDate paymentMethod invoiceSnapshot.invoiceNumber createdAt');
-
-        // Get products added/updated during this session
-        const productsAdded = await Product.find({
-          tenantId,
-          'createdBy.user': session.user._id,
-          'createdBy.userModel': 'Employee',
-          createdAt: { $gte: sessionStart, $lte: sessionEnd }
-        }).select('name createdAt');
-
-        const productsUpdated = await Product.find({
-          tenantId,
-          'lastUpdatedBy.user': session.user._id,
-          'lastUpdatedBy.userModel': 'Employee',
-          updatedAt: { $gte: sessionStart, $lte: sessionEnd },
-          createdAt: { $lt: sessionStart } // Only updates, not creations
-        }).select('name updatedAt');
-
-        // Calculate session totals
-        const totalSales = invoices.reduce((sum, inv) => sum + (inv.totals?.netTotal || 0), 0);
-        const totalPayments = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
-
-        return {
-          session: {
-            id: session._id,
-            loginTime: session.loginTime,
-            logoutTime: session.logoutTime,
-            duration: session.sessionDuration,
-            isActive: session.isActive,
-            ipAddress: session.ipAddress
-          },
-          employee: {
-            id: session.user._id,
-            name: session.user.name,
-            email: session.user.email
-          },
-          activities: {
-            invoicesCreated: invoices.map(inv => ({
-              invoiceNumber: inv.invoiceNumber,
-              customer: inv.customer?.customerName,
-              amount: inv.totals?.netTotal,
-              time: inv.createdAt
-            })),
-            paymentsRecorded: payments.map(p => ({
-              invoiceNumber: p.invoiceSnapshot?.invoiceNumber,
-              amount: p.amount,
-              method: p.paymentMethod,
-              time: p.createdAt
-            })),
-            productsAdded: productsAdded.map(p => ({
-              name: p.name,
-              time: p.createdAt
-            })),
-            productsUpdated: productsUpdated.map(p => ({
-              name: p.name,
-              time: p.updatedAt
-            }))
-          },
-          summary: {
-            invoiceCount: invoices.length,
-            paymentCount: payments.length,
-            productsAdded: productsAdded.length,
-            productsUpdated: productsUpdated.length,
-            totalSales,
-            totalPayments
-          }
-        };
-      })
-    );
-
-    // Get distinct employees for filter dropdown
-    const employees = tenantEmployees;
-
-    res.status(200).json({
-      success: true,
-      timeRange: {
-        hours,
-        from: startTime,
-        to: new Date()
-      },
-      count: activityLog.length,
-      employees: employees.map(e => ({ id: e._id, name: e.name, email: e.email })),
-      log: activityLog
+    const result = await getActivityLogService(tenantId, {
+      range,
+      hours,
+      employeeId,
+      startDate,
+      endDate
     });
+
+    res.status(200).json(result);
   } catch (error) {
     next(error);
   }
