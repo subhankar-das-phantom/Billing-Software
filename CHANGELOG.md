@@ -4,6 +4,31 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.2.7](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.2.7) — 2026-09-05 — Enterprise Collections Workstation, Cashier Reconciliation & Isolated Print Vouchers
+
+### 🏛️ Operational Collections Workstation & Accounting Integrity
+Version 2.2.7 transforms the Collections ledger (`/collections`) from a basic listing view into a high-density, senior enterprise operational workstation. It enforces strict financial reconciliation (`Total Collections === Cash Collections + Non-Cash Collections`), eliminates UTC midnight 05:30 AM timestamp artifacts, resolves print isolation for vouchers and closeout sheets, guarantees vertical alignment across all 8 table columns, and prevents horizontal layout blowout from long bank reference numbers.
+
+---
+
+### 🔧 Backend Service Layer & Query Safeguards (`paymentController.js`, `manualEntryController.js`, `collectionExportController.ts`)
+- **IST Business-Day Boundaries (`parseISTDateBoundary`)** — Single dates and date ranges are strictly parsed in `Asia/Kolkata` (UTC+5:30) with start-of-day (`00:00:00.000`) and end-of-day (`23:59:59.999`) bounds.
+- **Explicit Timestamp Preservation (`resolvePaymentDate` & `resolveEntryDate`)** — Preserves real-time hours, minutes, and seconds when recording payments or manual entries. Prevents default UTC midnight serialization from generating 05:30 AM display artifacts.
+- **Cashier Attribution & Unified Normalization** — Queries `createdBy.user` and normalizes both `Payment` and `ManualEntry` records into a uniform DTO contract with cashier name, email, and role.
+- **Zero-N+1 Bounded Lookups** — Caps search lookup on customer name and phone to 50 matching IDs using compound B-Tree indexes `{ tenantId: 1, customerName: 1 }` and `{ tenantId: 1, phone: 1 }`.
+- **Shared Export Engine Integration (`collectionExportController.ts`)** — Implemented standardized Excel (`.xlsx`), CSV (RFC-4180 with UTF-8 BOM), and PDF exports via `backend/utils/export` with a strict 5,000-record / 365-day boundary.
+
+---
+
+### 🎨 Frontend Workstation UI & Print Isolation (`CollectionsPage.jsx`, `PaymentReceiptModal.jsx`, `DailyCloseoutPrintModal.jsx`, `formatters.js`)
+- **Pixel-Perfect 8-Column Table Alignment** — Explicitly aligned table headers (`th`) and body cells (`td`) with `text-left` for 6 informational columns and `text-right` for `Amount` and `Actions`.
+- **Narrow Monospace Reference / UTR Guard** — Bank reference numbers are styled with narrow monospace (`font-mono text-xs tracking-tight`), constrained with `max-w-[140px] truncate`, and equipped with a full-reference hover tooltip and 1-click clipboard copy.
+- **Enterprise Cashier Identity Presentation** — Displays cashier name first with operational role tag (`[Admin]` or `[Staff]`), shows full email on hover via tooltip, and restricts email prefix extraction to legacy fallbacks only.
+- **Accurate Scope & Filtered Semantics** — Normal page displays `Showing X of X`. Introduces `Filtered ₹... of ₹...` only when active channel filters or search queries restrict the visible total below the business day scope.
+- **Thermal & A5 Payment Receipt Voucher (`PaymentReceiptModal.jsx`)** — Renders isolated printable receipts via React Portals (`createPortal(..., document.body)`). Screens carry `.no-print`, while `.invoice-print` prints clean vouchers without background page screenshots.
+- **Daily Cashier Closeout Statement (`DailyCloseoutPrintModal.jsx`)** — Produces formal end-of-day register reconciliation statements with cash vs non-cash summaries, channel breakdowns, transaction ledgers, and signature sign-off lines.
+- **Timestamp Standardization (`formatters.js`)** — Exported `hasExplicitTime`, `formatPaymentTime` (guaranteeing uppercase `AM`/`PM`), and 3-letter month formatting (`05 Sep 2026`).
+
 ---
 
 ## [v2.2.6](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.2.6) — 2026-09-05 — Employee Activity Log Reliability, Activity-First Querying & Daily Work Sessions
