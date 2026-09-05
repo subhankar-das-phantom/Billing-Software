@@ -72,6 +72,66 @@ const getISTDateStr = (daysAgo = 0) => {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(d);
 };
 
+/**
+ * Mobile-aware horizontal scroll container with visual edge fade and chevron affordance hints.
+ * Automatically displays smooth edge gradients and micro-chevrons on mobile when content overflows,
+ * cleanly disappearing on desktop where items wrap (sm:flex-wrap).
+ */
+function ScrollAffordanceContainer({ children, className = '' }) {
+  const scrollRef = useRef(null);
+  const [showLeft, setShowLeft] = useState(false);
+  const [showRight, setShowRight] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    setShowLeft(scrollLeft > 4);
+    setShowRight(scrollLeft + clientWidth < scrollWidth - 6);
+  }, []);
+
+  useEffect(() => {
+    checkScroll();
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      checkScroll();
+    });
+    resizeObserver.observe(el);
+
+    window.addEventListener('resize', checkScroll);
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', checkScroll);
+    };
+  }, [checkScroll]);
+
+  return (
+    <div className="relative min-w-0">
+      {showLeft && (
+        <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-7 bg-gradient-to-r from-slate-900 via-slate-900/90 to-transparent flex items-center justify-start pl-0.5 z-10 sm:hidden">
+          <ChevronLeft className="w-3.5 h-3.5 text-slate-400 drop-shadow" />
+        </div>
+      )}
+
+      <div
+        ref={scrollRef}
+        onScroll={checkScroll}
+        className={className}
+      >
+        {children}
+      </div>
+
+      {showRight && (
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-7 bg-gradient-to-l from-slate-900 via-slate-900/90 to-transparent flex items-center justify-end pr-0.5 z-10 sm:hidden">
+          <ChevronRight className="w-3.5 h-3.5 text-slate-400 drop-shadow animate-pulse" />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function CollectionsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { success, error } = useToast();
@@ -429,12 +489,12 @@ export default function CollectionsPage() {
           </div>
 
           {/* Header Action Suite */}
-          <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+          <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap">
             {/* Export Button (Shared Export Modal) */}
             <button
               type="button"
               onClick={() => setShowExportModal(true)}
-              className="flex items-center gap-2 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-slate-200 rounded-xl border border-slate-800 text-xs font-semibold transition-colors"
+              className="flex-1 sm:flex-none justify-center flex items-center gap-2 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-slate-200 rounded-xl border border-slate-800 text-xs font-semibold transition-colors min-h-[38px]"
               id="collections-export-btn"
             >
               <Download className="w-4 h-4 text-slate-400" />
@@ -445,7 +505,7 @@ export default function CollectionsPage() {
             <button
               type="button"
               onClick={() => setShowCloseoutModal(true)}
-              className="flex items-center gap-2 px-3.5 py-2 bg-slate-800 hover:bg-slate-750 text-white rounded-xl border border-slate-700 text-xs font-semibold transition-colors"
+              className="flex-1 sm:flex-none justify-center flex items-center gap-2 px-3.5 py-2 bg-slate-800 hover:bg-slate-750 text-white rounded-xl border border-slate-700 text-xs font-semibold transition-colors min-h-[38px]"
               id="collections-closeout-btn"
             >
               <Printer className="w-4 h-4 text-slate-300" />
@@ -456,7 +516,7 @@ export default function CollectionsPage() {
             <button
               type="button"
               onClick={() => setShowRecordModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
+              className="w-full sm:w-auto justify-center flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-emerald-500/20 transition-all active:scale-95 min-h-[38px]"
               id="record-payment-header-btn"
             >
               <Plus className="w-4 h-4" />
@@ -466,80 +526,80 @@ export default function CollectionsPage() {
         </div>
 
         {/* High-Density KPI Strip (Dataset Totals) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
           {/* Card 1: Total Collections */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3.5 relative overflow-hidden">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 sm:p-3.5 relative overflow-hidden">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+              <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
                 Total Collections
               </span>
               <div className="p-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
                 <TrendingUp className="w-3.5 h-3.5" />
               </div>
             </div>
-            <p className="text-xl font-bold text-white font-mono tracking-tight">
+            <p className="text-lg sm:text-xl font-bold text-white font-mono tracking-tight truncate">
               {loading ? '...' : formatCurrency(totalCollected)}
             </p>
-            <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1.5 pt-1.5 border-t border-slate-800 font-mono">
+            <div className="flex items-center justify-between text-[10px] sm:text-[11px] text-slate-400 mt-1.5 pt-1.5 border-t border-slate-800 font-mono">
               <span>{loading ? '...' : `${paymentCount} receipts`}</span>
-              <span className="text-slate-300 font-sans truncate max-w-[120px]">{dateLabel}</span>
+              <span className="text-slate-300 font-sans truncate max-w-[80px] sm:max-w-[120px]">{dateLabel}</span>
             </div>
           </div>
 
           {/* Card 2: Cash Collections */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3.5 relative overflow-hidden">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 sm:p-3.5 relative overflow-hidden">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+              <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
                 Cash Collections
               </span>
               <div className="p-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
                 <Banknote className="w-3.5 h-3.5" />
               </div>
             </div>
-            <p className="text-xl font-bold text-emerald-400 font-mono tracking-tight">
+            <p className="text-lg sm:text-xl font-bold text-emerald-400 font-mono tracking-tight truncate">
               {loading ? '...' : formatCurrency(cashCollected)}
             </p>
-            <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1.5 pt-1.5 border-t border-slate-800 font-mono">
-              <span>{loading ? '...' : `${cashCount} cash receipts`}</span>
+            <div className="flex items-center justify-between text-[10px] sm:text-[11px] text-slate-400 mt-1.5 pt-1.5 border-t border-slate-800 font-mono">
+              <span>{loading ? '...' : `${cashCount} cash`}</span>
               <span className="text-emerald-400 font-semibold">{loading ? '...' : `${cashShare}%`}</span>
             </div>
           </div>
 
           {/* Card 3: Non-Cash Collections */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3.5 relative overflow-hidden">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 sm:p-3.5 relative overflow-hidden">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+              <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
                 Non-Cash Collections
               </span>
               <div className="p-1 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400">
                 <CreditCard className="w-3.5 h-3.5" />
               </div>
             </div>
-            <p className="text-xl font-bold text-sky-400 font-mono tracking-tight">
+            <p className="text-lg sm:text-xl font-bold text-sky-400 font-mono tracking-tight truncate">
               {loading ? '...' : formatCurrency(nonCashCollected)}
             </p>
-            <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1.5 pt-1.5 border-t border-slate-800 font-mono">
-              <span>{loading ? '...' : `${nonCashCount} digital/cheque`}</span>
+            <div className="flex items-center justify-between text-[10px] sm:text-[11px] text-slate-400 mt-1.5 pt-1.5 border-t border-slate-800 font-mono">
+              <span>{loading ? '...' : `${nonCashCount} digital`}</span>
               <span className="text-sky-400 font-semibold">{loading ? '...' : `${nonCashShare}%`}</span>
             </div>
           </div>
 
           {/* Card 4: Average Receipt */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3.5 relative overflow-hidden">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 sm:p-3.5 relative overflow-hidden">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+              <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
                 Average Receipt
               </span>
               <div className="p-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
                 <Wallet className="w-3.5 h-3.5" />
               </div>
             </div>
-            <p className="text-xl font-bold text-white font-mono tracking-tight">
+            <p className="text-lg sm:text-xl font-bold text-white font-mono tracking-tight truncate">
               {loading ? '...' : formatCurrency(averageTicketSize)}
             </p>
-            <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1.5 pt-1.5 border-t border-slate-800">
-              <span>Top channel:</span>
-              <span className="text-white font-semibold truncate max-w-[120px]">
+            <div className="flex items-center justify-between text-[10px] sm:text-[11px] text-slate-400 mt-1.5 pt-1.5 border-t border-slate-800">
+              <span>Top:</span>
+              <span className="text-white font-semibold truncate max-w-[80px] sm:max-w-[120px]">
                 {loading ? '...' : (topMethod ? topMethod.method : 'None')}
               </span>
             </div>
@@ -585,11 +645,11 @@ export default function CollectionsPage() {
             </div>
 
             {/* Interactive Channel Selector Pills - Always Accessible */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 pt-0.5">
+            <ScrollAffordanceContainer className="flex items-center gap-1.5 overflow-x-auto no-scrollbar sm:flex-wrap sm:overflow-visible pb-0.5 pt-0.5 pr-6 sm:pr-0">
               <button
                 type="button"
                 onClick={() => setSelectedMethod('')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all flex items-center gap-1.5 shrink-0 ${
+                className={`px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-medium border transition-all flex items-center gap-1.5 shrink-0 ${
                   !selectedMethod
                     ? 'bg-slate-800 text-white border-slate-600 shadow-sm'
                     : 'bg-slate-950/60 text-slate-400 border-slate-800 hover:text-white hover:bg-slate-800/40'
@@ -609,7 +669,7 @@ export default function CollectionsPage() {
                     key={item.method}
                     type="button"
                     onClick={() => setSelectedMethod(isSelected ? '' : item.method)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all flex items-center gap-1.5 shrink-0 ${
+                    className={`px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-medium border transition-all flex items-center gap-1.5 shrink-0 ${
                       isSelected
                         ? `${item.badgeStyle} ring-1 ring-white/20 shadow-sm font-semibold`
                         : 'bg-slate-950/60 text-slate-400 border-slate-800 hover:text-white hover:bg-slate-800/40'
@@ -626,7 +686,7 @@ export default function CollectionsPage() {
                   </button>
                 );
               })}
-            </div>
+            </ScrollAffordanceContainer>
           </div>
         </div>
 
@@ -634,7 +694,7 @@ export default function CollectionsPage() {
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-2.5">
           <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2.5">
             {/* Segmented Date Presets */}
-            <div className="flex items-center gap-1 overflow-x-auto pb-1 lg:pb-0">
+            <ScrollAffordanceContainer className="flex items-center gap-1 overflow-x-auto no-scrollbar sm:flex-wrap sm:overflow-visible pb-1 lg:pb-0 pr-6 sm:pr-0">
               {[
                 { id: 'today', label: 'Today' },
                 { id: 'yesterday', label: 'Yesterday' },
@@ -646,7 +706,7 @@ export default function CollectionsPage() {
                   key={preset.id}
                   type="button"
                   onClick={() => handlePresetChange(preset.id)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors whitespace-nowrap ${
+                  className={`px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-medium border transition-colors whitespace-nowrap shrink-0 ${
                     datePreset === preset.id
                       ? 'bg-slate-800 text-white border-slate-600 shadow-sm'
                       : 'bg-slate-950/60 text-slate-400 border-slate-800 hover:text-white hover:bg-slate-800/40'
@@ -655,10 +715,10 @@ export default function CollectionsPage() {
                   {preset.label}
                 </button>
               ))}
-            </div>
+            </ScrollAffordanceContainer>
 
             {/* Search Input with Debounce & Clear */}
-            <div className="flex items-center gap-2 flex-1 lg:max-w-md">
+            <div className="flex items-center gap-2 flex-1 lg:max-w-md w-full">
               <div className="relative w-full">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
@@ -667,7 +727,7 @@ export default function CollectionsPage() {
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   placeholder="Search customer, phone, invoice, or UTR... ( / )"
-                  className="w-full pl-9 pr-8 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-slate-600 transition-colors"
+                  className="w-full pl-9 pr-8 py-2 sm:py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-slate-600 transition-colors"
                   id="collections-search-input"
                 />
                 {searchInput && (
@@ -696,23 +756,23 @@ export default function CollectionsPage() {
 
           {/* Custom Range Date Pickers (visible only when datePreset is 'custom') */}
           {datePreset === 'custom' && (
-            <div className="pt-2 border-t border-slate-800 flex flex-wrap items-center gap-3 text-xs">
-              <div className="flex items-center gap-2">
-                <span className="text-slate-400">From:</span>
+            <div className="pt-2 border-t border-slate-800 flex flex-wrap items-center gap-2 sm:gap-3 text-xs">
+              <div className="flex items-center gap-2 flex-1 min-w-[140px]">
+                <span className="text-slate-400 shrink-0">From:</span>
                 <input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-slate-600"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 sm:py-1 text-xs text-white focus:outline-none focus:border-slate-600"
                 />
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-slate-400">To:</span>
+              <div className="flex items-center gap-2 flex-1 min-w-[140px]">
+                <span className="text-slate-400 shrink-0">To:</span>
                 <input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-slate-600"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 sm:py-1 text-xs text-white focus:outline-none focus:border-slate-600"
                 />
               </div>
             </div>
@@ -1067,6 +1127,22 @@ export default function CollectionsPage() {
                   </div>
                 );
               })}
+
+              {/* Mobile Totals Summary Bar */}
+              <div className="p-3 bg-slate-950/80 border-t border-slate-800 flex items-center justify-between text-xs">
+                <div>
+                  <span className="text-slate-300 font-medium">Page Totals</span>
+                  <span className="text-slate-500 font-mono text-[11px] ml-1.5">({visibleTotals.count} receipts)</span>
+                  <div className="text-[10px] text-slate-400 mt-0.5">
+                    Cash: {formatCurrency(visibleTotals.cashSum)} · Non-Cash: {formatCurrency(visibleTotals.nonCashSum)}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-bold text-emerald-400 font-mono">
+                    {formatCurrency(visibleTotals.total)}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
