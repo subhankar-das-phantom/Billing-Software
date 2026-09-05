@@ -556,83 +556,78 @@ export default function CollectionsPage() {
               </h2>
               <span className="text-[11px] text-slate-500 hidden sm:inline">· Click channel to filter</span>
             </div>
-            {topMethod && (
+            {topMethod ? (
               <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300 font-medium self-start sm:self-auto">
                 Leading: <strong className="text-white">{topMethod.method}</strong> ({topMethod.share}%)
+              </span>
+            ) : (
+              <span className="text-[11px] text-slate-500 font-medium self-start sm:self-auto">
+                No active volume
               </span>
             )}
           </div>
 
-          {/* Segmented Volume Distribution Bar */}
-          {totalCollected > 0 ? (
-            <div className="space-y-2.5">
-              <div className="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden flex shadow-inner">
-                {methodDistribution.map((item) => (
+          <div className="space-y-2.5">
+            {/* Segmented Volume Distribution Bar */}
+            <div className="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden flex shadow-inner">
+              {totalCollected > 0 ? (
+                methodDistribution.map((item) => (
                   <div
                     key={item.method}
                     style={{ width: `${item.share}%` }}
                     className={`${item.barColor} h-full transition-all duration-300`}
                     title={`${item.method}: ${formatCurrency(item.total)} (${item.share}%)`}
                   />
-                ))}
-              </div>
-
-              {/* Interactive Channel Selector Pills */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 pt-0.5">
-                <button
-                  type="button"
-                  onClick={() => setSelectedMethod('')}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all flex items-center gap-1.5 shrink-0 ${
-                    !selectedMethod
-                      ? 'bg-slate-800 text-white border-slate-600 shadow-sm'
-                      : 'bg-slate-950/60 text-slate-400 border-slate-800 hover:text-white hover:bg-slate-800/40'
-                  }`}
-                >
-                  <span>All Channels</span>
-                  <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-slate-800 text-slate-300">
-                    {paymentCount}
-                  </span>
-                </button>
-
-                {methodDistribution.map((item) => {
-                  const MethodIcon = item.icon;
-                  const isSelected = selectedMethod === item.method;
-                  return (
-                    <button
-                      key={item.method}
-                      type="button"
-                      onClick={() => setSelectedMethod(isSelected ? '' : item.method)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all flex items-center gap-1.5 shrink-0 ${
-                        isSelected
-                          ? `${item.badgeStyle} ring-1 ring-white/20 shadow-sm font-semibold`
-                          : 'bg-slate-950/60 text-slate-400 border-slate-800 hover:text-white hover:bg-slate-800/40'
-                      }`}
-                    >
-                      <MethodIcon className="w-3 h-3" />
-                      <span>{item.method}</span>
-                      <span className="font-mono text-[11px] text-slate-300">
-                        {formatCurrency(item.total)}
-                      </span>
-                      <span className="text-[10px] opacity-75 font-mono px-1 py-0.2 rounded bg-black/40">
-                        {item.share}%
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+                ))
+              ) : (
+                <div className="w-full h-full bg-slate-800/80" />
+              )}
             </div>
-          ) : (
-            <div className="py-2.5 px-3.5 rounded-lg bg-slate-950/50 border border-slate-800/60 flex items-center justify-between text-xs text-slate-400">
-              <span>No payment channels recorded for {dateLabel}.</span>
+
+            {/* Interactive Channel Selector Pills - Always Accessible */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 pt-0.5">
               <button
                 type="button"
-                onClick={() => setShowRecordModal(true)}
-                className="text-emerald-400 hover:text-emerald-300 font-medium underline"
+                onClick={() => setSelectedMethod('')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all flex items-center gap-1.5 shrink-0 ${
+                  !selectedMethod
+                    ? 'bg-slate-800 text-white border-slate-600 shadow-sm'
+                    : 'bg-slate-950/60 text-slate-400 border-slate-800 hover:text-white hover:bg-slate-800/40'
+                }`}
               >
-                Record First Payment
+                <span>All Channels</span>
+                <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-slate-800 text-slate-300">
+                  {paymentCount}
+                </span>
               </button>
+
+              {methodDistribution.map((item) => {
+                const MethodIcon = item.icon;
+                const isSelected = selectedMethod === item.method;
+                return (
+                  <button
+                    key={item.method}
+                    type="button"
+                    onClick={() => setSelectedMethod(isSelected ? '' : item.method)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all flex items-center gap-1.5 shrink-0 ${
+                      isSelected
+                        ? `${item.badgeStyle} ring-1 ring-white/20 shadow-sm font-semibold`
+                        : 'bg-slate-950/60 text-slate-400 border-slate-800 hover:text-white hover:bg-slate-800/40'
+                    }`}
+                  >
+                    <MethodIcon className="w-3 h-3" />
+                    <span>{item.method}</span>
+                    <span className="font-mono text-[11px] text-slate-300">
+                      {formatCurrency(item.total)}
+                    </span>
+                    <span className="text-[10px] opacity-75 font-mono px-1 py-0.2 rounded bg-black/40">
+                      {item.share}%
+                    </span>
+                  </button>
+                );
+              })}
             </div>
-          )}
+          </div>
         </div>
 
         {/* Enterprise Filter & Search Suite */}

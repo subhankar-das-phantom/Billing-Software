@@ -161,30 +161,24 @@ exports.getCollections = async (req, res, next) => {
       endOfDay = parseISTDateBoundary(istTodayStr, true);
     }
 
-    // Shared base predicates (constructed once)
-    const paymentQuery = { tenantId };
-    const meQuery = {
+    // Shared base scope predicates (tenant + date boundary + customerId)
+    const basePaymentQuery = { tenantId };
+    const baseMeQuery = {
       tenantId,
       entryType: { $in: ['payment_adjustment', 'credit_adjustment'] }
     };
 
     if (startOfDay || endOfDay) {
-      paymentQuery.paymentDate = {};
-      meQuery.entryDate = {};
+      basePaymentQuery.paymentDate = {};
+      baseMeQuery.entryDate = {};
       if (startOfDay) {
-        paymentQuery.paymentDate.$gte = startOfDay;
-        meQuery.entryDate.$gte = startOfDay;
+        basePaymentQuery.paymentDate.$gte = startOfDay;
+        baseMeQuery.entryDate.$gte = startOfDay;
       }
       if (endOfDay) {
-        paymentQuery.paymentDate.$lte = endOfDay;
-        meQuery.entryDate.$lte = endOfDay;
+        basePaymentQuery.paymentDate.$lte = endOfDay;
+        baseMeQuery.entryDate.$lte = endOfDay;
       }
-    }
-
-    // Payment method filter (canonical only)
-    if (req.query.paymentMethod && CANONICAL_PAYMENT_METHODS.includes(req.query.paymentMethod)) {
-      paymentQuery.paymentMethod = req.query.paymentMethod;
-      meQuery.paymentMethod = req.query.paymentMethod;
     }
 
     // Customer ID filter
@@ -197,13 +191,25 @@ exports.getCollections = async (req, res, next) => {
         });
       }
       const custId = new mongoose.Types.ObjectId(req.query.customerId);
-      paymentQuery.customer = custId;
-      meQuery.customer = custId;
+      basePaymentQuery.customer = custId;
+      baseMeQuery.customer = custId;
+    }
+
+    // Table queries inherit from base scope
+    const paymentQuery = { ...basePaymentQuery };
+    const meQuery = { ...baseMeQuery };
+
+    // Payment method filter (canonical only)
+    const hasMethodFilter = Boolean(req.query.paymentMethod && CANONICAL_PAYMENT_METHODS.includes(req.query.paymentMethod));
+    if (hasMethodFilter) {
+      paymentQuery.paymentMethod = req.query.paymentMethod;
+      meQuery.paymentMethod = req.query.paymentMethod;
     }
 
     // Guarded search: prefix-indexed where possible, max 50 chars, bounded customer lookups
     const rawSearch = String(req.query.search || '').trim().slice(0, 50);
-    if (rawSearch.length >= 2) {
+    const hasSearchFilter = rawSearch.length >= 2;
+    if (hasSearchFilter) {
       const escaped = escapeRegex(rawSearch);
       const prefixPattern = new RegExp(`^${escaped}`, 'i');
       const containsPattern = new RegExp(escaped, 'i');
@@ -244,8 +250,10 @@ exports.getCollections = async (req, res, next) => {
       meQuery.$and.push({ $or: meOr });
     }
 
+    const isFiltered = hasMethodFilter || hasSearchFilter;
+
     // Run bounded queries in parallel with cashier attribution
-    const [payments, manualEntries] = await Promise.all([
+    const queryPromises = [
       Payment.find(paymentQuery)
         .populate('customer', 'customerName phone')
         .populate('invoice', 'invoiceNumber totals.netTotal')
@@ -257,7 +265,19 @@ exports.getCollections = async (req, res, next) => {
         .populate('createdBy.user', 'name email')
         .sort({ entryDate: -1, createdAt: -1, _id: -1 })
         .lean()
-    ]);
+    ];
+
+    if (isFiltered) {
+      queryPromises.push(
+        Payment.find(basePaymentQuery).select('amount paymentMethod').lean(),
+        ManualEntry.find(baseMeQuery).select('amount paymentMethod').lean()
+      );
+    }
+
+    const queryResults = await Promise.all(queryPromises);
+    const payments = queryResults[0];
+    const manualEntries = queryResults[1];
+    const scopeRecords = isFiltered ? [...queryResults[2], ...queryResults[3]] : null;
 
     // Normalize both collections into UnifiedCollectionRecord DTO
     const getEffectiveDate = (primaryDate, fallbackCreatedAt) => {
@@ -333,7 +353,9 @@ exports.getCollections = async (req, res, next) => {
       return String(b.id).localeCompare(String(a.id));
     });
 
-    // Compute executive summary metrics with reconciliation invariants
+    // Compute executive summary metrics with reconciliation invariants (scoped to the period)
+    const summarySource = isFiltered ? scopeRecords : allRecords;
+
     let cashCollected = 0;
     let cashCount = 0;
     let nonCashCollected = 0;
@@ -347,16 +369,17 @@ exports.getCollections = async (req, res, next) => {
       'NEFT/RTGS': { count: 0, total: 0 }
     };
 
-    for (const rec of allRecords) {
+    for (const rec of summarySource) {
       const m = (rec.paymentMethod in byMethod) ? rec.paymentMethod : 'Cash';
+      const amt = Number(rec.amount || 0);
       byMethod[m].count += 1;
-      byMethod[m].total = round2(byMethod[m].total + rec.amount);
+      byMethod[m].total = round2(byMethod[m].total + amt);
 
       if (m === 'Cash') {
-        cashCollected = round2(cashCollected + rec.amount);
+        cashCollected = round2(cashCollected + amt);
         cashCount += 1;
       } else {
-        nonCashCollected = round2(nonCashCollected + rec.amount);
+        nonCashCollected = round2(nonCashCollected + amt);
         nonCashCount += 1;
       }
     }
