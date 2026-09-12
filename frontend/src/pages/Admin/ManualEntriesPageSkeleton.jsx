@@ -35,8 +35,8 @@ export const ManualEntriesPageSkeleton = () => {
         </div>
       </div>
 
-      {/* Entries Table Card */}
-      <div className="glass-card overflow-hidden">
+      {/* ─── Desktop Table Skeleton (Screen >= 768px) ────────────────── */}
+      <div className="hidden md:block glass-card overflow-hidden">
         <div className="overflow-x-auto custom-scrollbar">
           <div className="min-w-[880px]">
             {/* Table Header Skeleton */}
@@ -77,6 +77,43 @@ export const ManualEntriesPageSkeleton = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* ─── Mobile Cards Skeleton (Screen < 768px) ─────────────────── */}
+      <div className="block md:hidden space-y-3">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="glass-card p-4 flex flex-col gap-3 relative overflow-hidden border border-slate-800/80">
+            {/* Header */}
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <ShimmerBone className="h-6 w-28 rounded-lg" />
+                <ShimmerBone className="h-5 w-16 rounded-md" />
+              </div>
+              <ShimmerBone className="w-8 h-8 rounded-xl" />
+            </div>
+
+            {/* Inner Grid */}
+            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-800/80 bg-slate-900/30 -mx-4 px-4 py-2.5">
+              <div className="flex items-center gap-2">
+                <ShimmerBone className="w-7 h-7 rounded-lg shrink-0" />
+                <div className="space-y-1 flex-1">
+                  <ShimmerBone className="h-3.5 w-24" />
+                  <ShimmerBone className="h-2.5 w-16" />
+                </div>
+              </div>
+              <div className="flex flex-col items-end space-y-1">
+                <ShimmerBone className="h-4 w-20" />
+                <ShimmerBone className="h-3 w-14" />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-between gap-3 pt-1">
+              <ShimmerBone className="h-3.5 w-24" />
+              <ShimmerBone className="h-3 w-28" />
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
