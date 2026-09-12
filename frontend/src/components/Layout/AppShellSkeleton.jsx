@@ -11,7 +11,7 @@ import { ShimmerBone } from '../../features/salesAnalytics/components/SkeletonCa
    ─────────────────────────────────────────────────────────────────── */
 
 const SidebarSkeleton = () => (
-  <div className="hidden lg:flex w-64 h-screen bg-slate-900/95 border-r border-slate-800/80 flex-col p-4 shrink-0">
+  <div className="hidden lg:flex w-64 h-screen bg-slate-900 dark:bg-slate-950 border-r border-slate-800/80 flex-col p-4 shrink-0">
     {/* Logo & Brand Skeleton */}
     <div className="flex items-center gap-3 pb-6 border-b border-slate-800/80">
       <ShimmerBone className="w-9 h-9 rounded-xl shrink-0" />

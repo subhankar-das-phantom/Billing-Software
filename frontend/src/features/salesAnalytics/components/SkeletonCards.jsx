@@ -5,20 +5,9 @@ import React from 'react';
    Uses a CSS background gradient that slides via the animate-shimmer
    keyframe already defined in index.css.
    ─────────────────────────────────────────────────────────────────── */
-export const ShimmerBone = ({ className = '', style = {} }) => (
-  <div
-    className={`rounded bg-slate-700/40 relative overflow-hidden ${className}`}
-    style={style}
-  >
-    <div
-      className="absolute inset-0"
-      style={{
-        background:
-          'linear-gradient(90deg, transparent 0%, rgba(148,163,184,0.08) 40%, rgba(148,163,184,0.14) 50%, rgba(148,163,184,0.08) 60%, transparent 100%)',
-        backgroundSize: '200% 100%',
-        animation: 'shimmer-wave 2.4s ease-in-out infinite',
-      }}
-    />
+export const ShimmerBone = ({ className = '', style = {}, children = null, ...props }) => (
+  <div className={`shimmer-bone rounded ${className}`} style={style} {...props}>
+    {children}
   </div>
 );
 

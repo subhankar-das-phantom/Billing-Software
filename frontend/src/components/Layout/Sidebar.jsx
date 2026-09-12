@@ -25,7 +25,7 @@ import ThemeToggle from '../Common/Buttons/ThemeToggle';
  * Displays label, section category, and badge details on hover
  */
 const NavItemTooltip = memo(({ label, sectionTitle, badge, isLocked }) => (
-  <div className="fixed left-[72px] z-50 pointer-events-none px-3 py-2 bg-slate-900/95 backdrop-blur-md border border-slate-700/80 rounded-xl shadow-xl shadow-black/50 whitespace-nowrap animate-in fade-in zoom-in-95 duration-150">
+  <div className="fixed left-[72px] z-50 pointer-events-none px-3 py-2 bg-slate-900 dark:bg-slate-950 backdrop-blur-md border border-slate-700/80 rounded-xl shadow-xl shadow-black/50 whitespace-nowrap animate-in fade-in zoom-in-95 duration-150">
     <div className="flex items-center gap-2">
       <span className="text-xs font-semibold text-slate-100">{label}</span>
       {isLocked ? (
@@ -115,11 +115,11 @@ const SidebarNavItem = memo(
             />
             {/* Lock indicator in collapsed mode */}
             {isCollapsed && !isMobile && isLocked && (
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-slate-900 flex items-center justify-center" />
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-slate-900 dark:ring-slate-950 flex items-center justify-center" />
             )}
             {/* Indicator dot when collapsed and item has a badge */}
             {isCollapsed && !isMobile && !isLocked && item.badge && (
-              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-blue-500 ring-2 ring-slate-900" />
+              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-blue-500 ring-2 ring-slate-900 dark:ring-slate-950" />
             )}
           </div>
 
@@ -204,7 +204,7 @@ export default function Sidebar({
 
   return (
     <aside
-      className={`h-full bg-slate-900/95 border-r border-slate-800/80 flex flex-col backdrop-blur-xl transition-all duration-300 select-none no-print ${
+      className={`h-full bg-slate-900 dark:bg-slate-950 border-r border-slate-800/80 flex flex-col backdrop-blur-xl transition-all duration-300 select-none no-print ${
         isMobile ? 'w-full' : isCollapsed ? 'w-[68px]' : 'w-64'
       }`}
     >

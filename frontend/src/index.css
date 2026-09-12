@@ -1352,3 +1352,51 @@ html.dark {
     transform: translateY(0) rotate(var(--end-rotate, 0deg));
   }
 }
+
+/* ═══════════════════════════════════════════
+   SKELETON & SHIMMER BONE SYSTEM
+   High-contrast, accessible loading states
+   ═══════════════════════════════════════════ */
+.shimmer-bone {
+  position: relative;
+  overflow: hidden;
+  background-color: #cbd5e1 !important; /* Solid slate-300: crisp contrast on white cards */
+}
+
+html.dark .shimmer-bone {
+  background-color: #334155 !important; /* Solid slate-700: visible on dark surfaces */
+}
+
+.shimmer-bone::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.70) 50%,
+    transparent 100%
+  );
+  animation: shimmer-sweep 1.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+html.dark .shimmer-bone::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    transparent 100%
+  );
+}
+
+@keyframes shimmer-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
