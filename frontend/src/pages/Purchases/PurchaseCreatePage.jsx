@@ -645,7 +645,7 @@ export default function PurchaseCreatePage() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
               {isEditMode ? 'Edit Purchase Invoice' : 'New Purchase Entry'}
             </h1>
             <p className="text-sm text-slate-400">
@@ -679,7 +679,7 @@ export default function PurchaseCreatePage() {
             >
               <Truck className="w-5 h-5 text-blue-400" />
             </motion.div>
-            <h2 className="text-lg font-semibold text-white">Supplier Information</h2>
+            <h2 className="text-lg font-semibold text-slate-100">Supplier Information</h2>
           </div>
 
           <button
@@ -755,7 +755,7 @@ export default function PurchaseCreatePage() {
                   >
                     <div className="flex justify-between items-start">
                       <div>
-                        <p className="font-medium text-white flex items-center gap-2">
+                        <p className="font-medium text-slate-100 flex items-center gap-2">
                           <Building2 className="w-4 h-4 text-blue-400" />
                           {supplier.name}
                         </p>
@@ -800,12 +800,12 @@ export default function PurchaseCreatePage() {
               <div className="relative z-10 flex items-start justify-between">
                 <div className="flex items-start gap-3">
                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-teal-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
-                    <span className="text-white font-bold text-lg">
+                    <span className="text-slate-100 font-bold text-lg">
                       {selectedSupplier.name ? selectedSupplier.name.charAt(0).toUpperCase() : 'S'}
                     </span>
                   </div>
                   <div>
-                    <p className="font-semibold text-white text-base">
+                    <p className="font-semibold text-slate-100 text-base">
                       {selectedSupplier.name}
                     </p>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-300 mt-1">
@@ -842,7 +842,7 @@ export default function PurchaseCreatePage() {
                     setSupplierId('');
                     setSupplierSearch('');
                   }}
-                  className="p-2 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white"
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-slate-100"
                   title="Change supplier"
                 >
                   <X className="w-4 h-4" />
@@ -863,7 +863,7 @@ export default function PurchaseCreatePage() {
           >
             <ShoppingCart className="w-5 h-5 text-accent-400" />
           </motion.div>
-          <h2 className="text-lg font-semibold text-white">Add Purchased Items</h2>
+          <h2 className="text-lg font-semibold text-slate-100">Add Purchased Items</h2>
           {items.length > 0 && (
             <>
               <motion.span 
@@ -948,7 +948,7 @@ export default function PurchaseCreatePage() {
                     >
                       <div className="flex justify-between items-center gap-4">
                         <div>
-                          <p className="font-medium text-white flex items-center gap-2">
+                          <p className="font-medium text-slate-100 flex items-center gap-2">
                             <Package className="w-4 h-4 text-accent-400" />
                             {product.productName}
                           </p>
@@ -1016,7 +1016,7 @@ export default function PurchaseCreatePage() {
                           >
                             <td>
                               <div>
-                                <p className="font-medium text-white flex items-center gap-1.5 flex-wrap">
+                                <p className="font-medium text-slate-100 flex items-center gap-1.5 flex-wrap">
                                   {item.productName}
                                   {enableBatchTracking && (
                                     <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/20 font-mono">
@@ -1181,7 +1181,7 @@ export default function PurchaseCreatePage() {
               <div className="p-2 bg-yellow-500/20 rounded-lg">
                 <FileText className="w-5 h-5 text-yellow-400" />
               </div>
-              <h2 className="text-lg font-semibold text-white">Purchase & Invoice Details</h2>
+              <h2 className="text-lg font-semibold text-slate-100">Purchase & Invoice Details</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1253,13 +1253,13 @@ export default function PurchaseCreatePage() {
                 <div className="p-2 bg-emerald-500/20 rounded-lg">
                   <Calculator className="w-5 h-5 text-emerald-400" />
                 </div>
-                <h2 className="text-lg font-semibold text-white">Purchase Summary</h2>
+                <h2 className="text-lg font-semibold text-slate-100">Purchase Summary</h2>
               </div>
 
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-slate-400">Subtotal (Gross)</span>
-                  <span className="text-white font-medium">{formatCurrency(totals.subtotal)}</span>
+                  <span className="text-slate-100 font-medium">{formatCurrency(totals.subtotal)}</span>
                 </div>
 
                 {totals.totalDiscount > 0 && (
@@ -1271,21 +1271,21 @@ export default function PurchaseCreatePage() {
 
                 <div className="flex justify-between">
                   <span className="text-slate-400">Taxable Amount</span>
-                  <span className="text-white font-medium">{formatCurrency(totals.totalTaxable)}</span>
+                  <span className="text-slate-100 font-medium">{formatCurrency(totals.totalTaxable)}</span>
                 </div>
 
                 <div className="flex justify-between">
                   <span className="text-slate-400">CGST</span>
-                  <span className="text-white font-medium">{formatCurrency(totals.totalCGST)}</span>
+                  <span className="text-slate-100 font-medium">{formatCurrency(totals.totalCGST)}</span>
                 </div>
 
                 <div className="flex justify-between">
                   <span className="text-slate-400">SGST</span>
-                  <span className="text-white font-medium">{formatCurrency(totals.totalSGST)}</span>
+                  <span className="text-slate-100 font-medium">{formatCurrency(totals.totalSGST)}</span>
                 </div>
 
                 <div className="flex justify-between pt-3 border-t border-slate-700">
-                  <span className="font-semibold text-white text-base">Grand Total</span>
+                  <span className="font-semibold text-slate-100 text-base">Grand Total</span>
                   <span className="text-2xl font-bold text-emerald-400">
                     {formatCurrency(totals.grandTotal)}
                   </span>

@@ -150,7 +150,7 @@ export default function EmployeeDetailPage() {
             whileHover={isMobile ? {} : { scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => navigate('/employees')}
-            className="p-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-white transition-colors shrink-0"
+            className="p-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-slate-100 transition-colors shrink-0"
           >
             <ArrowLeft size={20} />
           </motion.button>
@@ -159,7 +159,7 @@ export default function EmployeeDetailPage() {
             {employee.name?.charAt(0)?.toUpperCase() || 'E'}
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl sm:text-2xl font-bold text-white flex flex-wrap items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-100 flex flex-wrap items-center gap-2">
               <span className="truncate max-w-full">{employee.name}</span>
               <span className={`text-xs sm:text-sm px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${
                 employee.isActive 
@@ -188,28 +188,28 @@ export default function EmployeeDetailPage() {
           <Mail size={18} className="text-slate-500" />
           <div className="overflow-hidden">
             <p className="text-xs text-slate-500">Email</p>
-            <p className="text-white truncate" title={employee.email}>{employee.email}</p>
+            <p className="text-slate-100 truncate" title={employee.email}>{employee.email}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <Phone size={18} className="text-slate-500" />
           <div className="overflow-hidden">
             <p className="text-xs text-slate-500">Phone</p>
-            <p className="text-white truncate" title={employee.phone || 'Not provided'}>{employee.phone || 'Not provided'}</p>
+            <p className="text-slate-100 truncate" title={employee.phone || 'Not provided'}>{employee.phone || 'Not provided'}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <MapPin size={18} className="text-slate-500" />
           <div className="overflow-hidden">
             <p className="text-xs text-slate-500">Address</p>
-            <p className="text-white truncate" title={employee.address || 'Not provided'}>{employee.address || 'Not provided'}</p>
+            <p className="text-slate-100 truncate" title={employee.address || 'Not provided'}>{employee.address || 'Not provided'}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <CreditCard size={18} className="text-slate-500" />
           <div className="overflow-hidden">
             <p className="text-xs text-slate-500">Gov ID</p>
-            <p className="text-white truncate" title={employee.govId?.number ? `${employee.govId.type} - ${employee.govId.number}` : 'Not provided'}>
+            <p className="text-slate-100 truncate" title={employee.govId?.number ? `${employee.govId.type} - ${employee.govId.number}` : 'Not provided'}>
               {employee.govId?.number ? `${employee.govId.type} - ${employee.govId.number}` : 'Not provided'}
             </p>
           </div>
@@ -218,21 +218,21 @@ export default function EmployeeDetailPage() {
           <Calendar size={18} className="text-slate-500" />
           <div className="overflow-hidden">
             <p className="text-xs text-slate-500">Date of Birth</p>
-            <p className="text-white truncate">{formatDate(employee.dob)}</p>
+            <p className="text-slate-100 truncate">{formatDate(employee.dob)}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <Calendar size={18} className="text-slate-500" />
           <div className="overflow-hidden">
             <p className="text-xs text-slate-500">Joined</p>
-            <p className="text-white truncate">{formatDate(employee.createdAt)}</p>
+            <p className="text-slate-100 truncate">{formatDate(employee.createdAt)}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <Clock size={18} className="text-slate-500" />
           <div className="overflow-hidden">
             <p className="text-xs text-slate-500">Last Login</p>
-            <p className="text-white truncate">{formatDate(employee.lastLogin)}</p>
+            <p className="text-slate-100 truncate">{formatDate(employee.lastLogin)}</p>
           </div>
         </div>
       </div>
@@ -250,7 +250,7 @@ export default function EmployeeDetailPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-slate-400 mb-1">{stat.label}</p>
-                <p className={`text-xl font-bold ${stat.color === 'emerald' ? 'text-emerald-400' : 'text-white'}`}>
+                <p className={`text-xl font-bold ${stat.color === 'emerald' ? 'text-emerald-400' : 'text-slate-100'}`}>
                   {stat.value}
                 </p>
               </div>
@@ -270,7 +270,7 @@ export default function EmployeeDetailPage() {
 
       {/* Session Stats */}
       <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-5">
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-slate-100 mb-4 flex items-center gap-2">
           <Clock size={20} className="text-blue-400" />
           Session Statistics
         </h3>
@@ -282,7 +282,7 @@ export default function EmployeeDetailPage() {
           ].map(period => (
             <div key={period.label} className="text-center">
               <p className="text-sm text-slate-400 mb-2">{period.label}</p>
-              <p className="text-2xl font-bold text-white">{period.stats?.totalSessions || 0}</p>
+              <p className="text-2xl font-bold text-slate-100">{period.stats?.totalSessions || 0}</p>
               <p className="text-xs text-slate-500">sessions</p>
               <p className="text-sm text-blue-400 mt-1">{formatDuration(period.stats?.totalDuration || 0)}</p>
             </div>
@@ -294,7 +294,7 @@ export default function EmployeeDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Invoices */}
         <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-5">
-          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-slate-100 mb-4 flex items-center gap-2">
             <FileText size={20} className="text-blue-400" />
             Recent Invoices ({recentActivity.invoices?.length || 0})
           </h3>
@@ -307,7 +307,7 @@ export default function EmployeeDetailPage() {
                   className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg hover:bg-slate-900 transition-colors"
                 >
                   <div>
-                    <p className="text-white font-medium">{inv.invoiceNumber}</p>
+                    <p className="text-slate-100 font-medium">{inv.invoiceNumber}</p>
                     <p className="text-xs text-slate-400">{inv.customer?.customerName}</p>
                   </div>
                   <div className="text-right">
@@ -324,7 +324,7 @@ export default function EmployeeDetailPage() {
 
         {/* Recent Payments */}
         <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-5">
-          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-slate-100 mb-4 flex items-center gap-2">
             <Wallet size={20} className="text-green-400" />
             Recent Payments ({recentActivity.payments?.length || 0})
           </h3>
@@ -336,7 +336,7 @@ export default function EmployeeDetailPage() {
                   className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg"
                 >
                   <div>
-                    <p className="text-white font-medium">{p.invoiceSnapshot?.invoiceNumber || 'Payment'}</p>
+                    <p className="text-slate-100 font-medium">{p.invoiceSnapshot?.invoiceNumber || 'Payment'}</p>
                     <p className="text-xs text-slate-400 capitalize">{p.paymentMethod}</p>
                   </div>
                   <div className="text-right">

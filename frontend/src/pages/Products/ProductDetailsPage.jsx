@@ -315,7 +315,7 @@ export default function ProductDetailsPage() {
     >
       {/* Back button + Actions */}
       <motion.div variants={cardVariants} initial={isFirstVisit ? "hidden" : false} animate="visible" className="flex justify-between items-center mb-4">
-        <Link to="/products" className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors">
+        <Link to="/products" className="inline-flex items-center gap-2 text-slate-400 hover:text-slate-100 transition-colors">
           <ArrowLeft className="w-4 h-4" />
           Back to Products
         </Link>
@@ -349,7 +349,7 @@ export default function ProductDetailsPage() {
               <Package className="w-8 h-8 text-blue-400" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">{product.productName}</h1>
+              <h1 className="text-2xl font-bold text-slate-100">{product.productName}</h1>
               <div className="flex items-center gap-4 mt-1 text-sm text-slate-400">
                 {product.manufacturer && (
                   <span className="flex items-center gap-1">
@@ -406,7 +406,7 @@ export default function ProductDetailsPage() {
                 <Box className="w-5 h-5 text-blue-400" />
               </div>
               <div className="text-left">
-                <h2 className="text-lg font-semibold text-white group-hover:text-blue-200 transition-colors">
+                <h2 className="text-lg font-semibold text-slate-100 group-hover:text-blue-200 transition-colors">
                   Batches
                 </h2>
                 <p className="text-xs text-slate-500">
@@ -414,7 +414,7 @@ export default function ProductDetailsPage() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2 text-sm text-slate-400 group-hover:text-white transition-colors">
+            <div className="flex items-center gap-2 text-sm text-slate-400 group-hover:text-slate-100 transition-colors">
               <span>{showBatches ? 'Hide' : 'Show'}</span>
               {showBatches ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </div>
@@ -458,7 +458,7 @@ export default function ProductDetailsPage() {
                             </div>
                             <div className="min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-medium text-white truncate">
+                                <span className="font-medium text-slate-100 truncate">
                                   {batch.batchNo && batch.batchNo !== 'UNNAMED' ? batch.batchNo : 'No Batch #'}
                                 </span>
                                 <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
@@ -597,9 +597,9 @@ export default function ProductDetailsPage() {
             <div className="p-2 bg-violet-500/20 rounded-lg group-hover:bg-violet-500/30 transition-colors">
               <History className="w-5 h-5 text-violet-400" />
             </div>
-            <h2 className="text-lg font-semibold text-white group-hover:text-violet-200 transition-colors">Stock History</h2>
+            <h2 className="text-lg font-semibold text-slate-100 group-hover:text-violet-200 transition-colors">Stock History</h2>
           </div>
-          <div className="flex items-center gap-2 text-sm text-slate-400 group-hover:text-white transition-colors">
+          <div className="flex items-center gap-2 text-sm text-slate-400 group-hover:text-slate-100 transition-colors">
             <span>{showHistory ? 'Hide History' : 'View History'}</span>
             {showHistory ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </div>
@@ -693,7 +693,7 @@ export default function ProductDetailsPage() {
                           {changePrefix}{entry.changeQty}
                         </div>
                         <div className="text-sm text-slate-400">
-                          {entry.previousQty ?? '-'} → <span className="text-white font-medium">{entry.newQty ?? '-'}</span>
+                          {entry.previousQty ?? '-'} → <span className="text-slate-100 font-medium">{entry.newQty ?? '-'}</span>
                         </div>
                         <div className="text-sm truncate">
                           {referenceContent}
@@ -722,7 +722,7 @@ export default function ProductDetailsPage() {
                           {changePrefix}{entry.changeQty}
                         </div>
                         <div className="text-sm text-slate-400">
-                          {entry.previousQty ?? '-'} → <span className="text-white font-medium">{entry.newQty ?? '-'}</span>
+                          {entry.previousQty ?? '-'} → <span className="text-slate-100 font-medium">{entry.newQty ?? '-'}</span>
                         </div>
                       </div>
                       <div className="flex items-center justify-between text-sm">
@@ -747,7 +747,7 @@ export default function ProductDetailsPage() {
       >
         <div className="space-y-4">
           <div className="p-3 bg-slate-800 rounded-lg text-sm text-slate-300">
-            Current Stock: <span className="font-bold text-white">{effectiveStock}</span>
+            Current Stock: <span className="font-bold text-slate-100">{effectiveStock}</span>
           </div>
           <div>
             <label className="label">Type</label>
@@ -892,7 +892,7 @@ export default function ProductDetailsPage() {
         <form onSubmit={handleBatchAdjustStock} className="p-4 space-y-4">
           <div className="p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
             <p className="text-sm text-slate-400 mb-1">Adjusting Batch</p>
-            <p className="font-medium text-white">{batchAdjust.batchName}</p>
+            <p className="font-medium text-slate-100">{batchAdjust.batchName}</p>
           </div>
           
           <div className="grid grid-cols-2 gap-4">

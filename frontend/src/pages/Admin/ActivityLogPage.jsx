@@ -88,7 +88,7 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
             </div>
             
             <div>
-              <h3 className="font-semibold text-white">{employee.name}</h3>
+              <h3 className="font-semibold text-slate-100">{employee.name}</h3>
               <p className="text-xs text-slate-500">{employee.email}</p>
             </div>
           </div>
@@ -168,7 +168,7 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
           
           {/* Expand Icon */}
           {hasActivities && (
-            <button className="ml-auto p-1 text-slate-400 hover:text-white transition-colors">
+            <button className="ml-auto p-1 text-slate-400 hover:text-slate-100 transition-colors">
               {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
             </button>
           )}
@@ -196,7 +196,7 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
                     {activities.invoicesCreated.map((inv, idx) => (
                       <div key={idx} className="flex items-center justify-between text-sm bg-slate-800/80 rounded-lg p-3 border border-slate-700/50">
                         <div className="flex items-center gap-3">
-                          <span className="text-white font-medium">{inv.invoiceNumber}</span>
+                          <span className="text-slate-100 font-medium">{inv.invoiceNumber}</span>
                           <span className="text-slate-500">•</span>
                           <span className="text-slate-400">{inv.customer}</span>
                         </div>
@@ -220,7 +220,7 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
                     {activities.paymentsRecorded.map((p, idx) => (
                       <div key={idx} className="flex items-center justify-between text-sm bg-slate-800/80 rounded-lg p-3 border border-slate-700/50">
                         <div className="flex items-center gap-3">
-                          <span className="text-white">{p.invoiceNumber || 'Invoice'}</span>
+                          <span className="text-slate-100">{p.invoiceNumber || 'Invoice'}</span>
                           <span className="text-slate-500">•</span>
                           <span className="text-slate-400 capitalize">{p.method}</span>
                         </div>
@@ -357,9 +357,9 @@ export default function ActivityLogPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-3">
             <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-accent-600 shadow-lg shadow-blue-500/20">
-              <Activity size={20} className="text-white" />
+              <Activity size={20} className="text-slate-100" />
             </div>
             Activity Log
           </h1>
@@ -371,7 +371,7 @@ export default function ActivityLogPage() {
           whileTap={{ scale: 0.98 }}
           onClick={fetchActivityLog}
           disabled={refreshing}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white hover:bg-slate-700 transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 hover:bg-slate-700 transition-colors disabled:opacity-50"
         >
           <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
           Refresh
@@ -391,7 +391,7 @@ export default function ActivityLogPage() {
                 className={`px-3 py-2 text-sm font-medium transition-colors ${
                   timeRange === opt.value
                     ? 'bg-blue-600 text-white'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                    : 'text-slate-400 hover:text-slate-100 hover:bg-slate-700'
                 }`}
               >
                 {opt.label}
@@ -414,12 +414,12 @@ export default function ActivityLogPage() {
                 setShowEmployeeDropdown(true);
               }}
               onFocus={() => setShowEmployeeDropdown(true)}
-              className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-colors"
+              className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-colors"
             />
             {(selectedEmployee || employeeSearch) && (
               <button 
                 onClick={clearEmployeeFilter}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-100 transition-colors"
               >
                 <X size={16} />
               </button>
@@ -451,7 +451,7 @@ export default function ActivityLogPage() {
                         {emp.name?.charAt(0)?.toUpperCase()}
                       </div>
                       <div>
-                        <p className="text-white font-medium text-sm">{emp.name}</p>
+                        <p className="text-slate-100 font-medium text-sm">{emp.name}</p>
                         <p className="text-slate-400 text-xs">{emp.email}</p>
                       </div>
                     </button>

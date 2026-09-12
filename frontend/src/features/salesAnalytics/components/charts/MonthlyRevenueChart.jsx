@@ -3,6 +3,7 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Toolti
 import { ChartWrapper } from './ChartWrapper';
 import { useMonthlySalesQuery } from '../../queries/useMonthlySalesQuery';
 import { formatCurrency } from '../../../../utils/formatters';
+import { useChartTheme } from '../../utils/chartTheme';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -11,8 +12,8 @@ const CustomTooltip = ({ active, payload }) => {
     const data = payload[0].payload;
     return (
       <div className="glass-card p-3 border-blue-500/30">
-        <p className="text-sm text-slate-300 mb-1">{MONTHS[data.month - 1]} {data.year}</p>
-        <p className="text-blue-400 font-bold text-base">
+        <p className="text-sm text-slate-400 mb-1">{MONTHS[data.month - 1]} {data.year}</p>
+        <p className="text-blue-500 font-bold text-base">
           {formatCurrency(data.revenue)}
         </p>
       </div>
@@ -23,6 +24,7 @@ const CustomTooltip = ({ active, payload }) => {
 
 export const MonthlyRevenueChart = ({ year = new Date().getFullYear() }) => {
   const { data, isLoading, isError, refetch } = useMonthlySalesQuery(year);
+  const { gridStroke, axisStroke, cursorFill } = useChartTheme();
   
   const chartData = data?.data || [];
   const isEmpty = chartData.every(d => d.revenue === 0);
@@ -44,23 +46,23 @@ export const MonthlyRevenueChart = ({ year = new Date().getFullYear() }) => {
               <stop offset="100%" stopColor="#2563eb" stopOpacity={0.6}/>
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} vertical={false} />
           <XAxis 
             dataKey="month" 
-            stroke="#94a3b8" 
+            stroke={axisStroke} 
             fontSize={12} 
             tickLine={false} 
             axisLine={false}
             tickFormatter={(val) => MONTHS[val - 1]}
           />
           <YAxis 
-            stroke="#94a3b8" 
+            stroke={axisStroke} 
             fontSize={12} 
             tickLine={false} 
             axisLine={false}
             tickFormatter={(value) => `₹${value > 1000 ? (value/1000).toFixed(0) + 'k' : value}`}
           />
-          <Tooltip content={<CustomTooltip />} cursor={{ fill: '#1e293b' }} />
+          <Tooltip content={<CustomTooltip />} cursor={{ fill: cursorFill }} />
           <Bar dataKey="revenue" radius={[4, 4, 0, 0]}>
             {chartData.map((entry, index) => (
               <Cell key={`cell-${index}`} fill="url(#barGradient)" />

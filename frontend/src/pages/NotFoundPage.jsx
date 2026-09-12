@@ -184,7 +184,7 @@ export default function NotFoundPage() {
         </motion.div>
 
         {/* Text + Buttons */}
-        <motion.h2 variants={springItem} className="text-3xl md:text-4xl font-bold text-white mb-4">
+        <motion.h2 variants={springItem} className="text-3xl md:text-4xl font-bold text-slate-100 mb-4">
           Oops! Page Not Found
         </motion.h2>
 
@@ -245,7 +245,7 @@ export default function NotFoundPage() {
                   <motion.div whileHover={{ rotate: 360, scale: 1.2 }} transition={{ duration: 0.5 }}>
                     <Icon size={24} className="text-blue-400 group-hover:text-blue-300" />
                   </motion.div>
-                  <span className="text-slate-300 text-sm group-hover:text-white">
+                  <span className="text-slate-300 text-sm group-hover:text-slate-100">
                     {label}
                   </span>
                 </Link>

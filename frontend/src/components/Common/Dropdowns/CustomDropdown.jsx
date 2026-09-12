@@ -166,7 +166,7 @@ export default function CustomDropdown({
                   onMouseEnter={() => setActiveValue(option.value)}
                   onClick={() => selectOption(option)}
                   className={`w-full px-3 py-2.5 text-left text-sm transition-colors flex items-center justify-between gap-3 ${
-                    isActive ? 'bg-slate-700/80 text-white' : 'text-slate-200 hover:bg-slate-700/60'
+                    isActive ? 'bg-slate-700/80 text-slate-100' : 'text-slate-200 hover:bg-slate-700/60'
                   } ${option.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   <span className="min-w-0 flex-1">
@@ -200,9 +200,9 @@ export default function CustomDropdown({
           setIsOpen(prev => !prev);
         }}
         onKeyDown={handleTriggerKeyDown}
-        className={`w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 hover:border-slate-500 transition-colors flex items-center justify-between gap-3 text-left disabled:opacity-60 disabled:cursor-not-allowed ${buttonClassName}`}
+        className={`w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 hover:border-slate-500 transition-colors flex items-center justify-between gap-3 text-left disabled:opacity-60 disabled:cursor-not-allowed ${buttonClassName}`}
       >
-        <span className={`min-w-0 flex-1 ${selectedOption ? 'text-white' : 'text-slate-400'}`}>
+        <span className={`min-w-0 flex-1 ${selectedOption ? 'text-slate-100' : 'text-slate-400'}`}>
           {selectedOption
             ? (renderValue ? renderValue(selectedOption) : <span className="block truncate">{selectedOption.label}</span>)
             : placeholder}

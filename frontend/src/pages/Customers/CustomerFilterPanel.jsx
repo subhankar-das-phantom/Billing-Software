@@ -207,14 +207,14 @@ const CustomerFilterPanel = memo(function CustomerFilterPanel({
                   <ArrowUpDown className="w-5 h-5 text-blue-400" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white">Filters</h3>
+                  <h3 className="text-lg font-bold text-slate-100">Filters</h3>
                   <p className="text-xs text-slate-500">Refine customer list</p>
                 </div>
               </div>
               <motion.button
                 type="button"
                 onClick={onClose}
-                className="p-2 rounded-lg hover:bg-slate-700/60 text-slate-400 hover:text-white transition-colors"
+                className="p-2 rounded-lg hover:bg-slate-700/60 text-slate-400 hover:text-slate-100 transition-colors"
                 whileHover={{ rotate: 90 }}
                 whileTap={{ scale: 0.9 }}
               >

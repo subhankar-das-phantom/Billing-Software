@@ -1917,7 +1917,7 @@ export default function InvoiceCreatePage() {
             >
               <User className="w-5 h-5 text-blue-400" />
             </motion.div>
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold text-slate-100">
               Customer Details
             </h2>
           </div>
@@ -2011,7 +2011,7 @@ export default function InvoiceCreatePage() {
                         backgroundColor: "rgba(51, 65, 85, 0.9)",
                       }}
                     >
-                      <p className="font-medium text-white flex items-center gap-2">
+                      <p className="font-medium text-slate-100 flex items-center gap-2">
                         <User className="w-4 h-4 text-blue-400" />
                         {customer.customerName}
                       </p>
@@ -2063,12 +2063,12 @@ export default function InvoiceCreatePage() {
                     whileHover={{ rotate: 360, scale: 1.1 }}
                     transition={{ duration: 0.6 }}
                   >
-                    <span className="text-white font-bold text-lg">
+                    <span className="text-slate-100 font-bold text-lg">
                       {selectedCustomer.customerName.charAt(0)}
                     </span>
                   </motion.div>
                   <div>
-                    <p className="font-medium text-white">
+                    <p className="font-medium text-slate-100">
                       {selectedCustomer.customerName}
                     </p>
                     <p className="text-sm text-slate-300 flex items-center gap-1 mt-1">
@@ -2113,7 +2113,7 @@ export default function InvoiceCreatePage() {
           >
             <ShoppingCart className="w-5 h-5 text-accent-400" />
           </motion.div>
-          <h2 className="text-lg font-semibold text-white">Add Products</h2>
+          <h2 className="text-lg font-semibold text-slate-100">Add Products</h2>
           {invoiceItems.length > 0 && (
             <>
               <motion.span
@@ -2228,7 +2228,7 @@ export default function InvoiceCreatePage() {
                       >
                         <div className="flex justify-between gap-4">
                           <div className="flex-1">
-                            <p className="font-medium text-white flex items-center gap-2">
+                            <p className="font-medium text-slate-100 flex items-center gap-2">
                               <Package className="w-4 h-4 text-accent-400" />
                               {product.productName}
                             </p>
@@ -2313,7 +2313,7 @@ export default function InvoiceCreatePage() {
                             >
                               <td>
                                 <div>
-                                  <p className="font-medium text-white flex items-center gap-1.5 flex-wrap">
+                                  <p className="font-medium text-slate-100 flex items-center gap-1.5 flex-wrap">
                                     {item.product.productName}
                                     {item._batchPreview && (
                                       <span className="text-[10px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded border border-blue-500/20">
@@ -2550,7 +2550,7 @@ export default function InvoiceCreatePage() {
               <div className="p-2 bg-yellow-500/20 rounded-lg">
                 <FileText className="w-5 h-5 text-yellow-400" />
               </div>
-              <h2 className="text-lg font-semibold text-white">
+              <h2 className="text-lg font-semibold text-slate-100">
                 Additional Details
               </h2>
             </div>
@@ -2594,7 +2594,7 @@ export default function InvoiceCreatePage() {
                         className="text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900"
                       />
                       <div>
-                        <span className={`block text-sm font-medium ${allocationMode === "AUTO" ? "text-blue-400" : "text-white"}`}>
+                        <span className={`block text-sm font-medium ${allocationMode === "AUTO" ? "text-blue-400" : "text-slate-100"}`}>
                           Automatic (FIFO)
                         </span>
                         <span className="block text-xs text-slate-400 mt-0.5">
@@ -2618,7 +2618,7 @@ export default function InvoiceCreatePage() {
                         className="text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900"
                       />
                       <div>
-                        <span className={`block text-sm font-medium ${allocationMode === "MANUAL" ? "text-blue-400" : "text-white"}`}>
+                        <span className={`block text-sm font-medium ${allocationMode === "MANUAL" ? "text-blue-400" : "text-slate-100"}`}>
                           Manual Selection
                         </span>
                         <span className="block text-xs text-slate-400 mt-0.5">
@@ -2667,7 +2667,7 @@ export default function InvoiceCreatePage() {
               <div className="p-2 bg-emerald-500/20 rounded-lg">
                 <Calculator className="w-5 h-5 text-emerald-400" />
               </div>
-              <h2 className="text-lg font-semibold text-white">
+              <h2 className="text-lg font-semibold text-slate-100">
                 Invoice Summary
               </h2>
             </div>
@@ -2675,7 +2675,7 @@ export default function InvoiceCreatePage() {
             <div className="space-y-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-slate-400">Subtotal</span>
-                <span className="text-white">
+                <span className="text-slate-100">
                   {formatCurrency(totals.baseAmount)}
                 </span>
               </div>
@@ -2689,25 +2689,25 @@ export default function InvoiceCreatePage() {
               )}
               <div className="flex justify-between">
                 <span className="text-slate-400">Taxable Amount</span>
-                <span className="text-white">
+                <span className="text-slate-100">
                   {formatCurrency(totals.totalTaxable)}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">CGST</span>
-                <span className="text-white">
+                <span className="text-slate-100">
                   {formatCurrency(totals.totalCGST)}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">SGST</span>
-                <span className="text-white">
+                <span className="text-slate-100">
                   {formatCurrency(totals.totalSGST)}
                 </span>
               </div>
 
               <div className="flex justify-between pt-3 border-t border-slate-700">
-                <span className="font-semibold text-white">Grand Total</span>
+                <span className="font-semibold text-slate-100">Grand Total</span>
                 <span className="text-xl font-bold text-emerald-400">
                   {formatCurrency(totals.netTotal)}
                 </span>
@@ -2748,7 +2748,7 @@ export default function InvoiceCreatePage() {
           <div className="flex justify-between items-end mb-4 px-1">
             <div>
               <p className="text-slate-400 text-sm mb-0.5">Required Quantity</p>
-              <p className="text-2xl font-semibold text-white">
+              <p className="text-2xl font-semibold text-slate-100">
                 {batchModal.requiredQty}
               </p>
             </div>
@@ -2797,7 +2797,7 @@ export default function InvoiceCreatePage() {
                         Batch Number
                       </p>
                       <div className="flex items-center gap-2">
-                        <p className="font-medium text-white">
+                        <p className="font-medium text-slate-100">
                           {batch.batchNo && batch.batchNo !== "UNNAMED"
                             ? batch.batchNo
                             : "No Batch #"}

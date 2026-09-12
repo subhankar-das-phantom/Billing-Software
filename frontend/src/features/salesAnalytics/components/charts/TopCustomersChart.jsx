@@ -3,13 +3,14 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Toolti
 import { ChartWrapper } from './ChartWrapper';
 import { useTopCustomersQuery } from '../../queries/useTopCustomersQuery';
 import { formatCurrency } from '../../../../utils/formatters';
+import { useChartTheme } from '../../utils/chartTheme';
 
 const CustomTooltip = ({ active, payload }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
       <div className="glass-card p-3 border-indigo-500/30">
-        <p className="text-sm text-slate-300 mb-1">{data.customerName}</p>
+        <p className="text-sm text-slate-400 mb-1">{data.customerName}</p>
         <p className="text-indigo-400 font-bold text-base">
           {formatCurrency(data.revenue)}
         </p>
@@ -22,6 +23,7 @@ const CustomTooltip = ({ active, payload }) => {
 
 export const TopCustomersChart = ({ filterParams }) => {
   const { data, isLoading, isError, refetch } = useTopCustomersQuery(filterParams);
+  const { gridStroke, axisStroke, cursorFill } = useChartTheme();
   
   const chartData = data?.data || [];
   const isEmpty = chartData.length === 0;
@@ -41,10 +43,10 @@ export const TopCustomersChart = ({ filterParams }) => {
           layout="vertical"
           margin={{ top: 0, right: 10, left: 20, bottom: 0 }}
         >
-          <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} horizontal={false} />
           <XAxis 
             type="number"
-            stroke="#94a3b8" 
+            stroke={axisStroke} 
             fontSize={12} 
             tickLine={false} 
             axisLine={false}
@@ -53,14 +55,14 @@ export const TopCustomersChart = ({ filterParams }) => {
           <YAxis 
             dataKey="customerName"
             type="category"
-            stroke="#94a3b8" 
+            stroke={axisStroke} 
             fontSize={12} 
             tickLine={false} 
             axisLine={false}
             width={100}
             tickFormatter={(value) => value.length > 12 ? `${value.substring(0, 12)}...` : value}
           />
-          <Tooltip content={<CustomTooltip />} cursor={{ fill: '#1e293b' }} />
+          <Tooltip content={<CustomTooltip />} cursor={{ fill: cursorFill }} />
           <Bar dataKey="revenue" radius={[0, 4, 4, 0]} barSize={20}>
             {chartData.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={`hsl(220, 90%, ${65 - index * 3}%)`} />

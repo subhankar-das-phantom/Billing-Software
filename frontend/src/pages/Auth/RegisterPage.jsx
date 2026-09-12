@@ -295,7 +295,7 @@ export default function RegisterPage() {
                   transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                 />
               )}
-              <UserPlus className="w-10 h-10 text-white relative z-10" />
+              <UserPlus className="w-10 h-10 text-slate-100 relative z-10" />
               {!shouldReduceMotion && (
                 <motion.div
                   className="absolute -top-1 -right-1"
@@ -313,7 +313,7 @@ export default function RegisterPage() {
             </motion.div>
 
             <motion.div variants={itemVariants}>
-              <h1 className="text-3xl font-bold text-white mb-2 tracking-tight bg-gradient-to-r from-white via-emerald-100 to-white bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold text-slate-100 mb-2 tracking-tight bg-gradient-to-r from-white via-emerald-100 to-white bg-clip-text text-transparent">
                 Create Account
               </h1>
               <p className="text-slate-400 font-medium flex items-center justify-center gap-2">
@@ -409,7 +409,7 @@ export default function RegisterPage() {
                   />
                   <div className="w-5 h-5 rounded-md border-2 border-slate-600 bg-slate-800/50 peer-checked:bg-emerald-500 peer-checked:border-emerald-500 transition-all duration-200 flex items-center justify-center group-hover:border-slate-500 peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-500/50">
                     {agreedToTerms && (
-                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <svg className="w-3 h-3 text-slate-100" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>
                     )}

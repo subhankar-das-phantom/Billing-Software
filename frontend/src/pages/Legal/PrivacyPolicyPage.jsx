@@ -419,7 +419,7 @@ export default function PrivacyPolicyPage() {
             <section key={section.id} id={section.id} className="pp-section">
               <div className="pp-section-header">
                 <div className={`pp-section-icon bg-gradient-to-br ${section.color}`}>
-                  <section.icon className="w-5 h-5 text-white" />
+                  <section.icon className="w-5 h-5 text-slate-100" />
                 </div>
                 <h2 className="pp-section-title">
                   <span className="pp-section-num">{section.num}.</span>
@@ -436,7 +436,7 @@ export default function PrivacyPolicyPage() {
           <section className="pp-section pp-summary-section">
             <div className="pp-section-header">
               <div className="pp-section-icon bg-gradient-to-br from-blue-500 to-accent-500">
-                <FileText className="w-5 h-5 text-white" />
+                <FileText className="w-5 h-5 text-slate-100" />
               </div>
               <h2 className="pp-section-title">Quick Privacy Summary</h2>
             </div>

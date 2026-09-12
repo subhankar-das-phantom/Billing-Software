@@ -25,7 +25,7 @@ export const DashboardAlertsAndTopProducts = ({
               <AlertTriangle className="w-3.5 h-3.5" />
             </div>
             <div>
-              <h2 className="text-xs sm:text-sm font-semibold text-white">Low Stock Alerts</h2>
+              <h2 className="text-xs sm:text-sm font-semibold text-slate-100">Low Stock Alerts</h2>
             </div>
           </div>
 
@@ -57,7 +57,7 @@ export const DashboardAlertsAndTopProducts = ({
                     className="p-2.5 rounded-lg bg-slate-950/40 border border-slate-800/80"
                   >
                     <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <p className="font-medium text-xs text-white truncate">
+                      <p className="font-medium text-xs text-slate-100 truncate">
                         {product.productName}
                       </p>
 
@@ -99,7 +99,7 @@ export const DashboardAlertsAndTopProducts = ({
               <TrendingUp className="w-3.5 h-3.5" />
             </div>
             <div>
-              <h2 className="text-xs sm:text-sm font-semibold text-white">Top Moving Products</h2>
+              <h2 className="text-xs sm:text-sm font-semibold text-slate-100">Top Moving Products</h2>
             </div>
           </div>
 
@@ -130,7 +130,7 @@ export const DashboardAlertsAndTopProducts = ({
                       {idx + 1}
                     </span>
                     <div className="min-w-0">
-                      <p className="font-medium text-xs text-white truncate">
+                      <p className="font-medium text-xs text-slate-100 truncate">
                         {product.productName || product.name}
                       </p>
                       <p className="text-[10px] text-slate-500">

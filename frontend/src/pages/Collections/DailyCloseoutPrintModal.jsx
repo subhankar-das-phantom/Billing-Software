@@ -101,7 +101,7 @@ export default function DailyCloseoutPrintModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1.5 -ml-1 sm:hidden rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                className="p-1.5 -ml-1 sm:hidden rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
                 title="Back to Collections"
                 aria-label="Back to Collections"
               >
@@ -111,16 +111,16 @@ export default function DailyCloseoutPrintModal({
                 <FileSpreadsheet className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
               </div>
               <div>
-                <h2 className="text-sm sm:text-base font-bold text-white">Daily Cashier Closeout & Reconciliation</h2>
+                <h2 className="text-sm sm:text-base font-bold text-slate-100">Daily Cashier Closeout & Reconciliation</h2>
                 <p className="text-[11px] sm:text-xs text-slate-400">
-                  Business Date: <span className="text-white font-medium">{dateLabel}</span> · Complete Day Scope
+                  Business Date: <span className="text-slate-100 font-medium">{dateLabel}</span> · Complete Day Scope
                 </p>
               </div>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 sm:p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              className="p-1.5 sm:p-2 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
               title="Close modal"
               aria-label="Close modal"
             >
@@ -178,7 +178,7 @@ export default function DailyCloseoutPrintModal({
                 <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">
                   Total Net Collections
                 </span>
-                <p className="text-2xl font-bold text-white font-mono">
+                <p className="text-2xl font-bold text-slate-100 font-mono">
                   {formatCurrency(totalCollected)}
                 </p>
                 <div className="flex items-center justify-between text-xs text-slate-400 mt-2 pt-2 border-t border-slate-800/80">
@@ -214,12 +214,12 @@ export default function DailyCloseoutPrintModal({
 
                       return (
                         <tr key={method} className="hover:bg-slate-800/30">
-                          <td className="py-2.5 font-sans flex items-center gap-2 text-white font-medium">
+                          <td className="py-2.5 font-sans flex items-center gap-2 text-slate-100 font-medium">
                             <MethodIcon className="w-3.5 h-3.5 text-slate-400" />
                             {method}
                           </td>
                           <td className="py-2.5 text-center text-slate-300">{info.count}</td>
-                          <td className="py-2.5 text-right font-bold text-white">{formatCurrency(info.total)}</td>
+                          <td className="py-2.5 text-right font-bold text-slate-100">{formatCurrency(info.total)}</td>
                           <td className="py-2.5 text-right text-slate-400">{formatCurrency(avg)}</td>
                           <td className="py-2.5 text-right text-slate-300">{share}%</td>
                         </tr>
@@ -256,7 +256,7 @@ export default function DailyCloseoutPrintModal({
                         <td className="py-2 px-3 text-slate-400 font-mono whitespace-nowrap">
                           {formatPaymentTime(p)}
                         </td>
-                        <td className="py-2 px-3 text-white font-medium whitespace-nowrap">{p.customer?.name || 'Unknown'}</td>
+                        <td className="py-2 px-3 text-slate-100 font-medium whitespace-nowrap">{p.customer?.name || 'Unknown'}</td>
                         <td className="py-2 px-3 text-slate-400 font-mono whitespace-nowrap">
                           {p.invoice?.invoiceNumber || (p.entryType ? 'Manual Entry' : '-')}
                         </td>

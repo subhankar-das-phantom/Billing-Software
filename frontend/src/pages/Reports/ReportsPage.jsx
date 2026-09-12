@@ -60,7 +60,7 @@ export default function ReportsPage({ defaultTab }) {
           <div className="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center mx-auto mb-4 text-slate-300">
             <Lock className="w-6 h-6" />
           </div>
-          <h2 className="text-xl font-bold text-white mb-2">Business Reports Hub</h2>
+          <h2 className="text-xl font-bold text-slate-100 mb-2">Business Reports Hub</h2>
           <p className="text-xs text-slate-400 mb-6 leading-relaxed">
             Sales analytics, purchase reporting, and inventory intelligence are available on Business and Professional plans.
           </p>
@@ -85,7 +85,7 @@ export default function ReportsPage({ defaultTab }) {
       <div className="glass-card p-5 border border-slate-800/80 bg-slate-900/60">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div>
-            <h1 className="text-xl font-bold text-white tracking-tight">Reports & Intelligence Hub</h1>
+            <h1 className="text-xl font-bold text-slate-100 tracking-tight">Reports & Intelligence Hub</h1>
             <p className="text-xs text-slate-400 mt-0.5">Comprehensive sales velocity, procurement telemetry, batch horizons, and tax compliance</p>
           </div>
         </div>
@@ -188,7 +188,7 @@ export default function ReportsPage({ defaultTab }) {
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="text-base font-bold text-white">Purchase Reports & Analytics</h3>
+                        <h3 className="text-base font-bold text-slate-100">Purchase Reports & Analytics</h3>
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30">
                           Business Plan
                         </span>
@@ -234,7 +234,7 @@ export default function ReportsPage({ defaultTab }) {
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="text-base font-bold text-white">Inventory Intelligence Engine</h3>
+                        <h3 className="text-base font-bold text-slate-100">Inventory Intelligence Engine</h3>
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30">
                           Professional Plan
                         </span>
@@ -314,7 +314,7 @@ export default function ReportsPage({ defaultTab }) {
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="text-base font-bold text-white">GST Compliance Reporting</h3>
+                        <h3 className="text-base font-bold text-slate-100">GST Compliance Reporting</h3>
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30">
                           Professional Plan
                         </span>

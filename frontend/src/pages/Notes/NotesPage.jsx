@@ -227,7 +227,7 @@ export default function NotesPage() {
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-slate-800 mb-6">
               <StickyNote className="w-10 h-10 text-slate-400" />
             </div>
-            <h3 className="text-xl font-semibold text-white mb-2">No notes found</h3>
+            <h3 className="text-xl font-semibold text-slate-100 mb-2">No notes found</h3>
             <p className="text-slate-400 mb-6">
               {search ? 'Try a different search term' : 'Create your first note to get started'}
             </p>
@@ -249,7 +249,7 @@ export default function NotesPage() {
                 >
                 {/* Note Header */}
                 <div className="p-4 sm:p-5 pb-0 flex justify-between items-start gap-2">
-                  <h3 className="font-semibold text-lg text-white line-clamp-2 leading-tight">
+                  <h3 className="font-semibold text-lg text-slate-100 line-clamp-2 leading-tight">
                     {note.title}
                   </h3>
                   <button
@@ -314,7 +314,7 @@ export default function NotesPage() {
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
               className={`p-2 rounded-lg transition-colors ${
-                page === 1 ? 'text-slate-600 cursor-not-allowed' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                page === 1 ? 'text-slate-600 cursor-not-allowed' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
               }`}
               whileHover={motionConfig.shouldHover && page !== 1 ? { scale: 1.1 } : undefined}
               whileTap={motionConfig.shouldHover && page !== 1 ? { scale: 0.9 } : undefined}
@@ -332,7 +332,7 @@ export default function NotesPage() {
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
               className={`p-2 rounded-lg transition-colors ${
-                page === totalPages ? 'text-slate-600 cursor-not-allowed' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                page === totalPages ? 'text-slate-600 cursor-not-allowed' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
               }`}
               whileHover={motionConfig.shouldHover && page !== totalPages ? { scale: 1.1 } : undefined}
               whileTap={motionConfig.shouldHover && page !== totalPages ? { scale: 0.9 } : undefined}
@@ -392,7 +392,7 @@ export default function NotesPage() {
                   title={color.label}
                 >
                   {formData.color === color.value && (
-                    <CheckCircle className="w-5 h-5 text-white mx-auto" />
+                    <CheckCircle className="w-5 h-5 text-slate-100 mx-auto" />
                   )}
                 </button>
               ))}
@@ -407,7 +407,7 @@ export default function NotesPage() {
               onChange={(e) => setFormData({ ...formData, isPinned: e.target.checked })}
               className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900"
             />
-            <label htmlFor="isPinned" className="text-sm font-medium text-white select-none cursor-pointer">
+            <label htmlFor="isPinned" className="text-sm font-medium text-slate-100 select-none cursor-pointer">
               Pin this note to top
             </label>
           </div>

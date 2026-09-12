@@ -182,7 +182,7 @@ export default function LoginPage() {
                   transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                 />
               )}
-              <span className="text-white font-bold text-3xl relative z-10">B</span>
+              <span className="text-slate-100 font-bold text-3xl relative z-10">B</span>
               {!shouldReduceMotion && (
                 <motion.div
                   className="absolute -top-1 -right-1"
@@ -200,7 +200,7 @@ export default function LoginPage() {
             </motion.div>
 
             <motion.div variants={itemVariants}>
-              <h1 className="text-3xl font-bold text-white mb-2 tracking-tight bg-gradient-to-r from-white via-blue-100 to-white bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold text-slate-100 mb-2 tracking-tight bg-gradient-to-r from-white via-blue-100 to-white bg-clip-text text-transparent">
                 Bharat Enterprise
               </h1>
               <p className="text-slate-400 font-medium flex items-center justify-center gap-2">

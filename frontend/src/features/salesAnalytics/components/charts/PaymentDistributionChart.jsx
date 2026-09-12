@@ -11,7 +11,7 @@ const CustomTooltip = ({ active, payload }) => {
     const data = payload[0].payload;
     return (
       <div className="glass-card p-3" style={{ borderColor: `${data.fill}40`, borderWidth: '1px' }}>
-        <p className="text-sm text-slate-300 mb-1">{data.method}</p>
+        <p className="text-sm text-slate-400 mb-1">{data.method}</p>
         <p className="font-bold text-base" style={{ color: data.fill }}>
           {formatCurrency(data.amount)}
         </p>
@@ -57,7 +57,7 @@ export const PaymentDistributionChart = ({ filterParams }) => {
             verticalAlign="bottom" 
             height={36} 
             iconType="circle"
-            formatter={(value) => <span className="text-slate-300 text-sm">{value}</span>}
+            formatter={(value) => <span className="text-slate-400 text-sm font-medium">{value}</span>}
           />
         </PieChart>
       </ResponsiveContainer>

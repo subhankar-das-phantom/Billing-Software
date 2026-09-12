@@ -26,7 +26,7 @@ export default function PlanAccessRestricted({ feature, currentPlan = 'Starter' 
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase bg-amber-500/10 text-amber-300 border border-amber-500/20">
               {requiredTier} Plan Required
             </div>
-            <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-100 tracking-tight">
               {featureName}
             </h2>
             <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-md mx-auto">

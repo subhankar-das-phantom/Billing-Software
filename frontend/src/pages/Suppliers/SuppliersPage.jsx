@@ -65,14 +65,14 @@ const SupplierCard = memo(function SupplierCard({
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 via-indigo-600 to-teal-500 flex items-center justify-center relative overflow-hidden shadow-lg shadow-blue-500/20 flex-shrink-0 group-hover:scale-105 group-hover:rotate-3 transition-transform">
-            <span className="text-white font-bold text-lg">
+            <span className="text-slate-100 font-bold text-lg">
               {supplier.name?.charAt(0)?.toUpperCase()}
             </span>
           </div>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-0.5">
-              <h3 className="font-semibold text-white truncate text-base group-hover:text-blue-400 transition-colors">
+              <h3 className="font-semibold text-slate-100 truncate text-base group-hover:text-blue-400 transition-colors">
                 {supplier.name}
               </h3>
               {supplier.isActive === false && (
@@ -346,7 +346,7 @@ export default function SuppliersPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-400 mb-1">{stat.label}</p>
-                <p className="text-2xl font-bold text-white">
+                <p className="text-2xl font-bold text-slate-100">
                   {stat.value}
                 </p>
               </div>
@@ -367,7 +367,7 @@ export default function SuppliersPage() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-semibold text-white">All Suppliers</h2>
+                <h2 className="text-xl font-semibold text-slate-100">All Suppliers</h2>
                 <RefreshIndicator isRefreshing={isValidating} size="sm" />
               </div>
               <p className="text-sm text-slate-400 mt-1">
@@ -406,7 +406,7 @@ export default function SuppliersPage() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0 }}
                   onClick={() => setSearchInput('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-100"
                   whileHover={{ rotate: 90 }}
                 >
                   <XCircle className="w-4 h-4" />
@@ -423,7 +423,7 @@ export default function SuppliersPage() {
                 className={`flex-1 py-1.5 text-xs font-semibold rounded-lg capitalize transition-all ${
                   statusFilter === st
                     ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-                    : 'text-slate-400 hover:text-white'
+                    : 'text-slate-400 hover:text-slate-100'
                 }`}
               >
                 {st}

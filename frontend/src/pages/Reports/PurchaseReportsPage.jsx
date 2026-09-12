@@ -86,7 +86,7 @@ export default function PurchaseReportsPage() {
               <FileBarChart className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">Purchase Analytics & Reports</h2>
+              <h2 className="text-xl font-bold text-slate-100">Purchase Analytics & Reports</h2>
               <p className="text-xs text-slate-400 mt-0.5">Comprehensive vendor and item purchase breakdown</p>
             </div>
           </div>
@@ -181,7 +181,7 @@ export default function PurchaseReportsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Total Purchases</p>
-                  <h3 className="text-2xl font-bold text-white">
+                  <h3 className="text-2xl font-bold text-slate-100">
                     {typeof summary?.totalPurchases === 'object' ? summary.totalPurchases.count : (summary?.totalPurchases || 0)}
                   </h3>
                   <p className="text-xs text-blue-400 font-medium mt-1">
@@ -239,7 +239,7 @@ export default function PurchaseReportsPage() {
             {/* Supplier Wise Analysis */}
             <div className="glass-card overflow-hidden">
               <div className="p-4 border-b border-slate-700/50 bg-slate-800/40 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-white font-semibold">
+                <div className="flex items-center gap-2 text-slate-100 font-semibold">
                   <Users size={18} className="text-blue-400" />
                   Supplier Wise Analysis
                 </div>
@@ -259,7 +259,7 @@ export default function PurchaseReportsPage() {
                     {supplierData.map((row, i) => (
                       <tr key={i} className="hover:bg-slate-800/30 transition-colors">
                         <td className="p-3">
-                          <div className="font-medium text-white">{row.supplierName || 'Unknown'}</div>
+                          <div className="font-medium text-slate-100">{row.supplierName || 'Unknown'}</div>
                           {row.lastPurchaseDate && (
                             <div className="text-xs text-slate-500">
                               Last: {new Date(row.lastPurchaseDate).toLocaleDateString()}
@@ -290,7 +290,7 @@ export default function PurchaseReportsPage() {
             {/* Product Wise Analysis */}
             <div className="glass-card overflow-hidden">
               <div className="p-4 border-b border-slate-700/50 bg-slate-800/40 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-white font-semibold">
+                <div className="flex items-center gap-2 text-slate-100 font-semibold">
                   <Package size={18} className="text-teal-400" />
                   Product Wise Analysis
                 </div>
@@ -312,7 +312,7 @@ export default function PurchaseReportsPage() {
                     {productData.map((row, i) => (
                       <tr key={i} className="hover:bg-slate-800/30 transition-colors">
                         <td className="p-3">
-                          <div className="font-medium text-white">{row.productName || 'Unknown'}</div>
+                          <div className="font-medium text-slate-100">{row.productName || 'Unknown'}</div>
                           {row.sku && <div className="text-xs text-slate-500">{row.sku}</div>}
                         </td>
                         <td className="p-3">

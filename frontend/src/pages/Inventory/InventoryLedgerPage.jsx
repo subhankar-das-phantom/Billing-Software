@@ -363,7 +363,7 @@ export default function InventoryLedgerPage() {
               <History className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Inventory Ledger</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-slate-100 tracking-tight">Inventory Ledger</h1>
               <p className="text-sm text-slate-400 mt-0.5">Comprehensive audit trail of stock inward, outward & adjustments</p>
             </div>
           </div>
@@ -400,7 +400,7 @@ export default function InventoryLedgerPage() {
               <Layers className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-white tracking-tight">{total}</div>
+          <div className="text-2xl font-bold text-slate-100 tracking-tight">{total}</div>
           <div className="text-xs text-slate-400 mt-1 flex items-center gap-1">
             <span className="text-blue-400 font-medium">{movements.length}</span> on this page
           </div>
@@ -435,7 +435,7 @@ export default function InventoryLedgerPage() {
               <History className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-white tracking-tight">{formatCurrency(metrics.totalVal)}</div>
+          <div className="text-2xl font-bold text-slate-100 tracking-tight">{formatCurrency(metrics.totalVal)}</div>
           <div className="text-xs text-slate-400 mt-1">Gross transactional valuation</div>
         </div>
       </div>
@@ -445,7 +445,7 @@ export default function InventoryLedgerPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700/50 pb-3.5">
           <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-accent-400" />
-            <span className="text-sm font-semibold text-white">Filter Stock Audit Log</span>
+            <span className="text-sm font-semibold text-slate-100">Filter Stock Audit Log</span>
             {activeFiltersCount > 0 && (
               <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-accent-500/20 text-accent-300 border border-accent-500/30">
                 {activeFiltersCount} active
@@ -486,7 +486,7 @@ export default function InventoryLedgerPage() {
               {productSearchText && (
                 <button
                   type="button"
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-white rounded"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-100 rounded"
                   onClick={() => {
                     setProductSearchText('');
                     setSearchProductId('');
@@ -535,7 +535,7 @@ export default function InventoryLedgerPage() {
                             <Package className="w-3.5 h-3.5" />
                           </div>
                           <div className="truncate">
-                            <p className="text-xs font-semibold text-white truncate">{product.productName}</p>
+                            <p className="text-xs font-semibold text-slate-100 truncate">{product.productName}</p>
                             <p className="text-[10px] text-slate-400 truncate">{product.manufacturer || 'General'}</p>
                           </div>
                         </div>
@@ -564,7 +564,7 @@ export default function InventoryLedgerPage() {
               {searchBatchId && (
                 <button
                   type="button"
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-white"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-100"
                   onClick={() => { setSearchBatchId(''); setPage(1); }}
                 >
                   <X className="w-3.5 h-3.5" />
@@ -651,7 +651,7 @@ export default function InventoryLedgerPage() {
               <History className="w-8 h-8" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">No Inventory Movements Found</h3>
+              <h3 className="text-lg font-bold text-slate-100">No Inventory Movements Found</h3>
               <p className="text-sm text-slate-400 max-w-md mx-auto mt-1">
                 No stock transactions match your active filters. Try adjusting your search query, type, or date range.
               </p>
@@ -702,7 +702,7 @@ export default function InventoryLedgerPage() {
                       {/* Date & Time */}
                       <td className="py-3 px-4">
                         <div className="flex flex-col">
-                          <span className="font-medium text-white text-xs">
+                          <span className="font-medium text-slate-100 text-xs">
                             {formatDate(mov.createdAt)}
                           </span>
                           <span className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">

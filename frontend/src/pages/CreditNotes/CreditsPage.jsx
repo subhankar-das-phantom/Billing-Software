@@ -272,7 +272,7 @@ export default function CreditsPage() {
             <Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400" />
           </div>
           <div>
-            <h1 className="text-lg sm:text-2xl font-bold text-white">Credit Management</h1>
+            <h1 className="text-lg sm:text-2xl font-bold text-slate-100">Credit Management</h1>
             <p className="text-slate-400 text-xs sm:text-sm">Track receivables and payments</p>
           </div>
         </div>
@@ -319,8 +319,8 @@ export default function CreditsPage() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex-1 px-2 sm:px-4 py-2.5 sm:py-3 flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm transition-all ${activeTab === tab.id
-                  ? 'bg-slate-700/50 text-white border-b-2 border-amber-500'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-700/30'
+                  ? 'bg-slate-700/50 text-slate-100 border-b-2 border-amber-500'
+                  : 'text-slate-400 hover:text-slate-100 hover:bg-slate-700/30'
                   }`}
               >
                 <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -363,7 +363,7 @@ export default function CreditsPage() {
                                 {customer.customerName?.charAt(0)}
                               </div>
                               <div>
-                                <h3 className="text-sm sm:text-base font-medium text-white group-hover:text-amber-400 transition-colors">
+                                <h3 className="text-sm sm:text-base font-medium text-slate-100 group-hover:text-amber-400 transition-colors">
                                   {customer.customerName}
                                 </h3>
                                 {customer.phone && (
@@ -465,7 +465,7 @@ export default function CreditsPage() {
                               <div className="flex items-center gap-3">
                                 <FileText className="w-4 h-4 text-slate-500" />
                                 <div>
-                                  <span className="text-white font-medium">{inv.invoiceNumber}</span>
+                                  <span className="text-slate-100 font-medium">{inv.invoiceNumber}</span>
                                   <span className="text-slate-400 ml-2">{inv.customerName}</span>
                                 </div>
                               </div>
@@ -521,7 +521,7 @@ export default function CreditsPage() {
                               <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
                             </div>
                             <div className="min-w-0">
-                              <p className="text-sm sm:text-base font-medium text-white truncate">
+                              <p className="text-sm sm:text-base font-medium text-slate-100 truncate">
                                 {payment.customer?.customerName || 'Unknown Customer'}
                               </p>
                               <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs sm:text-sm text-slate-400">

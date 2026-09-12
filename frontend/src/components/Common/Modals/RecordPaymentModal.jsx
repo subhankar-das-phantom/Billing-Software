@@ -702,7 +702,7 @@ export default function RecordPaymentModal({
                   <CreditCard className="w-5 h-5 text-emerald-400" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-white">Record Payment</h2>
+                  <h2 className="text-lg font-semibold text-slate-100">Record Payment</h2>
                   {activeCustomer && (
                     <p className="text-sm text-slate-400">
                       {activeCustomer.customerName || activeCustomer.name}
@@ -712,7 +712,7 @@ export default function RecordPaymentModal({
               </div>
               <motion.button
                 onClick={handleModalClose}
-                className={`p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-colors ${isProcessing ? 'opacity-30 cursor-not-allowed' : ''}`}
+                className={`p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-slate-100 transition-colors ${isProcessing ? 'opacity-30 cursor-not-allowed' : ''}`}
                 whileHover={isProcessing ? {} : { scale: 1.1 }}
                 whileTap={isProcessing ? {} : { scale: 0.95 }}
                 disabled={isProcessing}
@@ -735,7 +735,7 @@ export default function RecordPaymentModal({
                   </div>
                   {fifoResult && !fifoResult.failedLabel ? (
                     <>
-                      <h3 className="text-xl font-semibold text-white mb-2">FIFO Payment Recorded</h3>
+                      <h3 className="text-xl font-semibold text-slate-100 mb-2">FIFO Payment Recorded</h3>
                       <p className="text-slate-400">
                         {formatCurrency(fifoResult.totalAmount)} allocated successfully.
                       </p>
@@ -746,7 +746,7 @@ export default function RecordPaymentModal({
                     </>
                   ) : (
                     <>
-                      <h3 className="text-xl font-semibold text-white mb-2">Payment Recorded!</h3>
+                      <h3 className="text-xl font-semibold text-slate-100 mb-2">Payment Recorded!</h3>
                       <p className="text-slate-400">
                         {formatCurrency(parseFloat(formData.amount))} received successfully
                       </p>
@@ -764,7 +764,7 @@ export default function RecordPaymentModal({
                   <div className="inline-flex p-3 bg-blue-500/20 rounded-full mb-4">
                     <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
                   </div>
-                  <h3 className="text-lg font-semibold text-white mb-3">Processing FIFO Allocation...</h3>
+                  <h3 className="text-lg font-semibold text-slate-100 mb-3">Processing FIFO Allocation...</h3>
                   
                   {/* Progress bar */}
                   <div className="w-full bg-slate-700 rounded-full h-2.5 mb-3">
@@ -798,7 +798,7 @@ export default function RecordPaymentModal({
                     <div className="inline-flex p-3 bg-amber-500/20 rounded-full mb-3">
                       <AlertTriangle className="w-8 h-8 text-amber-400" />
                     </div>
-                    <h3 className="text-lg font-semibold text-white">FIFO Allocation Stopped</h3>
+                    <h3 className="text-lg font-semibold text-slate-100">FIFO Allocation Stopped</h3>
                   </div>
 
                   <div className="space-y-3">
@@ -831,7 +831,7 @@ export default function RecordPaymentModal({
                   <div className="mt-6">
                     <motion.button
                       onClick={handleFifoResultClose}
-                      className="w-full py-3 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-lg transition-colors"
+                      className="w-full py-3 bg-slate-700 hover:bg-slate-600 text-slate-100 font-medium rounded-lg transition-colors"
                       whileHover={{ scale: 1.01 }}
                       whileTap={{ scale: 0.99 }}
                     >
@@ -858,14 +858,14 @@ export default function RecordPaymentModal({
                         value={customerSearch}
                         onChange={(e) => setCustomerSearch(e.target.value)}
                         placeholder="Type customer name or phone..."
-                        className="w-full bg-slate-700/50 border border-slate-600 rounded-lg pl-9 pr-8 py-2.5 text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500 text-sm transition-colors"
+                        className="w-full bg-slate-700/50 border border-slate-600 rounded-lg pl-9 pr-8 py-2.5 text-slate-100 placeholder-slate-400 focus:outline-none focus:border-emerald-500 text-sm transition-colors"
                         autoFocus
                       />
                       {customerSearch && (
                         <button
                           type="button"
                           onClick={() => setCustomerSearch('')}
-                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-0.5"
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-100 p-0.5"
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -900,7 +900,7 @@ export default function RecordPaymentModal({
                                   {cust.customerName?.charAt(0)?.toUpperCase() || 'C'}
                                 </div>
                                 <div>
-                                  <p className="text-sm font-medium text-white group-hover:text-emerald-300 transition-colors">
+                                  <p className="text-sm font-medium text-slate-100 group-hover:text-emerald-300 transition-colors">
                                     {cust.customerName}
                                   </p>
                                   <p className="text-xs text-slate-400">
@@ -934,7 +934,7 @@ export default function RecordPaymentModal({
               ) : loadingCustomerData ? (
                 <div className="p-12 text-center text-slate-400 space-y-3">
                   <Loader2 className="w-8 h-8 animate-spin mx-auto text-emerald-400" />
-                  <p className="text-sm font-medium text-white">Loading customer dues & invoices...</p>
+                  <p className="text-sm font-medium text-slate-100">Loading customer dues & invoices...</p>
                   <p className="text-xs text-slate-500">Preparing payment allocations</p>
                 </div>
               ) : (
@@ -948,7 +948,7 @@ export default function RecordPaymentModal({
                           {activeCustomer.customerName?.charAt(0)?.toUpperCase() || 'C'}
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-white">{activeCustomer.customerName}</p>
+                          <p className="text-sm font-medium text-slate-100">{activeCustomer.customerName}</p>
                           <p className="text-xs text-slate-400">{activeCustomer.phone || 'No phone'}</p>
                         </div>
                       </div>
@@ -1070,7 +1070,7 @@ export default function RecordPaymentModal({
                                           }`}>
                                             {item.type === 'entry' ? 'OB' : 'INV'}
                                           </span>
-                                          <span className="text-white font-medium truncate">
+                                          <span className="text-slate-100 font-medium truncate">
                                             {item.label}
                                           </span>
                                         </div>
@@ -1110,7 +1110,7 @@ export default function RecordPaymentModal({
                             <div className="grid grid-cols-2 gap-3 text-sm">
                               <div>
                                 <span className="text-slate-400">Total Outstanding</span>
-                                <p className="text-white font-semibold mt-0.5">{formatCurrency(totalOutstanding)}</p>
+                                <p className="text-slate-100 font-semibold mt-0.5">{formatCurrency(totalOutstanding)}</p>
                               </div>
                               <div className="text-right">
                                 <span className="text-slate-400">Payment Amount</span>
@@ -1175,7 +1175,7 @@ export default function RecordPaymentModal({
                           <select
                             value={formData.selectionType === 'entry' ? `entry_${formData.selectionId}` : formData.selectionId}
                             onChange={(e) => handleSelectionChange(e.target.value)}
-                            className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 appearance-none cursor-pointer hover:border-slate-500 transition-colors pr-10"
+                            className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 appearance-none cursor-pointer hover:border-slate-500 transition-colors pr-10"
                             style={{ backgroundImage: 'none' }}
                             disabled
                           >
@@ -1190,7 +1190,7 @@ export default function RecordPaymentModal({
                                   const cnDed = inv.creditNoteTotal ?? cnByInvoiceMap.get(invoiceId) ?? 0;
                                   const effectiveDue = Math.max(0, roundCurrency(remaining - cnDed));
                                   return (
-                                    <option key={invoiceId} value={invoiceId} className="bg-slate-800 text-white py-2">
+                                    <option key={invoiceId} value={invoiceId} className="bg-slate-800 text-slate-100 py-2">
                                       {inv.invoiceNumber} - {formatDate(inv.invoiceDate)} - Due: {formatCurrency(effectiveDue)}
                                     </option>
                                   );
@@ -1204,7 +1204,7 @@ export default function RecordPaymentModal({
                                 {unpaidEntries.map((entry) => {
                                   const remaining = entry.amount - (entry.paidAmount || 0);
                                   return (
-                                    <option key={entry._id} value={`entry_${entry._id}`} className="bg-slate-800 text-white py-2">
+                                    <option key={entry._id} value={`entry_${entry._id}`} className="bg-slate-800 text-slate-100 py-2">
                                       Opening Balance - {formatDate(entry.entryDate)} - Due: {formatCurrency(remaining)}
                                     </option>
                                   );
@@ -1232,7 +1232,7 @@ export default function RecordPaymentModal({
                               <span className="text-slate-400">
                                 {formData.selectionType === 'invoice' ? 'Invoice Total:' : 'Opening Balance:'}
                               </span>
-                              <span className="ml-2 text-white font-medium">
+                              <span className="ml-2 text-slate-100 font-medium">
                                 {formatCurrency(formData.selectionType === 'invoice' 
                                   ? selectedItem.totals.netTotal 
                                   : selectedItem.amount)}
@@ -1297,7 +1297,7 @@ export default function RecordPaymentModal({
                             if (fifoConfirm) setFifoConfirm(false);
                           }}
                           placeholder="0.00"
-                          className="w-full pl-8 pr-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                          className="w-full pl-8 pr-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                           required
                         />
                       </div>
@@ -1333,12 +1333,12 @@ export default function RecordPaymentModal({
                         <select
                           value={formData.paymentMethod}
                           onChange={(e) => setFormData(prev => ({ ...prev, paymentMethod: e.target.value }))}
-                          className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 appearance-none cursor-pointer hover:border-slate-500 transition-colors"
+                          className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 appearance-none cursor-pointer hover:border-slate-500 transition-colors"
                           style={{ backgroundImage: 'none' }}
                           disabled
                         >
                           {PAYMENT_METHODS.map((method) => (
-                            <option key={method.value} value={method.value} className="bg-slate-800 text-white py-2">
+                            <option key={method.value} value={method.value} className="bg-slate-800 text-slate-100 py-2">
                               {method.label}
                             </option>
                           ))}
@@ -1361,7 +1361,7 @@ export default function RecordPaymentModal({
                         type="date"
                         value={formData.paymentDate}
                         onChange={(e) => setFormData(prev => ({ ...prev, paymentDate: e.target.value }))}
-                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                       />
                     </div>
                   </div>
@@ -1376,7 +1376,7 @@ export default function RecordPaymentModal({
                       value={formData.referenceNumber}
                       onChange={(e) => setFormData(prev => ({ ...prev, referenceNumber: e.target.value }))}
                       placeholder="Transaction ID, Cheque No., etc."
-                      className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                     />
                   </div>
 
@@ -1390,7 +1390,7 @@ export default function RecordPaymentModal({
                       onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                       placeholder="Any additional notes..."
                       rows={2}
-                      className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none"
+                      className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none"
                     />
                   </div>
 
@@ -1412,7 +1412,7 @@ export default function RecordPaymentModal({
                           <button
                             type="button"
                             onClick={() => setFifoConfirm(false)}
-                            className="text-xs text-slate-400 hover:text-white mt-2 underline"
+                            className="text-xs text-slate-400 hover:text-slate-100 mt-2 underline"
                           >
                             Cancel
                           </button>

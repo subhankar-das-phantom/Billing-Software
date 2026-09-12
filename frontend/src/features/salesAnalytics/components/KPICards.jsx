@@ -46,13 +46,13 @@ const KPICard = ({ title, value, prefix = '', suffix = '', icon: Icon, color, gr
         <div className="flex justify-between items-start mb-4">
           <p className="text-sm text-slate-400 font-medium">{title}</p>
           <div className={`p-2 rounded-lg bg-gradient-to-br ${bgGradient} ${shadow} shadow-lg`}>
-            <Icon className="w-4 h-4 text-white" />
+            <Icon className="w-4 h-4 text-slate-100" />
           </div>
         </div>
 
         <div className="flex items-baseline gap-1">
           {prefix && <span className="text-lg font-medium text-slate-400">{prefix}</span>}
-          <div className="text-2xl font-bold text-white tracking-tight">
+          <div className="text-2xl font-bold text-slate-100 tracking-tight">
             <AnimatedCounter value={value} />
           </div>
           {suffix && <span className="text-sm font-medium text-slate-400">{suffix}</span>}

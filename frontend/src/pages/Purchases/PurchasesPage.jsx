@@ -335,7 +335,7 @@ export default function PurchasesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-400 mb-1">{stat.label}</p>
-                <p className="text-2xl font-bold text-white">
+                <p className="text-2xl font-bold text-slate-100">
                   {stat.value}
                 </p>
               </div>
@@ -356,7 +356,7 @@ export default function PurchasesPage() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-semibold text-white">All Purchases</h2>
+                <h2 className="text-xl font-semibold text-slate-100">All Purchases</h2>
                 <RefreshIndicator isRefreshing={isValidating} size="sm" />
               </div>
               <p className="text-sm text-slate-400 mt-1">
@@ -395,7 +395,7 @@ export default function PurchasesPage() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0 }}
                   onClick={() => setSearchInput('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-100"
                   whileHover={{ rotate: 90 }}
                 >
                   <XCircle className="w-4 h-4" />
@@ -536,13 +536,13 @@ export default function PurchasesPage() {
 
                           <div>
                             <div className="flex items-center gap-2">
-                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-lg ${
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-slate-100 text-xs font-bold shadow-lg ${
                                 isCancelled ? 'bg-rose-500/20 text-rose-400 shadow-rose-500/20' : 'bg-gradient-to-br from-blue-500 to-teal-600 shadow-blue-500/30'
                               }`}>
                                 {purchase.supplierId?.name ? purchase.supplierId.name.charAt(0).toUpperCase() : 'S'}
                               </div>
                               <div className="min-w-0">
-                                <p className={`font-medium truncate ${isCancelled ? 'text-rose-400' : 'text-white'}`}>
+                                <p className={`font-medium truncate ${isCancelled ? 'text-rose-400' : 'text-slate-100'}`}>
                                   {purchase.supplierId?.name || 'Unknown Supplier'}
                                 </p>
                                 <p className={`text-xs flex items-center gap-1 ${isCancelled ? 'text-rose-400 opacity-80' : 'text-slate-400'}`}>
@@ -660,7 +660,7 @@ export default function PurchasesPage() {
                             <ShoppingBag className={`w-5 h-5 ${isCancelled ? 'text-rose-400' : 'text-blue-400'}`} />
                           </div>
                           <div className="min-w-0">
-                            <h3 className={`font-semibold text-base mb-1 ${isCancelled ? 'text-rose-400' : 'text-white'}`}>
+                            <h3 className={`font-semibold text-base mb-1 ${isCancelled ? 'text-rose-400' : 'text-slate-100'}`}>
                               {purchase.purchaseNumber}
                             </h3>
                             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">

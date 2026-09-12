@@ -31,10 +31,10 @@ export const DateFilter = ({ filterParams, onFilterChange }) => {
         <select
           value={filterParams.period}
           onChange={handlePeriodChange}
-          className="bg-transparent text-sm text-white font-medium focus:outline-none cursor-pointer"
+          className="bg-transparent text-sm text-slate-100 font-medium focus:outline-none cursor-pointer"
         >
           {PERIODS.map(p => (
-            <option key={p.value} value={p.value} className="bg-slate-800 text-white">
+            <option key={p.value} value={p.value} className="bg-slate-800 text-slate-100">
               {p.label}
             </option>
           ))}

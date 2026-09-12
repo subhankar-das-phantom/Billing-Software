@@ -238,7 +238,7 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatCurrency, obs
                               <Package className="w-4 h-4 text-blue-400" />
                             </div>
                             <div>
-                              <p className="font-medium text-white group-hover:text-blue-400 transition-colors">{product.productName}</p>
+                              <p className="font-medium text-slate-100 group-hover:text-blue-400 transition-colors">{product.productName}</p>
                               <p className="text-xs text-slate-400 flex items-center gap-1.5">
                                 <Building2 className="w-3 h-3" />
                                 {product.manufacturer}
@@ -334,7 +334,7 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatCurrency, obs
                   <Package className="w-5 h-5 text-blue-400" />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="font-semibold text-white group-hover:text-blue-400 transition-colors text-base truncate mb-1">
+                  <h3 className="font-semibold text-slate-100 group-hover:text-blue-400 transition-colors text-base truncate mb-1">
                     {product.productName}
                   </h3>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
@@ -748,7 +748,7 @@ export default function ProductsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-400 mb-1">{stat.label}</p>
-                <p className="text-3xl font-bold text-white">{stat.value}</p>
+                <p className="text-3xl font-bold text-slate-100">{stat.value}</p>
               </div>
               <div className={`p-3 rounded-xl ${stat.bg}`}>
                 <stat.icon className={`w-6 h-6 ${stat.color}`} />
@@ -770,7 +770,7 @@ export default function ProductsPage() {
               <Package className="w-5 h-5 text-blue-400" />
             </motion.div>
             <div>
-              <h2 className="text-xl font-semibold text-white">All Products</h2>
+              <h2 className="text-xl font-semibold text-slate-100">All Products</h2>
               <p className="text-sm text-slate-400">
                 Showing {filteredProducts.length} of {data?.total || 0} products
               </p>
@@ -818,7 +818,7 @@ export default function ProductsPage() {
                   <motion.button
                     type="button"
                     onClick={handleClearSearch}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-100"
                     initial={{ opacity: 0, scale: 0 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0 }}
@@ -851,7 +851,7 @@ export default function ProductsPage() {
                 onClick={() => setFilterStock(value)}
                 className={`flex-1 px-3 py-2 rounded-lg font-medium text-sm transition-all ${filterStock === value
                   ? 'bg-blue-500 text-white'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
+                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-100'
                   }`}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -1028,7 +1028,7 @@ export default function ProductsPage() {
               <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-white font-medium flex items-center gap-2">
+                    <p className="text-slate-100 font-medium flex items-center gap-2">
                       <Layers className="w-4 h-4 text-emerald-400" />
                       Stock Management
                     </p>

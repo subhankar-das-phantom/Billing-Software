@@ -561,7 +561,7 @@ export default function CustomerDetailsPage() {
       <motion.div variants={itemVariants}>
         <Link
           to="/customers"
-          className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors group"
+          className="inline-flex items-center gap-2 text-slate-400 hover:text-slate-100 transition-colors group"
         >
           <motion.div
             whileHover={{ x: -4 }}
@@ -582,7 +582,7 @@ export default function CustomerDetailsPage() {
             whileHover={{ scale: 1.05, rotate: 5 }}
             transition={{ type: 'spring', stiffness: 400 }}
           >
-            <span className="text-white font-bold text-3xl relative z-10">
+            <span className="text-slate-100 font-bold text-3xl relative z-10">
               {customer.customerName?.charAt(0)}
             </span>
             <motion.div
@@ -601,7 +601,7 @@ export default function CustomerDetailsPage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <h1 className="text-2xl font-bold text-white">
+              <h1 className="text-2xl font-bold text-slate-100">
                 {customer.customerName}
               </h1>
               {customer.isActive === false && (
@@ -849,7 +849,7 @@ export default function CustomerDetailsPage() {
                     className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all text-sm ${
                       activeTab === tab.id
                         ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                        : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/50'
                     }`}
                   >
                     <Icon className="w-4 h-4 flex-shrink-0" />
@@ -1028,7 +1028,7 @@ export default function CustomerDetailsPage() {
                           if (isDesktop) {
                             return (
                               <div className={`grid grid-cols-[130px_130px_100px_minmax(120px,1.5fr)_130px_130px_140px] min-w-[880px] items-center px-4 py-3 border-b border-slate-700/50 hover:bg-slate-700/50 transition-colors ${isCancelled ? 'bg-red-500/5' : ''}`}>
-                                <div className={`font-medium flex items-center gap-2 ${isCancelled ? 'text-red-400' : 'text-white'}`}>
+                                <div className={`font-medium flex items-center gap-2 ${isCancelled ? 'text-red-400' : 'text-slate-100'}`}>
                                   <FileText className={`w-4 h-4 ${isCancelled ? 'text-red-400' : 'text-blue-400'}`} />
                                   {invoice.invoiceNumber}
                                 </div>
@@ -1097,7 +1097,7 @@ export default function CustomerDetailsPage() {
                               <div className="flex items-center justify-between">
                                 <Link 
                                   to={`/invoices/${invoice._id}`}
-                                  className={`font-medium flex items-center gap-2 ${isCancelled ? 'text-red-400' : 'text-white hover:text-blue-400'}`}
+                                  className={`font-medium flex items-center gap-2 ${isCancelled ? 'text-red-400' : 'text-slate-100 hover:text-blue-400'}`}
                                 >
                                   <FileText className={`w-4 h-4 ${isCancelled ? 'text-red-400' : 'text-blue-400'}`} />
                                   {invoice.invoiceNumber}
@@ -1229,11 +1229,11 @@ export default function CustomerDetailsPage() {
                                 <div className="flex items-center gap-2 min-w-0">
                                   <FileText className={`w-4 h-4 ${payment.isManualEntry ? 'text-amber-400' : 'text-blue-400'} shrink-0`} />
                                   {payment.isManualEntry ? (
-                                    <span className="text-white font-medium truncate">
+                                    <span className="text-slate-100 font-medium truncate">
                                       {payment.description || (payment.entryType === 'payment_adjustment' ? 'Payment Adj.' : 'Credit Adj.')}
                                     </span>
                                   ) : (
-                                    <Link to={`/invoices/${payment.invoice?._id || payment.invoiceId}`} className="text-white font-medium hover:underline hover:text-blue-400 transition-colors truncate">
+                                    <Link to={`/invoices/${payment.invoice?._id || payment.invoiceId}`} className="text-slate-100 font-medium hover:underline hover:text-blue-400 transition-colors truncate">
                                       {payment.invoice?.invoiceNumber || payment.invoiceNumber || 'Unknown'}
                                     </Link>
                                   )}
@@ -1319,14 +1319,14 @@ export default function CustomerDetailsPage() {
                             <div className="p-4 rounded-xl border bg-slate-800/50 border-slate-700/50 flex flex-col gap-3 relative overflow-hidden transition-colors">
                               <div className="flex items-center justify-between">
                                 {payment.isManualEntry ? (
-                                  <span className="font-medium flex items-center gap-2 text-white">
+                                  <span className="font-medium flex items-center gap-2 text-slate-100">
                                     <FileText className="w-4 h-4 text-amber-400" />
                                     {payment.description || 'Manual Entry'}
                                   </span>
                                 ) : (
                                   <Link 
                                     to={`/invoices/${payment.invoice?._id || payment.invoiceId}`}
-                                    className="font-medium flex items-center gap-2 text-white hover:text-blue-400"
+                                    className="font-medium flex items-center gap-2 text-slate-100 hover:text-blue-400"
                                   >
                                     <FileText className="w-4 h-4 text-blue-400" />
                                     {payment.invoice?.invoiceNumber || payment.invoiceNumber}
@@ -1517,7 +1517,7 @@ export default function CustomerDetailsPage() {
                                     {entry.type}
                                   </span>
                                 </td>
-                                <td className="font-medium text-white">
+                                <td className="font-medium text-slate-100">
                                   {refLink ? (
                                     <Link to={refLink} className="hover:text-blue-400 hover:underline transition-colors">{entry.ref}</Link>
                                   ) : (
@@ -1549,10 +1549,10 @@ export default function CustomerDetailsPage() {
                           {/* Closing Balance row – desktop */}
                           {ledgerData.summary && (
                             <tr className="bg-slate-800/80 border-t border-slate-600">
-                              <td colSpan={5} className="text-right font-bold text-white uppercase text-sm py-4">Closing Balance:</td>
+                              <td colSpan={5} className="text-right font-bold text-slate-100 uppercase text-sm py-4">Closing Balance:</td>
                               <td className="text-right font-bold text-amber-400 py-4 opacity-50">{formatCurrency(ledgerData.summary.totalDebit)}</td>
                               <td className="text-right font-bold text-emerald-400 py-4 opacity-50">{formatCurrency(ledgerData.summary.totalCredit)}</td>
-                              <td className={`text-right font-bold py-4 text-base ${ledgerData.summary.closingBalance > 0 ? 'text-white' : ledgerData.summary.closingBalance < 0 ? 'text-white' : 'text-slate-300'}`}>
+                              <td className={`text-right font-bold py-4 text-base ${ledgerData.summary.closingBalance > 0 ? 'text-slate-100' : ledgerData.summary.closingBalance < 0 ? 'text-slate-100' : 'text-slate-300'}`}>
                                 {formatCurrency(Math.abs(ledgerData.summary.closingBalance))}
                                 {ledgerData.summary.closingBalance > 0 && <span className="text-xs ml-1.5 text-red-400">(Dr)</span>}
                                 {ledgerData.summary.closingBalance < 0 && <span className="text-xs ml-1.5 text-emerald-400">(Cr)</span>}

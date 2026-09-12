@@ -75,7 +75,7 @@ export const DashboardActivityHub = ({
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                   isActive 
-                    ? 'bg-slate-800 text-white font-semibold shadow-xs' 
+                    ? 'bg-slate-800 text-slate-100 font-semibold shadow-xs' 
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
@@ -83,7 +83,7 @@ export const DashboardActivityHub = ({
                 <span>{tab.label}</span>
                 {tab.count > 0 && (
                   <span className={`text-[10px] px-1.5 py-0.2 rounded font-mono ${
-                    isActive ? 'bg-slate-700 text-white' : 'text-slate-500'
+                    isActive ? 'bg-slate-700 text-slate-100' : 'text-slate-500'
                   }`}>
                     {tab.count}
                   </span>
@@ -125,7 +125,7 @@ export const DashboardActivityHub = ({
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-xs sm:text-sm text-white truncate">
+                        <span className="font-semibold text-xs sm:text-sm text-slate-100 truncate">
                           {inv.invoiceNumber}
                         </span>
                         {getStatusBadge(inv.status, getDerivedPaymentStatus(inv))}
@@ -137,7 +137,7 @@ export const DashboardActivityHub = ({
                   </div>
 
                   <div className="text-right shrink-0">
-                    <p className="font-semibold text-xs sm:text-sm text-white font-mono">
+                    <p className="font-semibold text-xs sm:text-sm text-slate-100 font-mono">
                       {formatCurrency(inv.totals?.netTotal || 0)}
                     </p>
                     <p className="text-[11px] text-slate-500 mt-0.5">
@@ -169,7 +169,7 @@ export const DashboardActivityHub = ({
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-xs sm:text-sm text-white truncate">
+                        <span className="font-semibold text-xs sm:text-sm text-slate-100 truncate">
                           {pmt.customer?.customerName || 'Customer Payment'}
                         </span>
                         {getPaymentModeBadge(pmt.paymentMode)}
@@ -213,7 +213,7 @@ export const DashboardActivityHub = ({
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <Link to={`/invoices/${inv._id}`} className="font-semibold text-xs sm:text-sm text-white hover:text-amber-300 truncate">
+                        <Link to={`/invoices/${inv._id}`} className="font-semibold text-xs sm:text-sm text-slate-100 hover:text-amber-300 truncate">
                           {inv.invoiceNumber}
                         </Link>
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/10 text-amber-300 border border-amber-500/20">Due</span>

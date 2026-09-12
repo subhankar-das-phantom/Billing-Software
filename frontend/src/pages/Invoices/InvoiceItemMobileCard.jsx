@@ -26,7 +26,7 @@ export default function InvoiceItemMobileCard({
       <div className="p-4 border-b border-slate-700 bg-slate-800/50">
         <div className="flex justify-between items-start gap-4">
           <div>
-            <h3 className="font-semibold text-white text-base leading-tight flex items-center gap-2 flex-wrap">
+            <h3 className="font-semibold text-slate-100 text-base leading-tight flex items-center gap-2 flex-wrap">
               {item.product.productName}
               {item._batchPreview && (
                 <span className="text-[10px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded border border-blue-500/20 font-normal">

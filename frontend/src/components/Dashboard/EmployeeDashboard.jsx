@@ -300,7 +300,7 @@ export const EmployeeDashboard = ({
             </div>
 
             <div className="flex items-center gap-3 pt-1">
-              <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-100 tracking-tight">
                 {user?.name || employeeStats.employeeName || 'Staff Workspace'}
               </h1>
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-medium bg-slate-800 border border-slate-700 text-slate-300">
@@ -362,7 +362,7 @@ export const EmployeeDashboard = ({
                 <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">
                   {kpi.label}
                 </p>
-                <p className="text-2xl font-bold text-white tracking-tight mt-1">
+                <p className="text-2xl font-bold text-slate-100 tracking-tight mt-1">
                   {kpi.value}
                 </p>
               </div>
@@ -385,7 +385,7 @@ export const EmployeeDashboard = ({
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
           <div className="flex items-center justify-between mb-3.5">
             <div>
-              <h2 className="text-sm font-semibold text-white">Quick Actions</h2>
+              <h2 className="text-sm font-semibold text-slate-100">Quick Actions</h2>
               <p className="text-xs text-slate-400">Operational shortcuts for assigned workflows</p>
             </div>
           </div>
@@ -401,7 +401,7 @@ export const EmployeeDashboard = ({
                 >
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <div className="p-2 rounded-md bg-slate-800 text-slate-400 group-hover:text-white transition-colors">
+                      <div className="p-2 rounded-md bg-slate-800 text-slate-400 group-hover:text-slate-100 transition-colors">
                         <Icon className={`w-4 h-4 ${action.iconColor}`} />
                       </div>
                       {action.shortcut && (
@@ -411,7 +411,7 @@ export const EmployeeDashboard = ({
                       )}
                     </div>
 
-                    <h3 className="font-medium text-xs text-white group-hover:text-blue-300 transition-colors">
+                    <h3 className="font-medium text-xs text-slate-100 group-hover:text-blue-300 transition-colors">
                       {action.label}
                     </h3>
                     <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
@@ -438,7 +438,7 @@ export const EmployeeDashboard = ({
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-sm font-semibold text-white">My Recent Invoices</h2>
+                <h2 className="text-sm font-semibold text-slate-100">My Recent Invoices</h2>
                 <p className="text-xs text-slate-400">Invoices created during your shifts</p>
               </div>
               {canViewInvoices && (
@@ -482,14 +482,14 @@ export const EmployeeDashboard = ({
                           <td className="py-3">
                             {getStatusBadge(derivedStatus)}
                           </td>
-                          <td className="py-3 text-right font-semibold text-white">
+                          <td className="py-3 text-right font-semibold text-slate-100">
                             {formatCurrency(inv.totals?.netTotal ?? 0)}
                           </td>
                           <td className="py-3 text-right">
                             {canViewInvoices && (
                               <Link
                                 to={`/invoices/${inv._id}`}
-                                className="inline-flex p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+                                className="inline-flex p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-100 transition-colors"
                                 title="View Document"
                               >
                                 <ExternalLink className="w-3.5 h-3.5" />
@@ -531,7 +531,7 @@ export const EmployeeDashboard = ({
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm h-full flex flex-col">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h2 className="text-sm font-semibold text-white">Stock Warnings</h2>
+                  <h2 className="text-sm font-semibold text-slate-100">Stock Warnings</h2>
                   <p className="text-xs text-slate-400">Items below reorder point</p>
                 </div>
                 {canViewProducts && (
@@ -556,7 +556,7 @@ export const EmployeeDashboard = ({
                           className="p-2.5 rounded-lg bg-slate-950/40 border border-slate-800/80 flex items-center justify-between gap-3 text-xs"
                         >
                           <div className="min-w-0">
-                            <p className="font-medium text-white truncate">
+                            <p className="font-medium text-slate-100 truncate">
                               {product.productName}
                             </p>
                             <p className="text-[11px] text-slate-500 mt-0.5">

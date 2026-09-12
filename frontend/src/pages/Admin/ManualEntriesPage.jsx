@@ -142,7 +142,7 @@ export default function ManualEntriesPage() {
             <Shield className="w-6 h-6 text-accent-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">Manual Entries</h1>
+            <h1 className="text-2xl font-bold text-slate-100">Manual Entries</h1>
             <p className="text-slate-400 text-sm">{total} total entries</p>
           </div>
         </div>
@@ -180,7 +180,7 @@ export default function ManualEntriesPage() {
               placeholder="Search by customer name or phone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-800/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-accent-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-800/50 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-accent-500 focus:border-transparent"
             />
           </div>
 
@@ -211,7 +211,7 @@ export default function ManualEntriesPage() {
                     type="date"
                     value={filters.startDate}
                     onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white"
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-100"
                   />
                 </div>
 
@@ -221,7 +221,7 @@ export default function ManualEntriesPage() {
                     type="date"
                     value={filters.endDate}
                     onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white"
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-100"
                   />
                 </div>
               </div>
@@ -277,7 +277,7 @@ export default function ManualEntriesPage() {
                             {formatDate(entry.entryDate)}
                           </div>
                         </td>
-                        <td className="font-medium text-white">
+                        <td className="font-medium text-slate-100">
                           {entry.customerSnapshot?.customerName || entry.customer?.customerName || 'Unknown'}
                         </td>
                         <td>
@@ -384,7 +384,7 @@ export default function ManualEntriesPage() {
                 <div className="inline-flex p-4 bg-red-500/20 rounded-full mb-4">
                   <AlertCircle className="w-8 h-8 text-red-400" />
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-2">Delete Entry?</h3>
+                <h3 className="text-xl font-semibold text-slate-100 mb-2">Delete Entry?</h3>
                 <p className="text-slate-400 mb-6">
                   This will reverse any balance changes made by this entry. This action cannot be undone.
                 </p>

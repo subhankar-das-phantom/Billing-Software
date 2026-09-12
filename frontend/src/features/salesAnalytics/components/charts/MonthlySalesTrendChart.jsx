@@ -3,17 +3,18 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tool
 import { ChartWrapper } from './ChartWrapper';
 import { useDailySalesQuery } from '../../queries/useDailySalesQuery';
 import { formatCurrency } from '../../../../utils/formatters';
+import { useChartTheme } from '../../utils/chartTheme';
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
       <div className="glass-card p-3 border-accent2-500/30">
-        <p className="text-sm text-slate-300 mb-1">{label}</p>
-        <p className="text-emerald-400 font-bold text-base">
+        <p className="text-sm text-slate-400 mb-1">{label}</p>
+        <p className="text-emerald-500 font-bold text-base">
           Revenue: {formatCurrency(payload[0].value)}
         </p>
         {payload[1] && (
-          <p className="text-blue-400 font-medium text-sm mt-1">
+          <p className="text-blue-500 font-medium text-sm mt-1">
             Invoices: {payload[1].value}
           </p>
         )}
@@ -25,6 +26,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 export const MonthlySalesTrendChart = ({ filterParams }) => {
   const { data, isLoading, isError, refetch } = useDailySalesQuery(filterParams);
+  const { gridStroke, axisStroke } = useChartTheme();
   
   const chartData = data?.data || [];
   const isEmpty = chartData.length === 0;
@@ -46,10 +48,10 @@ export const MonthlySalesTrendChart = ({ filterParams }) => {
               <stop offset="95%" stopColor="#34d399" stopOpacity={0}/>
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} vertical={false} />
           <XAxis 
             dataKey="date" 
-            stroke="#94a3b8" 
+            stroke={axisStroke} 
             fontSize={12} 
             tickLine={false} 
             axisLine={false}
@@ -60,10 +62,10 @@ export const MonthlySalesTrendChart = ({ filterParams }) => {
           />
           <YAxis 
             yAxisId="left"
-            stroke="#94a3b8" 
+            stroke={axisStroke} 
             fontSize={12} 
             tickLine={false} 
-            axisLine={false} 
+            axisLine={false}
             tickFormatter={(value) => `₹${value > 1000 ? (value/1000).toFixed(0) + 'k' : value}`}
           />
           <YAxis 

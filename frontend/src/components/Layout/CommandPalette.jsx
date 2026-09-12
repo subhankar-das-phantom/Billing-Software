@@ -167,14 +167,14 @@ export default function CommandPalette({ isOpen, onClose }) {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Type a command, page, or search query... (e.g., Invoices, Products)"
-                className="w-full bg-transparent text-white placeholder-slate-400 text-base focus:outline-none"
+                className="w-full bg-transparent text-slate-100 placeholder-slate-400 text-base focus:outline-none"
                 aria-label="Search navigation and commands"
               />
               {query ? (
                 <button
                   type="button"
                   onClick={() => setQuery('')}
-                  className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
                   aria-label="Clear search"
                 >
                   <X size={16} />

@@ -71,7 +71,7 @@ export default function SubscriptionPage() {
     <div className="max-w-6xl mx-auto pb-12 space-y-8">
       {/* Header */}
       <div className="text-center space-y-2">
-        <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Subscription & Plans</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-100 tracking-tight">Subscription & Plans</h1>
         <p className="text-slate-400 text-xs sm:text-sm max-w-xl mx-auto">
           Explore plan tiers, operational capabilities, and custom enterprise licensing.
         </p>
@@ -85,7 +85,7 @@ export default function SubscriptionPage() {
               <Headphones className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-sm sm:text-base font-bold text-white">To Upgrade or Renew Your Plan:</h2>
+              <h2 className="text-sm sm:text-base font-bold text-slate-100">To Upgrade or Renew Your Plan:</h2>
               <p className="text-xs text-slate-300 mt-0.5">
                 Contact our support team directly at{' '}
                 <a 
@@ -213,13 +213,13 @@ export default function SubscriptionPage() {
               )}
 
               <div className="mb-4">
-                <h3 className="text-lg font-bold text-white mb-1">{plan.name}</h3>
+                <h3 className="text-lg font-bold text-slate-100 mb-1">{plan.name}</h3>
                 <p className="text-xs text-slate-400 min-h-[34px]">{plan.description}</p>
               </div>
 
               <div className="mb-5">
                 <div className="flex items-end gap-1">
-                  <span className="text-2xl sm:text-3xl font-bold text-white">₹{monthlyEquivalent}</span>
+                  <span className="text-2xl sm:text-3xl font-bold text-slate-100">₹{monthlyEquivalent}</span>
                   <span className="text-slate-400 text-xs mb-1">/mo</span>
                 </div>
                 <p className="text-[11px] text-slate-400 mt-1">

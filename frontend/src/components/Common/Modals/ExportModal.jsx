@@ -199,7 +199,7 @@ const ExportModal = ({
 
               {/* Format Selection */}
               <div>
-                <label className="block text-sm font-semibold text-white mb-3">Select Export Format</label>
+                <label className="block text-sm font-semibold text-slate-100 mb-3">Select Export Format</label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {formatTypes.map((format) => (
                     <motion.button
@@ -228,7 +228,7 @@ const ExportModal = ({
                         }`}
                       />
                       <div className="text-center">
-                        <p className="font-semibold text-white">{format.label}</p>
+                        <p className="font-semibold text-slate-100">{format.label}</p>
                         <p className="text-xs text-slate-400 mt-1">{format.desc}</p>
                       </div>
                     </motion.button>
@@ -240,7 +240,7 @@ const ExportModal = ({
               {showDateRange && (
                 <>
                   <div>
-                    <label className="block text-sm font-semibold text-white mb-3">Quick Select Period</label>
+                    <label className="block text-sm font-semibold text-slate-100 mb-3">Quick Select Period</label>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
                       {presets.map((preset) => (
                         <motion.button
@@ -264,7 +264,7 @@ const ExportModal = ({
 
                   {/* Custom Date Range */}
                   <div>
-                    <label className="block text-sm font-semibold text-white mb-3">Or Choose Custom Date Range</label>
+                    <label className="block text-sm font-semibold text-slate-100 mb-3">Or Choose Custom Date Range</label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-xs text-slate-400 mb-2 font-medium">Start Date</label>

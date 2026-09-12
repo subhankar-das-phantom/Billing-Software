@@ -76,7 +76,7 @@ export const DashboardHero = ({
             )}
           </div>
 
-          <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-100 tracking-tight">
             Dashboard
           </h1>
           <p className="text-xs sm:text-sm text-slate-400">
@@ -96,7 +96,7 @@ export const DashboardHero = ({
                   onClick={() => setTimeRange(range.id)}
                   className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
                     isActive 
-                      ? 'bg-slate-800 text-white font-semibold shadow-xs' 
+                      ? 'bg-slate-800 text-slate-100 font-semibold shadow-xs' 
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >

@@ -206,10 +206,10 @@ export default function GstReportPage() {
               className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-accent2-500 to-accent-600 shadow-lg shadow-accent2-500/20"
               whileHover={{ scale: 1.1, rotate: 5 }}
             >
-              <FileBarChart className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+              <FileBarChart className="w-5 h-5 sm:w-6 sm:h-6 text-slate-100" />
             </motion.div>
             <div>
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white">GST Report</h1>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-100">GST Report</h1>
               <p className="text-xs sm:text-sm text-slate-400 mt-0.5">Sales summary by GST slabs</p>
             </div>
           </div>
@@ -232,7 +232,7 @@ export default function GstReportPage() {
           <div className="p-2 bg-blue-500/20 rounded-lg">
             <Filter className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
           </div>
-          <h2 className="text-base sm:text-lg font-semibold text-white">Report Filters</h2>
+          <h2 className="text-base sm:text-lg font-semibold text-slate-100">Report Filters</h2>
         </div>
 
         {/* Date Range */}
@@ -481,10 +481,10 @@ export default function GstReportPage() {
                   <div className="flex items-center justify-between mb-2 sm:mb-3">
                     <p className="text-xs sm:text-sm text-slate-400 font-medium">Total Sales</p>
                     <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/20">
-                      <IndianRupee className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+                      <IndianRupee className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-100" />
                     </div>
                   </div>
-                  <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-white tracking-tight">
+                  <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-slate-100 tracking-tight">
                     {formatCurrency(reportData.totalSales)}
                   </p>
                   {reportData.excludedSales > 0 && (
@@ -502,10 +502,10 @@ export default function GstReportPage() {
                   <div className="flex items-center justify-between mb-2 sm:mb-3">
                     <p className="text-xs sm:text-sm text-slate-400 font-medium">Total Invoices</p>
                     <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-br from-blue-500 to-accent2-600 shadow-lg shadow-blue-500/20">
-                      <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+                      <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-100" />
                     </div>
                   </div>
-                  <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-white">{reportData.stats.totalInvoices}</p>
+                  <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-slate-100">{reportData.stats.totalInvoices}</p>
                   {reportData.range?.minInvoice && (
                     <p className="text-xs text-slate-500 mt-1.5 truncate" title={`${reportData.range.minInvoice} → ${reportData.range.maxInvoice}`}>
                       {reportData.range.minInvoice} <ArrowRight className="inline w-3 h-3" /> {reportData.range.maxInvoice}
@@ -521,10 +521,10 @@ export default function GstReportPage() {
                   <div className="flex items-center justify-between mb-2 sm:mb-3">
                     <p className="text-xs sm:text-sm text-slate-400 font-medium">Cancelled</p>
                     <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-br from-red-500 to-rose-600 shadow-lg shadow-red-500/20">
-                      <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+                      <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-100" />
                     </div>
                   </div>
-                  <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-white">{reportData.stats.cancelledInvoices}</p>
+                  <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-slate-100">{reportData.stats.cancelledInvoices}</p>
                 </div>
               </motion.div>
 
@@ -535,10 +535,10 @@ export default function GstReportPage() {
                   <div className="flex items-center justify-between mb-2 sm:mb-3">
                     <p className="text-xs sm:text-sm text-slate-400 font-medium">Active</p>
                     <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-br from-accent-500 to-accent-600 shadow-lg shadow-accent-500/20">
-                      <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+                      <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-100" />
                     </div>
                   </div>
-                  <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-white">{reportData.stats.activeInvoices}</p>
+                  <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-slate-100">{reportData.stats.activeInvoices}</p>
                 </div>
               </motion.div>
             </div>
@@ -550,7 +550,7 @@ export default function GstReportPage() {
                   <div className="p-2 bg-accent2-500/20 rounded-lg">
                     <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-accent2-400" />
                   </div>
-                  <h2 className="text-base sm:text-lg font-semibold text-white">GST Slab Breakdown</h2>
+                  <h2 className="text-base sm:text-lg font-semibold text-slate-100">GST Slab Breakdown</h2>
                 </div>
                 {reportData.totalSales > 0 && (
                   <span className="text-xs sm:text-sm text-slate-500 hidden sm:block">
@@ -600,7 +600,7 @@ export default function GstReportPage() {
                             </div>
                           </td>
                           <td className="px-6 py-4 text-right">
-                            <span className="text-sm sm:text-base font-semibold text-white">{formatCurrency(sales)}</span>
+                            <span className="text-sm sm:text-base font-semibold text-slate-100">{formatCurrency(sales)}</span>
                           </td>
                           <td className="px-6 py-4 text-right">
                             <span className={`text-sm font-medium ${colors.text}`}>
@@ -651,7 +651,7 @@ export default function GstReportPage() {
                           transition={{ duration: 0.8, delay: idx * 0.08, ease: 'easeOut' }}
                         />
                       </div>
-                      <p className="text-base font-bold text-white">{formatCurrency(sales)}</p>
+                      <p className="text-base font-bold text-slate-100">{formatCurrency(sales)}</p>
                     </motion.div>
                   );
                 })}
@@ -680,7 +680,7 @@ export default function GstReportPage() {
                     <div className="p-2 bg-amber-500/20 rounded-lg">
                       <Eye className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
                     </div>
-                    <h2 className="text-base sm:text-lg font-semibold text-white">CGST / SGST Breakdown</h2>
+                    <h2 className="text-base sm:text-lg font-semibold text-slate-100">CGST / SGST Breakdown</h2>
                   </div>
 
                   {/* Desktop */}
@@ -716,7 +716,7 @@ export default function GstReportPage() {
                               <td className="px-6 py-4 text-right text-sm text-slate-300">
                                 {formatCurrency(half)} <span className="text-xs text-slate-600">({pct / 2}%)</span>
                               </td>
-                              <td className="px-6 py-4 text-right text-sm font-semibold text-white">
+                              <td className="px-6 py-4 text-right text-sm font-semibold text-slate-100">
                                 {formatCurrency(gstAmount)}
                               </td>
                             </tr>
@@ -748,7 +748,7 @@ export default function GstReportPage() {
                             </div>
                             <div>
                               <p className="text-slate-500 mb-0.5">Total GST</p>
-                              <p className="text-white font-bold">{formatCurrency(gstAmount)}</p>
+                              <p className="text-slate-100 font-bold">{formatCurrency(gstAmount)}</p>
                             </div>
                           </div>
                         </div>

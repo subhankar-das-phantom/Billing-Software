@@ -44,7 +44,7 @@ const Toast = ({ message, type = 'success', onClose }) => {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -20, scale: 0.95 }}
       transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-      className={`${bgColor} backdrop-blur-xl text-white px-4 py-3 rounded-lg shadow-2xl flex items-center gap-3 min-w-[300px] max-w-md border border-white/20`}
+      className={`${bgColor} backdrop-blur-xl text-slate-100 px-4 py-3 rounded-lg shadow-2xl flex items-center gap-3 min-w-[300px] max-w-md border border-white/20`}
     >
       <motion.div
         initial={{ scale: 0, rotate: -180 }}
@@ -361,7 +361,7 @@ export const AuthProvider = ({ children }) => {
               <div className="flex flex-col items-center gap-4">
                 <div className="w-12 h-12 rounded-full border-3 border-blue-500 border-t-transparent animate-spin"></div>
                 <div className="text-center">
-                  <h3 className="text-xl font-semibold text-white mb-2">
+                  <h3 className="text-xl font-semibold text-slate-100 mb-2">
                     Signing you in...
                   </h3>
                   <p className="text-slate-400 text-sm">
@@ -385,7 +385,7 @@ export const AuthProvider = ({ children }) => {
               <div className="flex flex-col items-center gap-4">
                 <div className="w-12 h-12 rounded-full border-3 border-red-500 border-t-transparent animate-spin"></div>
                 <div className="text-center">
-                  <h3 className="text-xl font-semibold text-white mb-2">
+                  <h3 className="text-xl font-semibold text-slate-100 mb-2">
                     Signing you out...
                   </h3>
                   <p className="text-slate-400 text-sm">
@@ -451,7 +451,7 @@ export const ProtectedRoute = ({ children }) => {
           >
             <AlertCircle className="w-8 h-8 text-red-500" />
           </motion.div>
-          <h2 className="text-2xl font-bold text-white mb-2">
+          <h2 className="text-2xl font-bold text-slate-100 mb-2">
             Access Denied
           </h2>
           <p className="text-slate-400 mb-6">
@@ -509,7 +509,7 @@ export const AdminRoute = ({ children }) => {
           >
             <Shield className="w-8 h-8 text-orange-500" />
           </motion.div>
-          <h2 className="text-2xl font-bold text-white mb-2">
+          <h2 className="text-2xl font-bold text-slate-100 mb-2">
             Admin Access Required
           </h2>
           <p className="text-slate-400 mb-6">

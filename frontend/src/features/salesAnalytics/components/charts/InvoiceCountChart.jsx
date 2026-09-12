@@ -2,13 +2,14 @@ import React from 'react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { ChartWrapper } from './ChartWrapper';
 import { useDailySalesQuery } from '../../queries/useDailySalesQuery';
+import { useChartTheme } from '../../utils/chartTheme';
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
       <div className="glass-card p-3 border-purple-500/30">
-        <p className="text-sm text-slate-300 mb-1">{label}</p>
-        <p className="text-purple-400 font-bold text-base">
+        <p className="text-sm text-slate-400 mb-1">{label}</p>
+        <p className="text-purple-500 font-bold text-base">
           {payload[0].value} Invoices
         </p>
       </div>
@@ -19,6 +20,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 export const InvoiceCountChart = ({ filterParams }) => {
   const { data, isLoading, isError, refetch } = useDailySalesQuery(filterParams);
+  const { gridStroke, axisStroke } = useChartTheme();
   
   const chartData = data?.data || [];
   const isEmpty = chartData.length === 0;
@@ -40,10 +42,10 @@ export const InvoiceCountChart = ({ filterParams }) => {
               <stop offset="95%" stopColor="#a855f7" stopOpacity={0}/>
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} vertical={false} />
           <XAxis 
             dataKey="date" 
-            stroke="#94a3b8" 
+            stroke={axisStroke} 
             fontSize={12} 
             tickLine={false} 
             axisLine={false}
@@ -53,7 +55,7 @@ export const InvoiceCountChart = ({ filterParams }) => {
             }}
           />
           <YAxis 
-            stroke="#94a3b8" 
+            stroke={axisStroke} 
             fontSize={12} 
             tickLine={false} 
             axisLine={false}
