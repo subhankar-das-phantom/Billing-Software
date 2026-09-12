@@ -21,6 +21,7 @@ import {
 import { employeeService } from '../../services/employees/employeeService';
 import { useMotionConfig, useFirstVisit } from '../../hooks';
 import { ActivityLogPageSkeleton } from './ActivityLogPageSkeleton';
+import { VirtualizedList } from '../../components/Common/VirtualizedList';
 
 // Format currency
 const formatCurrency = (amount) => {
@@ -74,6 +75,14 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
   const DEFAULT_DISPLAY_LIMIT = 5;
   const DEFAULT_PRODUCT_LIMIT = 8;
 
+  // Recalibrate virtualizer offsets when accordion toggles or inner lists expand
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      window.dispatchEvent(new Event('resize'));
+    }, 220);
+    return () => clearTimeout(timer);
+  }, [expanded, showAllInvoices, showAllPayments, showAllProductsAdded, showAllProductsUpdated, activeTab]);
+
   const totalProducts = (activities.productsAdded?.length || 0) + (activities.productsUpdated?.length || 0);
   const hasActivities = summary.invoiceCount > 0 || summary.paymentCount > 0 || totalProducts > 0;
 
@@ -94,12 +103,7 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
     : activities.productsUpdated.slice(0, DEFAULT_PRODUCT_LIMIT);
 
   return (
-    <motion.div
-      initial={isFirstVisit ? (isMobile ? { opacity: 0 } : { opacity: 0, y: 10 }) : false}
-      animate={{ opacity: 1, y: 0 }}
-      transition={isMobile ? { duration: 0.15 } : { type: 'spring', stiffness: 300, damping: 24 }}
-      className="bg-slate-900/60 rounded-xl border border-slate-800/80 overflow-hidden hover:border-slate-700/80 transition-colors"
-    >
+    <div className="bg-slate-900/60 rounded-xl border border-slate-800/80 overflow-hidden hover:border-slate-700/80 transition-colors">
       {/* Header - Always visible */}
       <div 
         className={`p-4 ${hasActivities ? 'cursor-pointer' : ''}`}
@@ -287,21 +291,46 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
                     )}
                   </div>
 
-                  <div className={showAllInvoices && activities.invoicesCreated.length > DEFAULT_DISPLAY_LIMIT ? "space-y-2 max-h-72 overflow-y-auto custom-scrollbar pr-1" : "space-y-2"}>
-                    {visibleInvoices.map((inv, idx) => (
-                      <div key={idx} className="flex items-center justify-between text-xs sm:text-sm bg-slate-900/80 rounded-xl p-3 border border-slate-800/60 hover:border-slate-700/80 transition-colors">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <span className="text-slate-100 font-mono font-medium">{inv.invoiceNumber}</span>
-                          <span className="text-slate-600">•</span>
-                          <span className="text-slate-400 truncate max-w-[140px] sm:max-w-[220px]">{inv.customer}</span>
+                  {showAllInvoices && activities.invoicesCreated.length > DEFAULT_DISPLAY_LIMIT ? (
+                    <div className="max-h-72 overflow-y-auto custom-scrollbar pr-1 relative">
+                      <VirtualizedList
+                        items={activities.invoicesCreated}
+                        estimateSize={() => 48}
+                        gap={8}
+                        getKey={(inv, idx) => inv.invoiceNumber ? `${inv.invoiceNumber}-${idx}` : idx}
+                        className="min-h-[48px]"
+                        renderItem={(inv) => (
+                          <div className="flex items-center justify-between text-xs sm:text-sm bg-slate-900/80 rounded-xl p-3 border border-slate-800/60 hover:border-slate-700/80 transition-colors">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <span className="text-slate-100 font-mono font-medium">{inv.invoiceNumber}</span>
+                              <span className="text-slate-600">•</span>
+                              <span className="text-slate-400 truncate max-w-[140px] sm:max-w-[220px]">{inv.customer}</span>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
+                              <span className="text-emerald-400 font-mono font-semibold">{formatCurrency(inv.amount)}</span>
+                              <span className="text-slate-400 font-mono text-[11px] sm:text-xs">{formatTime(inv.time)}</span>
+                            </div>
+                          </div>
+                        )}
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {visibleInvoices.map((inv, idx) => (
+                        <div key={idx} className="flex items-center justify-between text-xs sm:text-sm bg-slate-900/80 rounded-xl p-3 border border-slate-800/60 hover:border-slate-700/80 transition-colors">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <span className="text-slate-100 font-mono font-medium">{inv.invoiceNumber}</span>
+                            <span className="text-slate-600">•</span>
+                            <span className="text-slate-400 truncate max-w-[140px] sm:max-w-[220px]">{inv.customer}</span>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <span className="text-emerald-400 font-mono font-semibold">{formatCurrency(inv.amount)}</span>
+                            <span className="text-slate-400 font-mono text-[11px] sm:text-xs">{formatTime(inv.time)}</span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-3 shrink-0">
-                          <span className="text-emerald-400 font-mono font-semibold">{formatCurrency(inv.amount)}</span>
-                          <span className="text-slate-400 font-mono text-[11px] sm:text-xs">{formatTime(inv.time)}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
 
                   {activities.invoicesCreated.length > DEFAULT_DISPLAY_LIMIT && (
                     <button
@@ -339,21 +368,46 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
                     )}
                   </div>
 
-                  <div className={showAllPayments && activities.paymentsRecorded.length > DEFAULT_DISPLAY_LIMIT ? "space-y-2 max-h-72 overflow-y-auto custom-scrollbar pr-1" : "space-y-2"}>
-                    {visiblePayments.map((p, idx) => (
-                      <div key={idx} className="flex items-center justify-between text-xs sm:text-sm bg-slate-900/80 rounded-xl p-3 border border-slate-800/60 hover:border-slate-700/80 transition-colors">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <span className="text-slate-100 font-mono font-medium">{p.invoiceNumber || 'Invoice'}</span>
-                          <span className="text-slate-600">•</span>
-                          <span className="text-slate-400 capitalize truncate max-w-[120px]">{p.method}</span>
+                  {showAllPayments && activities.paymentsRecorded.length > DEFAULT_DISPLAY_LIMIT ? (
+                    <div className="max-h-72 overflow-y-auto custom-scrollbar pr-1 relative">
+                      <VirtualizedList
+                        items={activities.paymentsRecorded}
+                        estimateSize={() => 48}
+                        gap={8}
+                        getKey={(p, idx) => p.invoiceNumber ? `${p.invoiceNumber}-${idx}` : idx}
+                        className="min-h-[48px]"
+                        renderItem={(p) => (
+                          <div className="flex items-center justify-between text-xs sm:text-sm bg-slate-900/80 rounded-xl p-3 border border-slate-800/60 hover:border-slate-700/80 transition-colors">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <span className="text-slate-100 font-mono font-medium">{p.invoiceNumber || 'Invoice'}</span>
+                              <span className="text-slate-600">•</span>
+                              <span className="text-slate-400 capitalize truncate max-w-[120px]">{p.method}</span>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
+                              <span className="text-emerald-400 font-mono font-semibold">{formatCurrency(p.amount)}</span>
+                              <span className="text-slate-400 font-mono text-[11px] sm:text-xs">{formatTime(p.time)}</span>
+                            </div>
+                          </div>
+                        )}
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {visiblePayments.map((p, idx) => (
+                        <div key={idx} className="flex items-center justify-between text-xs sm:text-sm bg-slate-900/80 rounded-xl p-3 border border-slate-800/60 hover:border-slate-700/80 transition-colors">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <span className="text-slate-100 font-mono font-medium">{p.invoiceNumber || 'Invoice'}</span>
+                            <span className="text-slate-600">•</span>
+                            <span className="text-slate-400 capitalize truncate max-w-[120px]">{p.method}</span>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <span className="text-emerald-400 font-mono font-semibold">{formatCurrency(p.amount)}</span>
+                            <span className="text-slate-400 font-mono text-[11px] sm:text-xs">{formatTime(p.time)}</span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-3 shrink-0">
-                          <span className="text-emerald-400 font-mono font-semibold">{formatCurrency(p.amount)}</span>
-                          <span className="text-slate-400 font-mono text-[11px] sm:text-xs">{formatTime(p.time)}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
 
                   {activities.paymentsRecorded.length > DEFAULT_DISPLAY_LIMIT && (
                     <button
@@ -430,7 +484,7 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 };
 
@@ -669,16 +723,20 @@ export default function ActivityLogPage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {activityLog.map((entry, index) => (
+        <VirtualizedList
+          items={activityLog}
+          estimateSize={() => 150}
+          gap={12}
+          getKey={(entry, index) => entry.session?.id || `direct-${entry.employee?.id || 'emp'}-${index}`}
+          className="min-h-[150px]"
+          renderItem={(entry, index) => (
             <SessionCard 
-              key={entry.session?.id || `direct-${entry.employee?.id || 'emp'}-${index}`} 
               entry={entry} 
               isMobile={isMobile}
               isFirstVisit={isFirstVisit}
             />
-          ))}
-        </div>
+          )}
+        />
       )}
     </div>
   );
