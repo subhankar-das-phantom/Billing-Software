@@ -9,12 +9,12 @@ const ThemeContext = createContext({
   toggleTheme: () => {},
   isDark: true,
   chartColors: {
-    gridStroke: '#334155',
-    axisStroke: '#94a3b8',
-    tooltipBg: '#1e293b',
-    tooltipBorder: '#334155',
+    gridStroke: '#2a2b32',
+    axisStroke: '#71717a',
+    tooltipBg: '#121215',
+    tooltipBorder: '#2a2b32',
     tooltipText: '#f8fafc',
-    cursorFill: '#1e293b'
+    cursorFill: '#1c1d22'
   }
 });
 
@@ -78,7 +78,7 @@ export function ThemeProvider({ children }) {
     // Dynamic browser status bar color (Safari / Chrome mobile & desktop PWA)
     const metaThemeColor = document.querySelector('meta[name="theme-color"]');
     if (metaThemeColor) {
-      metaThemeColor.setAttribute('content', isLight ? '#f8fafc' : '#020617');
+      metaThemeColor.setAttribute('content', isLight ? '#f8fafc' : '#09090b');
     }
   }, [theme]);
 
@@ -110,12 +110,12 @@ export function ThemeProvider({ children }) {
   const chartColors = useMemo(() => {
     return isDark
       ? {
-          gridStroke: '#334155',
-          axisStroke: '#94a3b8',
-          tooltipBg: '#1e293b',
-          tooltipBorder: '#334155',
+          gridStroke: '#2a2b32',
+          axisStroke: '#71717a',
+          tooltipBg: '#121215',
+          tooltipBorder: '#2a2b32',
           tooltipText: '#f8fafc',
-          cursorFill: '#1e293b'
+          cursorFill: '#1c1d22'
         }
       : {
           gridStroke: '#e2e8f0',

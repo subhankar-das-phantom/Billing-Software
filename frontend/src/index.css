@@ -39,7 +39,7 @@ html.light {
   --color-slate-300: #334155; /* body / subtle text */
   --color-slate-200: #1e293b; /* prominent text */
   --color-slate-100: #0f172a; /* titles & subheadings */
-  --color-slate-50:  #020617; /* boldest headings */
+  --color-slate-50:  #09090b; /* boldest headings */
 
   /* ── Accessible Semantic Inversion for Amber & Yellow ──
      Pastel yellows (300/400) on white have unacceptable 1.3:1 contrast.
@@ -79,17 +79,19 @@ html.light {
 
 .dark,
 html.dark {
-  --color-slate-950: #020617;
-  --color-slate-900: #0f172a;
-  --color-slate-800: #1e293b;
-  --color-slate-700: #334155;
-  --color-slate-600: #475569;
-  --color-slate-500: #64748b;
-  --color-slate-400: #94a3b8;
-  --color-slate-300: #cbd5e1;
-  --color-slate-200: #e2e8f0;
-  --color-slate-100: #f1f5f9;
-  --color-slate-50:  #f8fafc;
+  /* ── Pro UI/UX Obsidian Dark Mode Palette (Linear / Vercel / Zinc Standard) ── */
+  --color-slate-950: #09090b; /* canvas: sleek, neutral obsidian black */
+  --color-slate-900: #121215; /* primary card, elevated surfaces & sidebar */
+  --color-slate-850: #17171c; /* inner panels / nested surface */
+  --color-slate-800: #1c1d22; /* secondary surface, table zebra, input hover */
+  --color-slate-700: #2a2b32; /* primary borders & dividers */
+  --color-slate-600: #3f404a; /* secondary borders */
+  --color-slate-500: #71717a; /* muted labels */
+  --color-slate-400: #a1a1aa; /* secondary text */
+  --color-slate-300: #d4d4d8; /* body / subtle text */
+  --color-slate-200: #e4e4e7; /* prominent text */
+  --color-slate-100: #f4f4f5; /* titles & subheadings */
+  --color-slate-50:  #ffffff; /* boldest headings */
 
   color-scheme: dark;
 }
@@ -98,11 +100,11 @@ html.dark {
 @layer base {
   :root {
     /* Color palette */
-    --color-bg-primary: 15 23 42;
+    --color-bg-primary: 9 9 11;
     /* slate-950 */
-    --color-bg-secondary: 30 41 59;
+    --color-bg-secondary: 28 29 34;
     /* slate-800 */
-    --color-bg-tertiary: 51 65 85;
+    --color-bg-tertiary: 42 43 50;
     /* slate-700 */
 
     --color-text-primary: 248 250 252;
@@ -216,7 +218,7 @@ html.dark {
   /* Universal Card Elevation in Dark Mode */
   html.dark .glass-card,
   html.dark .stat-card {
-    background-color: #0f172a;
+    background-color: #121215;
     border: 1px solid rgba(255, 255, 255, 0.07);
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.25);
   }
@@ -423,7 +425,7 @@ html.dark {
 
   html.dark .search-dropdown-item:hover,
   html.dark .search-dropdown-item:focus-visible {
-    background-color: #1e293b !important;
+    background-color: #1c1d22 !important;
     border-left-color: #60a5fa !important;
   }
 

@@ -260,7 +260,7 @@ export const DashboardChartsSection = ({
                 dataKey="value"
               >
                 {donutData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} stroke="#0f172a" strokeWidth={2} />
+                  <Cell key={`cell-${index}`} fill={entry.color} stroke="#09090b" strokeWidth={2} />
                 ))}
               </Pie>
               <Tooltip content={<CustomDonutTooltip />} />

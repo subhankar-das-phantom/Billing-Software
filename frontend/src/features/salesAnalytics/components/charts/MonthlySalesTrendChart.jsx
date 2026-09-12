@@ -86,7 +86,7 @@ export const MonthlySalesTrendChart = ({ filterParams }) => {
             stroke="#34d399" 
             strokeWidth={3} 
             dot={false}
-            activeDot={{ r: 6, fill: "#34d399", stroke: "#0f172a", strokeWidth: 2 }}
+            activeDot={{ r: 6, fill: "#34d399", stroke: "#09090b", strokeWidth: 2 }}
           />
           <Line 
             yAxisId="right"
