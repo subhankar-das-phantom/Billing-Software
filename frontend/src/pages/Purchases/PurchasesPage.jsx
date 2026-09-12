@@ -445,7 +445,7 @@ export default function PurchasesPage() {
           <button
             type="button"
             onClick={() => setShowExportModal(true)}
-            className="btn bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold flex items-center justify-center gap-2 px-6 py-3 shadow-lg shadow-emerald-500/30 border-0 active:scale-95 transition-transform"
+            className="btn bg-emerald-600 hover:bg-emerald-500 text-white font-semibold flex items-center justify-center gap-2 px-6 py-3 shadow-xs border-0 active:scale-[0.98] transition-all"
           >
             <Download className="w-5 h-5" />
             Export

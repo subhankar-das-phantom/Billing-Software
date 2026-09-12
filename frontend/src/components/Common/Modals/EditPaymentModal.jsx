@@ -331,13 +331,11 @@ export default function EditPaymentModal({
                   </div>
 
                   {/* Submit Button Footer */}
-                  <div className="p-4 sm:p-6 border-t border-slate-700/50 bg-slate-800/95 shrink-0 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] w-full sticky bottom-0 z-10">
-                    <motion.button
+                  <div className="p-4 sm:p-6 border-t border-slate-200 dark:border-slate-700/50 bg-white/95 dark:bg-slate-800/95 shrink-0 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] w-full sticky bottom-0 z-10">
+                    <button
                       type="submit"
                       disabled={loading}
-                      className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-accent2-600 hover:from-blue-500 hover:to-accent2-500 text-white font-medium rounded-lg transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                      whileHover={{ scale: loading ? 1 : 1.01 }}
-                      whileTap={{ scale: loading ? 1 : 0.99 }}
+                      className="btn btn-primary w-full py-3.5 flex items-center justify-center gap-2 text-base font-semibold"
                     >
                       {loading ? (
                         <>
@@ -350,7 +348,7 @@ export default function EditPaymentModal({
                           Update Payment
                         </>
                       )}
-                    </motion.button>
+                    </button>
                   </div>
                 </form>
               )}

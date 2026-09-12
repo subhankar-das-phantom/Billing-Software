@@ -150,7 +150,7 @@ export default function CalculatorDock({ dockedSide, geometry, onDock, onRestore
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
-      className={`no-print fixed left-0 top-0 z-[45] flex h-12 touch-none items-center justify-center gap-2 border border-blue-400/30 bg-slate-900/95 px-3 py-2 text-blue-200 shadow-2xl shadow-black/40 backdrop-blur-xl hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
+      className={`no-print fixed left-0 top-0 z-[45] flex h-12 touch-none items-center justify-center gap-2 border border-blue-500 bg-blue-600 px-3 py-2 text-white shadow-xl shadow-blue-600/25 backdrop-blur-xl hover:bg-blue-700 dark:border-blue-400/30 dark:bg-slate-900/95 dark:text-blue-300 dark:hover:bg-slate-800 dark:shadow-2xl dark:shadow-black/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
         isDragging ? 'cursor-grabbing select-none' : 'cursor-grab transition-[background-color,transform] duration-200'
       } ${
         shapeClasses[dockedSide] || shapeClasses.right

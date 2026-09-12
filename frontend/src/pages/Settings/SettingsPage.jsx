@@ -724,7 +724,7 @@ export default function SettingsPage() {
             <div className="w-full md:w-auto mt-4 md:mt-0">
               <Link
                 to="/subscription"
-                className="w-full md:w-auto px-6 py-3 font-medium bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl shadow-[0_0_20px_rgba(37,99,235,0.2)] flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95"
+                className="btn btn-primary w-full md:w-auto px-6 py-3 flex items-center justify-center gap-2 text-sm font-semibold"
               >
                 <Crown className="w-5 h-5" />
                 {isExpired ? 'Renew Now' : 'Upgrade Plan'}

@@ -368,7 +368,7 @@ html.dark {
   }
 
   .btn-primary {
-    @apply bg-gradient-to-r from-blue-600 to-accent2-600 text-white hover:from-blue-500 hover:to-accent2-500 shadow-lg shadow-blue-500/20;
+    @apply bg-blue-600 hover:bg-blue-500 text-white font-medium shadow-xs active:scale-[0.98];
   }
 
   .btn-secondary {

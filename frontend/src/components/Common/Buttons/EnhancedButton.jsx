@@ -17,55 +17,34 @@ export default function EnhancedButton({
   icon: Icon, 
   children, 
   type = 'button',
+  variant = 'primary',
   className = '',
   disabled = false,
   ...rest 
 }) {
+  const variantClasses = {
+    primary: 'bg-blue-600 hover:bg-blue-500 text-white shadow-xs',
+    success: 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs',
+    secondary: 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700'
+  };
+
+  const baseStyle = variantClasses[variant] || variantClasses.primary;
+
   return (
     <motion.button
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`enhanced-btn relative overflow-hidden px-6 py-3 rounded-xl font-semibold text-white flex items-center gap-2 shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all duration-300 group disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
-      style={{
-        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
-      }}
-      whileHover={disabled ? {} : { scale: 1.05, y: -2 }}
+      className={`enhanced-btn px-4 py-2.5 rounded-xl font-medium text-sm inline-flex items-center justify-center gap-2 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${baseStyle} ${className}`}
       whileTap={disabled ? {} : { scale: 0.98 }}
       {...rest}
     >
-      {/* Shimmer effect - inherit={false} prevents parent variant propagation */}
-      <motion.div
-        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-        initial={{ x: '-100%' }}
-        whileHover={{ x: '100%' }}
-        transition={{ duration: 0.6 }}
-        inherit={false}
-      />
-      
-      {/* Background glow on hover — uses pure CSS to avoid Framer variant propagation flash */}
-      <div
-        className="absolute inset-0 bg-white opacity-0 group-hover:opacity-[0.15] transition-opacity duration-300"
-      />
-      
-      {/* Icon with rotation animation */}
       {Icon && (
-        <motion.div
-          whileHover={disabled ? {} : { rotate: 90 }}
-          animate={Icon.name === 'Loader2' ? { rotate: 360 } : {}}
-          transition={
-            Icon.name === 'Loader2' 
-              ? { duration: 1, repeat: Infinity, ease: 'linear' }
-              : { duration: 0.3 }
-          }
-          className="relative z-10"
-          inherit={false}
-        >
-          <Icon className="w-5 h-5" />
-        </motion.div>
+        <span className="shrink-0 flex items-center justify-center">
+          <Icon className={`w-4 h-4 sm:w-4.5 sm:h-4.5 ${Icon.name === 'Loader2' ? 'animate-spin' : ''}`} />
+        </span>
       )}
-      
-      <span className="relative z-10">{children}</span>
+      <span>{children}</span>
     </motion.button>
   );
 }

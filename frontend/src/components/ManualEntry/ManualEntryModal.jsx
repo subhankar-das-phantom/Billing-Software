@@ -256,22 +256,22 @@ export default function ManualEntryModal({
                       }}
                       onFocus={() => setShowCustomerDropdown(true)}
                       placeholder="Search customer by name or phone..."
-                      className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-accent-500 focus:border-transparent"
+                      className="input w-full"
                       disabled={!!preSelectedCustomer}
                     />
                     
                     {/* Customer dropdown */}
                     {showCustomerDropdown && customers.length > 0 && !preSelectedCustomer && (
-                      <div className="absolute z-20 w-full mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                      <div className="absolute z-20 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xl max-h-48 overflow-y-auto">
                         {customers.map((customer) => (
                           <button
                             key={customer._id}
                             type="button"
                             onClick={() => handleSelectCustomer(customer)}
-                            className="w-full px-4 py-2 text-left hover:bg-slate-700 flex justify-between items-center"
+                            className="w-full px-4 py-2.5 text-left hover:bg-slate-100 dark:hover:bg-slate-800/80 flex justify-between items-center border-b border-slate-200/80 dark:border-slate-800/80 last:border-0 transition-colors"
                           >
-                            <span className="text-slate-100">{customer.customerName}</span>
-                            <span className="text-slate-400 text-sm">{customer.phone}</span>
+                            <span className="text-slate-900 dark:text-slate-100 font-medium">{customer.customerName}</span>
+                            <span className="text-slate-500 dark:text-slate-400 text-sm">{customer.phone}</span>
                           </button>
                         ))}
                       </div>
@@ -363,12 +363,10 @@ export default function ManualEntryModal({
                   )}
 
                   {/* Submit Button */}
-                  <motion.button
+                  <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-3.5 bg-gradient-to-r from-accent-600 to-accent2-600 hover:from-accent-500 hover:to-accent2-500 text-slate-100 font-medium rounded-lg transition-all shadow-lg shadow-accent-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    whileHover={{ scale: loading ? 1 : 1.01 }}
-                    whileTap={{ scale: loading ? 1 : 0.99 }}
+                    className="btn btn-primary w-full py-3.5 flex items-center justify-center gap-2 text-base font-semibold"
                   >
                     {loading ? (
                       <>
@@ -381,7 +379,7 @@ export default function ManualEntryModal({
                         Create Entry
                       </>
                     )}
-                  </motion.button>
+                  </button>
                 </form>
               )}
             </div>

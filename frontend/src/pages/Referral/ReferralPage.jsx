@@ -157,7 +157,7 @@ export default function ReferralPage() {
                 />
                 <button
                   onClick={() => copyToClipboard(shareLink, 'link')}
-                  className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-lg font-medium shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium shadow-xs transition-all flex items-center gap-2 active:scale-[0.98]"
                 >
                   {copiedLink ? <CheckCircle2 className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
                   {copiedLink ? 'Copied' : 'Share'}

@@ -1424,17 +1424,15 @@ export default function RecordPaymentModal({
                   </div>
 
                   {/* Submit Button Footer */}
-                  <div className="p-4 sm:p-6 border-t border-slate-700/50 bg-slate-800/95 shrink-0 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] w-full sticky bottom-0 z-10">
-                    <motion.button
+                  <div className="p-4 sm:p-6 border-t border-slate-200 dark:border-slate-700/50 bg-white/95 dark:bg-slate-800/95 shrink-0 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] w-full sticky bottom-0 z-10">
+                    <button
                       type="submit"
                       disabled={loading || (fifoMode && fifoQueue.length === 0)}
-                      className={`w-full py-3.5 font-medium rounded-lg transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
+                      className={`w-full py-3.5 font-medium rounded-lg transition-all shadow-xs disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.98] ${
                         fifoConfirm
-                          ? 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white shadow-amber-500/20'
-                          : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-500/20'
+                          ? 'bg-amber-600 hover:bg-amber-500 text-white'
+                          : 'bg-emerald-600 hover:bg-emerald-500 text-white'
                       }`}
-                      whileHover={{ scale: loading ? 1 : 1.01 }}
-                      whileTap={{ scale: loading ? 1 : 0.99 }}
                     >
                       {loading ? (
                         <>
@@ -1457,7 +1455,7 @@ export default function RecordPaymentModal({
                           Record Payment
                         </>
                       )}
-                    </motion.button>
+                    </button>
                   </div>
                 </form>
               )}
