@@ -65,7 +65,7 @@ const SidebarSkeleton = () => (
 );
 
 const HeaderSkeleton = () => (
-  <header className="sticky top-0 z-30 bg-slate-900/80 backdrop-blur-xl border-b border-slate-800/80 h-16 flex items-center justify-between px-4 sm:px-6">
+  <header className="sticky top-0 z-30 bg-slate-900/80 dark:bg-slate-950/80 backdrop-blur-xl border-b border-slate-800/80 h-16 flex items-center justify-between px-4 sm:px-6">
     <div className="flex items-center gap-3">
       <ShimmerBone className="w-8 h-8 rounded-lg lg:hidden" />
       <div>
