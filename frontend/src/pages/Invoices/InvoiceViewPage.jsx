@@ -112,6 +112,7 @@ export default function InvoiceViewPage() {
   });
   const printRef = useRef();
   const { success, error } = useToast();
+  const [copiedShare, setCopiedShare] = useState(false);
   const isFirstVisit = useFirstVisit('invoice-view');
 
   const { user, admin, updateUserPreferences } = useAuth();
@@ -327,6 +328,54 @@ export default function InvoiceViewPage() {
 
   const handleDownload = () => {
     window.print();
+  };
+
+  const handleShare = async () => {
+    if (!invoice) return;
+    const invNumber = invoice.invoiceNumber || 'Invoice';
+    const custName = invoice.customer?.name || 'Customer';
+    const grandTotal = (invoice.grandTotal !== undefined && invoice.grandTotal !== null)
+      ? invoice.grandTotal
+      : (invoice.totalAmount || 0);
+    const formattedTotal = formatCurrency(grandTotal);
+    const shareUrl = window.location.href;
+    const shareText = `Invoice #${invNumber} for ${custName} — Total: ${formattedTotal}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Invoice #${invNumber}`,
+          text: `${shareText}\n${shareUrl}`,
+          url: shareUrl,
+        });
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+      }
+    }
+
+    // Fallback: Clipboard copy
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(shareUrl);
+      } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = shareUrl;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+      setCopiedShare(true);
+      success('Invoice link copied to clipboard!');
+      setTimeout(() => setCopiedShare(false), 2500);
+    } catch (err) {
+      console.error('Failed to copy share link:', err);
+      error('Failed to copy share link to clipboard');
+    }
   };
 
   const toggleCopyMode = () => {
@@ -681,12 +730,18 @@ export default function InvoiceViewPage() {
           </motion.button>
 
           <motion.button
+            onClick={handleShare}
             className="btn btn-secondary flex items-center gap-2"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            title="Share invoice link"
           >
-            <Share2 className="w-5 h-5" />
-            Share
+            {copiedShare ? (
+              <Check className="w-5 h-5 text-emerald-400" />
+            ) : (
+              <Share2 className="w-5 h-5" />
+            )}
+            {copiedShare ? 'Copied' : 'Share'}
           </motion.button>
 
           {/* Cancel Invoice Button */}

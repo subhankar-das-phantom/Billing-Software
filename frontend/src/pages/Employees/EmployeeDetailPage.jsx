@@ -185,7 +185,7 @@ export default function EmployeeDetailPage() {
       </div>
 
       {/* Employee Info */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 bg-slate-800/50 rounded-xl border border-slate-700 p-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 bg-slate-900 rounded-xl border border-slate-800 p-5">
         <div className="flex items-center gap-3">
           <Mail size={18} className="text-slate-500" />
           <div className="overflow-hidden">
@@ -247,7 +247,7 @@ export default function EmployeeDetailPage() {
             initial={isFirstVisit ? (isMobile ? { opacity: 0 } : { opacity: 0, y: 20 }) : false}
             animate={{ opacity: 1, y: 0 }}
             transition={isMobile ? { duration: 0.15 } : { delay: index * 0.05 }}
-            className="bg-slate-800/50 rounded-xl border border-slate-700 p-5"
+            className="bg-slate-900 rounded-xl border border-slate-800 p-5"
           >
             <div className="flex items-center justify-between">
               <div>
@@ -271,7 +271,7 @@ export default function EmployeeDetailPage() {
       />
 
       {/* Session Stats */}
-      <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-5">
+      <div className="bg-slate-900 rounded-xl border border-slate-800 p-5">
         <h3 className="text-lg font-semibold text-slate-100 mb-4 flex items-center gap-2">
           <Clock size={20} className="text-blue-400" />
           Session Statistics
@@ -295,7 +295,7 @@ export default function EmployeeDetailPage() {
       {/* Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Invoices */}
-        <div className="bg-slate-900/60 rounded-xl border border-slate-800/80 p-5">
+        <div className="bg-slate-900 rounded-xl border border-slate-800 p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base sm:text-lg font-semibold text-slate-100 flex items-center gap-2">
               <FileText size={18} className="text-blue-400" />
@@ -314,7 +314,7 @@ export default function EmployeeDetailPage() {
                   <Link
                     key={i}
                     to={`/invoices/${inv._id}`}
-                    className="flex items-center justify-between p-3 bg-slate-900/80 rounded-xl border border-slate-800/60 hover:border-slate-700 transition-colors"
+                    className="flex items-center justify-between p-3 bg-slate-900 rounded-xl border border-slate-800 hover:border-slate-700 transition-colors"
                   >
                     <div className="min-w-0 flex-1 mr-2">
                       <p className="text-slate-100 font-medium font-mono text-sm">{inv.invoiceNumber}</p>
@@ -353,7 +353,7 @@ export default function EmployeeDetailPage() {
         </div>
 
         {/* Recent Payments */}
-        <div className="bg-slate-900/60 rounded-xl border border-slate-800/80 p-5">
+        <div className="bg-slate-900 rounded-xl border border-slate-800 p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base sm:text-lg font-semibold text-slate-100 flex items-center gap-2">
               <Wallet size={18} className="text-emerald-400" />
@@ -371,7 +371,7 @@ export default function EmployeeDetailPage() {
                 {(showAllPayments ? recentActivity.payments : recentActivity.payments.slice(0, DISPLAY_LIMIT)).map((p, i) => (
                   <div
                     key={i}
-                    className="flex items-center justify-between p-3 bg-slate-900/80 rounded-xl border border-slate-800/60"
+                    className="flex items-center justify-between p-3 bg-slate-900 rounded-xl border border-slate-800"
                   >
                     <div className="min-w-0 flex-1 mr-2">
                       <p className="text-slate-100 font-medium font-mono text-sm">{p.invoiceSnapshot?.invoiceNumber || 'Payment'}</p>

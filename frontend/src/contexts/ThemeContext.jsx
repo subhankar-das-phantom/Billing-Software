@@ -78,7 +78,7 @@ export function ThemeProvider({ children }) {
     // Dynamic browser status bar color (Safari / Chrome mobile & desktop PWA)
     const metaThemeColor = document.querySelector('meta[name="theme-color"]');
     if (metaThemeColor) {
-      metaThemeColor.setAttribute('content', isLight ? '#f8fafc' : '#09090b');
+      metaThemeColor.setAttribute('content', isLight ? '#f1f5f9' : '#09090b');
     }
   }, [theme]);
 
@@ -110,12 +110,12 @@ export function ThemeProvider({ children }) {
   const chartColors = useMemo(() => {
     return isDark
       ? {
-          gridStroke: '#2a2b32',
+          gridStroke: '#2f303c',
           axisStroke: '#71717a',
-          tooltipBg: '#121215',
-          tooltipBorder: '#2a2b32',
-          tooltipText: '#f8fafc',
-          cursorFill: '#1c1d22'
+          tooltipBg: '#141417',
+          tooltipBorder: '#333440',
+          tooltipText: '#f4f4f5',
+          cursorFill: '#23242c'
         }
       : {
           gridStroke: '#e2e8f0',

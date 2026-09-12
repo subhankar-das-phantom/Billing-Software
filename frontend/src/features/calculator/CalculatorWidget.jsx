@@ -122,7 +122,7 @@ export default function CalculatorWidget() {
       aria-label="Floating calculator"
     >
       <header
-        className={`flex touch-none items-center gap-2 border-b border-slate-700/70 bg-gradient-to-r from-slate-800/95 to-slate-900/95 py-2 pr-3 cursor-grab active:cursor-grabbing ${
+        className={`flex touch-none items-center gap-2 border-b border-slate-700/70 bg-gradient-to-r from-slate-800/95 to-slate-900/95 py-2 pr-3 cursor-move ${
           geometry.dockedSide === 'bottom' ? 'pl-10' : 'pl-3'
         }`}
         {...dragHandlers}

@@ -28,12 +28,12 @@
    ═══════════════════════════════════════════ */
 html.light {
   /* ── Canvas & Surface Inversion ── */
-  --color-slate-950: #f8fafc; /* canvas: soft, modern slate-50 (harmonious, cohesive) */
+  --color-slate-950: #f1f5f9; /* canvas: crisp, modern slate-100 for clear card separation */
   --color-slate-900: #ffffff; /* primary card & surface background */
   --color-slate-850: #f8fafc; /* subtle inner panel / nested surface */
-  --color-slate-800: #f1f5f9; /* secondary surface, table zebra, input hover */
-  --color-slate-700: #e2e8f0; /* primary borders & dividers (soft slate-200) */
-  --color-slate-600: #cbd5e1; /* secondary borders */
+  --color-slate-800: #e2e8f0; /* primary borders & card boundaries (soft slate-200) */
+  --color-slate-700: #cbd5e1; /* secondary borders & dividers (slate-300) */
+  --color-slate-600: #94a3b8; /* prominent borders / outlines */
   --color-slate-500: #64748b; /* muted labels */
   --color-slate-400: #475569; /* secondary text (WCAG AA compliant > 5:1 contrast) */
   --color-slate-300: #334155; /* body / subtle text */
@@ -59,6 +59,8 @@ html.light {
   /* ── Accessible Semantic Inversion for Other Accents ── */
   --color-blue-300: #1d4ed8;    /* blue-700 */
   --color-blue-400: #2563eb;    /* blue-600 */
+  --color-indigo-300: #4338ca;  /* indigo-700 */
+  --color-indigo-400: #4f46e5;  /* indigo-600: accessible on white cards */
   --color-emerald-300: #047857; /* emerald-700 */
   --color-emerald-400: #059669; /* emerald-600 */
   --color-red-300: #b91c1c;     /* red-700 */
@@ -81,11 +83,11 @@ html.light {
 html.dark {
   /* ── Pro UI/UX Obsidian Dark Mode Palette (Linear / Vercel / Zinc Standard) ── */
   --color-slate-950: #09090b; /* canvas: sleek, neutral obsidian black */
-  --color-slate-900: #121215; /* primary card, elevated surfaces & sidebar */
-  --color-slate-850: #17171c; /* inner panels / nested surface */
-  --color-slate-800: #1c1d22; /* secondary surface, table zebra, input hover */
-  --color-slate-700: #2a2b32; /* primary borders & dividers */
-  --color-slate-600: #3f404a; /* secondary borders */
+  --color-slate-900: #141417; /* primary card, elevated surfaces & sidebar */
+  --color-slate-850: #1b1c21; /* inner panels / nested surface */
+  --color-slate-800: #262730; /* secondary surface, table zebra, input hover */
+  --color-slate-700: #333440; /* primary borders & dividers */
+  --color-slate-600: #454656; /* secondary borders */
   --color-slate-500: #71717a; /* muted labels */
   --color-slate-400: #a1a1aa; /* secondary text */
   --color-slate-300: #d4d4d8; /* body / subtle text */
@@ -188,46 +190,52 @@ html.dark {
      excessive borders, or disjointed floating boxes.
      ═══════════════════════════════════════════ */
   html.light main {
-    background: #f8fafc !important;
+    background: #f1f5f9 !important;
   }
 
   /* Main background gradient reset in light mode (Auth, Dashboard) */
   html.light .bg-gradient-to-br.from-slate-950.via-slate-900.to-slate-950 {
-    background: #f8fafc !important;
+    background: #f1f5f9 !important;
   }
 
   /* Universal Card Elevation in Light Mode */
+  html.light .glass-card,
+  html.light .stat-card,
   html.light [class*="bg-slate-900"].rounded-xl,
   html.light [class*="bg-slate-900"].rounded-2xl,
-  html.light [class*="bg-slate-800"].rounded-xl,
-  html.light [class*="bg-slate-800"].rounded-2xl {
-    background-color: #ffffff;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.02);
+  html.light [class*="bg-slate-900"].rounded-lg,
+  html.light [class*="bg-slate-900"].rounded-3xl {
+    background-color: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.04) !important;
   }
 
   html.light .glass-card:hover,
   html.light [class*="bg-slate-900"].rounded-xl:hover,
   html.light [class*="bg-slate-900"].rounded-2xl:hover,
-  html.light [class*="bg-slate-800"].rounded-xl:hover,
-  html.light [class*="bg-slate-800"].rounded-2xl:hover {
-    border-color: #cbd5e1;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.03);
+  html.light [class*="bg-slate-900"].rounded-lg:hover {
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.04) !important;
   }
 
   /* Universal Card Elevation in Dark Mode */
   html.dark .glass-card,
-  html.dark .stat-card {
-    background-color: #121215;
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.25);
-  }
-
+  html.dark .stat-card,
   html.dark [class*="bg-slate-900"].rounded-xl,
   html.dark [class*="bg-slate-900"].rounded-2xl,
-  html.dark [class*="bg-slate-800"].rounded-xl,
-  html.dark [class*="bg-slate-800"].rounded-2xl {
-    border-color: rgba(255, 255, 255, 0.07);
+  html.dark [class*="bg-slate-900"].rounded-lg,
+  html.dark [class*="bg-slate-900"].rounded-3xl {
+    background-color: #141417 !important;
+    border: 1px solid #282933 !important;
+    box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.45), 0 1px 2px -1px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  html.dark .glass-card:hover,
+  html.dark [class*="bg-slate-900"].rounded-xl:hover,
+  html.dark [class*="bg-slate-900"].rounded-2xl:hover,
+  html.dark [class*="bg-slate-900"].rounded-lg:hover {
+    border-color: #3b3c4c !important;
+    box-shadow: 0 4px 8px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.4) !important;
   }
 
   /* ═══════════════════════════════════════════

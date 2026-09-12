@@ -395,7 +395,7 @@ export default function ManualEntriesPage() {
                 return (
                   <div
                     key={entry._id}
-                    className="glass-card p-4 flex flex-col gap-3 relative overflow-hidden border border-slate-800/80"
+                    className="glass-card p-4 flex flex-col gap-3 relative overflow-hidden border border-slate-800"
                   >
                     {/* Header: Entry Type Badge + Payment Badge + Delete Action */}
                     <div className="flex items-start justify-between gap-3">
@@ -426,7 +426,7 @@ export default function ManualEntriesPage() {
                     </div>
 
                     {/* Customer + Amount Section (Grid layout mirroring Invoices card) */}
-                    <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-800/80 bg-slate-900/30 -mx-4 px-4 py-2.5">
+                    <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-800 bg-slate-900/40 -mx-4 px-4 py-2.5">
                       {/* Customer Column */}
                       <div className="space-y-1 min-w-0">
                         <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Customer</p>
