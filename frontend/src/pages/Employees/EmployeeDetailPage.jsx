@@ -155,7 +155,7 @@ export default function EmployeeDetailPage() {
             <ArrowLeft size={20} />
           </motion.button>
           
-          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-accent-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-500/20 shrink-0">
+          <div className="w-14 h-14 rounded-full bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-xl shrink-0">
             {employee.name?.charAt(0)?.toUpperCase() || 'E'}
           </div>
           <div className="min-w-0 flex-1">

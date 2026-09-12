@@ -622,7 +622,7 @@ export default function InvoicesPage() {
                       <div className="space-y-1.5">
                         <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Customer</p>
                         <div className="flex items-center gap-2">
-                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-lg ${isCancelled ? 'bg-red-500/20 text-red-400 shadow-red-500/20' : 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/30'}`}>
+                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold border ${isCancelled ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'}`}>
                             {invoice.customer?.customerName?.charAt(0)}
                           </div>
                           <div className="min-w-0">

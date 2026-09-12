@@ -549,7 +549,7 @@ const EmployeeCard = ({ employee, onEdit, onResetPassword, onToggleStatus, isMob
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-accent-600 flex items-center justify-center text-white font-bold text-lg">
+            <div className="w-12 h-12 rounded-full bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-lg">
               {employee.name?.charAt(0)?.toUpperCase() || 'E'}
             </div>
             {/* Online indicator */}
@@ -740,7 +740,7 @@ export default function EmployeesPage() {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={handleAddNew}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-medium shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-shadow"
+          className="btn btn-primary flex items-center gap-2"
         >
           <UserPlus size={18} />
           Add Employee

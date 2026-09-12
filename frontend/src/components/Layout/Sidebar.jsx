@@ -223,7 +223,7 @@ export default function Sidebar({
           title="Bharat Enterprise"
         >
           {/* Logo Badge */}
-          <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-base shadow-xs shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-blue-600 dark:bg-blue-500/15 dark:border dark:border-blue-500/30 text-white dark:text-blue-400 flex items-center justify-center font-bold text-base shadow-xs shrink-0">
             B
           </div>
 

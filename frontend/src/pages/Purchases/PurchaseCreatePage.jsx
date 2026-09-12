@@ -791,12 +791,12 @@ export default function PurchaseCreatePage() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
-              className="mt-4 p-4 rounded-xl bg-gradient-to-br from-blue-500/10 to-teal-500/10 border border-blue-500/30 relative overflow-hidden"
+              className="mt-4 p-4 rounded-xl bg-slate-800/40 border border-slate-700/60 relative overflow-hidden"
             >
               <div className="relative z-10 flex items-start justify-between">
                 <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-teal-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
-                    <span className="text-slate-100 font-bold text-lg">
+                  <div className="w-12 h-12 rounded-xl bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-lg shrink-0">
+                    <span>
                       {selectedSupplier.name ? selectedSupplier.name.charAt(0).toUpperCase() : 'S'}
                     </span>
                   </div>

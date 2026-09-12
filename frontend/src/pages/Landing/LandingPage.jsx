@@ -156,19 +156,11 @@ function FloatingNav({ reduceMotion, isLoggedIn }) {
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
           <button onClick={() => scrollToSection('hero')} className="flex items-center gap-3 group bg-transparent border-none cursor-pointer p-0">
-            <motion.div
-              whileHover={reduceMotion ? undefined : { scale: 1.1, rotate: 5 }}
-              className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 via-blue-600 to-accent-600 flex items-center justify-center shadow-lg shadow-blue-500/30 group-hover:shadow-blue-500/50 transition-shadow relative overflow-hidden"
+            <div
+              className="w-10 h-10 rounded-xl bg-blue-600 dark:bg-blue-500/15 dark:border dark:border-blue-500/30 text-white dark:text-blue-400 flex items-center justify-center font-bold text-xl shadow-xs shrink-0"
             >
-              <span className="text-slate-100 font-bold text-xl relative z-10">B</span>
-              {!reduceMotion && (
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-br from-accent-600 to-blue-500"
-                  animate={{ opacity: [0, 0.5, 0] }}
-                  transition={{ duration: 3, repeat: Infinity }}
-                />
-              )}
-            </motion.div>
+              B
+            </div>
             <span className="text-slate-100 font-bold text-lg tracking-tight hidden sm:block">
               Bharat Enterprise
             </span>
@@ -823,8 +815,8 @@ function Footer() {
           {/* Brand */}
           <div className="text-center lg:text-left">
             <div className="flex items-center justify-center lg:justify-start gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 via-blue-600 to-accent-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                <span className="text-slate-100 font-bold text-xl">B</span>
+              <div className="w-10 h-10 rounded-xl bg-blue-600 dark:bg-blue-500/15 dark:border dark:border-blue-500/30 text-white dark:text-blue-400 flex items-center justify-center font-bold text-xl shadow-xs shrink-0">
+                B
               </div>
               <span className="text-slate-100 font-bold text-lg tracking-tight">Bharat Enterprise</span>
             </div>

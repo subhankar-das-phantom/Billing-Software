@@ -578,9 +578,9 @@ export default function CustomerDetailsPage() {
         <div className="flex flex-col xl:flex-row xl:items-start gap-6">
           {/* Avatar */}
           <div
-            className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${activeTheme.gradient} flex items-center justify-center flex-shrink-0 shadow-sm relative overflow-hidden`}
+            className={`w-16 h-16 rounded-2xl border flex items-center justify-center flex-shrink-0 relative overflow-hidden font-bold text-2xl ${activeTheme.badge || 'bg-blue-500/10 dark:bg-blue-500/15 border-blue-500/25 dark:border-blue-500/30 text-blue-600 dark:text-blue-400'}`}
           >
-            <span className="text-white font-bold text-2xl relative z-10">
+            <span className="relative z-10">
               {customer.customerName?.charAt(0)?.toUpperCase()}
             </span>
           </div>
@@ -704,12 +704,12 @@ export default function CustomerDetailsPage() {
                       disabled={themeSaving}
                       aria-pressed={isSelected}
                       title={theme.label}
-                      className={`relative w-9 h-9 rounded-lg bg-gradient-to-br ${theme.gradient} shadow-lg ${theme.shadow} ring-2 ring-transparent transition-transform ${
-                        isSelected ? 'ring-white/70 scale-105' : 'hover:scale-105'
-                      } ${themeSaving ? 'opacity-70 cursor-not-allowed' : ''}`}
+                      className={`relative w-8 h-8 rounded-lg ${theme.swatch || 'bg-blue-500'} ring-2 transition-transform ${
+                        isSelected ? 'ring-blue-400 scale-105 shadow-sm' : 'ring-transparent hover:scale-105 opacity-75 hover:opacity-100'
+                      } ${themeSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                       {isSelected && (
-                        <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-white shadow-sm" />
+                        <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-white shadow-xs" />
                       )}
                     </button>
                   );

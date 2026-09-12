@@ -64,7 +64,7 @@ const SupplierCard = memo(function SupplierCard({
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3 flex-1 min-w-0">
-          <div className="w-11 h-11 rounded-xl bg-slate-800 border border-slate-700/60 flex items-center justify-center text-slate-200 font-semibold text-base shrink-0 group-hover:border-blue-500/30 group-hover:text-blue-400 group-hover:bg-slate-800/90 transition-colors">
+          <div className="w-11 h-11 rounded-xl bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-semibold text-base shrink-0 group-hover:border-blue-500/40 group-hover:bg-blue-500/20 transition-colors">
             {supplier.name?.charAt(0)?.toUpperCase()}
           </div>
 
@@ -360,7 +360,7 @@ export default function SuppliersPage() {
       <div className="glass-card p-6">
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center mb-6">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-slate-800 border border-slate-700/60 rounded-lg text-blue-400">
+            <div className="p-2.5 bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 rounded-xl text-blue-600 dark:text-blue-400">
               <Truck className="w-5 h-5" />
             </div>
             <div>

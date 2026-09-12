@@ -43,12 +43,12 @@ const formatCurrency = (amount) => {
 // Stat Card Component - Responsive & Mobile-optimized
 const StatCard = ({ icon: Icon, label, value, subValue, color = 'blue', delay = 0, isMobile = false, isFirstVisit }) => {
   const colors = {
-    blue: 'from-blue-500 to-blue-600',
-    green: 'from-green-500 to-green-600',
-    accent: 'from-accent-500 to-accent-600',
-    orange: 'from-orange-500 to-orange-600',
-    emerald: 'from-emerald-500 to-emerald-600',
-    pink: 'from-pink-500 to-pink-600'
+    blue: 'bg-blue-500/10 dark:bg-blue-500/15 border-blue-500/20 text-blue-600 dark:text-blue-400',
+    green: 'bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500/20 text-emerald-600 dark:text-emerald-400',
+    accent: 'bg-indigo-500/10 dark:bg-indigo-500/15 border-indigo-500/20 text-indigo-600 dark:text-indigo-400',
+    orange: 'bg-amber-500/10 dark:bg-amber-500/15 border-amber-500/20 text-amber-600 dark:text-amber-400',
+    emerald: 'bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500/20 text-emerald-600 dark:text-emerald-400',
+    pink: 'bg-rose-500/10 dark:bg-rose-500/15 border-rose-500/20 text-rose-600 dark:text-rose-400'
   };
 
   return (
@@ -71,8 +71,8 @@ const StatCard = ({ icon: Icon, label, value, subValue, color = 'blue', delay = 
             <p className="text-slate-500 text-[10px] sm:text-xs mt-0.5 sm:mt-1 truncate">{subValue}</p>
           )}
         </div>
-        <div className={`p-2 sm:p-2.5 md:p-3 rounded-xl bg-gradient-to-br ${colors[color]} shadow-md shrink-0`}>
-          <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-slate-100" />
+        <div className={`p-2 sm:p-2.5 md:p-3 rounded-xl border shrink-0 ${colors[color] || colors.blue}`}>
+          <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
         </div>
       </div>
     </motion.div>
@@ -148,7 +148,7 @@ const ComparisonRow = ({ employee, maxSales, isFirstVisit }) => {
       <div className="flex flex-col md:flex-row md:items-center gap-3 sm:gap-4">
         {/* Profile */}
         <div className="flex items-center gap-2.5 sm:gap-3 md:w-52 lg:w-60 min-w-0 shrink-0">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-blue-500 to-accent-600 flex items-center justify-center text-white font-bold text-sm sm:text-base shrink-0 shadow-sm">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-sm sm:text-base shrink-0">
             {employee.name?.charAt(0) || 'E'}
           </div>
           <div className="min-w-0 flex-1">

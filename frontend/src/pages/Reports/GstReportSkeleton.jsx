@@ -11,7 +11,7 @@ import { ShimmerBone } from '../../features/salesAnalytics/components/SkeletonCa
 
 /* ── Header Skeleton ─── */
 const GstHeaderSkeleton = () => (
-  <div className="glass-card p-5 sm:p-8 bg-gradient-to-br from-accent2-500/5 via-accent-500/5 to-transparent border-accent2-500/20 relative overflow-hidden">
+  <div className="glass-card p-5 sm:p-8 relative overflow-hidden">
     <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <div className="flex items-center gap-3">
         <ShimmerBone className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl" />

@@ -22,16 +22,15 @@ const GrowthBadge = ({ value, label }) => {
 
 const KPICard = ({ title, value, prefix = '', suffix = '', icon: Icon, color, growth, growthLabel }) => {
   const colors = {
-    blue: 'from-blue-500 to-blue-600 shadow-blue-500/20 text-blue-400',
-    emerald: 'from-emerald-500 to-emerald-600 shadow-emerald-500/20 text-emerald-400',
-    amber: 'from-amber-500 to-amber-600 shadow-amber-500/20 text-amber-400',
-    purple: 'from-purple-500 to-purple-600 shadow-purple-500/20 text-purple-400',
-    rose: 'from-rose-500 to-rose-600 shadow-rose-500/20 text-rose-400',
-    indigo: 'from-indigo-500 to-indigo-600 shadow-indigo-500/20 text-indigo-400',
+    blue: 'bg-blue-500/10 dark:bg-blue-500/15 border-blue-500/20 dark:border-blue-500/30 text-blue-600 dark:text-blue-400',
+    emerald: 'bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500/20 dark:border-emerald-500/30 text-emerald-600 dark:text-emerald-400',
+    amber: 'bg-amber-500/10 dark:bg-amber-500/15 border-amber-500/20 dark:border-amber-500/30 text-amber-600 dark:text-amber-400',
+    purple: 'bg-purple-500/10 dark:bg-purple-500/15 border-purple-500/20 dark:border-purple-500/30 text-purple-600 dark:text-purple-400',
+    rose: 'bg-rose-500/10 dark:bg-rose-500/15 border-rose-500/20 dark:border-rose-500/30 text-rose-600 dark:text-rose-400',
+    indigo: 'bg-indigo-500/10 dark:bg-indigo-500/15 border-indigo-500/20 dark:border-indigo-500/30 text-indigo-600 dark:text-indigo-400',
   };
 
-  const colorClasses = colors[color] || colors.blue;
-  const [bgGradient, shadow, textColor] = colorClasses.split(' ');
+  const badgeStyle = colors[color] || colors.blue;
 
   return (
     <motion.div
@@ -40,13 +39,11 @@ const KPICard = ({ title, value, prefix = '', suffix = '', icon: Icon, color, gr
       transition={{ duration: 0.4 }}
       className="glass-card p-5 relative overflow-hidden group"
     >
-      <motion.div className={`absolute inset-0 bg-gradient-to-br ${bgGradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300`} />
-      
       <div className="relative z-10">
         <div className="flex justify-between items-start mb-4">
           <p className="text-sm text-slate-400 font-medium">{title}</p>
-          <div className={`p-2 rounded-lg bg-gradient-to-br ${bgGradient} ${shadow} shadow-lg`}>
-            <Icon className="w-4 h-4 text-slate-100" />
+          <div className={`p-2 rounded-lg border ${badgeStyle}`}>
+            <Icon className="w-4 h-4" />
           </div>
         </div>
 

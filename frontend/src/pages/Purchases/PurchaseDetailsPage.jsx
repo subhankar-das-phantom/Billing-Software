@@ -160,7 +160,7 @@ export default function PurchaseDetailsPage() {
       {/* Header Card */}
       <motion.div variants={cardVariants} className="glass-card p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 transition-all">
         <div className="flex items-start md:items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 shrink-0">
+          <div className="w-14 h-14 rounded-2xl bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
             <Package className="w-7 h-7" />
           </div>
           <div>

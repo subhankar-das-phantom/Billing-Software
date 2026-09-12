@@ -83,7 +83,7 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             {/* Employee Avatar */}
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-accent-600 flex items-center justify-center text-white font-bold shadow-lg shadow-blue-500/20">
+            <div className="w-10 h-10 rounded-full bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold">
               {employee.name?.charAt(0)?.toUpperCase() || 'E'}
             </div>
             
@@ -358,8 +358,8 @@ export default function ActivityLogPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-accent-600 shadow-lg shadow-blue-500/20">
-              <Activity size={20} className="text-slate-100" />
+            <div className="p-2.5 rounded-xl bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 text-blue-600 dark:text-blue-400">
+              <Activity size={20} />
             </div>
             Activity Log
           </h1>
@@ -447,7 +447,7 @@ export default function ActivityLogPage() {
                       }}
                       className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-700/50 transition-colors text-left"
                     >
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-accent-600 flex items-center justify-center text-white font-bold text-sm">
+                      <div className="w-8 h-8 rounded-full bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-sm">
                         {emp.name?.charAt(0)?.toUpperCase()}
                       </div>
                       <div>

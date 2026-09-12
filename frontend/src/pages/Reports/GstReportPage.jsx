@@ -193,21 +193,15 @@ export default function GstReportPage() {
       {/* ─── HEADER ─── */}
       <motion.div
         variants={itemVariants}
-        className="glass-card p-5 sm:p-8 bg-gradient-to-br from-accent2-500/10 via-accent-500/10 to-transparent border-accent2-500/20 relative overflow-hidden"
+        className="glass-card p-5 sm:p-8 relative overflow-hidden"
       >
-        <motion.div
-          className="absolute inset-0 bg-gradient-to-r from-accent2-500/5 via-accent-500/5 to-transparent"
-          animate={{ x: ['-100%', '100%'] }}
-          transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
-        />
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-3">
-            <motion.div
-              className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-accent2-500 to-accent-600 shadow-lg shadow-accent2-500/20"
-              whileHover={{ scale: 1.1, rotate: 5 }}
+            <div
+              className="p-2.5 sm:p-3 rounded-xl bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 text-blue-600 dark:text-blue-400"
             >
-              <FileBarChart className="w-5 h-5 sm:w-6 sm:h-6 text-slate-100" />
-            </motion.div>
+              <FileBarChart className="w-5 h-5 sm:w-6 sm:h-6" />
+            </div>
             <div>
               <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-100">GST Report</h1>
               <p className="text-xs sm:text-sm text-slate-400 mt-0.5">Sales summary by GST slabs</p>
@@ -476,12 +470,11 @@ export default function GstReportPage() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
               {/* Total Sales */}
               <motion.div variants={itemVariants} className="glass-card p-4 sm:p-6 relative overflow-hidden group col-span-2 sm:col-span-1">
-                <motion.div className="absolute inset-0 bg-gradient-to-br from-emerald-500 to-teal-600 opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-2 sm:mb-3">
                     <p className="text-xs sm:text-sm text-slate-400 font-medium">Total Sales</p>
-                    <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/20">
-                      <IndianRupee className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-100" />
+                    <div className="p-1.5 sm:p-2 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/20 dark:border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
+                      <IndianRupee className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </div>
                   </div>
                   <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-slate-100 tracking-tight">
@@ -497,12 +490,11 @@ export default function GstReportPage() {
 
               {/* Total Invoices */}
               <motion.div variants={itemVariants} className="glass-card p-4 sm:p-6 relative overflow-hidden group">
-                <motion.div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-accent2-600 opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-2 sm:mb-3">
                     <p className="text-xs sm:text-sm text-slate-400 font-medium">Total Invoices</p>
-                    <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-br from-blue-500 to-accent2-600 shadow-lg shadow-blue-500/20">
-                      <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-100" />
+                    <div className="p-1.5 sm:p-2 rounded-lg bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 text-blue-600 dark:text-blue-400">
+                      <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </div>
                   </div>
                   <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-slate-100">{reportData.stats.totalInvoices}</p>
@@ -516,12 +508,11 @@ export default function GstReportPage() {
 
               {/* Cancelled */}
               <motion.div variants={itemVariants} className="glass-card p-4 sm:p-6 relative overflow-hidden group">
-                <motion.div className="absolute inset-0 bg-gradient-to-br from-red-500 to-rose-600 opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-2 sm:mb-3">
                     <p className="text-xs sm:text-sm text-slate-400 font-medium">Cancelled</p>
-                    <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-br from-red-500 to-rose-600 shadow-lg shadow-red-500/20">
-                      <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-100" />
+                    <div className="p-1.5 sm:p-2 rounded-lg bg-rose-500/10 dark:bg-rose-500/15 border border-rose-500/20 dark:border-rose-500/30 text-rose-600 dark:text-rose-400">
+                      <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </div>
                   </div>
                   <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-slate-100">{reportData.stats.cancelledInvoices}</p>
@@ -530,12 +521,11 @@ export default function GstReportPage() {
 
               {/* Active */}
               <motion.div variants={itemVariants} className="glass-card p-4 sm:p-6 relative overflow-hidden group">
-                <motion.div className="absolute inset-0 bg-gradient-to-br from-accent-500 to-accent-600 opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-2 sm:mb-3">
                     <p className="text-xs sm:text-sm text-slate-400 font-medium">Active</p>
-                    <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-br from-accent-500 to-accent-600 shadow-lg shadow-accent-500/20">
-                      <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-100" />
+                    <div className="p-1.5 sm:p-2 rounded-lg bg-indigo-500/10 dark:bg-indigo-500/15 border border-indigo-500/20 dark:border-indigo-500/30 text-indigo-600 dark:text-indigo-400">
+                      <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </div>
                   </div>
                   <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-slate-100">{reportData.stats.activeInvoices}</p>
