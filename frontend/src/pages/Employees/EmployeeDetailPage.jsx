@@ -14,11 +14,14 @@ import {
   Activity,
   RefreshCw,
   MapPin,
-  CreditCard
+  CreditCard,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { employeeService } from '../../services/employees/employeeService';
 import { useMotionConfig, useFirstVisit } from '../../hooks';
 import EmployeePermissionsEditor from '../../components/Employees/EmployeePermissionsEditor';
+import { EmployeeDetailPageSkeleton } from './EmployeeDetailPageSkeleton';
 
 // Format currency
 const formatCurrency = (amount) => {
@@ -70,6 +73,9 @@ export default function EmployeeDetailPage() {
   const [sessionStats, setSessionStats] = useState(null);
   const [recentActivity, setRecentActivity] = useState({ invoices: [], payments: [] });
   const [error, setError] = useState('');
+  const [showAllInvoices, setShowAllInvoices] = useState(false);
+  const [showAllPayments, setShowAllPayments] = useState(false);
+  const DISPLAY_LIMIT = 5;
 
   const fetchEmployeeDetails = async () => {
     try {
@@ -93,11 +99,7 @@ export default function EmployeeDetailPage() {
   }, [id]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <RefreshCw className="animate-spin text-blue-400" size={32} />
-      </div>
-    );
+    return <EmployeeDetailPageSkeleton />;
   }
 
   if (error || !employee) {
@@ -293,61 +295,117 @@ export default function EmployeeDetailPage() {
       {/* Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Invoices */}
-        <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-5">
-          <h3 className="text-lg font-semibold text-slate-100 mb-4 flex items-center gap-2">
-            <FileText size={20} className="text-blue-400" />
-            Recent Invoices ({recentActivity.invoices?.length || 0})
-          </h3>
+        <div className="bg-slate-900/60 rounded-xl border border-slate-800/80 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base sm:text-lg font-semibold text-slate-100 flex items-center gap-2">
+              <FileText size={18} className="text-blue-400" />
+              Recent Invoices ({recentActivity.invoices?.length || 0})
+            </h3>
+            {recentActivity.invoices?.length > DISPLAY_LIMIT && (
+              <span className="text-xs text-slate-400 font-mono">
+                Showing {showAllInvoices ? recentActivity.invoices.length : DISPLAY_LIMIT} of {recentActivity.invoices.length}
+              </span>
+            )}
+          </div>
           {recentActivity.invoices?.length > 0 ? (
-            <div className="space-y-3">
-              {recentActivity.invoices.map((inv, i) => (
-                <Link
-                  key={i}
-                  to={`/invoices/${inv._id}`}
-                  className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg hover:bg-slate-900 transition-colors"
+            <div>
+              <div className={showAllInvoices && recentActivity.invoices.length > DISPLAY_LIMIT ? "space-y-2.5 max-h-72 overflow-y-auto custom-scrollbar pr-1" : "space-y-2.5"}>
+                {(showAllInvoices ? recentActivity.invoices : recentActivity.invoices.slice(0, DISPLAY_LIMIT)).map((inv, i) => (
+                  <Link
+                    key={i}
+                    to={`/invoices/${inv._id}`}
+                    className="flex items-center justify-between p-3 bg-slate-900/80 rounded-xl border border-slate-800/60 hover:border-slate-700 transition-colors"
+                  >
+                    <div className="min-w-0 flex-1 mr-2">
+                      <p className="text-slate-100 font-medium font-mono text-sm">{inv.invoiceNumber}</p>
+                      <p className="text-xs text-slate-400 truncate">{inv.customer?.customerName}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-emerald-400 font-mono font-semibold text-sm">{formatCurrency(inv.totals?.netTotal)}</p>
+                      <p className="text-xs text-slate-500 font-mono">{formatDate(inv.invoiceDate)}</p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+              {recentActivity.invoices.length > DISPLAY_LIMIT && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllInvoices(!showAllInvoices)}
+                  className="mt-3 text-xs font-medium text-blue-400 hover:text-blue-300 flex items-center gap-1.5 transition-colors py-1.5 px-3 rounded-lg hover:bg-blue-500/10 border border-blue-500/20 active:scale-95"
                 >
-                  <div>
-                    <p className="text-slate-100 font-medium">{inv.invoiceNumber}</p>
-                    <p className="text-xs text-slate-400">{inv.customer?.customerName}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-emerald-400 font-medium">{formatCurrency(inv.totals?.netTotal)}</p>
-                    <p className="text-xs text-slate-500">{formatDate(inv.invoiceDate)}</p>
-                  </div>
-                </Link>
-              ))}
+                  {showAllInvoices ? (
+                    <>
+                      <ChevronUp size={14} />
+                      <span>Show fewer ({DISPLAY_LIMIT} items)</span>
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown size={14} />
+                      <span>Show all {recentActivity.invoices.length} invoices (+{recentActivity.invoices.length - DISPLAY_LIMIT} more)</span>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           ) : (
-            <p className="text-slate-500 text-center py-4">No invoices created yet</p>
+            <p className="text-slate-500 text-center py-4 text-sm">No invoices created yet</p>
           )}
         </div>
 
         {/* Recent Payments */}
-        <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-5">
-          <h3 className="text-lg font-semibold text-slate-100 mb-4 flex items-center gap-2">
-            <Wallet size={20} className="text-green-400" />
-            Recent Payments ({recentActivity.payments?.length || 0})
-          </h3>
+        <div className="bg-slate-900/60 rounded-xl border border-slate-800/80 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base sm:text-lg font-semibold text-slate-100 flex items-center gap-2">
+              <Wallet size={18} className="text-emerald-400" />
+              Recent Payments ({recentActivity.payments?.length || 0})
+            </h3>
+            {recentActivity.payments?.length > DISPLAY_LIMIT && (
+              <span className="text-xs text-slate-400 font-mono">
+                Showing {showAllPayments ? recentActivity.payments.length : DISPLAY_LIMIT} of {recentActivity.payments.length}
+              </span>
+            )}
+          </div>
           {recentActivity.payments?.length > 0 ? (
-            <div className="space-y-3">
-              {recentActivity.payments.map((p, i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg"
+            <div>
+              <div className={showAllPayments && recentActivity.payments.length > DISPLAY_LIMIT ? "space-y-2.5 max-h-72 overflow-y-auto custom-scrollbar pr-1" : "space-y-2.5"}>
+                {(showAllPayments ? recentActivity.payments : recentActivity.payments.slice(0, DISPLAY_LIMIT)).map((p, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between p-3 bg-slate-900/80 rounded-xl border border-slate-800/60"
+                  >
+                    <div className="min-w-0 flex-1 mr-2">
+                      <p className="text-slate-100 font-medium font-mono text-sm">{p.invoiceSnapshot?.invoiceNumber || 'Payment'}</p>
+                      <p className="text-xs text-slate-400 capitalize truncate">{p.paymentMethod}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-emerald-400 font-mono font-semibold text-sm">{formatCurrency(p.amount)}</p>
+                      <p className="text-xs text-slate-500 font-mono">{formatDate(p.paymentDate)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {recentActivity.payments.length > DISPLAY_LIMIT && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllPayments(!showAllPayments)}
+                  className="mt-3 text-xs font-medium text-emerald-400 hover:text-emerald-300 flex items-center gap-1.5 transition-colors py-1.5 px-3 rounded-lg hover:bg-emerald-500/10 border border-emerald-500/20 active:scale-95"
                 >
-                  <div>
-                    <p className="text-slate-100 font-medium">{p.invoiceSnapshot?.invoiceNumber || 'Payment'}</p>
-                    <p className="text-xs text-slate-400 capitalize">{p.paymentMethod}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-green-400 font-medium">{formatCurrency(p.amount)}</p>
-                    <p className="text-xs text-slate-500">{formatDate(p.paymentDate)}</p>
-                  </div>
-                </div>
-              ))}
+                  {showAllPayments ? (
+                    <>
+                      <ChevronUp size={14} />
+                      <span>Show fewer ({DISPLAY_LIMIT} items)</span>
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown size={14} />
+                      <span>Show all {recentActivity.payments.length} payments (+{recentActivity.payments.length - DISPLAY_LIMIT} more)</span>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           ) : (
-            <p className="text-slate-500 text-center py-4">No payments recorded yet</p>
+            <p className="text-slate-500 text-center py-4 text-sm">No payments recorded yet</p>
           )}
         </div>
       </div>
