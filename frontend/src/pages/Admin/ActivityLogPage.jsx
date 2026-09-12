@@ -103,7 +103,7 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
     : activities.productsUpdated.slice(0, DEFAULT_PRODUCT_LIMIT);
 
   return (
-    <div className="bg-slate-900/60 rounded-xl border border-slate-800/80 overflow-hidden hover:border-slate-700/80 transition-colors">
+    <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden hover:border-slate-700 transition-colors">
       {/* Header - Always visible */}
       <div 
         className={`p-4 ${hasActivities ? 'cursor-pointer' : ''}`}
@@ -590,7 +590,7 @@ export default function ActivityLogPage() {
           whileTap={{ scale: 0.98 }}
           onClick={fetchActivityLog}
           disabled={refreshing}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900/80 border border-slate-800/80 text-slate-100 hover:bg-slate-800 transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 hover:bg-slate-800 transition-colors disabled:opacity-50"
         >
           <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
           Refresh
@@ -602,7 +602,7 @@ export default function ActivityLogPage() {
         {/* Time Range */}
         <div className="flex items-center gap-2">
           <Calendar size={18} className="text-slate-400" />
-          <div className="flex rounded-xl overflow-hidden border border-slate-800/80 bg-slate-900/80 p-0.5">
+          <div className="flex rounded-xl overflow-hidden border border-slate-800 bg-slate-900 p-0.5">
             {timeRangeOptions.map(opt => (
               <button
                 key={opt.value}
@@ -633,7 +633,7 @@ export default function ActivityLogPage() {
                 setShowEmployeeDropdown(true);
               }}
               onFocus={() => setShowEmployeeDropdown(true)}
-              className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-slate-900/80 border border-slate-800/80 text-slate-100 placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-colors text-sm"
+              className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-colors text-sm"
             />
             {(selectedEmployee || employeeSearch) && (
               <button 
@@ -685,26 +685,28 @@ export default function ActivityLogPage() {
       {/* Summary Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'Sessions', value: totals.sessions, color: 'slate', icon: Clock },
-          { label: 'Invoices', value: totals.invoices, color: 'blue', icon: FileText },
-          { label: 'Payments', value: totals.payments, color: 'green', icon: Wallet },
-          { label: 'Total Sales', value: formatCurrency(totals.sales), color: 'emerald', icon: TrendingUp },
+          { label: 'Sessions', value: totals.sessions, valueClass: 'text-indigo-400', iconClass: 'text-indigo-400', iconBg: 'bg-indigo-500/10 border-indigo-500/20', icon: Clock },
+          { label: 'Invoices', value: totals.invoices, valueClass: 'text-blue-400', iconClass: 'text-blue-400', iconBg: 'bg-blue-500/10 border-blue-500/20', icon: FileText },
+          { label: 'Payments', value: totals.payments, valueClass: 'text-green-400', iconClass: 'text-green-400', iconBg: 'bg-green-500/10 border-green-500/20', icon: Wallet },
+          { label: 'Total Sales', value: formatCurrency(totals.sales), valueClass: 'text-emerald-400', iconClass: 'text-emerald-400', iconBg: 'bg-emerald-500/10 border-emerald-500/20', icon: TrendingUp },
         ].map((stat, index) => (
           <motion.div
             key={stat.label}
             initial={isFirstVisit ? (isMobile ? { opacity: 0 } : { opacity: 0, y: 20 }) : false}
             animate={{ opacity: 1, y: 0 }}
             transition={isMobile ? { duration: 0.15 } : { delay: index * 0.05 }}
-            className="bg-slate-900/60 rounded-xl p-4 border border-slate-800/80"
+            className="bg-slate-900 rounded-xl p-4 border border-slate-800"
           >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-slate-400 mb-1">{stat.label}</p>
-                <p className={`text-xl font-bold font-mono text-${stat.color === 'slate' ? 'white' : stat.color + '-400'}`}>
+                <p className={`text-xl font-bold font-mono ${stat.valueClass}`}>
                   {stat.value}
                 </p>
               </div>
-              <stat.icon size={20} className={`text-${stat.color === 'slate' ? 'slate-500' : stat.color + '-400'}`} />
+              <div className={`p-2 rounded-lg border ${stat.iconBg}`}>
+                <stat.icon size={18} className={stat.iconClass} />
+              </div>
             </div>
           </motion.div>
         ))}
@@ -712,7 +714,7 @@ export default function ActivityLogPage() {
 
       {/* Activity Log */}
       {activityLog.length === 0 ? (
-        <div className="text-center py-12 bg-slate-900/60 rounded-xl border border-slate-800/80">
+        <div className="text-center py-12 bg-slate-900 rounded-xl border border-slate-800">
           <Clock className="mx-auto text-slate-600 mb-4" size={48} />
           <h3 className="text-lg font-medium text-slate-400">No activities or sessions found</h3>
           <p className="text-slate-500 mt-1">
