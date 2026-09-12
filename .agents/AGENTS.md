@@ -39,9 +39,11 @@ This document governs all agent operations, architectural decisions, coding patt
 - **Step 2 — Update Documentation**: Update the version badge in `README.md`.
 - **Step 3 — Legal & Policy Review**: Audit `PrivacyPolicyPage.jsx`, `TermsPage.jsx`, and SaaS subscription tiers whenever changes touch authentication, telemetry, data storage, or billing.
 - **Step 4 — Build Verification**: Validate that both `npx tsc --noEmit` (backend) and `npm run build` (frontend) pass with 0 errors.
-- **Step 5 — Git Flow**:
-  - Commit to `dev`: Split into multiple granular commits as needed per purpose (`fix(...)` for bug fixes, `feat(...)` for feature/component creation, `docs(...)` for docs/changelog, `chore(...)` for rules/tooling).
-  - Merge into `master`: `git checkout master && git merge dev -m "..."` (Mandatory rich, multi-line message detailing problem, root cause, changes, new component rationale, and verification; no generic one-liners)
-  - Signed tag: `git tag -s vX.Y.Z -m "Release vX.Y.Z - ..."`
-  - Push to remote: `git push origin dev; git push origin master; git push origin vX.Y.Z`
-- **Step 6 — Post-Versioning Release Notes**: Always generate and present a comprehensive, copy-paste-ready GitHub Release Note immediately after versioning, tagging, and pushing. The release note must detail the release version, title, operational problem/motivation, root cause analysis, categorized changes (Frontend, Backend, Compliance, DevOps), modified files, verification status, and direct GitHub release link.
+- **Step 5 — Git Flow & Production Merge Gate**:
+  - **Dev Only by Default**: Split into multiple granular commits as needed per purpose (`fix(...)`, `feat(...)`, `docs(...)`, `chore(...)`) on `dev` and push **strictly to `dev`** (`git push origin dev`).
+  - **Production Merge Gate (`master` is Production)**: NEVER merge into `master`, NEVER create version tags, and NEVER push `master` unless the user explicitly commands **"merge"** (or gives unambiguous approval to merge to production). Without the explicit "merge" command, stop after pushing to `dev`.
+  - **Upon Explicit "merge" Command Only**:
+    - Merge into `master`: `git checkout master && git merge dev -m "..."` (Mandatory rich, multi-line message detailing problem, root cause, changes, new component rationale, and verification; no generic one-liners)
+    - Signed tag: `git tag -s vX.Y.Z -m "Release vX.Y.Z - ..."`
+    - Push production to remote: `git push origin master; git push origin vX.Y.Z`
+- **Step 6 — Post-Versioning Release Notes**: When `master` is merged, tagged, and pushed, generate and present a comprehensive, copy-paste-ready GitHub Release Note immediately. The release note must detail the release version, title, operational problem/motivation, root cause analysis, categorized changes (Frontend, Backend, Compliance, DevOps), modified files, verification status, and direct GitHub release link.

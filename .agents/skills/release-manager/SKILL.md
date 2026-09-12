@@ -33,36 +33,57 @@ cd backend; npx tsc --noEmit
 cd frontend; npm run build
 ```
 
-### Step 5: Git Flow & Signed Tagging
-Execute the standard release sequence:
+### Step 5: Git Flow, Production Gate & Signed Tagging
 
+> [!CAUTION]
+> **PRODUCTION MERGE GATE (`master` is Production):**
+> - You may **ONLY** commit and push to `dev` (`git push origin dev`).
+> - **DO NOT merge into `master` or create version tags** unless the user explicitly commands **"merge"** (or gives unambiguous approval to merge into production).
+> - If the user has not said **"merge"**, stop after pushing to `dev` and inform the user that changes are committed and pushed to `dev`, ready for testing.
+
+Execute the release flow in two strictly gated phases:
+
+#### Phase 5A: Commit & Push to `dev` (Always Executed)
 - **Multiple Purpose-Driven Commits on `dev`**: Split changes into granular commits on `dev` grouped by purpose (`fix(...)` for bug fixes, `feat(...)` for new feature creation or components, `docs(...)` for documentation/changelogs, `chore(...)` for rule or configuration updates) rather than a single monolithic commit.
+
+```powershell
+# 1. Ensure on dev branch
+git checkout dev
+
+# 2. Stage & commit fixes:
+git add <fix-files>
+git commit -m "fix(<scope>): <description>"
+
+# 3. Stage & commit creations / new features:
+git add <feature-files>
+git commit -m "feat(<scope>): <description>"
+
+# 4. Stage & commit documentation:
+git add CHANGELOG.md README.md <doc-files>
+git commit -m "docs(<scope>): <description>"
+
+# 5. Stage & commit chores/agents:
+git add .agents/
+git commit -m "chore(agents): <description>"
+
+# 6. Push to dev ONLY
+git push origin dev
+```
+
+*🛑 STOP HERE unless the user has explicitly said **"merge"**.*
+
+---
+
+#### Phase 5B: Production Merge, Tagging & Release Push (`master`) — ONLY upon explicit "merge" command
 
 > [!IMPORTANT]
 > **Mandatory Descriptive Merge Commits**: Every merge into `master` must use a multi-line, structured commit message detailing the problem, root cause, changes, rationale for any new additions, files modified, and verification results. Never use generic one-liners.
 
 ```powershell
-# 1. Commit on dev (split into multiple commits if needed per purpose: fix, feat, docs, chore)
-git checkout dev
-
-# Stage & commit fixes:
-git add <fix-files>
-git commit -m "fix(<scope>): <description>"
-
-# Stage & commit creations / new features:
-git add <feature-files>
-git commit -m "feat(<scope>): <description>"
-
-# Stage & commit documentation:
-git add CHANGELOG.md README.md <doc-files>
-git commit -m "docs(<scope>): <description>"
-
-# Stage & commit chores/agents:
-git add .agents/
-git commit -m "chore(agents): <description>"
-
-# 2. Merge into master with rich descriptive context
+# 1. Checkout master
 git checkout master
+
+# 2. Merge dev into master with rich descriptive context
 git merge dev -m "<type>(<scope>): merge vX.Y.Z — <Title> into master`n`n### 🎯 Problem & Motivation`n- Explanation of what broke, what was missing, or what capability was requested.`n`n### 🔍 Root Cause Analysis`n- Technical breakdown of why the bug or limitation occurred.`n`n### 🛠️ Key Changes & Architectural Decisions`n- Detailed summary of fixes and enhancements.`n- If new components or files are added, explain WHY they were introduced.`n`n### 📁 Key Files Modified`n- path/to/file1.jsx: Specific modifications`n- path/to/file2.ts: Specific modifications`n`n### ✅ Verification & Quality Assurance`n- Build checks (npm run build): PASS`n- Test results and verification summary"
 
 # 3. Create cryptographically signed tag
@@ -71,8 +92,8 @@ git tag -s vX.Y.Z -m "Release vX.Y.Z - <Title>"
 # 4. Return to working branch (dev)
 git checkout dev
 
-# 5. Push to GitHub
-git push origin dev; git push origin master; git push origin vX.Y.Z
+# 5. Push production branch and tag to remote
+git push origin master; git push origin vX.Y.Z
 ```
 
 ---
