@@ -339,8 +339,8 @@ export default function PurchasesPage() {
                   {stat.value}
                 </p>
               </div>
-              <div className={`p-3 rounded-xl ${stat.bgColor} transition-transform group-hover:rotate-[360deg] group-hover:scale-110 duration-700`}>
-                <stat.icon className={`w-6 h-6 ${stat.iconColor}`} />
+              <div className="p-2.5 rounded-lg bg-slate-800 text-slate-400 group-hover:text-slate-200 border border-slate-700/60 transition-colors">
+                <stat.icon className={`w-5 h-5 ${stat.iconColor}`} />
               </div>
             </div>
           </div>
@@ -351,8 +351,8 @@ export default function PurchasesPage() {
       <div className="glass-card p-6 relative z-10">
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center mb-6">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-500/20 rounded-lg transition-transform hover:rotate-[360deg] duration-700">
-              <ShoppingBag className="w-5 h-5 text-blue-400" />
+            <div className="p-2.5 bg-slate-800 border border-slate-700/60 rounded-lg text-blue-400">
+              <ShoppingBag className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -536,9 +536,9 @@ export default function PurchasesPage() {
 
                           <div>
                             <div className="flex items-center gap-2">
-                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-slate-100 text-xs font-bold shadow-lg ${
-                                isCancelled ? 'bg-rose-500/20 text-rose-400 shadow-rose-500/20' : 'bg-gradient-to-br from-blue-500 to-teal-600 shadow-blue-500/30'
-                              }`}>
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-semibold border ${
+                                isCancelled ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-slate-800 text-slate-200 border-slate-700/60 group-hover:text-blue-400 group-hover:border-blue-500/30'
+                              } transition-colors shrink-0`}>
                                 {purchase.supplierId?.name ? purchase.supplierId.name.charAt(0).toUpperCase() : 'S'}
                               </div>
                               <div className="min-w-0">

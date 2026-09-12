@@ -62,9 +62,9 @@ const CustomerCard = memo(function CustomerCard({
     >
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3 flex-1 min-w-0">
-          <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${theme.gradient} flex items-center justify-center relative overflow-hidden shadow-lg ${theme.shadow} flex-shrink-0`}>
-            <span className="text-slate-100 font-bold text-lg">
-              {customer.customerName?.charAt(0)}
+          <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${theme.gradient} flex items-center justify-center relative overflow-hidden shadow-sm flex-shrink-0`}>
+            <span className="text-white font-bold text-base">
+              {customer.customerName?.charAt(0)?.toUpperCase()}
             </span>
           </div>
 

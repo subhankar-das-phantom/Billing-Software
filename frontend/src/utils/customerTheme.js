@@ -2,44 +2,44 @@ export const CUSTOMER_THEMES = [
   {
     id: 'blue',
     label: 'Blue',
-    gradient: 'from-blue-500 to-accent2-600',
-    hoverGradient: 'from-accent2-600 to-blue-500',
-    shadow: 'shadow-blue-500/30'
+    gradient: 'from-blue-600 to-indigo-700',
+    hoverGradient: 'from-blue-500 to-indigo-600',
+    shadow: 'shadow-sm'
   },
   {
     id: 'emerald',
     label: 'Emerald',
-    gradient: 'from-emerald-500 to-teal-600',
-    hoverGradient: 'from-teal-600 to-emerald-500',
-    shadow: 'shadow-emerald-500/30'
+    gradient: 'from-emerald-600 to-teal-700',
+    hoverGradient: 'from-emerald-500 to-teal-600',
+    shadow: 'shadow-sm'
   },
   {
     id: 'teal',
     label: 'Teal',
-    gradient: 'from-accent-500 to-accent2-600',
-    hoverGradient: 'from-accent2-600 to-accent-500',
-    shadow: 'shadow-accent-500/30'
+    gradient: 'from-teal-600 to-cyan-700',
+    hoverGradient: 'from-teal-500 to-cyan-600',
+    shadow: 'shadow-sm'
   },
   {
     id: 'amber',
     label: 'Amber',
-    gradient: 'from-amber-500 to-orange-600',
-    hoverGradient: 'from-orange-600 to-amber-500',
-    shadow: 'shadow-amber-500/30'
+    gradient: 'from-amber-600 to-amber-700',
+    hoverGradient: 'from-amber-500 to-amber-600',
+    shadow: 'shadow-sm'
   },
   {
     id: 'rose',
     label: 'Rose',
-    gradient: 'from-rose-500 to-pink-600',
-    hoverGradient: 'from-pink-600 to-rose-500',
-    shadow: 'shadow-rose-500/30'
+    gradient: 'from-rose-600 to-rose-700',
+    hoverGradient: 'from-rose-500 to-rose-600',
+    shadow: 'shadow-sm'
   },
   {
     id: 'cyan',
     label: 'Cyan',
-    gradient: 'from-cyan-500 to-sky-600',
-    hoverGradient: 'from-sky-600 to-cyan-500',
-    shadow: 'shadow-cyan-500/30'
+    gradient: 'from-sky-600 to-blue-700',
+    hoverGradient: 'from-sky-500 to-blue-600',
+    shadow: 'shadow-sm'
   }
 ];
 

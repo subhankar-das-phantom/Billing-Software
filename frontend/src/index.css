@@ -28,11 +28,11 @@
    ═══════════════════════════════════════════ */
 html.light {
   /* ── Canvas & Surface Inversion ── */
-  --color-slate-950: #f1f5f9; /* cool, crisp slate-100 canvas (distinct from white cards) */
+  --color-slate-950: #f8fafc; /* canvas: soft, modern slate-50 (harmonious, cohesive) */
   --color-slate-900: #ffffff; /* primary card & surface background */
   --color-slate-850: #f8fafc; /* subtle inner panel / nested surface */
-  --color-slate-800: #f8fafc; /* secondary surface, table zebra, input hover */
-  --color-slate-700: #e2e8f0; /* primary borders & dividers */
+  --color-slate-800: #f1f5f9; /* secondary surface, table zebra, input hover */
+  --color-slate-700: #e2e8f0; /* primary borders & dividers (soft slate-200) */
   --color-slate-600: #cbd5e1; /* secondary borders */
   --color-slate-500: #64748b; /* muted labels */
   --color-slate-400: #475569; /* secondary text (WCAG AA compliant > 5:1 contrast) */
@@ -155,7 +155,7 @@ html.dark {
   html.light .glass-card {
     background-color: #ffffff !important;
     border: 1px solid #e2e8f0 !important;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.02) !important;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.02) !important;
   }
 
   /* Stat Cards */
@@ -166,7 +166,7 @@ html.dark {
   html.light .stat-card {
     background-color: #ffffff !important;
     border: 1px solid #e2e8f0 !important;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.02) !important;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.02) !important;
   }
 
   /* Modal Styles */
@@ -177,21 +177,21 @@ html.dark {
   html.light .modal {
     background-color: #ffffff !important;
     border: 1px solid #e2e8f0 !important;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04) !important;
   }
 
   /* ═══════════════════════════════════════════
-     LIGHT MODE: Canvas & Card Depth System
-     Ensures cards never blend into the canvas and
-     maintain crisp hierarchy, depth, and borders.
+     CANVAS & CARD HARMONY SYSTEM (Light & Dark)
+     Provides clean structural clarity without harsh separation,
+     excessive borders, or disjointed floating boxes.
      ═══════════════════════════════════════════ */
   html.light main {
-    background: #f1f5f9 !important;
+    background: #f8fafc !important;
   }
 
   /* Main background gradient reset in light mode (Auth, Dashboard) */
   html.light .bg-gradient-to-br.from-slate-950.via-slate-900.to-slate-950 {
-    background: #f1f5f9 !important;
+    background: #f8fafc !important;
   }
 
   /* Universal Card Elevation in Light Mode */
@@ -200,22 +200,32 @@ html.dark {
   html.light [class*="bg-slate-800"].rounded-xl,
   html.light [class*="bg-slate-800"].rounded-2xl {
     background-color: #ffffff;
-    border-color: #e2e8f0;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.02);
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.02);
   }
 
-  /* Universal Crisp Borders in Light Mode */
-  html.light [class*="border-slate-800"]:not(table):not(thead):not(tbody):not(tr) {
-    border-color: #e2e8f0;
+  html.light .glass-card:hover,
+  html.light [class*="bg-slate-900"].rounded-xl:hover,
+  html.light [class*="bg-slate-900"].rounded-2xl:hover,
+  html.light [class*="bg-slate-800"].rounded-xl:hover,
+  html.light [class*="bg-slate-800"].rounded-2xl:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.03);
   }
-  html.light [class*="border-slate-700"]:not(table):not(thead):not(tbody):not(tr) {
-    border-color: #e2e8f0;
+
+  /* Universal Card Elevation in Dark Mode */
+  html.dark .glass-card,
+  html.dark .stat-card {
+    background-color: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.25);
   }
-  html.light tr[class*="border-slate-800"],
-  html.light tr[class*="border-slate-700"],
-  html.light thead[class*="border-slate-800"],
-  html.light thead[class*="border-slate-700"] {
-    border-color: #e2e8f0;
+
+  html.dark [class*="bg-slate-900"].rounded-xl,
+  html.dark [class*="bg-slate-900"].rounded-2xl,
+  html.dark [class*="bg-slate-800"].rounded-xl,
+  html.dark [class*="bg-slate-800"].rounded-2xl {
+    border-color: rgba(255, 255, 255, 0.07);
   }
 
   /* ═══════════════════════════════════════════

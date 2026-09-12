@@ -312,8 +312,8 @@ export default function InvoicesPage() {
                   {stat.value}
                 </p>
               </div>
-              <div className={`p-3 rounded-xl ${stat.bgColor} transition-transform group-hover:rotate-[360deg] group-hover:scale-110 duration-700`}>
-                <stat.icon className={`w-6 h-6 ${stat.iconColor}`} />
+              <div className="p-2.5 rounded-lg bg-slate-800 text-slate-400 group-hover:text-slate-200 border border-slate-700/60 transition-colors">
+                <stat.icon className={`w-5 h-5 ${stat.iconColor}`} />
               </div>
             </div>
           </div>
@@ -324,8 +324,8 @@ export default function InvoicesPage() {
       <div className="glass-card p-6">
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center mb-6">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-500/20 rounded-lg transition-transform hover:rotate-[360deg] duration-700">
-              <FileText className="w-5 h-5 text-blue-400" />
+            <div className="p-2.5 bg-slate-800 border border-slate-700/60 rounded-lg text-blue-400">
+              <FileText className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -505,7 +505,7 @@ export default function InvoicesPage() {
                               <div>
                                 <div className="flex items-center gap-2">
                                   <div
-                                    className={`w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-lg ${isCancelled ? 'bg-red-500/20 text-red-400 shadow-red-500/20' : 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/30'}`}
+                                    className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-semibold border ${isCancelled ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-slate-800 text-slate-200 border-slate-700/60 group-hover:text-emerald-400 group-hover:border-emerald-500/30'} transition-colors`}
                                   >
                                     {invoice.customer?.customerName?.charAt(0)}
                                   </div>

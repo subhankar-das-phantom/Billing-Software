@@ -577,21 +577,13 @@ export default function CustomerDetailsPage() {
       <motion.div variants={itemVariants} className={`glass-card p-6 ${customer.isActive === false ? 'opacity-90 border-red-500/30 grayscale-[0.2]' : ''}`}>
         <div className="flex flex-col xl:flex-row xl:items-start gap-6">
           {/* Avatar */}
-          <motion.div
-            className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${activeTheme.gradient} flex items-center justify-center flex-shrink-0 shadow-lg ${activeTheme.shadow} relative overflow-hidden`}
-            whileHover={{ scale: 1.05, rotate: 5 }}
-            transition={{ type: 'spring', stiffness: 400 }}
+          <div
+            className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${activeTheme.gradient} flex items-center justify-center flex-shrink-0 shadow-sm relative overflow-hidden`}
           >
-            <span className="text-slate-100 font-bold text-3xl relative z-10">
-              {customer.customerName?.charAt(0)}
+            <span className="text-white font-bold text-2xl relative z-10">
+              {customer.customerName?.charAt(0)?.toUpperCase()}
             </span>
-            <motion.div
-              className={`absolute inset-0 bg-gradient-to-br ${activeTheme.hoverGradient}`}
-              initial={{ scale: 0, opacity: 0 }}
-              whileHover={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.3 }}
-            />
-          </motion.div>
+          </div>
 
           {/* Customer Details */}
           <div className="flex-1">
