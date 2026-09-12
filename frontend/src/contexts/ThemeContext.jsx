@@ -63,15 +63,22 @@ export function ThemeProvider({ children }) {
 
   const isDark = theme === 'dark';
 
-  // Apply class to document.documentElement
+  // Apply class to document.documentElement & synchronize meta theme-color
   useEffect(() => {
     const root = document.documentElement;
-    if (theme === 'light') {
+    const isLight = theme === 'light';
+    if (isLight) {
       root.classList.remove('dark');
       root.classList.add('light');
     } else {
       root.classList.remove('light');
       root.classList.add('dark');
+    }
+
+    // Dynamic browser status bar color (Safari / Chrome mobile & desktop PWA)
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute('content', isLight ? '#f8fafc' : '#020617');
     }
   }, [theme]);
 
