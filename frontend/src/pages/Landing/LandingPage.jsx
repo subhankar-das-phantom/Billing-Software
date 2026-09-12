@@ -160,7 +160,7 @@ function FloatingNav({ reduceMotion, isLoggedIn }) {
               whileHover={reduceMotion ? undefined : { scale: 1.1, rotate: 5 }}
               className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 via-blue-600 to-accent-600 flex items-center justify-center shadow-lg shadow-blue-500/30 group-hover:shadow-blue-500/50 transition-shadow relative overflow-hidden"
             >
-              <span className="text-white font-bold text-xl relative z-10">B</span>
+              <span className="text-slate-100 font-bold text-xl relative z-10">B</span>
               {!reduceMotion && (
                 <motion.div
                   className="absolute inset-0 bg-gradient-to-br from-accent-600 to-blue-500"
@@ -169,7 +169,7 @@ function FloatingNav({ reduceMotion, isLoggedIn }) {
                 />
               )}
             </motion.div>
-            <span className="text-white font-bold text-lg tracking-tight hidden sm:block">
+            <span className="text-slate-100 font-bold text-lg tracking-tight hidden sm:block">
               Bharat Enterprise
             </span>
           </button>
@@ -180,7 +180,7 @@ function FloatingNav({ reduceMotion, isLoggedIn }) {
               <button
                 key={l.id}
                 onClick={() => navClick(l.id)}
-                className="relative text-slate-400 hover:text-white transition-colors text-sm font-medium bg-transparent border-none cursor-pointer group py-1"
+                className="relative text-slate-400 hover:text-slate-100 transition-colors text-sm font-medium bg-transparent border-none cursor-pointer group py-1"
               >
                 {l.label}
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-accent-500 group-hover:w-full transition-all duration-300 rounded-full" />
@@ -197,7 +197,7 @@ function FloatingNav({ reduceMotion, isLoggedIn }) {
               </Link>
             ) : (
               <>
-                <Link to="/login" className="text-sm font-medium text-slate-300 hover:text-white transition-colors no-underline">
+                <Link to="/login" className="text-sm font-medium text-slate-300 hover:text-slate-100 transition-colors no-underline">
                   Sign In
                 </Link>
                 <Link to="/register" className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-accent2-600 rounded-xl hover:from-blue-500 hover:to-accent2-500 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all no-underline">
@@ -211,7 +211,7 @@ function FloatingNav({ reduceMotion, isLoggedIn }) {
           {/* Mobile burger */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="lg:hidden p-2 text-slate-400 hover:text-white transition-colors bg-transparent border-none cursor-pointer"
+            className="lg:hidden p-2 text-slate-400 hover:text-slate-100 transition-colors bg-transparent border-none cursor-pointer"
             aria-label="Toggle menu"
           >
             {mobileOpen ? <X size={24} /> : <Menu size={24} />}
@@ -234,7 +234,7 @@ function FloatingNav({ reduceMotion, isLoggedIn }) {
                 <button
                   key={l.id}
                   onClick={() => navClick(l.id)}
-                  className="block w-full text-left py-3.5 text-slate-300 hover:text-white transition-colors font-medium text-base bg-transparent border-none cursor-pointer rounded-lg hover:bg-slate-800/50 px-3"
+                  className="block w-full text-left py-3.5 text-slate-300 hover:text-slate-100 transition-colors font-medium text-base bg-transparent border-none cursor-pointer rounded-lg hover:bg-slate-800/50 px-3"
                 >
                   {l.label}
                 </button>
@@ -246,7 +246,7 @@ function FloatingNav({ reduceMotion, isLoggedIn }) {
                   </Link>
                 ) : (
                   <>
-                    <Link to="/login" className="block text-center py-3 text-slate-300 hover:text-white font-medium border border-slate-700 rounded-xl no-underline transition-colors">
+                    <Link to="/login" className="block text-center py-3 text-slate-300 hover:text-slate-100 font-medium border border-slate-700 rounded-xl no-underline transition-colors">
                       Sign In
                     </Link>
                     <Link to="/register" className="block text-center py-3 text-white font-semibold bg-gradient-to-r from-blue-600 to-accent2-600 rounded-xl shadow-lg shadow-blue-500/25 no-underline">
@@ -297,7 +297,7 @@ function HeroSection({ reduceMotion, isLoggedIn }) {
               </Link>
               <Link
                 to="/login"
-                className="inline-flex items-center gap-2 px-8 py-4 text-base font-semibold text-slate-300 border border-slate-700 rounded-xl hover:border-slate-500 hover:text-white hover:bg-slate-800/50 transition-all no-underline"
+                className="inline-flex items-center gap-2 px-8 py-4 text-base font-semibold text-slate-300 border border-slate-700 rounded-xl hover:border-slate-500 hover:text-slate-100 hover:bg-slate-800/50 transition-all no-underline"
               >
                 Sign In
               </Link>
@@ -388,7 +388,7 @@ function FeaturesSection({ reduceMotion }) {
             <Layers className="w-3.5 h-3.5" />
             Powerful Features
           </span>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight mb-5">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-100 tracking-tight mb-5">
             Everything you need to{' '}
             <span className="bg-gradient-to-r from-blue-400 to-accent-400 bg-clip-text text-transparent">
               run your business
@@ -414,9 +414,9 @@ function FeaturesSection({ reduceMotion }) {
 
                 <div className="relative z-10">
                   <div className={`inline-flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-br ${f.color} mb-6 shadow-lg`}>
-                    <f.icon className="w-7 h-7 text-white" />
+                    <f.icon className="w-7 h-7 text-slate-100" />
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-3">{f.title}</h3>
+                  <h3 className="text-xl font-bold text-slate-100 mb-3">{f.title}</h3>
                   <p className="text-slate-400 leading-relaxed text-[15px]">{f.desc}</p>
                 </div>
               </motion.div>
@@ -468,7 +468,7 @@ function HowItWorksSection({ reduceMotion }) {
             <Rocket className="w-3.5 h-3.5" />
             Quick Setup
           </span>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight mb-5">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-100 tracking-tight mb-5">
             Get started in{' '}
             <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
               minutes
@@ -496,13 +496,13 @@ function HowItWorksSection({ reduceMotion }) {
                     whileHover={reduceMotion ? undefined : { scale: 1.15, rotate: 10 }}
                     className={`relative w-[88px] h-[88px] rounded-2xl bg-gradient-to-br ${s.color} flex items-center justify-center shadow-2xl`}
                   >
-                    <s.icon className="w-10 h-10 text-white" />
-                    <span className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-slate-900 border-2 border-slate-700 flex items-center justify-center text-xs font-bold text-white">
+                    <s.icon className="w-10 h-10 text-slate-100" />
+                    <span className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-slate-900 border-2 border-slate-700 flex items-center justify-center text-xs font-bold text-slate-100">
                       {s.num}
                     </span>
                   </motion.div>
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3">{s.title}</h3>
+                <h3 className="text-xl font-bold text-slate-100 mb-3">{s.title}</h3>
                 <p className="text-slate-400 leading-relaxed max-w-sm mx-auto lg:mx-0">{s.desc}</p>
               </div>
             </StaggerCard>
@@ -535,7 +535,7 @@ function StatsSection({ reduceMotion }) {
             <TrendingUp className="w-3.5 h-3.5" />
             Built for Daily Use
           </span>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight mb-5">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-100 tracking-tight mb-5">
             Designed for{' '}
             <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
               real shop owners
@@ -550,7 +550,7 @@ function StatsSection({ reduceMotion }) {
           {stats.map((s, i) => (
             <StaggerCard key={s.label} index={i} reduceMotion={reduceMotion}>
               <div className="text-center p-6 lg:p-8 rounded-2xl bg-slate-900/80 backdrop-blur-md border border-slate-700/50 hover:border-slate-600/70 hover:bg-slate-800/90 transition-colors">
-                <p className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-2 tracking-tight">
+                <p className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-100 mb-2 tracking-tight">
                   <AnimatedStat value={s.value} suffix={s.suffix} prefix={s.prefix || ''} reduceMotion={reduceMotion} />
                 </p>
                 <p className="text-sm font-semibold text-slate-300 mb-1">{s.label}</p>
@@ -589,7 +589,7 @@ function WhyChooseSection({ reduceMotion }) {
             <Heart className="w-3.5 h-3.5" />
             Why Bharat Enterprise
           </span>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight mb-5">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-100 tracking-tight mb-5">
             Built for{' '}
             <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">
               real businesses
@@ -612,7 +612,7 @@ function WhyChooseSection({ reduceMotion }) {
                   <r.icon className={`w-6 h-6 ${r.color}`} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white mb-1.5">{r.title}</h3>
+                  <h3 className="text-lg font-bold text-slate-100 mb-1.5">{r.title}</h3>
                   <p className="text-sm text-slate-400 leading-relaxed">{r.desc}</p>
                 </div>
               </motion.div>
@@ -684,7 +684,7 @@ function PricingSection({ reduceMotion, isLoggedIn }) {
             <IndianRupee className="w-3.5 h-3.5" />
             Simple Pricing
           </span>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight mb-5">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-100 tracking-tight mb-5">
             Plans that grow with{' '}
             <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
               your business.
@@ -717,11 +717,11 @@ function PricingSection({ reduceMotion, isLoggedIn }) {
               )}
 
               <div className="p-8 sm:p-10 flex-1 flex flex-col">
-                <h3 className="text-xl font-bold text-white mb-2">{plan.name}</h3>
+                <h3 className="text-xl font-bold text-slate-100 mb-2">{plan.name}</h3>
                 <p className="text-sm text-slate-400 mb-6 min-h-[40px]">{plan.desc}</p>
                 
                 <div className="flex items-baseline gap-1 mb-8">
-                  <span className="text-5xl font-extrabold text-white">₹{plan.price}</span>
+                  <span className="text-5xl font-extrabold text-slate-100">₹{plan.price}</span>
                   <span className="text-slate-400 font-medium">/month</span>
                 </div>
 
@@ -742,8 +742,8 @@ function PricingSection({ reduceMotion, isLoggedIn }) {
                   to={isLoggedIn ? '/settings/subscription' : '/register'}
                   className={`flex items-center justify-center gap-2 w-full py-3.5 text-sm font-semibold rounded-xl transition-all no-underline ${
                     plan.popular 
-                      ? 'bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-500 hover:to-accent-400 text-white shadow-lg shadow-accent-500/25' 
-                      : 'bg-slate-700 hover:bg-slate-600 text-white'
+                      ? 'bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-500 hover:to-accent-400 text-slate-100 shadow-lg shadow-accent-500/25' 
+                      : 'bg-slate-700 hover:bg-slate-600 text-slate-100'
                   }`}
                 >
                   {isLoggedIn ? 'Upgrade Plan' : 'Start Free Trial'}
@@ -787,7 +787,7 @@ function CTASection({ reduceMotion, isLoggedIn }) {
       )}
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight mb-6">
+        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-100 tracking-tight mb-6">
           Your billing,{' '}
           <br className="hidden sm:block" />
           <span className={`bg-gradient-to-r from-blue-400 via-accent-400 to-blue-400 bg-clip-text text-transparent ${reduceMotion ? '' : 'bg-[length:200%_auto] animate-[gradient-shift_4s_ease_infinite]'}`}>
@@ -824,9 +824,9 @@ function Footer() {
           <div className="text-center lg:text-left">
             <div className="flex items-center justify-center lg:justify-start gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 via-blue-600 to-accent-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                <span className="text-white font-bold text-xl">B</span>
+                <span className="text-slate-100 font-bold text-xl">B</span>
               </div>
-              <span className="text-white font-bold text-lg tracking-tight">Bharat Enterprise</span>
+              <span className="text-slate-100 font-bold text-lg tracking-tight">Bharat Enterprise</span>
             </div>
             <p className="text-slate-300 text-sm max-w-xs leading-relaxed">
               Fast billing, accurate stock, and clear customer balances — built for Indian shop owners and distributors.
@@ -837,19 +837,19 @@ function Footer() {
           <div className="flex flex-wrap justify-center gap-8 text-sm">
             <div className="space-y-3">
               <p className="font-semibold text-slate-300">Product</p>
-              <button onClick={() => scrollToSection('features')} className="block text-slate-400 hover:text-white transition-colors bg-transparent border-none cursor-pointer p-0">Features</button>
-              <button onClick={() => scrollToSection('pricing')} className="block text-slate-400 hover:text-white transition-colors bg-transparent border-none cursor-pointer p-0">Pricing</button>
-              <button onClick={() => scrollToSection('how-it-works')} className="block text-slate-400 hover:text-white transition-colors bg-transparent border-none cursor-pointer p-0">How It Works</button>
+              <button onClick={() => scrollToSection('features')} className="block text-slate-400 hover:text-slate-100 transition-colors bg-transparent border-none cursor-pointer p-0">Features</button>
+              <button onClick={() => scrollToSection('pricing')} className="block text-slate-400 hover:text-slate-100 transition-colors bg-transparent border-none cursor-pointer p-0">Pricing</button>
+              <button onClick={() => scrollToSection('how-it-works')} className="block text-slate-400 hover:text-slate-100 transition-colors bg-transparent border-none cursor-pointer p-0">How It Works</button>
             </div>
             <div className="space-y-3">
               <p className="font-semibold text-slate-300">Account</p>
-              <Link to="/login" className="block text-slate-400 hover:text-white transition-colors no-underline">Sign In</Link>
-              <Link to="/register" className="block text-slate-400 hover:text-white transition-colors no-underline">Register</Link>
+              <Link to="/login" className="block text-slate-400 hover:text-slate-100 transition-colors no-underline">Sign In</Link>
+              <Link to="/register" className="block text-slate-400 hover:text-slate-100 transition-colors no-underline">Register</Link>
             </div>
             <div className="space-y-3">
               <p className="font-semibold text-slate-300">Legal</p>
-              <Link to="/privacy-policy" className="block text-slate-400 hover:text-white transition-colors no-underline">Privacy Policy</Link>
-              <Link to="/terms" className="block text-slate-400 hover:text-white transition-colors no-underline">Terms & Conditions</Link>
+              <Link to="/privacy-policy" className="block text-slate-400 hover:text-slate-100 transition-colors no-underline">Privacy Policy</Link>
+              <Link to="/terms" className="block text-slate-400 hover:text-slate-100 transition-colors no-underline">Terms & Conditions</Link>
             </div>
           </div>
         </div>
@@ -924,7 +924,7 @@ export default function LandingPage() {
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
   return (
-    <div className="min-h-screen bg-slate-950 overflow-x-hidden relative">
+    <div className="dark min-h-screen bg-slate-950 text-slate-100 overflow-x-hidden relative">
       {/* ── Full-page background: tiered rendering ── */}
       {/* Desktop: 3D scroll-reactive galaxy (lazy-loaded, fixed behind all content) */}
       {/* Mobile/reduced-motion: CSS gradient orbs only (no Three.js downloaded) */}

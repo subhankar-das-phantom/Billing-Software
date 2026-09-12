@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { resolveBreadcrumbs } from './navigationConfig';
+import ThemeToggle from '../Common/Buttons/ThemeToggle';
 
 export default function Header({
   onToggleSidebar,
@@ -83,7 +84,7 @@ export default function Header({
           <button
             type="button"
             onClick={onToggleSidebar}
-            className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 active:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 shrink-0"
+            className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-100 hover:bg-slate-800/80 active:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 shrink-0"
             aria-label={
               isDesktop
                 ? isSidebarCollapsed
@@ -143,7 +144,7 @@ export default function Header({
             </nav>
 
             {/* Current Page Title */}
-            <h1 className="text-sm sm:text-base font-semibold text-white tracking-tight truncate leading-tight">
+            <h1 className="text-sm sm:text-base font-semibold text-slate-100 tracking-tight truncate leading-tight">
               {title}
             </h1>
           </div>
@@ -171,6 +172,9 @@ export default function Header({
             {formattedDate}
           </div>
 
+          {/* Theme Toggle Button */}
+          <ThemeToggle />
+
           {/* User Profile Dropdown */}
           <div className="relative" ref={profileDropdownRef}>
             <button
@@ -181,7 +185,7 @@ export default function Header({
               aria-label="User menu"
             >
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center shadow-md text-white font-semibold text-xs shrink-0 ${
+                className={`w-8 h-8 rounded-full flex items-center justify-center shadow-md text-slate-100 font-semibold text-xs shrink-0 ${
                   isAdmin
                     ? 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/20'
                     : 'bg-gradient-to-br from-blue-500 to-accent-600 shadow-blue-500/20'
@@ -191,7 +195,7 @@ export default function Header({
               </div>
 
               <div className="hidden xl:block text-left min-w-0 max-w-[130px]">
-                <p className="text-xs font-medium text-white truncate leading-tight">
+                <p className="text-xs font-medium text-slate-100 truncate leading-tight">
                   {displayName}
                 </p>
                 <p className="text-[10px] text-slate-400 truncate">
@@ -220,7 +224,7 @@ export default function Header({
                   {/* Profile Header */}
                   <div className="p-3 border-b border-slate-800">
                     <div className="flex items-center gap-2">
-                      <p className="text-xs font-semibold text-white truncate">
+                      <p className="text-xs font-semibold text-slate-100 truncate">
                         {displayName}
                       </p>
                       {isAdmin && (
@@ -247,7 +251,7 @@ export default function Header({
                           className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
                             location.pathname === '/subscription'
                               ? 'bg-blue-500/20 text-blue-400'
-                              : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                              : 'text-slate-300 hover:bg-slate-800 hover:text-slate-100'
                           }`}
                         >
                           <CreditCard size={15} />
@@ -263,7 +267,7 @@ export default function Header({
                           className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
                             location.pathname === '/referral'
                               ? 'bg-blue-500/20 text-blue-400'
-                              : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                              : 'text-slate-300 hover:bg-slate-800 hover:text-slate-100'
                           }`}
                         >
                           <Gift size={15} />
@@ -279,7 +283,7 @@ export default function Header({
                           className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
                             location.pathname === '/settings'
                               ? 'bg-blue-500/20 text-blue-400'
-                              : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                              : 'text-slate-300 hover:bg-slate-800 hover:text-slate-100'
                           }`}
                         >
                           <Settings size={15} />
@@ -287,6 +291,11 @@ export default function Header({
                         </button>
                       </>
                     )}
+
+                    <div className="flex items-center justify-between px-3 py-1.5 border-t border-slate-800/80 my-1 text-xs text-slate-300">
+                      <span className="font-medium">Theme</span>
+                      <ThemeToggle />
+                    </div>
 
                     <button
                       type="button"

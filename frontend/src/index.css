@@ -22,6 +22,43 @@
   /* cyan-600 */
 }
 
+/* ═══════════════════════════════════════════
+   THEME PALETTE: Light Mode Inversion
+   Remaps Tailwind v4 Slate CSS variables when html.light is active
+   ═══════════════════════════════════════════ */
+html.light {
+  --color-slate-950: #f8fafc; /* canvas background */
+  --color-slate-900: #ffffff; /* primary card & surface background */
+  --color-slate-800: #f1f5f9; /* secondary surface, table zebra, input hover */
+  --color-slate-700: #e2e8f0; /* primary borders & dividers */
+  --color-slate-600: #cbd5e1; /* secondary borders */
+  --color-slate-500: #64748b; /* muted labels */
+  --color-slate-400: #475569; /* secondary text (WCAG AA compliant > 5:1 contrast) */
+  --color-slate-300: #334155; /* body / subtle text */
+  --color-slate-200: #1e293b; /* prominent text */
+  --color-slate-100: #0f172a; /* titles & subheadings */
+  --color-slate-50:  #020617; /* boldest headings */
+
+  color-scheme: light;
+}
+
+.dark,
+html.dark {
+  --color-slate-950: #020617;
+  --color-slate-900: #0f172a;
+  --color-slate-800: #1e293b;
+  --color-slate-700: #334155;
+  --color-slate-600: #475569;
+  --color-slate-500: #64748b;
+  --color-slate-400: #94a3b8;
+  --color-slate-300: #cbd5e1;
+  --color-slate-200: #e2e8f0;
+  --color-slate-100: #f1f5f9;
+  --color-slate-50:  #f8fafc;
+
+  color-scheme: dark;
+}
+
 /* Base Styles & CSS Variables */
 @layer base {
   :root {
@@ -52,26 +89,27 @@
   }
 
   body {
-    @apply bg-slate-950 text-slate-50 antialiased;
+    @apply bg-slate-950 text-slate-100 antialiased;
     font-feature-settings: 'rlig' 1, 'calt' 1;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
-  /* Ensure all text is visible by default */
+  /* Ensure all text is visible and adaptive by default */
   h1,
   h2,
   h3,
   h4,
   h5,
   h6 {
-    @apply text-white;
+    @apply text-slate-100;
   }
 
   p {
-    @apply text-slate-200;
+    @apply text-slate-300;
   }
 
   a {
-    @apply text-blue-400 hover:text-blue-300;
+    @apply text-blue-500 hover:text-blue-400;
   }
 
   /* Glass Card Effect */
@@ -79,14 +117,26 @@
     @apply bg-slate-800/80 backdrop-blur-xl border border-slate-700/50 rounded-xl shadow-2xl overflow-visible;
   }
 
+  html.light .glass-card {
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
+  }
+
   /* Stat Cards */
   .stat-card {
     @apply bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700/50 shadow-lg;
   }
 
+  html.light .stat-card {
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  }
+
   /* Modal Styles */
   .modal {
     @apply bg-slate-800/95 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl p-6;
+  }
+
+  html.light .modal {
+    box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.15);
   }
 
   .modal-header {
@@ -102,11 +152,11 @@
     @apply w-12 h-12 border-4 border-slate-700 border-t-blue-500 rounded-full animate-spin;
   }
 
-  /* Input Fields - ensure text is visible */
+  /* Input Fields - ensure text is adaptive and visible */
   input,
   textarea,
   select {
-    @apply bg-slate-800 text-white placeholder-slate-400 border-slate-700;
+    @apply bg-slate-800 text-slate-100 placeholder-slate-400 border-slate-700;
   }
 
   input:focus,
@@ -117,7 +167,7 @@
 
   /* Custom Input Class for Styled Inputs */
   .input {
-    @apply w-full px-4 py-3 bg-slate-800/80 text-white placeholder-slate-400 border border-slate-700/50 rounded-lg transition-all duration-200;
+    @apply w-full px-4 py-3 bg-slate-800/80 text-slate-100 placeholder-slate-400 border border-slate-700/50 rounded-lg transition-all duration-200;
   }
 
   .input:focus {
@@ -130,7 +180,7 @@
 
   /* Custom Select Class for Styled Selects */
   .select {
-    @apply px-4 py-3 bg-slate-800/80 text-white border border-slate-700/50 rounded-lg transition-all duration-200 cursor-pointer;
+    @apply px-4 py-3 bg-slate-800/80 text-slate-100 border border-slate-700/50 rounded-lg transition-all duration-200 cursor-pointer;
   }
 
   .select:focus {
@@ -142,7 +192,7 @@
   }
 
   .select option {
-    @apply bg-slate-800 text-white;
+    @apply bg-slate-800 text-slate-100;
   }
 
   /* Buttons - ensure text is visible */
@@ -232,9 +282,9 @@
     .customer-invoices-table th:first-child,
     .customer-invoices-table td:first-child {
       left: 0;
-      background: rgb(30 41 59);
-      border-right: 1px solid rgba(51, 65, 85, 0.8);
-      box-shadow: 6px 0 10px -8px rgba(2, 6, 23, 0.95);
+      background: var(--color-slate-800);
+      border-right: 1px solid var(--color-slate-700);
+      box-shadow: 4px 0 10px -6px rgba(0, 0, 0, 0.3);
     }
 
     .customer-invoices-table th:first-child {
@@ -244,12 +294,20 @@
 
   /* Labels */
   label {
-    @apply text-slate-300 font-medium;
+    @apply text-slate-400 font-medium;
   }
 
-  /* Fix any black text issues */
-  .text-black {
+  /* Fix any black text issues in dark mode only */
+  html.dark .text-black {
     @apply !text-white;
+  }
+  html.light .text-black {
+    color: #000000 !important;
+  }
+
+  /* Safety guard in light mode: any unmigrated plain text-white defaults to dark slate */
+  html.light .text-white:not([class*="bg-"]):not([class*="btn-"]):not([class*="badge-"]):not([class*="toast"]):not([class*="from-"]) {
+    color: var(--color-slate-900) !important;
   }
 
   /* Scrollbar styling */

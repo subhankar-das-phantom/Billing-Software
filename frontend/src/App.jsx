@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { lazy, Suspense, useEffect } from 'react';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider, useAuth, AdminRoute } from './contexts/AuthContext';
 import { SubscriptionProvider, useSubscription } from './contexts/SubscriptionContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -80,13 +81,13 @@ function ProtectedRoute({ children }) {
           <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-6 border border-red-500/30">
             <ShieldAlert className="w-8 h-8 text-red-500" />
           </div>
-          <h2 className="text-2xl font-bold text-white mb-4">Access Restricted</h2>
+          <h2 className="text-2xl font-bold text-slate-100 mb-4">Access Restricted</h2>
           <p className="text-slate-400 mb-8">
             {user.firmName ? `${user.firmName}'s` : "Your firm's"} subscription does not include employee access. Please ask your administrator to upgrade to the Professional plan to use this account.
           </p>
           <button
             onClick={logout}
-            className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 text-white rounded-xl transition-colors font-medium border border-slate-700 hover:border-slate-600"
+            className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-100 rounded-xl transition-colors font-medium border border-slate-700 hover:border-slate-600"
           >
             <LogOut size={18} />
             Sign Out
@@ -328,13 +329,15 @@ function AppRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
-      <ToastProvider>
-        <AuthProvider>
-          <SubscriptionProvider>
-            <AppRoutes />
-          </SubscriptionProvider>
-        </AuthProvider>
-      </ToastProvider>
+      <ThemeProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <SubscriptionProvider>
+              <AppRoutes />
+            </SubscriptionProvider>
+          </AuthProvider>
+        </ToastProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }
