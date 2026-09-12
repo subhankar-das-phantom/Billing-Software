@@ -268,7 +268,7 @@ export default function ManualEntryModal({
                             key={customer._id}
                             type="button"
                             onClick={() => handleSelectCustomer(customer)}
-                            className="w-full px-4 py-2.5 text-left hover:bg-slate-100 dark:hover:bg-slate-800/80 flex justify-between items-center border-b border-slate-200/80 dark:border-slate-800/80 last:border-0 transition-colors"
+                            className="search-dropdown-item py-2.5 flex justify-between items-center"
                           >
                             <span className="text-slate-900 dark:text-slate-100 font-medium">{customer.customerName}</span>
                             <span className="text-slate-500 dark:text-slate-400 text-sm">{customer.phone}</span>

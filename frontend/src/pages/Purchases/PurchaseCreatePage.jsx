@@ -743,11 +743,10 @@ export default function PurchaseCreatePage() {
                       e.stopPropagation();
                       handleSupplierSelect(supplier);
                     }}
-                    className="w-full px-4 py-3 text-left hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors first:rounded-t-xl last:rounded-b-xl border-b border-slate-200/80 dark:border-slate-800/80 last:border-0"
+                    className="search-dropdown-item"
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.02 }}
-                    whileHover={{ x: 4 }}
                   >
                     <div className="flex justify-between items-center gap-4">
                       <div>
@@ -932,11 +931,10 @@ export default function PurchaseCreatePage() {
                         e.stopPropagation();
                         handleProductSelect(product);
                       }}
-                      className="w-full px-4 py-3 text-left hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors first:rounded-t-xl last:rounded-b-xl border-b border-slate-200/80 dark:border-slate-800/80 last:border-0"
+                      className="search-dropdown-item"
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.02 }}
-                      whileHover={{ x: 4 }}
                     >
                       <div className="flex justify-between items-center gap-4">
                         <div className="flex-1 min-w-0">
