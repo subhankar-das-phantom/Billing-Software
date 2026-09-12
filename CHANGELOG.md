@@ -4,6 +4,35 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.4.1](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.4.1) — 2026-09-12 — Dashboard Card Separation, Universal Elevation, Invoice Web Share & Accessible UI Polish
+
+### 🎨 Enterprise Card Elevation, Universal Separation & High-Contrast Light Mode
+Version 2.4.1 is a targeted visual clarity and functionality patch addressing card-to-canvas separation across all dashboards and entity views, fixing the non-functional invoice Share button, eliminating white-on-white text in KPI statistics, and polishing drag affordance cursors across the floating calculator system.
+
+---
+
+### 🖼️ Universal Card Elevation & Surface Contrast (`index.css`, `ThemeContext.jsx`)
+- **Light Mode Canvas & Border Inversion** — Remapped light canvas `--color-slate-950` to `#f1f5f9` (crisp slate-100) and card borders `--color-slate-800` to `#e2e8f0` (slate-200). Previously, `--color-slate-800` resolved to `#f1f5f9` (identical to the canvas), causing cards using `border border-slate-800` across dashboards and list views to blend invisibly into the background.
+- **Universal Card Elevation Rules** — Configured `.glass-card`, `.stat-card`, and `[class*="bg-slate-900"].rounded-*` elements with dedicated elevation:
+  - **Light Mode**: Solid `#ffffff` card surface, `#e2e8f0` boundary borders, and soft drop shadows (`0 1px 3px rgba(0,0,0,0.06)`).
+  - **Dark Mode**: Solid `#141417` card surface on `#09090b` obsidian canvas, crisp `#282933` borders, and dark drop shadows (`0 2px 4px rgba(0,0,0,0.45)`).
+- **Theme Synchronization (`ThemeContext.jsx`)** — Synchronized browser status bar `meta[name="theme-color"]` (`#f1f5f9` light / `#09090b` dark) and Recharts tooltip colors (`#141417` with `#333440` borders).
+
+---
+
+### 📤 Invoice Web Share & Instant Clipboard Fallback (`InvoiceViewPage.jsx`)
+- **Native Web Share Integration** — Wired the previously dormant "Share" button to `navigator.share` with structured payload (invoice number, customer name, formatted total, and direct URL), enabling native OS sharing via WhatsApp, Email, Messages, and AirDrop on mobile and supported desktop browsers.
+- **Dual-Layer Clipboard Fallback** — Implemented modern `navigator.clipboard.writeText` with legacy `document.execCommand('copy')` fallback for non-secure contexts.
+- **Micro-Interaction State** — Displays an instant success toast (`Invoice link copied to clipboard!`) and temporarily transitions the button icon to `<Check className="text-emerald-400" />` and label to `Copied` for 2.5 seconds.
+
+---
+
+### 🎯 High-Contrast Sessions Stat & Calculator Cursor Polish (`ActivityLogPage.jsx`, `CalculatorWidget.jsx`, `CalculatorDock.jsx`, `index.css`)
+- **Sessions KPI Stat Accessibility (`ActivityLogPage.jsx`, `index.css`)** — Replaced raw dynamic template string that generated unreadable `text-white` on light cards with explicit semantic tokens (`text-indigo-400` with icon container `bg-indigo-500/10 border-indigo-500/20`), backed by accessible `--color-indigo-400: #4f46e5;` in light mode.
+- **Canonical Move Cursors (`CalculatorWidget.jsx`, `CalculatorDock.jsx`)** — Replaced `cursor-grab` with standard window drag affordance `cursor-move` on widget headers and `cursor-pointer` on dock buttons, eliminating the jarring white cartoon hand cursor on Windows Chromium.
+
+---
+
 ## [v2.4.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.4.0) — 2026-09-12 — Pro UI/UX Obsidian Dark Palette, Mobile Manual Entries Cards, Activity Log DOM Virtualization & Zero-CLS Skeletons
 
 ### 💎 Senior Enterprise UI & High-Performance Virtualization Milestone
