@@ -762,13 +762,9 @@ export default function ProductsPage() {
       <motion.div variants={cardVariants} className="glass-card p-6">
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center mb-6">
           <div className="flex items-center gap-3">
-            <motion.div
-              className="p-2 bg-blue-500/20 rounded-lg"
-              whileHover={{ rotate: 360 }}
-              transition={{ duration: 0.6 }}
-            >
-              <Package className="w-5 h-5 text-blue-400" />
-            </motion.div>
+            <div className="p-2.5 bg-slate-800 border border-slate-700/60 rounded-lg text-blue-400">
+              <Package className="w-5 h-5" />
+            </div>
             <div>
               <h2 className="text-xl font-semibold text-slate-100">All Products</h2>
               <p className="text-sm text-slate-400">

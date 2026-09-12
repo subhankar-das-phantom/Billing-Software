@@ -170,13 +170,9 @@ const ExportModal = ({
             <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-6 text-white">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <motion.div
-                    className="p-2 bg-white/20 rounded-lg"
-                    whileHover={{ rotate: 360 }}
-                    transition={{ duration: 0.6 }}
-                  >
+                  <div className="p-2.5 bg-white/15 rounded-lg text-white">
                     <Download className="w-6 h-6" />
-                  </motion.div>
+                  </div>
                   <div>
                     <h2 className="text-2xl font-bold">Export {entityType}</h2>
                     <p className="text-emerald-100 text-sm">Choose format {showDateRange && 'and date range'}</p>

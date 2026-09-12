@@ -1910,13 +1910,9 @@ export default function InvoiceCreatePage() {
       >
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <motion.div
-              className="p-2 bg-blue-500/20 rounded-lg"
-              whileHover={{ rotate: 360 }}
-              transition={{ duration: 0.6 }}
-            >
-              <User className="w-5 h-5 text-blue-400" />
-            </motion.div>
+            <div className="p-2.5 bg-slate-800 border border-slate-700/60 rounded-lg text-blue-400">
+              <User className="w-5 h-5" />
+            </div>
             <h2 className="text-lg font-semibold text-slate-100">
               Customer Details
             </h2>
@@ -2048,25 +2044,13 @@ export default function InvoiceCreatePage() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
-              className="mt-4 p-4 rounded-xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/30 relative overflow-hidden"
+              className="mt-4 p-4 rounded-xl bg-slate-800/50 border border-slate-700/60 relative overflow-hidden"
             >
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-transparent"
-                animate={{ x: ["-100%", "100%"] }}
-                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-              />
-
               <div className="relative z-10 flex items-start justify-between">
                 <div className="flex items-start gap-3">
-                  <motion.div
-                    className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/30"
-                    whileHover={{ rotate: 360, scale: 1.1 }}
-                    transition={{ duration: 0.6 }}
-                  >
-                    <span className="text-slate-100 font-bold text-lg">
-                      {selectedCustomer.customerName.charAt(0)}
-                    </span>
-                  </motion.div>
+                  <div className="w-11 h-11 rounded-xl bg-slate-800 border border-slate-700/60 flex items-center justify-center text-slate-200 font-bold text-base shadow-xs shrink-0">
+                    {selectedCustomer.customerName.charAt(0)?.toUpperCase()}
+                  </div>
                   <div>
                     <p className="font-medium text-slate-100">
                       {selectedCustomer.customerName}
@@ -2106,13 +2090,9 @@ export default function InvoiceCreatePage() {
         className="glass-card p-6 relative z-40"
       >
         <div className="flex items-center gap-3 mb-6">
-          <motion.div
-            className="p-2 bg-accent-500/20 rounded-lg"
-            whileHover={{ rotate: 360 }}
-            transition={{ duration: 0.6 }}
-          >
-            <ShoppingCart className="w-5 h-5 text-accent-400" />
-          </motion.div>
+          <div className="p-2.5 bg-slate-800 border border-slate-700/60 rounded-lg text-blue-400">
+            <ShoppingCart className="w-5 h-5" />
+          </div>
           <h2 className="text-lg font-semibold text-slate-100">Add Products</h2>
           {invoiceItems.length > 0 && (
             <>

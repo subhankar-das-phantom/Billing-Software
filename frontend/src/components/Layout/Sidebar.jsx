@@ -85,7 +85,7 @@ const SidebarNavItem = memo(
               : 'px-3.5 py-2.5 my-0.5'
           } ${
             isActive
-              ? 'bg-gradient-to-r from-blue-600/20 to-accent-600/20 border border-blue-500/30 text-blue-400 font-semibold shadow-sm'
+              ? 'bg-blue-500/15 border border-blue-500/25 text-blue-400 font-semibold'
               : isLocked
               ? 'text-slate-400/90 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
               : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 border border-transparent'
@@ -95,7 +95,7 @@ const SidebarNavItem = memo(
           {isActive && (
             <motion.div
               layoutId={isMobile ? undefined : 'sidebarActiveIndicator'}
-              className="absolute left-0 w-1 h-5 bg-gradient-to-b from-blue-400 to-accent-400 rounded-r-full"
+              className="absolute left-0 w-1 h-5 bg-blue-500 rounded-r-full"
               transition={{ type: 'spring', stiffness: 400, damping: 30 }}
             />
           )}
@@ -223,8 +223,8 @@ export default function Sidebar({
           title="Bharat Enterprise"
         >
           {/* Logo Badge */}
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-accent-600 flex items-center justify-center shadow-lg shadow-blue-500/20 shrink-0 group-hover:scale-105 transition-transform duration-200">
-            <span className="text-slate-100 font-bold text-base">B</span>
+          <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-base shadow-xs shrink-0">
+            B
           </div>
 
           {/* Brand Name (Expanded/Mobile) */}
@@ -323,13 +323,7 @@ export default function Sidebar({
           <div className="space-y-2.5">
             {/* User Profile Card */}
             <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-800/40 border border-slate-700/40">
-              <div
-                className={`w-9 h-9 rounded-full flex items-center justify-center shadow-md shrink-0 text-slate-100 font-semibold text-sm ${
-                  isAdmin
-                    ? 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/20'
-                    : 'bg-gradient-to-br from-blue-500 to-accent-600 shadow-blue-500/20'
-                }`}
-              >
+              <div className="w-9 h-9 rounded-full flex items-center justify-center bg-slate-800 border border-slate-700/60 shrink-0 text-slate-200 font-semibold text-sm shadow-xs">
                 {userInitial}
               </div>
 
@@ -370,11 +364,7 @@ export default function Sidebar({
           /* Collapsed Rail Footer Mode */
           <div className="flex flex-col items-center gap-2">
             <div
-              className={`w-9 h-9 rounded-full flex items-center justify-center shadow-md text-slate-100 font-semibold text-sm cursor-default ${
-                isAdmin
-                  ? 'bg-gradient-to-br from-emerald-500 to-teal-600'
-                  : 'bg-gradient-to-br from-blue-500 to-accent-600'
-              }`}
+              className="w-9 h-9 rounded-full flex items-center justify-center bg-slate-800 border border-slate-700/60 text-slate-200 font-semibold text-sm cursor-default shadow-xs"
               title={`${displayName} (${displayEmail})`}
             >
               {userInitial}

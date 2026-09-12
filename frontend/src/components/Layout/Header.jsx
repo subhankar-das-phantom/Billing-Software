@@ -184,13 +184,7 @@ export default function Header({
               aria-expanded={profileOpen}
               aria-label="User menu"
             >
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center shadow-md text-slate-100 font-semibold text-xs shrink-0 ${
-                  isAdmin
-                    ? 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/20'
-                    : 'bg-gradient-to-br from-blue-500 to-accent-600 shadow-blue-500/20'
-                }`}
-              >
+              <div className="w-8 h-8 rounded-full flex items-center justify-center bg-slate-800 border border-slate-700/60 text-slate-200 font-semibold text-xs shrink-0 shadow-xs">
                 {userInitial}
               </div>
 

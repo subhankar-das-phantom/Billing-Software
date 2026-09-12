@@ -672,13 +672,9 @@ export default function PurchaseCreatePage() {
       <motion.div variants={cardVariants} className="glass-card p-6 relative z-20">
         <div className="flex items-center justify-between gap-3 mb-6">
           <div className="flex items-center gap-3">
-            <motion.div 
-              className="p-2 bg-blue-500/20 rounded-lg"
-              whileHover={{ rotate: 360 }}
-              transition={{ duration: 0.6 }}
-            >
-              <Truck className="w-5 h-5 text-blue-400" />
-            </motion.div>
+            <div className="p-2.5 bg-slate-800 border border-slate-700/60 rounded-lg text-blue-400">
+              <Truck className="w-5 h-5" />
+            </div>
             <h2 className="text-lg font-semibold text-slate-100">Supplier Information</h2>
           </div>
 
@@ -856,13 +852,9 @@ export default function PurchaseCreatePage() {
       {/* Product Selection Card */}
       <motion.div variants={cardVariants} className="glass-card p-6 relative z-10">
         <div className="flex items-center gap-3 mb-6">
-          <motion.div 
-            className="p-2 bg-accent-500/20 rounded-lg"
-            whileHover={{ rotate: 360 }}
-            transition={{ duration: 0.6 }}
-          >
-            <ShoppingCart className="w-5 h-5 text-accent-400" />
-          </motion.div>
+          <div className="p-2.5 bg-slate-800 border border-slate-700/60 rounded-lg text-blue-400">
+            <ShoppingCart className="w-5 h-5" />
+          </div>
           <h2 className="text-lg font-semibold text-slate-100">Add Purchased Items</h2>
           {items.length > 0 && (
             <>

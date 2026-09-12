@@ -212,49 +212,8 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-      {/* Animated Background Gradients - Only on desktop */}
-      {!shouldReduceMotion && (
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <motion.div
-            animate={{
-              y: [0, -20, 0],
-              opacity: [0.5, 0.8, 0.5],
-              scale: [1, 1.1, 1],
-              transition: { duration: 5, repeat: Infinity, ease: 'easeInOut' }
-            }}
-            className="absolute -top-40 -right-40 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl"
-          />
-          <motion.div
-            animate={{
-              y: [0, 20, 0],
-              opacity: [0.5, 0.8, 0.5],
-              scale: [1, 1.2, 1],
-              transition: { duration: 7, repeat: Infinity, ease: 'easeInOut', delay: 1 }
-            }}
-            className="absolute -bottom-40 -left-40 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl"
-          />
-          <motion.div
-            animate={{
-              y: [0, -15, 0],
-              opacity: [0.3, 0.6, 0.3],
-              scale: [1, 1.15, 1],
-              transition: { duration: 6, repeat: Infinity, ease: 'easeInOut', delay: 2 }
-            }}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-accent-500/10 rounded-full blur-3xl"
-          />
-        </div>
-      )}
-
-      {/* Static gradient background for mobile */}
-      {shouldReduceMotion && (
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl" />
-          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl" />
-        </div>
-      )}
-
-      {/* Animated Grid Background - CSS only, no JS animation */}
-      <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:50px_50px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]" />
+      {/* Crisp Subtle Grid Background */}
+      <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_75%_50%_at_50%_50%,black,transparent)]" />
 
       {/* Register Card */}
       <motion.div
@@ -263,65 +222,23 @@ export default function RegisterPage() {
         animate="visible"
         className="relative w-full max-w-lg z-10"
       >
-        <motion.div
-          className="glass-card p-8 md:p-10 shadow-2xl border border-white/10 backdrop-blur-xl bg-slate-900/80 relative overflow-hidden"
-          whileHover={shouldReduceMotion ? undefined : { boxShadow: '0 25px 50px -12px rgba(16, 185, 129, 0.3)' }}
-          transition={{ duration: 0.3 }}
-        >
-          {/* Card Shimmer Effect - Only on desktop */}
-          {!shouldReduceMotion && (
-            <motion.div
-              className="absolute inset-0 pointer-events-none bg-gradient-to-r from-transparent via-white/5 to-transparent"
-              animate={{ x: ['-100%', '100%'], transition: { duration: 2, repeat: Infinity, ease: 'linear' } }}
-            />
-          )}
-
+        <div className="glass-card p-8 md:p-10 shadow-xl border border-slate-700/60 relative overflow-hidden">
           {/* Logo Section */}
           <motion.div variants={itemVariants} className="text-center mb-6">
-            <motion.div
-              className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 mb-4 shadow-lg shadow-emerald-500/50 relative overflow-hidden"
-              whileHover={shouldReduceMotion ? undefined : { 
-                scale: 1.1, 
-                rotate: 360,
-                boxShadow: '0 20px 40px -15px rgba(16, 185, 129, 0.6)'
-              }}
-              transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-            >
-              {/* Pulsing gradient - Only on desktop */}
-              {!shouldReduceMotion && (
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-br from-teal-600 to-emerald-500"
-                  animate={{ scale: [1, 1.2, 1], opacity: [0, 0.5, 0] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                />
-              )}
-              <UserPlus className="w-10 h-10 text-slate-100 relative z-10" />
-              {!shouldReduceMotion && (
-                <motion.div
-                  className="absolute -top-1 -right-1"
-                  animate={{ scale: [1, 1.2, 1], opacity: [1, 0.5, 1] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                >
-                  <Sparkles className="w-4 h-4 text-yellow-300" />
-                </motion.div>
-              )}
-              {shouldReduceMotion && (
-                <div className="absolute -top-1 -right-1">
-                  <Sparkles className="w-4 h-4 text-yellow-300" />
-                </div>
-              )}
-            </motion.div>
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-blue-600 mb-4 shadow-sm text-white font-bold text-2xl">
+              <UserPlus className="w-7 h-7 text-white" />
+            </div>
 
             <motion.div variants={itemVariants}>
-              <h1 className="text-3xl font-bold text-slate-100 mb-2 tracking-tight bg-gradient-to-r from-white via-emerald-100 to-white bg-clip-text text-transparent">
+              <h1 className="text-2xl sm:text-3xl font-bold text-slate-100 mb-2 tracking-tight">
                 Create Account
               </h1>
-              <p className="text-slate-400 font-medium flex items-center justify-center gap-2">
-                <Shield className="w-4 h-4" />
+              <p className="text-slate-400 font-medium flex items-center justify-center gap-2 text-sm">
+                <Shield className="w-4 h-4 text-blue-500" />
                 Join Bharat Enterprise
               </p>
               {refCode && (
-                <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
+                <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-medium">
                   <Sparkles className="w-3.5 h-3.5" />
                   Referral code '{refCode}' applied!
                 </div>
@@ -438,18 +355,14 @@ export default function RegisterPage() {
             </motion.div>
 
             {/* Submit Button */}
-            <motion.button
-              variants={itemVariants}
-              whileHover={shouldReduceMotion ? undefined : { scale: 1.02, y: -2 }}
-              whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}
+            <button
               type="submit"
               disabled={loading}
-              className="btn w-full py-3.5 font-semibold shadow-lg shadow-emerald-500/30 relative overflow-hidden group bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-lg mt-6"
+              className="btn btn-primary w-full py-3 font-semibold shadow-xs relative overflow-hidden group mt-6"
             >
               <span className="relative z-10 flex items-center justify-center gap-2">
                 {loading ? (
                   <>
-                    {/* Use CSS animation instead of Framer Motion for spinner */}
                     <Loader2 className="w-5 h-5 animate-spin" />
                     <span>Creating account...</span>
                   </>
@@ -461,7 +374,7 @@ export default function RegisterPage() {
                   </>
                 )}
               </span>
-            </motion.button>
+            </button>
           </form>
 
           {/* Login Link */}
@@ -473,7 +386,7 @@ export default function RegisterPage() {
               Already have an account?{' '}
               <Link 
                 to="/login" 
-                className="relative z-20 inline-flex items-center text-emerald-400 hover:text-emerald-300 font-medium transition-colors"
+                className="relative z-20 inline-flex items-center text-blue-400 hover:text-blue-300 font-medium transition-colors"
               >
                 Sign in here
               </Link>
@@ -501,30 +414,7 @@ export default function RegisterPage() {
               ← Back to Home
             </Link>
           </motion.div>
-        </motion.div>
-
-        {/* Floating Particles - Only on desktop */}
-        {!shouldReduceMotion && [...Array(5)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-1 h-1 bg-emerald-400/30 rounded-full pointer-events-none"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`
-            }}
-            animate={{
-              y: [0, -30, 0],
-              opacity: [0, 1, 0],
-              scale: [0, 1, 0]
-            }}
-            transition={{
-              duration: 3 + Math.random() * 2,
-              repeat: Infinity,
-              delay: i * 0.5,
-              ease: 'easeInOut'
-            }}
-          />
-        ))}
+        </div>
       </motion.div>
     </div>
   );

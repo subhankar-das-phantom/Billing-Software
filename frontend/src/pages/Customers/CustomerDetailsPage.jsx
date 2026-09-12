@@ -722,24 +722,11 @@ export default function CustomerDetailsPage() {
           {/* Stats Cards */}
           <div className="flex flex-wrap lg:flex-nowrap gap-4">
             {/* Total Purchases */}
-            <motion.div
-              className="text-center px-6 py-4 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:border-emerald-500/50 transition-colors group relative overflow-hidden"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.5, type: 'spring', stiffness: 200 }}
-              whileHover={{ scale: 1.05, y: -5 }}
-            >
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
-              />
-              <motion.div
-                className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-emerald-500/20 mb-2"
-                whileHover={{ rotate: 360 }}
-                transition={{ duration: 0.6 }}
-              >
+            <div className="text-center px-6 py-4 rounded-xl bg-slate-800/50 border border-slate-700/60">
+              <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-slate-800 border border-slate-700/60 mb-2">
                 <DollarSign className="w-5 h-5 text-emerald-400" />
-              </motion.div>
-              <p className="text-2xl font-bold text-emerald-400 mb-1">
+              </div>
+              <p className="text-2xl font-bold text-slate-100 mb-1">
                 <AnimatedCounter 
                   value={customer.totalPurchases || 0} 
                   prefix="₹"
@@ -747,42 +734,17 @@ export default function CustomerDetailsPage() {
                 />
               </p>
               <p className="text-sm text-slate-400">Total Purchases</p>
-            </motion.div>
+            </div>
 
             {/* Outstanding Balance */}
-            <motion.div
-              className={`text-center px-6 py-4 rounded-xl bg-slate-800/50 border transition-colors group relative overflow-hidden ${
-                summary.balance > 0 
-                  ? 'border-amber-500/50 hover:border-amber-400' 
-                  : 'border-slate-700/50 hover:border-emerald-500/50'
-              }`}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.55, type: 'spring', stiffness: 200 }}
-              whileHover={{ scale: 1.05, y: -5 }}
-            >
-              <motion.div
-                className={`absolute inset-0 bg-gradient-to-br ${
-                  summary.balance > 0 
-                    ? 'from-amber-500/10' 
-                    : 'from-emerald-500/10'
-                } to-transparent opacity-0 group-hover:opacity-100 transition-opacity`}
-              />
-              <motion.div
-                className={`inline-flex items-center justify-center w-10 h-10 rounded-full mb-2 ${
-                  summary.balance > 0 
-                    ? 'bg-amber-500/20' 
-                    : 'bg-emerald-500/20'
-                }`}
-                whileHover={{ rotate: 360 }}
-                transition={{ duration: 0.6 }}
-              >
+            <div className="text-center px-6 py-4 rounded-xl bg-slate-800/50 border border-slate-700/60">
+              <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-slate-800 border border-slate-700/60 mb-2">
                 <Wallet className={`w-5 h-5 ${
                   summary.balance > 0 
                     ? 'text-amber-400' 
                     : 'text-emerald-400'
                 }`} />
-              </motion.div>
+              </div>
               <p className={`text-2xl font-bold mb-1 ${
                 summary.balance > 0 
                   ? 'text-amber-400' 
@@ -795,31 +757,18 @@ export default function CustomerDetailsPage() {
                 />
               </p>
               <p className="text-sm text-slate-400">Outstanding</p>
-            </motion.div>
+            </div>
 
             {/* Invoices Count */}
-            <motion.div
-              className="text-center px-6 py-4 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:border-blue-500/50 transition-colors group relative overflow-hidden"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.6, type: 'spring', stiffness: 200 }}
-              whileHover={{ scale: 1.05, y: -5 }}
-            >
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
-              />
-              <motion.div
-                className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-blue-500/20 mb-2"
-                whileHover={{ rotate: 360 }}
-                transition={{ duration: 0.6 }}
-              >
+            <div className="text-center px-6 py-4 rounded-xl bg-slate-800/50 border border-slate-700/60">
+              <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-slate-800 border border-slate-700/60 mb-2">
                 <FileText className="w-5 h-5 text-blue-400" />
-              </motion.div>
-              <p className="text-2xl font-bold text-blue-400 mb-1">
+              </div>
+              <p className="text-2xl font-bold text-slate-100 mb-1">
                 <AnimatedCounter value={customer.invoiceCount || 0} />
               </p>
               <p className="text-sm text-slate-400">Invoices</p>
-            </motion.div>
+            </div>
           </div>
         </div>
       </motion.div>
