@@ -236,28 +236,20 @@ export default function CreditsPage() {
 
   const colorClasses = {
     amber: {
-      bg: 'bg-amber-500/20',
-      text: 'text-amber-400',
-      border: 'border-amber-500/50',
-      glow: 'shadow-amber-500/20'
+      bg: 'bg-amber-500/15',
+      iconColor: 'text-amber-400'
     },
     red: {
-      bg: 'bg-red-500/20',
-      text: 'text-red-400',
-      border: 'border-red-500/50',
-      glow: 'shadow-red-500/20'
+      bg: 'bg-rose-500/15',
+      iconColor: 'text-rose-400'
     },
     emerald: {
-      bg: 'bg-emerald-500/20',
-      text: 'text-emerald-400',
-      border: 'border-emerald-500/50',
-      glow: 'shadow-emerald-500/20'
+      bg: 'bg-emerald-500/15',
+      iconColor: 'text-emerald-400'
     },
     blue: {
-      bg: 'bg-blue-500/20',
-      text: 'text-blue-400',
-      border: 'border-blue-500/50',
-      glow: 'shadow-blue-500/20'
+      bg: 'bg-blue-500/15',
+      iconColor: 'text-blue-400'
     }
   };
 
@@ -268,11 +260,11 @@ export default function CreditsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 sm:p-3 bg-amber-500/20 rounded-xl">
-            <Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400" />
+          <div className="p-2 sm:p-2.5 bg-slate-800 border border-slate-700/60 rounded-xl text-amber-400">
+            <Wallet className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div>
-            <h1 className="text-lg sm:text-2xl font-bold text-white">Credit Management</h1>
+            <h1 className="text-lg sm:text-2xl font-bold text-slate-100">Credit Management</h1>
             <p className="text-slate-400 text-xs sm:text-sm">Track receivables and payments</p>
           </div>
         </div>
@@ -284,20 +276,21 @@ export default function CreditsPage() {
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {statCards.map((card, index) => {
+        {statCards.map((card) => {
           const colors = colorClasses[card.color];
           const Icon = card.icon;
           return (
             <div
               key={card.label}
-              className={`glass-card p-3 sm:p-5 border ${colors.border} hover:shadow-lg ${colors.glow} transition-all hover:-translate-y-0.5 hover:scale-[1.01]`}
+              className="glass-card p-3.5 sm:p-5 border border-slate-800 hover:border-slate-700 transition-colors"
             >
               <div className="flex items-center justify-between mb-2 sm:mb-3">
-                <div className={`p-1.5 sm:p-2.5 rounded-lg ${colors.bg}`}>
-                  <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${colors.text}`} />
+                <span className="text-xs font-medium text-slate-400 truncate mr-2">{card.label}</span>
+                <div className={`p-2 rounded-lg ${colors.bg} ${colors.iconColor} shrink-0`}>
+                  <Icon className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 </div>
               </div>
-              <p className={`text-base sm:text-2xl font-bold ${colors.text} mb-1`}>
+              <p className="text-lg sm:text-2xl font-bold text-slate-100 tracking-tight">
                 <AnimatedCounter
                   value={card.value}
                   prefix={card.prefix || ''}
@@ -319,8 +312,8 @@ export default function CreditsPage() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex-1 px-2 sm:px-4 py-2.5 sm:py-3 flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm transition-all ${activeTab === tab.id
-                  ? 'bg-slate-700/50 text-white border-b-2 border-amber-500'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-700/30'
+                  ? 'bg-slate-700/50 text-slate-100 border-b-2 border-amber-500'
+                  : 'text-slate-400 hover:text-slate-100 hover:bg-slate-700/30'
                   }`}
               >
                 <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -359,11 +352,11 @@ export default function CreditsPage() {
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2.5 sm:gap-4">
-                              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white text-sm sm:text-base font-bold">
+                              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-slate-800 border border-slate-700/60 flex items-center justify-center text-slate-200 text-sm sm:text-base font-semibold group-hover:border-amber-500/40 group-hover:text-amber-400 transition-colors shrink-0">
                                 {customer.customerName?.charAt(0)}
                               </div>
                               <div>
-                                <h3 className="text-sm sm:text-base font-medium text-white group-hover:text-amber-400 transition-colors">
+                                <h3 className="text-sm sm:text-base font-medium text-slate-100 group-hover:text-amber-400 transition-colors">
                                   {customer.customerName}
                                 </h3>
                                 {customer.phone && (
@@ -423,20 +416,25 @@ export default function CreditsPage() {
                     { key: 'overdue90', label: '90+ Days', color: 'red' }
                   ].map((bucket) => {
                     const data = ageing.buckets?.[bucket.key] || { amount: 0, count: 0 };
-                    const colorMap = {
-                      emerald: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50',
-                      amber: 'bg-amber-500/20 text-amber-400 border-amber-500/50',
-                      orange: 'bg-orange-500/20 text-orange-400 border-orange-500/50',
-                      red: 'bg-red-500/20 text-red-400 border-red-500/50'
+                    const bucketConfig = {
+                      emerald: { badge: 'badge-success', text: 'text-emerald-400' },
+                      amber: { badge: 'badge-warning', text: 'text-amber-400' },
+                      orange: { badge: 'badge-warning', text: 'text-amber-400' },
+                      red: { badge: 'badge-danger', text: 'text-rose-400' }
                     };
+                    const config = bucketConfig[bucket.color];
                     return (
                       <div
                         key={bucket.key}
-                        className={`p-4 rounded-xl border ${colorMap[bucket.color]}`}
+                        className="glass-card p-4 border border-slate-800 hover:border-slate-700 transition-colors"
                       >
-                        <p className="text-sm text-slate-400 mb-1">{bucket.label}</p>
-                        <p className="text-xl font-bold">{formatCurrency(data.amount)}</p>
-                        <p className="text-xs text-slate-500">{data.count} invoices</p>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-medium text-slate-400">{bucket.label}</span>
+                          <span className={`badge ${config.badge} text-[10px]`}>
+                            {data.count} bills
+                          </span>
+                        </div>
+                        <p className={`text-lg sm:text-xl font-bold ${config.text}`}>{formatCurrency(data.amount)}</p>
                       </div>
                     );
                   })}
@@ -465,7 +463,7 @@ export default function CreditsPage() {
                               <div className="flex items-center gap-3">
                                 <FileText className="w-4 h-4 text-slate-500" />
                                 <div>
-                                  <span className="text-white font-medium">{inv.invoiceNumber}</span>
+                                  <span className="text-slate-100 font-medium">{inv.invoiceNumber}</span>
                                   <span className="text-slate-400 ml-2">{inv.customerName}</span>
                                 </div>
                               </div>
@@ -521,7 +519,7 @@ export default function CreditsPage() {
                               <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
                             </div>
                             <div className="min-w-0">
-                              <p className="text-sm sm:text-base font-medium text-white truncate">
+                              <p className="text-sm sm:text-base font-medium text-slate-100 truncate">
                                 {payment.customer?.customerName || 'Unknown Customer'}
                               </p>
                               <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs sm:text-sm text-slate-400">

@@ -110,7 +110,7 @@ export default function ReferralPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-white tracking-tight flex items-center gap-3">
+            <h1 className="text-2xl lg:text-3xl font-bold text-slate-100 tracking-tight flex items-center gap-3">
               <Gift className="w-8 h-8 text-emerald-400" />
               Refer & Earn Free Days
             </h1>
@@ -131,7 +131,7 @@ export default function ReferralPage() {
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <Sparkles className="w-5 h-5 text-emerald-400" />
-                <h2 className="text-lg font-bold text-white">Your Referral Code</h2>
+                <h2 className="text-lg font-bold text-slate-100">Your Referral Code</h2>
               </div>
               
               <div className="bg-slate-900/80 border border-emerald-500/30 rounded-xl p-4 flex items-center justify-between group hover:border-emerald-500/60 transition-all">
@@ -157,7 +157,7 @@ export default function ReferralPage() {
                 />
                 <button
                   onClick={() => copyToClipboard(shareLink, 'link')}
-                  className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-lg font-medium shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium shadow-xs transition-all flex items-center gap-2 active:scale-[0.98]"
                 >
                   {copiedLink ? <CheckCircle2 className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
                   {copiedLink ? 'Copied' : 'Share'}
@@ -175,7 +175,7 @@ export default function ReferralPage() {
                 </div>
                 <h3 className="text-slate-400 font-medium text-sm">Total Signups</h3>
               </div>
-              <p className="text-3xl font-bold text-white mt-2">{stats?.totalReferred || 0}</p>
+              <p className="text-3xl font-bold text-slate-100 mt-2">{stats?.totalReferred || 0}</p>
             </div>
             
             <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6 flex flex-col justify-center">
@@ -185,7 +185,7 @@ export default function ReferralPage() {
                 </div>
                 <h3 className="text-slate-400 font-medium text-sm">Pending Rewards</h3>
               </div>
-              <p className="text-3xl font-bold text-white mt-2">{stats?.pending || 0}</p>
+              <p className="text-3xl font-bold text-slate-100 mt-2">{stats?.pending || 0}</p>
               <p className="text-xs text-slate-500 mt-1">Awaiting first purchase</p>
             </div>
 
@@ -215,7 +215,7 @@ export default function ReferralPage() {
             <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6">
               <div className="flex items-center gap-2 mb-6">
                 <Info className="w-5 h-5 text-slate-400" />
-                <h2 className="text-lg font-bold text-white">How It Works</h2>
+                <h2 className="text-lg font-bold text-slate-100">How It Works</h2>
               </div>
               
               <ul className="space-y-6 relative before:absolute before:inset-y-2 before:left-[11px] before:w-px before:bg-slate-700">
@@ -224,7 +224,7 @@ export default function ReferralPage() {
                     <span className="text-[10px] font-bold text-emerald-400">1</span>
                   </div>
                   <div>
-                    <h4 className="text-sm font-semibold text-white">Share your link</h4>
+                    <h4 className="text-sm font-semibold text-slate-100">Share your link</h4>
                     <p className="text-xs text-slate-400 mt-1">Send your unique code to another business owner.</p>
                   </div>
                 </li>
@@ -233,7 +233,7 @@ export default function ReferralPage() {
                     <span className="text-[10px] font-bold text-emerald-400">2</span>
                   </div>
                   <div>
-                    <h4 className="text-sm font-semibold text-white">Friend signs up</h4>
+                    <h4 className="text-sm font-semibold text-slate-100">Friend signs up</h4>
                     <p className="text-xs text-slate-400 mt-1">They get 15 extra free days on their first purchase.</p>
                   </div>
                 </li>
@@ -242,7 +242,7 @@ export default function ReferralPage() {
                     <span className="text-[10px] font-bold text-emerald-400">3</span>
                   </div>
                   <div>
-                    <h4 className="text-sm font-semibold text-white">Rewards automatically granted</h4>
+                    <h4 className="text-sm font-semibold text-slate-100">Rewards automatically granted</h4>
                     <p className="text-xs text-emerald-400 mt-1 font-medium">You instantly get +30 free days added to your subscription!</p>
                   </div>
                 </li>
@@ -252,7 +252,7 @@ export default function ReferralPage() {
             {/* Apply Code */}
             {canApplyCode && !hideApplyCode && (
               <div className="bg-gradient-to-br from-indigo-900/30 to-blue-900/30 border border-indigo-500/20 rounded-2xl p-6">
-                <h3 className="text-white font-bold mb-2">Have a referral code?</h3>
+                <h3 className="text-slate-100 font-bold mb-2">Have a referral code?</h3>
                 <p className="text-xs text-indigo-200/70 mb-4">
                   Enter a friend's code to get 15 extra free days when you buy your first subscription!
                 </p>
@@ -262,7 +262,7 @@ export default function ReferralPage() {
                     value={applyCodeStr}
                     onChange={(e) => setApplyCodeStr(e.target.value.toUpperCase())}
                     placeholder="e.g. BE-A1B2C3"
-                    className="flex-1 bg-slate-900/50 border border-indigo-500/30 rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-400"
+                    className="flex-1 bg-slate-900/50 border border-indigo-500/30 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-indigo-400"
                   />
                   <button
                     type="submit"
@@ -280,7 +280,7 @@ export default function ReferralPage() {
           {/* Reward Progress History */}
           <div className="lg:col-span-2 bg-slate-800/50 border border-slate-700/50 rounded-2xl flex flex-col overflow-hidden">
             <div className="p-6 border-b border-slate-700/50 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">Reward Progress</h2>
+              <h2 className="text-lg font-bold text-slate-100">Reward Progress</h2>
               <span className="px-2.5 py-1 rounded-md bg-slate-700/50 text-xs text-slate-300 font-medium">
                 {stats?.referrals?.length || 0} Total Invites
               </span>

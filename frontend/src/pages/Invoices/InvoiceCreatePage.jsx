@@ -1910,14 +1910,10 @@ export default function InvoiceCreatePage() {
       >
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <motion.div
-              className="p-2 bg-blue-500/20 rounded-lg"
-              whileHover={{ rotate: 360 }}
-              transition={{ duration: 0.6 }}
-            >
-              <User className="w-5 h-5 text-blue-400" />
-            </motion.div>
-            <h2 className="text-lg font-semibold text-white">
+            <div className="p-2.5 bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 rounded-xl text-blue-600 dark:text-blue-400">
+              <User className="w-5 h-5" />
+            </div>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
               Customer Details
             </h2>
           </div>
@@ -1969,18 +1965,18 @@ export default function InvoiceCreatePage() {
                 initial="hidden"
                 animate="visible"
                 exit="exit"
-                className="absolute z-50 w-full mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl max-h-60 overflow-y-auto"
+                className="absolute z-50 w-full mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl max-h-60 overflow-y-auto"
               >
                 {isCustomerSearchLoading && (
-                  <div className="px-4 py-3 text-sm text-slate-300 flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                  <div className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300 flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
                     Searching customers...
                   </div>
                 )}
 
                 {!isCustomerSearchLoading &&
                   customerSearch.trim().length < 1 && (
-                    <div className="px-4 py-3 text-sm text-slate-400">
+                    <div className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">
                       Start typing to search customers
                     </div>
                   )}
@@ -1988,7 +1984,7 @@ export default function InvoiceCreatePage() {
                 {!isCustomerSearchLoading &&
                   customerSearch.trim().length >= 1 &&
                   customerResults.length === 0 && (
-                    <div className="px-4 py-3 text-sm text-slate-400">
+                    <div className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">
                       No customers found
                     </div>
                   )}
@@ -2002,38 +1998,38 @@ export default function InvoiceCreatePage() {
                         e.stopPropagation();
                         handleCustomerSelect(customer);
                       }}
-                      className="w-full px-4 py-3 text-left hover:bg-slate-700 transition-colors first:rounded-t-xl last:rounded-b-xl"
+                      className="search-dropdown-item"
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.03 }}
-                      whileHover={{
-                        x: 4,
-                        backgroundColor: "rgba(51, 65, 85, 0.9)",
-                      }}
                     >
-                      <p className="font-medium text-white flex items-center gap-2">
-                        <User className="w-4 h-4 text-blue-400" />
-                        {customer.customerName}
-                      </p>
-                      <p className="text-sm text-slate-400 flex items-center gap-2 mt-1">
-                        {customer.address ? (
-                          <>
-                            <MapPin className="w-3 h-3" />
-                            {customer.address}
-                          </>
-                        ) : (
-                          <>
-                            <Phone className="w-3 h-3" />
-                            {customer.phone}
-                          </>
-                        )}
+                      <div className="flex justify-between items-center gap-4">
+                        <div>
+                          <p className="font-medium text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                            <User className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                            {customer.customerName}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400 mt-1">
+                            {customer.phone && (
+                              <span className="flex items-center gap-1.5">
+                                <Phone className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
+                                <span>{customer.phone}</span>
+                              </span>
+                            )}
+                            {customer.address && (
+                              <span className="flex items-center gap-1.5 truncate max-w-xs">
+                                <MapPin className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
+                                <span>{customer.address}</span>
+                              </span>
+                            )}
+                          </div>
+                        </div>
                         {customer.gstin && (
-                          <>
-                            <span className="text-slate-600">•</span>{" "}
+                          <span className="text-xs bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded font-mono shrink-0">
                             {customer.gstin}
-                          </>
+                          </span>
                         )}
-                      </p>
+                      </div>
                     </motion.button>
                   ))}
               </motion.div>
@@ -2048,36 +2044,33 @@ export default function InvoiceCreatePage() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
-              className="mt-4 p-4 rounded-xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/30 relative overflow-hidden"
+              className="mt-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/60 relative overflow-hidden"
             >
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-transparent"
-                animate={{ x: ["-100%", "100%"] }}
-                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-              />
-
               <div className="relative z-10 flex items-start justify-between">
                 <div className="flex items-start gap-3">
-                  <motion.div
-                    className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/30"
-                    whileHover={{ rotate: 360, scale: 1.1 }}
-                    transition={{ duration: 0.6 }}
-                  >
-                    <span className="text-white font-bold text-lg">
-                      {selectedCustomer.customerName.charAt(0)}
-                    </span>
-                  </motion.div>
+                  <div className="w-11 h-11 rounded-xl bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-base shadow-xs shrink-0">
+                    {selectedCustomer.customerName.charAt(0)?.toUpperCase()}
+                  </div>
                   <div>
-                    <p className="font-medium text-white">
+                    <p className="font-semibold text-slate-900 dark:text-slate-100 text-base">
                       {selectedCustomer.customerName}
                     </p>
-                    <p className="text-sm text-slate-300 flex items-center gap-1 mt-1">
-                      <Phone className="w-3 h-3" />
-                      {selectedCustomer.phone}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-600 dark:text-slate-300 mt-1">
+                      {selectedCustomer.phone && (
+                        <span className="flex items-center gap-1.5">
+                          <Phone className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                          <span>{selectedCustomer.phone}</span>
+                        </span>
+                      )}
+                      {selectedCustomer.gstin && (
+                        <span className="flex items-center gap-1 font-mono text-xs bg-white dark:bg-slate-800/80 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
+                          GSTIN: {selectedCustomer.gstin}
+                        </span>
+                      )}
+                    </div>
                     {selectedCustomer.address && (
-                      <p className="text-sm text-slate-300 flex items-start gap-1 mt-1">
-                        <MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                      <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-1">
+                        <MapPin className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
                         <span>{selectedCustomer.address}</span>
                       </p>
                     )}
@@ -2106,14 +2099,10 @@ export default function InvoiceCreatePage() {
         className="glass-card p-6 relative z-40"
       >
         <div className="flex items-center gap-3 mb-6">
-          <motion.div
-            className="p-2 bg-accent-500/20 rounded-lg"
-            whileHover={{ rotate: 360 }}
-            transition={{ duration: 0.6 }}
-          >
-            <ShoppingCart className="w-5 h-5 text-accent-400" />
-          </motion.div>
-          <h2 className="text-lg font-semibold text-white">Add Products</h2>
+          <div className="p-2.5 bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 rounded-xl text-blue-600 dark:text-blue-400">
+            <ShoppingCart className="w-5 h-5" />
+          </div>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Add Products</h2>
           {invoiceItems.length > 0 && (
             <>
               <motion.span
@@ -2168,17 +2157,17 @@ export default function InvoiceCreatePage() {
                 initial="hidden"
                 animate="visible"
                 exit="exit"
-                className="absolute z-50 w-full mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl max-h-60 overflow-y-auto"
+                className="absolute z-50 w-full mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl max-h-60 overflow-y-auto"
               >
                 {isProductSearchLoading && (
-                  <div className="px-4 py-3 text-sm text-slate-300 flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                  <div className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300 flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
                     Searching products...
                   </div>
                 )}
 
                 {!isProductSearchLoading && productSearch.trim().length < 1 && (
-                  <div className="px-4 py-3 text-sm text-slate-400">
+                  <div className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">
                     Start typing to search products
                   </div>
                 )}
@@ -2186,7 +2175,7 @@ export default function InvoiceCreatePage() {
                 {!isProductSearchLoading &&
                   productSearch.trim().length >= 1 &&
                   productResults.length === 0 && (
-                    <div className="px-4 py-3 text-sm text-slate-400">
+                    <div className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">
                       No products found
                     </div>
                   )}
@@ -2216,39 +2205,35 @@ export default function InvoiceCreatePage() {
                           handleProductSelect(product);
                         }}
                         disabled={availableStock <= 0}
-                        className={`w-full px-4 py-3 text-left transition-colors first:rounded-t-xl last:rounded-b-xl ${
-                          availableStock <= 0
-                            ? "opacity-50 cursor-not-allowed"
-                            : "hover:bg-slate-700"
-                        }`}
+                        className="search-dropdown-item"
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.03 }}
-                        whileHover={availableStock > 0 ? { x: 4 } : {}}
                       >
-                        <div className="flex justify-between gap-4">
-                          <div className="flex-1">
-                            <p className="font-medium text-white flex items-center gap-2">
-                              <Package className="w-4 h-4 text-accent-400" />
-                              {product.productName}
+                        <div className="flex justify-between items-center gap-4">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-slate-900 dark:text-slate-100 flex items-center gap-2 truncate">
+                              <Package className="w-4 h-4 text-blue-500 dark:text-accent-400 shrink-0" />
+                              <span className="truncate">{product.productName}</span>
                             </p>
-                            <p className="text-sm text-slate-400 mt-1">
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                               GST: {product.gstPercentage}%
+                              {product.hsnCode && ` • HSN: ${product.hsnCode}`}
                             </p>
                           </div>
                           <div className="text-right flex-shrink-0">
-                            <p className="font-medium text-emerald-400">
+                            <p className="font-medium text-emerald-600 dark:text-emerald-400">
                               {formatCurrency(product.rate)}
                             </p>
                             <p
-                              className={`text-sm mt-1 flex items-center gap-1 ${
+                              className={`text-xs mt-0.5 flex items-center justify-end gap-1 ${
                                 availableStock <= 10
-                                  ? "text-red-400"
-                                  : "text-slate-400"
+                                  ? "text-rose-600 dark:text-rose-400 font-semibold"
+                                  : "text-slate-500 dark:text-slate-400"
                               }`}
                             >
                               <Package className="w-3 h-3" />
-                              {availableStock}
+                              <span>{availableStock}</span>
                             </p>
                           </div>
                         </div>
@@ -2313,7 +2298,7 @@ export default function InvoiceCreatePage() {
                             >
                               <td>
                                 <div>
-                                  <p className="font-medium text-white flex items-center gap-1.5 flex-wrap">
+                                  <p className="font-medium text-slate-100 flex items-center gap-1.5 flex-wrap">
                                     {item.product.productName}
                                     {item._batchPreview && (
                                       <span className="text-[10px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded border border-blue-500/20">
@@ -2550,7 +2535,7 @@ export default function InvoiceCreatePage() {
               <div className="p-2 bg-yellow-500/20 rounded-lg">
                 <FileText className="w-5 h-5 text-yellow-400" />
               </div>
-              <h2 className="text-lg font-semibold text-white">
+              <h2 className="text-lg font-semibold text-slate-100">
                 Additional Details
               </h2>
             </div>
@@ -2594,7 +2579,7 @@ export default function InvoiceCreatePage() {
                         className="text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900"
                       />
                       <div>
-                        <span className={`block text-sm font-medium ${allocationMode === "AUTO" ? "text-blue-400" : "text-white"}`}>
+                        <span className={`block text-sm font-medium ${allocationMode === "AUTO" ? "text-blue-400" : "text-slate-100"}`}>
                           Automatic (FIFO)
                         </span>
                         <span className="block text-xs text-slate-400 mt-0.5">
@@ -2618,7 +2603,7 @@ export default function InvoiceCreatePage() {
                         className="text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900"
                       />
                       <div>
-                        <span className={`block text-sm font-medium ${allocationMode === "MANUAL" ? "text-blue-400" : "text-white"}`}>
+                        <span className={`block text-sm font-medium ${allocationMode === "MANUAL" ? "text-blue-400" : "text-slate-100"}`}>
                           Manual Selection
                         </span>
                         <span className="block text-xs text-slate-400 mt-0.5">
@@ -2667,7 +2652,7 @@ export default function InvoiceCreatePage() {
               <div className="p-2 bg-emerald-500/20 rounded-lg">
                 <Calculator className="w-5 h-5 text-emerald-400" />
               </div>
-              <h2 className="text-lg font-semibold text-white">
+              <h2 className="text-lg font-semibold text-slate-100">
                 Invoice Summary
               </h2>
             </div>
@@ -2675,7 +2660,7 @@ export default function InvoiceCreatePage() {
             <div className="space-y-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-slate-400">Subtotal</span>
-                <span className="text-white">
+                <span className="text-slate-100">
                   {formatCurrency(totals.baseAmount)}
                 </span>
               </div>
@@ -2689,25 +2674,25 @@ export default function InvoiceCreatePage() {
               )}
               <div className="flex justify-between">
                 <span className="text-slate-400">Taxable Amount</span>
-                <span className="text-white">
+                <span className="text-slate-100">
                   {formatCurrency(totals.totalTaxable)}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">CGST</span>
-                <span className="text-white">
+                <span className="text-slate-100">
                   {formatCurrency(totals.totalCGST)}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">SGST</span>
-                <span className="text-white">
+                <span className="text-slate-100">
                   {formatCurrency(totals.totalSGST)}
                 </span>
               </div>
 
               <div className="flex justify-between pt-3 border-t border-slate-700">
-                <span className="font-semibold text-white">Grand Total</span>
+                <span className="font-semibold text-slate-100">Grand Total</span>
                 <span className="text-xl font-bold text-emerald-400">
                   {formatCurrency(totals.netTotal)}
                 </span>
@@ -2748,7 +2733,7 @@ export default function InvoiceCreatePage() {
           <div className="flex justify-between items-end mb-4 px-1">
             <div>
               <p className="text-slate-400 text-sm mb-0.5">Required Quantity</p>
-              <p className="text-2xl font-semibold text-white">
+              <p className="text-2xl font-semibold text-slate-100">
                 {batchModal.requiredQty}
               </p>
             </div>
@@ -2797,7 +2782,7 @@ export default function InvoiceCreatePage() {
                         Batch Number
                       </p>
                       <div className="flex items-center gap-2">
-                        <p className="font-medium text-white">
+                        <p className="font-medium text-slate-100">
                           {batch.batchNo && batch.batchNo !== "UNNAMED"
                             ? batch.batchNo
                             : "No Batch #"}

@@ -9,7 +9,7 @@ export default function CalculatorDisplay({ expression, preview, message }) {
       </div>
       <output
         className={`block min-h-8 overflow-x-auto whitespace-nowrap text-right text-[clamp(1.5rem,calc(4cqw+6cqh),3.5rem)] font-semibold tracking-tight no-scrollbar ${
-          message ? 'text-red-400' : 'text-white'
+          message ? 'text-red-400' : 'text-slate-100'
         }`}
         aria-live="polite"
       >

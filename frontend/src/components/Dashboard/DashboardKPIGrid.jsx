@@ -115,7 +115,7 @@ export const DashboardKPIGrid = ({
               </div>
             </div>
 
-            <div className="text-xl sm:text-2xl font-bold text-white tracking-tight mt-2">
+            <div className="text-xl sm:text-2xl font-bold text-slate-100 tracking-tight mt-2">
               {kpi.isCurrency ? '₹' : ''}
               <AnimatedCounter value={kpi.value} />
             </div>

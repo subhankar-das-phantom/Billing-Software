@@ -125,7 +125,7 @@ function ScrollAffordanceContainer({ children, className = '' }) {
           <button
             type="button"
             onClick={() => handleScroll('left')}
-            className="pointer-events-auto w-6 h-6 rounded-full bg-slate-800/95 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 shadow-md shadow-black/50 flex items-center justify-center active:scale-90 transition-all"
+            className="pointer-events-auto w-6 h-6 rounded-full bg-slate-800/95 hover:bg-slate-700 text-slate-200 hover:text-slate-100 border border-slate-700 shadow-md shadow-black/50 flex items-center justify-center active:scale-90 transition-all"
             title="Scroll left"
             aria-label="Scroll left"
           >
@@ -148,7 +148,7 @@ function ScrollAffordanceContainer({ children, className = '' }) {
           <button
             type="button"
             onClick={() => handleScroll('right')}
-            className="pointer-events-auto w-6 h-6 rounded-full bg-slate-800/95 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 shadow-md shadow-black/50 flex items-center justify-center active:scale-90 transition-all"
+            className="pointer-events-auto w-6 h-6 rounded-full bg-slate-800/95 hover:bg-slate-700 text-slate-200 hover:text-slate-100 border border-slate-700 shadow-md shadow-black/50 flex items-center justify-center active:scale-90 transition-all"
             title="Scroll right"
             aria-label="Scroll right"
           >
@@ -383,7 +383,7 @@ export default function CollectionsPage() {
     if (!recordedBy) {
       return (
         <div className="flex items-center gap-1.5" title="Admin">
-          <span className="text-xs text-white font-medium">Admin</span>
+          <span className="text-xs text-slate-100 font-medium">Admin</span>
           <span className="text-[10px] px-1.5 py-0.2 rounded border bg-purple-500/10 text-purple-300 border-purple-500/30 uppercase font-mono shrink-0">
             Admin
           </span>
@@ -417,7 +417,7 @@ export default function CollectionsPage() {
 
     return (
       <div className="flex items-center gap-1.5" title={email ? `${name} (${email})` : name}>
-        <span className="text-xs text-white font-medium truncate max-w-[110px]">{name}</span>
+        <span className="text-xs text-slate-100 font-medium truncate max-w-[110px]">{name}</span>
         <span className={`text-[10px] px-1.5 py-0.2 rounded border font-mono uppercase shrink-0 ${
           isRoleAdmin
             ? 'bg-purple-500/10 text-purple-300 border-purple-500/30'
@@ -509,7 +509,7 @@ export default function CollectionsPage() {
                 <Banknote className="w-5 h-5" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+                <h1 className="text-2xl font-bold text-slate-100 tracking-tight flex items-center gap-2">
                   Collections
                   {isValidating && !loading && (
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" title="Updating..." />
@@ -539,7 +539,7 @@ export default function CollectionsPage() {
             <button
               type="button"
               onClick={() => setShowCloseoutModal(true)}
-              className="flex-1 sm:flex-none justify-center flex items-center gap-2 px-3.5 py-2 bg-slate-800 hover:bg-slate-750 text-white rounded-xl border border-slate-700 text-xs font-semibold transition-colors min-h-[38px]"
+              className="flex-1 sm:flex-none justify-center flex items-center gap-2 px-3.5 py-2 bg-slate-800 hover:bg-slate-750 text-slate-100 rounded-xl border border-slate-700 text-xs font-semibold transition-colors min-h-[38px]"
               id="collections-closeout-btn"
             >
               <Printer className="w-4 h-4 text-slate-300" />
@@ -571,7 +571,7 @@ export default function CollectionsPage() {
                 <TrendingUp className="w-3.5 h-3.5" />
               </div>
             </div>
-            <p className="text-lg sm:text-xl font-bold text-white font-mono tracking-tight truncate">
+            <p className="text-lg sm:text-xl font-bold text-slate-100 font-mono tracking-tight truncate">
               {loading ? '...' : formatCurrency(totalCollected)}
             </p>
             <div className="flex items-center justify-between text-[10px] sm:text-[11px] text-slate-400 mt-1.5 pt-1.5 border-t border-slate-800 font-mono">
@@ -628,12 +628,12 @@ export default function CollectionsPage() {
                 <Wallet className="w-3.5 h-3.5" />
               </div>
             </div>
-            <p className="text-lg sm:text-xl font-bold text-white font-mono tracking-tight truncate">
+            <p className="text-lg sm:text-xl font-bold text-slate-100 font-mono tracking-tight truncate">
               {loading ? '...' : formatCurrency(averageTicketSize)}
             </p>
             <div className="flex items-center justify-between text-[10px] sm:text-[11px] text-slate-400 mt-1.5 pt-1.5 border-t border-slate-800">
               <span>Top:</span>
-              <span className="text-white font-semibold truncate max-w-[80px] sm:max-w-[120px]">
+              <span className="text-slate-100 font-semibold truncate max-w-[80px] sm:max-w-[120px]">
                 {loading ? '...' : (topMethod ? topMethod.method : 'None')}
               </span>
             </div>
@@ -652,7 +652,7 @@ export default function CollectionsPage() {
             </div>
             {topMethod ? (
               <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300 font-medium self-start sm:self-auto">
-                Leading: <strong className="text-white">{topMethod.method}</strong> ({topMethod.share}%)
+                Leading: <strong className="text-slate-100">{topMethod.method}</strong> ({topMethod.share}%)
               </span>
             ) : (
               <span className="text-[11px] text-slate-500 font-medium self-start sm:self-auto">
@@ -685,8 +685,8 @@ export default function CollectionsPage() {
                 onClick={() => setSelectedMethod('')}
                 className={`px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-medium border transition-all flex items-center gap-1.5 shrink-0 ${
                   !selectedMethod
-                    ? 'bg-slate-800 text-white border-slate-600 shadow-sm'
-                    : 'bg-slate-950/60 text-slate-400 border-slate-800 hover:text-white hover:bg-slate-800/40'
+                    ? 'bg-slate-800 text-slate-100 border-slate-600 shadow-sm'
+                    : 'bg-slate-950/60 text-slate-400 border-slate-800 hover:text-slate-100 hover:bg-slate-800/40'
                 }`}
               >
                 <span>All Channels</span>
@@ -706,7 +706,7 @@ export default function CollectionsPage() {
                     className={`px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-medium border transition-all flex items-center gap-1.5 shrink-0 ${
                       isSelected
                         ? `${item.badgeStyle} ring-1 ring-white/20 shadow-sm font-semibold`
-                        : 'bg-slate-950/60 text-slate-400 border-slate-800 hover:text-white hover:bg-slate-800/40'
+                        : 'bg-slate-950/60 text-slate-400 border-slate-800 hover:text-slate-100 hover:bg-slate-800/40'
                     }`}
                   >
                     <MethodIcon className="w-3 h-3" />
@@ -742,8 +742,8 @@ export default function CollectionsPage() {
                   onClick={() => handlePresetChange(preset.id)}
                   className={`px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-medium border transition-colors whitespace-nowrap shrink-0 ${
                     datePreset === preset.id
-                      ? 'bg-slate-800 text-white border-slate-600 shadow-sm'
-                      : 'bg-slate-950/60 text-slate-400 border-slate-800 hover:text-white hover:bg-slate-800/40'
+                      ? 'bg-slate-800 text-slate-100 border-slate-600 shadow-sm'
+                      : 'bg-slate-950/60 text-slate-400 border-slate-800 hover:text-slate-100 hover:bg-slate-800/40'
                   }`}
                 >
                   {preset.label}
@@ -761,14 +761,14 @@ export default function CollectionsPage() {
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   placeholder="Search customer, phone, invoice, or UTR... ( / )"
-                  className="w-full pl-9 pr-8 py-2 sm:py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-slate-600 transition-colors"
+                  className="w-full pl-9 pr-8 py-2 sm:py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-slate-600 transition-colors"
                   id="collections-search-input"
                 />
                 {searchInput && (
                   <button
                     type="button"
                     onClick={() => setSearchInput('')}
-                    className="p-1 text-slate-400 hover:text-white absolute right-2.5 top-1/2 -translate-y-1/2"
+                    className="p-1 text-slate-400 hover:text-slate-100 absolute right-2.5 top-1/2 -translate-y-1/2"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -779,7 +779,7 @@ export default function CollectionsPage() {
                 <button
                   type="button"
                   onClick={handleResetFilters}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-white bg-slate-950 border border-slate-800 hover:bg-slate-800 transition-colors shrink-0"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-100 bg-slate-950 border border-slate-800 hover:bg-slate-800 transition-colors shrink-0"
                   title="Reset all filters"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
@@ -797,7 +797,7 @@ export default function CollectionsPage() {
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 sm:py-1 text-xs text-white focus:outline-none focus:border-slate-600"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 sm:py-1 text-xs text-slate-100 focus:outline-none focus:border-slate-600"
                 />
               </div>
               <div className="flex items-center gap-2 flex-1 min-w-[140px]">
@@ -806,7 +806,7 @@ export default function CollectionsPage() {
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 sm:py-1 text-xs text-white focus:outline-none focus:border-slate-600"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 sm:py-1 text-xs text-slate-100 focus:outline-none focus:border-slate-600"
                 />
               </div>
             </div>
@@ -817,9 +817,9 @@ export default function CollectionsPage() {
             <div className="pt-2 border-t border-slate-800/80 flex flex-wrap items-center justify-between text-xs text-slate-400 gap-2">
               <div>
                 <span>Showing </span>
-                <strong className="text-white font-mono">{visibleTotals.count}</strong>
+                <strong className="text-slate-100 font-mono">{visibleTotals.count}</strong>
                 <span> of </span>
-                <strong className="text-white font-mono">{data.total}</strong>
+                <strong className="text-slate-100 font-mono">{data.total}</strong>
                 <span> receipts</span>
                 {isFilteredFromDataset && (
                   <>
@@ -845,7 +845,7 @@ export default function CollectionsPage() {
           <div className="p-3.5 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <FileText className="w-4 h-4 text-emerald-400" />
-              <h2 className="text-sm font-bold text-white">Collections Ledger</h2>
+              <h2 className="text-sm font-bold text-slate-100">Collections Ledger</h2>
               {!loading && (
                 <span className="text-xs text-slate-400 font-mono ml-1.5">
                   ({data.total} {data.total === 1 ? 'record' : 'records'})
@@ -882,7 +882,7 @@ export default function CollectionsPage() {
               <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-slate-800/60 border border-slate-700/60 mb-3 text-slate-400">
                 <Banknote className="w-7 h-7" />
               </div>
-              <p className="text-sm font-semibold text-white">No payments found</p>
+              <p className="text-sm font-semibold text-slate-100">No payments found</p>
               <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
                 {hasActiveFilters
                   ? 'No payments match your current search and filter criteria. Try adjusting filters.'
@@ -951,13 +951,13 @@ export default function CollectionsPage() {
                       <tr key={payment.id} className="hover:bg-slate-800/40 transition-colors">
                         {/* Time & Date */}
                         <td className="text-left px-4 py-2.5 whitespace-nowrap">
-                          <div className="text-xs text-white font-mono font-medium">{timeStr}</div>
+                          <div className="text-xs text-slate-100 font-mono font-medium">{timeStr}</div>
                           <div className="text-[11px] text-slate-400 font-mono mt-0.5">{dateStr}</div>
                         </td>
 
                         {/* Customer */}
                         <td className="text-left px-4 py-2.5">
-                          <div className="font-semibold text-white text-xs truncate max-w-[160px]">
+                          <div className="font-semibold text-slate-100 text-xs truncate max-w-[160px]">
                             {payment.customer?.id ? (
                               <Link
                                 to={`/customers/${payment.customer.id}`}
@@ -1014,7 +1014,7 @@ export default function CollectionsPage() {
                               <button
                                 type="button"
                                 onClick={() => handleCopyUtr(payment.referenceNumber, payment.id)}
-                                className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0"
+                                className="p-1 rounded text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors shrink-0"
                                 title="Copy Reference"
                               >
                                 {copiedUtrId === payment.id ? (
@@ -1088,7 +1088,7 @@ export default function CollectionsPage() {
                   <div key={payment.id} className="p-4 space-y-3">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <div className="font-semibold text-white text-sm">
+                        <div className="font-semibold text-slate-100 text-sm">
                           {payment.customer?.name || 'Walk-in Customer'}
                         </div>
                         {payment.customer?.phone && (
@@ -1128,7 +1128,7 @@ export default function CollectionsPage() {
                         <button
                           type="button"
                           onClick={() => handleCopyUtr(payment.referenceNumber, payment.id)}
-                          className="text-slate-400 hover:text-white shrink-0 ml-2"
+                          className="text-slate-400 hover:text-slate-100 shrink-0 ml-2"
                         >
                           {copiedUtrId === payment.id ? (
                             <Check className="w-3 h-3 text-emerald-400" />
@@ -1184,14 +1184,14 @@ export default function CollectionsPage() {
           {data.pages > 1 && (
             <div className="p-3.5 border-t border-slate-800 flex items-center justify-between text-xs">
               <p className="text-slate-400 font-mono">
-                Page <strong className="text-white">{data.page}</strong> of <strong className="text-white">{data.pages}</strong> ({data.total} items)
+                Page <strong className="text-slate-100">{data.page}</strong> of <strong className="text-slate-100">{data.pages}</strong> ({data.total} items)
               </p>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page <= 1}
-                  className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                  className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-slate-100 disabled:opacity-30 disabled:pointer-events-none transition-colors"
                   title="Previous page"
                 >
                   <ChevronLeft className="w-4 h-4" />
@@ -1203,7 +1203,7 @@ export default function CollectionsPage() {
                   type="button"
                   onClick={() => setPage((p) => Math.min(data.pages, p + 1))}
                   disabled={page >= data.pages}
-                  className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                  className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-slate-100 disabled:opacity-30 disabled:pointer-events-none transition-colors"
                   title="Next page"
                 >
                   <ChevronRight className="w-4 h-4" />

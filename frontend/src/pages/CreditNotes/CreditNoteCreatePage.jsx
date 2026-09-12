@@ -210,7 +210,7 @@ export default function CreditNoteCreatePage() {
       >
       {/* Back + header */}
       <motion.div variants={cardVariants} initial={isFirstVisit ? "hidden" : false} animate="visible">
-        <Link to={`/invoices/${invoiceId}`} className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-4">
+        <Link to={`/invoices/${invoiceId}`} className="inline-flex items-center gap-2 text-slate-400 hover:text-slate-100 transition-colors mb-4">
           <ArrowLeft className="w-4 h-4" />
           Back to Invoice
         </Link>
@@ -219,7 +219,7 @@ export default function CreditNoteCreatePage() {
             <RotateCcw className="w-8 h-8 text-amber-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">Create Credit Note</h1>
+            <h1 className="text-2xl font-bold text-slate-100">Create Credit Note</h1>
             <p className="text-slate-400">Invoice: {invoice.invoiceNumber} · {invoice.customer.customerName}</p>
           </div>
         </div>
@@ -245,7 +245,7 @@ export default function CreditNoteCreatePage() {
 
       {/* Return Items Table */}
       <motion.div variants={cardVariants} initial={isFirstVisit ? "hidden" : false} animate="visible" className="glass-card p-6">
-        <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-slate-100 mb-4 flex items-center gap-2">
           <Package className="w-5 h-5 text-blue-400" />
           Select Items to Return
         </h2>
@@ -276,7 +276,7 @@ export default function CreditNoteCreatePage() {
                     transition={{ delay: index * 0.03 }}
                     className={`hover:bg-slate-700/50 transition-colors ${item.maxReturnable === 0 ? 'opacity-50' : ''}`}
                   >
-                    <td className="font-medium text-white text-left">
+                    <td className="font-medium text-slate-100 text-left">
                         {item.productName}
                         {item.batchNo && (
                           <p className="text-xs text-slate-400 mt-1">
@@ -316,7 +316,7 @@ export default function CreditNoteCreatePage() {
 
       {/* Return Summary */}
       <motion.div variants={cardVariants} initial={isFirstVisit ? "hidden" : false} animate="visible" className="glass-card p-6">
-        <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-slate-100 mb-4 flex items-center gap-2">
           <Calculator className="w-5 h-5 text-accent-400" />
           Credit Note Summary
         </h2>
@@ -347,7 +347,7 @@ export default function CreditNoteCreatePage() {
               <span className="text-slate-200">{formatCurrency(returnTotals.totalSGST)}</span>
             </div>
             <div className="border-t border-slate-700 pt-2 mt-2 flex justify-between text-lg">
-              <span className="text-white font-semibold">Credit Amount:</span>
+              <span className="text-slate-100 font-semibold">Credit Amount:</span>
               <span className="text-emerald-400 font-bold">{formatCurrency(returnTotals.netTotal)}</span>
             </div>
           </div>

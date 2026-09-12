@@ -3,13 +3,14 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Toolti
 import { ChartWrapper } from './ChartWrapper';
 import { useMonthlySalesQuery } from '../../queries/useMonthlySalesQuery';
 import { formatCurrency } from '../../../../utils/formatters';
+import { useChartTheme } from '../../utils/chartTheme';
 
 const CustomTooltip = ({ active, payload }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
       <div className="glass-card p-3 border-fuchsia-500/30">
-        <p className="text-sm text-slate-300 mb-1">{data.quarter}</p>
+        <p className="text-sm text-slate-400 mb-1">{data.quarter}</p>
         <p className="text-fuchsia-400 font-bold text-base">
           {formatCurrency(data.revenue)}
         </p>
@@ -21,6 +22,7 @@ const CustomTooltip = ({ active, payload }) => {
 
 export const QuarterlyRevenueChart = ({ year = new Date().getFullYear() }) => {
   const { data, isLoading, isError, refetch } = useMonthlySalesQuery(year);
+  const { gridStroke, axisStroke, cursorFill } = useChartTheme();
   
   const monthlyData = data?.data || [];
   
@@ -58,22 +60,22 @@ export const QuarterlyRevenueChart = ({ year = new Date().getFullYear() }) => {
               <stop offset="100%" stopColor="#a21caf" stopOpacity={0.6}/>
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} vertical={false} />
           <XAxis 
             dataKey="quarter" 
-            stroke="#94a3b8" 
+            stroke={axisStroke} 
             fontSize={12} 
             tickLine={false} 
             axisLine={false}
           />
           <YAxis 
-            stroke="#94a3b8" 
+            stroke={axisStroke} 
             fontSize={12} 
             tickLine={false} 
             axisLine={false}
             tickFormatter={(value) => `₹${value > 1000 ? (value/1000).toFixed(0) + 'k' : value}`}
           />
-          <Tooltip content={<CustomTooltip />} cursor={{ fill: '#1e293b' }} />
+          <Tooltip content={<CustomTooltip />} cursor={{ fill: cursorFill }} />
           <Bar dataKey="revenue" radius={[4, 4, 0, 0]} barSize={40}>
             {quarterlyData.map((entry, index) => (
               <Cell key={`cell-${index}`} fill="url(#colorQtr)" />

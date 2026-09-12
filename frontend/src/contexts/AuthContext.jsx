@@ -44,7 +44,7 @@ const Toast = ({ message, type = 'success', onClose }) => {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -20, scale: 0.95 }}
       transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-      className={`${bgColor} backdrop-blur-xl text-white px-4 py-3 rounded-lg shadow-2xl flex items-center gap-3 min-w-[300px] max-w-md border border-white/20`}
+      className={`${bgColor} backdrop-blur-xl text-slate-100 px-4 py-3 rounded-lg shadow-2xl flex items-center gap-3 min-w-[300px] max-w-md border border-white/20`}
     >
       <motion.div
         initial={{ scale: 0, rotate: -180 }}
@@ -70,6 +70,30 @@ const Toast = ({ message, type = 'success', onClose }) => {
 
 // Premium App Shell skeleton shown during initial load
 const AuthLoadingScreen = () => {
+  const isAuthRoute = typeof window !== 'undefined' && 
+    (window.location.pathname === '/login' || 
+     window.location.pathname === '/register' ||
+     window.location.pathname.startsWith('/login') ||
+     window.location.pathname.startsWith('/register'));
+
+  if (isAuthRoute) {
+    return (
+      <motion.div
+        className="fixed inset-0 z-50 bg-slate-950 flex items-center justify-center"
+        initial={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+      >
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white font-bold text-xl flex items-center justify-center shadow-lg shadow-blue-500/20 animate-pulse">
+            B
+          </div>
+          <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mt-1" />
+        </div>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
       className="fixed inset-0 z-50 bg-slate-950"
@@ -132,7 +156,7 @@ export const AuthProvider = ({ children }) => {
     const checkAuth = async () => {
       try {
         const data = await authService.getMe();
-        if (data.success) {
+        if (data?.success) {
           const role = data.role || 'admin';
           setUserRole(role);
           
@@ -193,7 +217,7 @@ export const AuthProvider = ({ children }) => {
       clearClientCaches();
       const data = await authService.login(email, password);
       
-      if (data.success) {
+      if (data?.success) {
         if (data.role === 'admin') {
           // Admin login
           localStorage.setItem('admin', JSON.stringify(data.admin));
@@ -204,7 +228,7 @@ export const AuthProvider = ({ children }) => {
           
           setAuthTransition(null);
           requestAnimationFrame(() => {
-            showToast(`Welcome back, ${data.admin.firmName || 'Admin'}!`, 'success');
+            showToast(`Welcome back, ${data.admin?.firmName || 'Admin'}!`, 'success');
           });
         } else if (data.role === 'employee') {
           // Employee login
@@ -216,12 +240,12 @@ export const AuthProvider = ({ children }) => {
           
           setAuthTransition(null);
           requestAnimationFrame(() => {
-            showToast(`Welcome back, ${data.employee.name || 'Employee'}!`, 'success');
+            showToast(`Welcome back, ${data.employee?.name || 'Employee'}!`, 'success');
           });
         }
       } else {
         setAuthTransition(null);
-        showToast(data.message || 'Login failed', 'error');
+        showToast(data?.message || 'Login failed', 'error');
       }
       
       return data;
@@ -361,7 +385,7 @@ export const AuthProvider = ({ children }) => {
               <div className="flex flex-col items-center gap-4">
                 <div className="w-12 h-12 rounded-full border-3 border-blue-500 border-t-transparent animate-spin"></div>
                 <div className="text-center">
-                  <h3 className="text-xl font-semibold text-white mb-2">
+                  <h3 className="text-xl font-semibold text-slate-100 mb-2">
                     Signing you in...
                   </h3>
                   <p className="text-slate-400 text-sm">
@@ -385,7 +409,7 @@ export const AuthProvider = ({ children }) => {
               <div className="flex flex-col items-center gap-4">
                 <div className="w-12 h-12 rounded-full border-3 border-red-500 border-t-transparent animate-spin"></div>
                 <div className="text-center">
-                  <h3 className="text-xl font-semibold text-white mb-2">
+                  <h3 className="text-xl font-semibold text-slate-100 mb-2">
                     Signing you out...
                   </h3>
                   <p className="text-slate-400 text-sm">
@@ -451,7 +475,7 @@ export const ProtectedRoute = ({ children }) => {
           >
             <AlertCircle className="w-8 h-8 text-red-500" />
           </motion.div>
-          <h2 className="text-2xl font-bold text-white mb-2">
+          <h2 className="text-2xl font-bold text-slate-100 mb-2">
             Access Denied
           </h2>
           <p className="text-slate-400 mb-6">
@@ -509,7 +533,7 @@ export const AdminRoute = ({ children }) => {
           >
             <Shield className="w-8 h-8 text-orange-500" />
           </motion.div>
-          <h2 className="text-2xl font-bold text-white mb-2">
+          <h2 className="text-2xl font-bold text-slate-100 mb-2">
             Admin Access Required
           </h2>
           <p className="text-slate-400 mb-6">

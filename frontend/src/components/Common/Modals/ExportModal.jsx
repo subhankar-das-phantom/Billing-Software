@@ -170,13 +170,9 @@ const ExportModal = ({
             <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-6 text-white">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <motion.div
-                    className="p-2 bg-white/20 rounded-lg"
-                    whileHover={{ rotate: 360 }}
-                    transition={{ duration: 0.6 }}
-                  >
+                  <div className="p-2.5 bg-white/15 rounded-lg text-white">
                     <Download className="w-6 h-6" />
-                  </motion.div>
+                  </div>
                   <div>
                     <h2 className="text-2xl font-bold">Export {entityType}</h2>
                     <p className="text-emerald-100 text-sm">Choose format {showDateRange && 'and date range'}</p>
@@ -199,7 +195,7 @@ const ExportModal = ({
 
               {/* Format Selection */}
               <div>
-                <label className="block text-sm font-semibold text-white mb-3">Select Export Format</label>
+                <label className="block text-sm font-semibold text-slate-100 mb-3">Select Export Format</label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {formatTypes.map((format) => (
                     <motion.button
@@ -228,7 +224,7 @@ const ExportModal = ({
                         }`}
                       />
                       <div className="text-center">
-                        <p className="font-semibold text-white">{format.label}</p>
+                        <p className="font-semibold text-slate-100">{format.label}</p>
                         <p className="text-xs text-slate-400 mt-1">{format.desc}</p>
                       </div>
                     </motion.button>
@@ -240,7 +236,7 @@ const ExportModal = ({
               {showDateRange && (
                 <>
                   <div>
-                    <label className="block text-sm font-semibold text-white mb-3">Quick Select Period</label>
+                    <label className="block text-sm font-semibold text-slate-100 mb-3">Quick Select Period</label>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
                       {presets.map((preset) => (
                         <motion.button
@@ -264,7 +260,7 @@ const ExportModal = ({
 
                   {/* Custom Date Range */}
                   <div>
-                    <label className="block text-sm font-semibold text-white mb-3">Or Choose Custom Date Range</label>
+                    <label className="block text-sm font-semibold text-slate-100 mb-3">Or Choose Custom Date Range</label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-xs text-slate-400 mb-2 font-medium">Start Date</label>

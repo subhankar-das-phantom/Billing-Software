@@ -220,7 +220,7 @@ export default function SettingsPage() {
   const renderGeneralTab = () => (
     <div className="space-y-6">
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-white mb-1">Business Details</h2>
+        <h2 className="text-xl font-bold text-slate-100 mb-1">Business Details</h2>
         <p className="text-slate-400 text-sm">Update your company information, address, and GSTIN.</p>
       </div>
 
@@ -264,7 +264,7 @@ export default function SettingsPage() {
                     type="text"
                     value={profile.firmName}
                     onChange={(e) => setProfile({ ...profile, firmName: e.target.value })}
-                    className="w-full bg-slate-800/40 border border-white/5 text-white focus:bg-slate-800/80 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 pl-12 pr-4 py-3 rounded-xl transition-all outline-none placeholder:text-slate-600"
+                    className="w-full bg-slate-800/40 border border-white/5 text-slate-100 focus:bg-slate-800/80 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 pl-12 pr-4 py-3 rounded-xl transition-all outline-none placeholder:text-slate-600"
                     placeholder="Enter business name"
                   />
                 </div>
@@ -283,7 +283,7 @@ export default function SettingsPage() {
                     type="tel"
                     value={profile.firmPhone}
                     onChange={(e) => setProfile({ ...profile, firmPhone: e.target.value })}
-                    className="w-full bg-slate-800/40 border border-white/5 text-white focus:bg-slate-800/80 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 pl-12 pr-4 py-3 rounded-xl transition-all outline-none placeholder:text-slate-600"
+                    className="w-full bg-slate-800/40 border border-white/5 text-slate-100 focus:bg-slate-800/80 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 pl-12 pr-4 py-3 rounded-xl transition-all outline-none placeholder:text-slate-600"
                     placeholder="+91 0000000000"
                   />
                 </div>
@@ -304,7 +304,7 @@ export default function SettingsPage() {
                     type="text"
                     value={profile.firmGSTIN}
                     onChange={(e) => setProfile({ ...profile, firmGSTIN: e.target.value.toUpperCase() })}
-                    className="w-full bg-slate-800/40 border border-white/5 text-white focus:bg-slate-800/80 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 pl-12 pr-4 py-3 rounded-xl transition-all outline-none uppercase font-mono placeholder:text-slate-600"
+                    className="w-full bg-slate-800/40 border border-white/5 text-slate-100 focus:bg-slate-800/80 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 pl-12 pr-4 py-3 rounded-xl transition-all outline-none uppercase font-mono placeholder:text-slate-600"
                     placeholder="22AAAAA0000A1Z5"
                     maxLength={15}
                   />
@@ -324,7 +324,7 @@ export default function SettingsPage() {
                     type="text"
                     value={profile.firmDL}
                     onChange={(e) => setProfile({ ...profile, firmDL: e.target.value.toUpperCase() })}
-                    className="w-full bg-slate-800/40 border border-white/5 text-white focus:bg-slate-800/80 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 pl-12 pr-4 py-3 rounded-xl transition-all outline-none uppercase font-mono placeholder:text-slate-600"
+                    className="w-full bg-slate-800/40 border border-white/5 text-slate-100 focus:bg-slate-800/80 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 pl-12 pr-4 py-3 rounded-xl transition-all outline-none uppercase font-mono placeholder:text-slate-600"
                     placeholder="DL-12345"
                   />
                 </div>
@@ -343,7 +343,7 @@ export default function SettingsPage() {
                 <textarea
                   value={profile.firmAddress}
                   onChange={(e) => setProfile({ ...profile, firmAddress: e.target.value })}
-                  className="w-full bg-slate-800/40 border border-white/5 text-white focus:bg-slate-800/80 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 pl-12 pr-4 py-3 rounded-xl transition-all outline-none min-h-[100px] resize-none placeholder:text-slate-600"
+                  className="w-full bg-slate-800/40 border border-white/5 text-slate-100 focus:bg-slate-800/80 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 pl-12 pr-4 py-3 rounded-xl transition-all outline-none min-h-[100px] resize-none placeholder:text-slate-600"
                   placeholder="Enter full business address"
                 />
               </div>
@@ -354,7 +354,7 @@ export default function SettingsPage() {
           <div className="pt-6 border-t border-white/5 space-y-5">
             <div className="flex items-center justify-between mb-2">
               <div>
-                <h3 className="text-sm font-bold text-white mb-1">Payment Information</h3>
+                <h3 className="text-sm font-bold text-slate-100 mb-1">Payment Information</h3>
                 <p className="text-xs text-slate-400">Add payment details to your invoices for direct payments.</p>
               </div>
               <label className="flex items-center cursor-pointer">
@@ -371,7 +371,7 @@ export default function SettingsPage() {
                   <div className={`block w-10 h-6 rounded-full transition-colors ${profile.paymentInformation.enabled ? 'bg-blue-500' : 'bg-slate-700'}`}></div>
                   <div className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${profile.paymentInformation.enabled ? 'transform translate-x-4' : ''}`}></div>
                 </div>
-                <span className="ml-3 text-sm font-medium text-white select-none">Show on Invoice</span>
+                <span className="ml-3 text-sm font-medium text-slate-100 select-none">Show on Invoice</span>
               </label>
             </div>
 
@@ -392,7 +392,7 @@ export default function SettingsPage() {
                       ...profile,
                       paymentInformation: { ...profile.paymentInformation, upiId: e.target.value }
                     })}
-                    className="w-full bg-slate-800/40 border border-white/5 text-white focus:bg-slate-800/80 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 pl-12 pr-4 py-3 rounded-xl transition-all outline-none placeholder:text-slate-600"
+                    className="w-full bg-slate-800/40 border border-white/5 text-slate-100 focus:bg-slate-800/80 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 pl-12 pr-4 py-3 rounded-xl transition-all outline-none placeholder:text-slate-600"
                     placeholder="bharat@upi"
                   />
                 </div>
@@ -414,7 +414,7 @@ export default function SettingsPage() {
                       ...profile,
                       paymentInformation: { ...profile.paymentInformation, accountNumber: e.target.value }
                     })}
-                    className="w-full bg-slate-800/40 border border-white/5 text-white focus:bg-slate-800/80 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 pl-12 pr-4 py-3 rounded-xl transition-all outline-none placeholder:text-slate-600"
+                    className="w-full bg-slate-800/40 border border-white/5 text-slate-100 focus:bg-slate-800/80 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 pl-12 pr-4 py-3 rounded-xl transition-all outline-none placeholder:text-slate-600"
                     placeholder="XXXXXXXX1234"
                   />
                 </div>
@@ -436,7 +436,7 @@ export default function SettingsPage() {
                       ...profile,
                       paymentInformation: { ...profile.paymentInformation, ifscCode: e.target.value.toUpperCase() }
                     })}
-                    className="w-full bg-slate-800/40 border border-white/5 text-white focus:bg-slate-800/80 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 pl-12 pr-4 py-3 rounded-xl transition-all outline-none uppercase font-mono placeholder:text-slate-600"
+                    className="w-full bg-slate-800/40 border border-white/5 text-slate-100 focus:bg-slate-800/80 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 pl-12 pr-4 py-3 rounded-xl transition-all outline-none uppercase font-mono placeholder:text-slate-600"
                     placeholder="SBIN0001234"
                   />
                 </div>
@@ -473,7 +473,7 @@ export default function SettingsPage() {
   const renderPreferencesTab = () => (
     <div className="space-y-6">
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-white mb-1">User Preferences</h2>
+        <h2 className="text-xl font-bold text-slate-100 mb-1">User Preferences</h2>
         <p className="text-slate-400 text-sm">Customize your dashboard and application experience.</p>
       </div>
 
@@ -490,7 +490,7 @@ export default function SettingsPage() {
                 <Calculator className="w-6 h-6 text-fuchsia-400" />
               </div>
               <div>
-                <h3 className="font-semibold text-white text-base">Floating Calculator</h3>
+                <h3 className="font-semibold text-slate-100 text-base">Floating Calculator</h3>
                 <p className="text-sm text-slate-400 mt-0.5 max-w-sm">Keep a handy calculator accessible at all times on the bottom right of your screen.</p>
               </div>
             </div>
@@ -520,7 +520,7 @@ export default function SettingsPage() {
                   <FileText className="w-6 h-6 text-blue-400" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-white text-base">Enable Batch & FIFO Tracking</h3>
+                  <h3 className="font-semibold text-slate-100 text-base">Enable Batch & FIFO Tracking</h3>
                   <p className="text-sm text-slate-400 mt-0.5 max-w-sm">Use comprehensive batch management, expiry tracking, and FIFO or Manual allocation for inventory.</p>
                 </div>
               </div>
@@ -550,7 +550,7 @@ export default function SettingsPage() {
                 <Bell className="w-6 h-6 text-slate-400" />
               </div>
               <div>
-                <h3 className="font-semibold text-white text-base">Email Notifications</h3>
+                <h3 className="font-semibold text-slate-100 text-base">Email Notifications</h3>
                 <p className="text-sm text-slate-400 mt-0.5 max-w-sm">Receive daily summaries and alerts. (Coming Soon)</p>
               </div>
             </div>
@@ -565,7 +565,7 @@ export default function SettingsPage() {
   const renderSecurityTab = () => (
     <div className="space-y-6">
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-white mb-1">Security Settings</h2>
+        <h2 className="text-xl font-bold text-slate-100 mb-1">Security Settings</h2>
         <p className="text-slate-400 text-sm">Manage your password and secure your account.</p>
       </div>
 
@@ -587,13 +587,13 @@ export default function SettingsPage() {
                 type={showCurrentPassword ? 'text' : 'password'}
                 value={passwords.currentPassword}
                 onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })}
-                className="w-full bg-slate-800/40 border border-white/5 text-white focus:bg-slate-800/80 focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 pl-12 pr-12 py-3 rounded-xl transition-all outline-none placeholder:text-slate-600"
+                className="w-full bg-slate-800/40 border border-white/5 text-slate-100 focus:bg-slate-800/80 focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 pl-12 pr-12 py-3 rounded-xl transition-all outline-none placeholder:text-slate-600"
                 placeholder="Enter current password"
               />
               <button
                 type="button"
                 onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                className="absolute right-4 text-slate-500 hover:text-white transition-colors"
+                className="absolute right-4 text-slate-500 hover:text-slate-100 transition-colors"
               >
                 {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -613,13 +613,13 @@ export default function SettingsPage() {
                 type={showNewPassword ? 'text' : 'password'}
                 value={passwords.newPassword}
                 onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
-                className="w-full bg-slate-800/40 border border-white/5 text-white focus:bg-slate-800/80 focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 pl-12 pr-12 py-3 rounded-xl transition-all outline-none placeholder:text-slate-600"
+                className="w-full bg-slate-800/40 border border-white/5 text-slate-100 focus:bg-slate-800/80 focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 pl-12 pr-12 py-3 rounded-xl transition-all outline-none placeholder:text-slate-600"
                 placeholder="Enter new password"
               />
               <button
                 type="button"
                 onClick={() => setShowNewPassword(!showNewPassword)}
-                className="absolute right-4 text-slate-500 hover:text-white transition-colors"
+                className="absolute right-4 text-slate-500 hover:text-slate-100 transition-colors"
               >
                 {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -640,7 +640,7 @@ export default function SettingsPage() {
                 type="password"
                 value={passwords.confirmPassword}
                 onChange={(e) => setPasswords({ ...passwords, confirmPassword: e.target.value })}
-                className="w-full bg-slate-800/40 border border-white/5 text-white focus:bg-slate-800/80 focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 pl-12 pr-4 py-3 rounded-xl transition-all outline-none placeholder:text-slate-600"
+                className="w-full bg-slate-800/40 border border-white/5 text-slate-100 focus:bg-slate-800/80 focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 pl-12 pr-4 py-3 rounded-xl transition-all outline-none placeholder:text-slate-600"
                 placeholder="Confirm new password"
               />
             </div>
@@ -683,7 +683,7 @@ export default function SettingsPage() {
   const renderSubscriptionTab = () => (
     <div className="space-y-6">
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-white mb-1">Subscription & Billing</h2>
+        <h2 className="text-xl font-bold text-slate-100 mb-1">Subscription & Billing</h2>
         <p className="text-slate-400 text-sm">Manage your SaaS plan and view billing status.</p>
       </div>
 
@@ -704,7 +704,7 @@ export default function SettingsPage() {
               <div>
                 <p className="text-slate-400 text-sm mb-1 uppercase tracking-wider font-semibold">Current Plan</p>
                 <div className="flex items-center gap-3">
-                  <h3 className="text-2xl font-bold text-white">{planName}</h3>
+                  <h3 className="text-2xl font-bold text-slate-100">{planName}</h3>
                   {isTrial && <span className="px-2 py-0.5 rounded text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30">TRIAL</span>}
                 </div>
               </div>
@@ -724,7 +724,7 @@ export default function SettingsPage() {
             <div className="w-full md:w-auto mt-4 md:mt-0">
               <Link
                 to="/subscription"
-                className="w-full md:w-auto px-6 py-3 font-medium bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl shadow-[0_0_20px_rgba(37,99,235,0.2)] flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95"
+                className="btn btn-primary w-full md:w-auto px-6 py-3 flex items-center justify-center gap-2 text-sm font-semibold"
               >
                 <Crown className="w-5 h-5" />
                 {isExpired ? 'Renew Now' : 'Upgrade Plan'}
@@ -749,7 +749,7 @@ export default function SettingsPage() {
     <div className="max-w-[1400px] mx-auto min-h-[calc(100vh-8rem)] flex flex-col">
       {/* Page Header */}
       <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">Settings</h1>
+        <h1 className="text-3xl md:text-4xl font-bold text-slate-100 tracking-tight">Settings</h1>
         <p className="text-slate-400 mt-2">Manage your account, preferences, and security settings.</p>
       </div>
 
@@ -784,7 +784,7 @@ export default function SettingsPage() {
                     </div>
                     <div className="flex-1">
                       <span className={`block font-semibold text-sm transition-colors ${
-                        isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'
+                        isActive ? 'text-slate-100' : 'text-slate-400 group-hover:text-slate-200'
                       }`}>
                         {tab.label}
                       </span>

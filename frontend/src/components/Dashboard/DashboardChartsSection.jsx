@@ -17,6 +17,7 @@ import {
   PieChart as PieIcon
 } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatters';
+import { useTheme } from '../../contexts/ThemeContext';
 
 // Clean tooltip for Area Chart
 const CustomAreaTooltip = ({ active, payload, label }) => {
@@ -30,7 +31,7 @@ const CustomAreaTooltip = ({ active, payload, label }) => {
               <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
               {entry.name}:
             </span>
-            <span className="font-semibold text-white">
+            <span className="font-semibold text-slate-100">
               {formatCurrency(entry.value)}
             </span>
           </div>
@@ -47,12 +48,12 @@ const CustomDonutTooltip = ({ active, payload }) => {
     const data = payload[0];
     return (
       <div className="bg-slate-900 border border-slate-700 p-2.5 rounded-lg shadow-lg text-xs space-y-1">
-        <p className="font-semibold text-white flex items-center gap-1.5">
+        <p className="font-semibold text-slate-100 flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: data.payload.color }} />
           {data.name}
         </p>
         <p className="text-slate-300">
-          Amount: <span className="font-semibold text-white">{formatCurrency(data.value)}</span>
+          Amount: <span className="font-semibold text-slate-100">{formatCurrency(data.value)}</span>
         </p>
         {data.payload.percentage !== undefined && (
           <p className="text-slate-400 text-[11px]">
@@ -72,6 +73,7 @@ export const DashboardChartsSection = ({
   creditStats = null
 }) => {
   const [chartView, setChartView] = useState('daily');
+  const { chartColors } = useTheme();
 
   // Prepare Area Chart Data
   const areaChartData = useMemo(() => {
@@ -138,7 +140,7 @@ export const DashboardChartsSection = ({
               <TrendingUp className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-sm sm:text-base font-semibold text-white">Sales & Collections Trend</h2>
+              <h2 className="text-sm sm:text-base font-semibold text-slate-100">Sales & Collections Trend</h2>
               <p className="text-xs text-slate-400">Invoiced amount compared with collected cash</p>
             </div>
           </div>
@@ -159,7 +161,7 @@ export const DashboardChartsSection = ({
               <button
                 onClick={() => setChartView('daily')}
                 className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
-                  chartView === 'daily' ? 'bg-slate-800 text-white font-semibold' : 'text-slate-400 hover:text-slate-200'
+                  chartView === 'daily' ? 'bg-slate-800 text-slate-100 font-semibold' : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
                 Daily
@@ -167,7 +169,7 @@ export const DashboardChartsSection = ({
               <button
                 onClick={() => setChartView('monthly')}
                 className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
-                  chartView === 'monthly' ? 'bg-slate-800 text-white font-semibold' : 'text-slate-400 hover:text-slate-200'
+                  chartView === 'monthly' ? 'bg-slate-800 text-slate-100 font-semibold' : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
                 Monthly
@@ -191,17 +193,17 @@ export const DashboardChartsSection = ({
                 </linearGradient>
               </defs>
 
-              <CartesianGrid strokeDasharray="2 2" stroke="#1e293b" vertical={false} />
+              <CartesianGrid strokeDasharray="2 2" stroke={chartColors.gridStroke} vertical={false} />
               
               <XAxis 
                 dataKey="label" 
-                stroke="#64748b" 
+                stroke={chartColors.axisStroke} 
                 fontSize={11} 
                 tickLine={false}
                 axisLine={false}
               />
               <YAxis 
-                stroke="#64748b" 
+                stroke={chartColors.axisStroke} 
                 fontSize={11} 
                 tickLine={false}
                 axisLine={false}
@@ -240,7 +242,7 @@ export const DashboardChartsSection = ({
             <PieIcon className="w-4 h-4" />
           </div>
           <div>
-            <h2 className="text-sm sm:text-base font-semibold text-white">Cash Flow Breakdown</h2>
+            <h2 className="text-sm sm:text-base font-semibold text-slate-100">Cash Flow Breakdown</h2>
             <p className="text-xs text-slate-400">Collections vs Pending balances</p>
           </div>
         </div>
@@ -258,7 +260,7 @@ export const DashboardChartsSection = ({
                 dataKey="value"
               >
                 {donutData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} stroke="#0f172a" strokeWidth={2} />
+                  <Cell key={`cell-${index}`} fill={entry.color} stroke="#09090b" strokeWidth={2} />
                 ))}
               </Pie>
               <Tooltip content={<CustomDonutTooltip />} />
@@ -267,7 +269,7 @@ export const DashboardChartsSection = ({
 
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
             <span className="text-[10px] uppercase font-medium text-slate-400 tracking-wider">Total</span>
-            <span className="text-sm sm:text-base font-bold text-white">
+            <span className="text-sm sm:text-base font-bold text-slate-100">
               {formatCurrency(donutData.reduce((acc, curr) => acc + curr.value, 0))}
             </span>
           </div>
@@ -284,10 +286,10 @@ export const DashboardChartsSection = ({
               >
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-                  <span className="text-slate-300 group-hover:text-white transition-colors">{item.name}</span>
+                  <span className="text-slate-300 group-hover:text-slate-100 transition-colors">{item.name}</span>
                 </div>
                 <div className="flex items-center gap-2 font-mono">
-                  <span className="text-white font-medium">{formatCurrency(item.value)}</span>
+                  <span className="text-slate-100 font-medium">{formatCurrency(item.value)}</span>
                   <span className="text-slate-500 text-[11px]">({item.percentage}%)</span>
                 </div>
               </Link>

@@ -286,7 +286,7 @@ export function SkeletonLoader({
         {Array.from({ length: lines }).map((_, index) => (
           <div
             key={index}
-            className="h-4 bg-slate-700/50 rounded animate-pulse"
+            className="h-4 shimmer-bone rounded"
             style={{ width: index === lines - 1 ? '70%' : '100%' }}
           />
         ))}
@@ -300,7 +300,7 @@ export function SkeletonLoader({
       {Array.from({ length: lines }).map((_, index) => (
         <motion.div
           key={index}
-          className="h-4 bg-slate-700/50 rounded overflow-hidden"
+          className="h-4 shimmer-bone rounded"
           initial={{ opacity: 0.5 }}
           animate={{ opacity: [0.5, 0.8, 0.5] }}
           transition={{
@@ -342,7 +342,7 @@ export function TableSkeleton({
         {Array.from({ length: columns }).map((_, i) => (
           <div
             key={`h-${i}`}
-            className={`h-3 bg-slate-700/60 rounded ${colWidths[i % colWidths.length]}`}
+            className={`h-3 shimmer-bone rounded ${colWidths[i % colWidths.length]}`}
           />
         ))}
       </div>
@@ -356,7 +356,7 @@ export function TableSkeleton({
           {Array.from({ length: columns }).map((_, colIndex) => (
             <div
               key={`${rowIndex}-${colIndex}`}
-              className={`h-4 bg-slate-700/40 rounded animate-pulse ${colWidths[colIndex % colWidths.length]}`}
+              className={`h-4 shimmer-bone rounded ${colWidths[colIndex % colWidths.length]}`}
               style={{
                 animationDelay: `${(rowIndex * columns + colIndex) * 50}ms`,
                 animationDuration: '1.5s'

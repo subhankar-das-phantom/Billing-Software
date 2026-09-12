@@ -772,7 +772,7 @@ export default function InvoiceViewPage() {
                 <RotateCcw className="w-5 h-5 text-amber-400" />
               </div>
               <div>
-                <h2 className="text-white font-semibold">Credit Notes / Returns</h2>
+                <h2 className="text-slate-100 font-semibold">Credit Notes / Returns</h2>
                 <p className="text-xs text-slate-400">{creditNotes.length} return(s) associated with this invoice</p>
               </div>
             </div>
@@ -811,7 +811,7 @@ export default function InvoiceViewPage() {
                         <p className="text-xs text-slate-400">Credit Amount</p>
                         <p className="text-lg font-bold text-emerald-400">{formatCurrency(cn.totals?.netTotal)}</p>
                       </div>
-                      <ArrowLeft className="w-4 h-4 text-slate-500 rotate-180 group-hover:text-white transition-colors hidden sm:block" />
+                      <ArrowLeft className="w-4 h-4 text-slate-500 rotate-180 group-hover:text-slate-100 transition-colors hidden sm:block" />
                     </div>
                   </motion.div>
                 </Link>
@@ -826,12 +826,12 @@ export default function InvoiceViewPage() {
               <div className="p-2 bg-blue-500/20 rounded-lg">
                 <DollarSign className="w-5 h-5 text-blue-400" />
               </div>
-              <h2 className="text-white font-semibold">Payment Summary</h2>
+              <h2 className="text-slate-100 font-semibold">Payment Summary</h2>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="p-3 bg-slate-800/50 rounded-xl border border-slate-700/50">
                 <p className="text-xs text-slate-400 mb-1">Invoice Total</p>
-                <p className="text-lg font-bold text-white">{formatCurrency(invoice.totals?.netTotal)}</p>
+                <p className="text-lg font-bold text-slate-100">{formatCurrency(invoice.totals?.netTotal)}</p>
               </div>
               <div className="p-3 bg-slate-800/50 rounded-xl border border-slate-700/50">
                 <p className="text-xs text-slate-400 mb-1">Paid Amount</p>
@@ -871,7 +871,7 @@ export default function InvoiceViewPage() {
         <motion.div variants={cardVariants} className="glass-card p-4 no-print">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-white">Copy Mode</p>
+              <p className="text-sm font-semibold text-slate-100">Copy Mode</p>
               <p className="text-xs text-slate-400">Choose whether to print one copy or both customer and business copies.</p>
             </div>
             <motion.button

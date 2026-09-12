@@ -400,7 +400,7 @@ export default function SupplierDetailsPage() {
     return (
       <div className="glass-card p-12 text-center text-slate-400 max-w-lg mx-auto mt-12">
         <XCircle className="w-16 h-16 text-rose-500 mx-auto mb-4" />
-        <h2 className="text-xl font-bold text-white mb-2">Supplier Not Found</h2>
+        <h2 className="text-xl font-bold text-slate-100 mb-2">Supplier Not Found</h2>
         <p className="text-sm text-slate-400 mb-6">The requested supplier does not exist or has been removed.</p>
         <Link to="/suppliers" className="btn btn-primary inline-flex items-center gap-2">
           <ArrowLeft className="w-4 h-4" />
@@ -433,7 +433,7 @@ export default function SupplierDetailsPage() {
               </button>
               <div>
                 <div className="flex items-center gap-3">
-                  <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">{supplier.name}</h1>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-slate-100 tracking-tight">{supplier.name}</h1>
                   {supplier.isActive === false ? (
                     <span className="badge badge-danger text-xs">Inactive</span>
                   ) : (
@@ -507,7 +507,7 @@ export default function SupplierDetailsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-slate-400 uppercase tracking-wider mb-1 font-semibold">Total Purchases</p>
-                <p className="text-2xl font-bold text-white">{summary.purchaseCount}</p>
+                <p className="text-2xl font-bold text-slate-100">{summary.purchaseCount}</p>
               </div>
               <div className="p-3 bg-blue-500/20 text-blue-400 rounded-xl group-hover:scale-110 transition-transform">
                 <Package className="w-6 h-6" />
@@ -600,7 +600,7 @@ export default function SupplierDetailsPage() {
                       className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all ${
                         purchaseStatusFilter === st
                           ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-                          : 'bg-slate-800 text-slate-400 hover:text-white'
+                          : 'bg-slate-800 text-slate-400 hover:text-slate-100'
                       }`}
                     >
                       {st}
@@ -709,7 +709,7 @@ export default function SupplierDetailsPage() {
                       >
                         <div className="flex justify-between items-start">
                           <div>
-                            <p className="font-bold text-white text-base">{p.purchaseNumber}</p>
+                            <p className="font-bold text-slate-100 text-base">{p.purchaseNumber}</p>
                             <p className="text-xs text-slate-400">{formatDate(p.purchaseDate)}</p>
                           </div>
                           <span className={`badge ${statusConfig[p.status]?.class || 'badge-info'} text-xs`}>
@@ -748,7 +748,7 @@ export default function SupplierDetailsPage() {
               <div className="glass-card p-5 space-y-4">
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                   <div>
-                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
                       <BookOpen className="w-5 h-5 text-blue-400" />
                       Supplier Ledger Statement
                     </h3>
@@ -783,25 +783,25 @@ export default function SupplierDetailsPage() {
                     </span>
                     <button
                       onClick={handleSetCurrentFY}
-                      className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors border border-slate-700/60"
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-slate-100 transition-colors border border-slate-700/60"
                     >
                       FY {currentYear}-{String(currentYear + 1).slice(2)}
                     </button>
                     <button
                       onClick={handleSetThisMonth}
-                      className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors border border-slate-700/60"
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-slate-100 transition-colors border border-slate-700/60"
                     >
                       This Month
                     </button>
                     <button
                       onClick={handleSetLast30Days}
-                      className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors border border-slate-700/60"
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-slate-100 transition-colors border border-slate-700/60"
                     >
                       Last 30 Days
                     </button>
                     <button
                       onClick={handleSetAllTime}
-                      className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors border border-slate-700/60"
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-slate-100 transition-colors border border-slate-700/60"
                     >
                       All Time
                     </button>
@@ -814,7 +814,7 @@ export default function SupplierDetailsPage() {
                         type="date"
                         value={ledgerFilters.startDate}
                         onChange={(e) => setLedgerFilters(f => ({ ...f, startDate: e.target.value }))}
-                        className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white"
+                        className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-100"
                       />
                     </div>
                     <div className="flex items-center gap-2">
@@ -823,7 +823,7 @@ export default function SupplierDetailsPage() {
                         type="date"
                         value={ledgerFilters.endDate}
                         onChange={(e) => setLedgerFilters(f => ({ ...f, endDate: e.target.value }))}
-                        className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white"
+                        className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-100"
                       />
                     </div>
                     <button
@@ -881,7 +881,7 @@ export default function SupplierDetailsPage() {
               ) : ledgerData.ledger.length === 0 ? (
                 <div className="glass-card p-12 text-center text-slate-400">
                   <BookOpen className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                  <p className="text-lg text-white">No transactions found</p>
+                  <p className="text-lg text-slate-100">No transactions found</p>
                   <p className="text-sm mt-1">No purchase records or adjustments match the selected date range.</p>
                 </div>
               ) : (
@@ -910,7 +910,7 @@ export default function SupplierDetailsPage() {
                           <td className="p-3.5 text-slate-400 italic">Balance brought forward</td>
                           <td className="p-3.5 text-right text-slate-500">—</td>
                           <td className="p-3.5 text-right text-slate-500">—</td>
-                          <td className="p-3.5 text-right font-bold text-white">
+                          <td className="p-3.5 text-right font-bold text-slate-100">
                             {formatCurrency(Math.abs(ledgerData.summary?.openingBalance || 0))}
                             <span className="text-xs ml-1 text-slate-400">
                               {(ledgerData.summary?.openingBalance || 0) >= 0 ? '(Cr)' : '(Dr)'}
@@ -941,7 +941,7 @@ export default function SupplierDetailsPage() {
                                     {entry.ref}
                                   </Link>
                                 ) : (
-                                  <span className="text-white">{entry.ref}</span>
+                                  <span className="text-slate-100">{entry.ref}</span>
                                 )}
                               </td>
                               <td className="p-3.5 text-slate-300 font-mono text-xs">
@@ -964,7 +964,7 @@ export default function SupplierDetailsPage() {
                                   <span className="text-slate-600">—</span>
                                 )}
                               </td>
-                              <td className="p-3.5 text-right font-bold text-white">
+                              <td className="p-3.5 text-right font-bold text-slate-100">
                                 {formatCurrency(Math.abs(entry.balance || 0))}
                                 <span className="text-xs ml-1 text-slate-400">
                                   {(entry.balance || 0) >= 0 ? '(Cr)' : '(Dr)'}
@@ -997,7 +997,7 @@ export default function SupplierDetailsPage() {
                         <span>Opening Balance</span>
                         <span className="text-amber-400 font-semibold">Brought Forward</span>
                       </div>
-                      <div className="flex justify-between items-center text-sm font-bold text-white">
+                      <div className="flex justify-between items-center text-sm font-bold text-slate-100">
                         <span>Starting Balance:</span>
                         <span>{formatCurrency(Math.abs(ledgerData.summary?.openingBalance || 0))} {(ledgerData.summary?.openingBalance || 0) >= 0 ? '(Cr)' : '(Dr)'}</span>
                       </div>
@@ -1012,7 +1012,7 @@ export default function SupplierDetailsPage() {
                                 {entry.ref}
                               </Link>
                             ) : (
-                              <p className="font-bold text-white text-base">{entry.ref}</p>
+                              <p className="font-bold text-slate-100 text-base">{entry.ref}</p>
                             )}
                             <p className="text-xs text-slate-400 mt-0.5">{formatDate(entry.date)}</p>
                           </div>
@@ -1038,7 +1038,7 @@ export default function SupplierDetailsPage() {
                           </div>
                           <div>
                             <span className="text-slate-500 block">Balance</span>
-                            <span className="font-bold text-white">{formatCurrency(Math.abs(entry.balance || 0))} {(entry.balance || 0) >= 0 ? '(Cr)' : '(Dr)'}</span>
+                            <span className="font-bold text-slate-100">{formatCurrency(Math.abs(entry.balance || 0))} {(entry.balance || 0) >= 0 ? '(Cr)' : '(Dr)'}</span>
                           </div>
                         </div>
                       </div>
@@ -1066,47 +1066,47 @@ export default function SupplierDetailsPage() {
               className="grid grid-cols-1 md:grid-cols-2 gap-6"
             >
               <div className="glass-card p-6 space-y-4">
-                <h3 className="text-base font-bold text-white border-b border-slate-700/50 pb-3 flex items-center gap-2">
+                <h3 className="text-base font-bold text-slate-100 border-b border-slate-700/50 pb-3 flex items-center gap-2">
                   <Truck className="w-5 h-5 text-blue-400" />
                   Supplier Overview
                 </h3>
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between py-1.5 border-b border-slate-800">
                     <span className="text-slate-400">Supplier Name</span>
-                    <span className="text-white font-medium">{supplier.name}</span>
+                    <span className="text-slate-100 font-medium">{supplier.name}</span>
                   </div>
                   <div className="flex justify-between py-1.5 border-b border-slate-800">
                     <span className="text-slate-400">Contact Person</span>
-                    <span className="text-white font-medium">{supplier.contactPerson || 'N/A'}</span>
+                    <span className="text-slate-100 font-medium">{supplier.contactPerson || 'N/A'}</span>
                   </div>
                   <div className="flex justify-between py-1.5 border-b border-slate-800">
                     <span className="text-slate-400">GSTIN</span>
-                    <span className="text-white font-mono uppercase">{supplier.gstin || 'N/A'}</span>
+                    <span className="text-slate-100 font-mono uppercase">{supplier.gstin || 'N/A'}</span>
                   </div>
                   <div className="flex justify-between py-1.5 border-b border-slate-800">
                     <span className="text-slate-400">Phone</span>
-                    <span className="text-white">{formatPhone(supplier.phone) || 'N/A'}</span>
+                    <span className="text-slate-100">{formatPhone(supplier.phone) || 'N/A'}</span>
                   </div>
                   <div className="flex justify-between py-1.5 border-b border-slate-800">
                     <span className="text-slate-400">Email</span>
-                    <span className="text-white">{supplier.email || 'N/A'}</span>
+                    <span className="text-slate-100">{supplier.email || 'N/A'}</span>
                   </div>
                   <div className="flex justify-between py-1.5">
                     <span className="text-slate-400">Address</span>
-                    <span className="text-white text-right max-w-[60%]">{supplier.address || 'N/A'}{supplier.state ? `, ${supplier.state}` : ''}</span>
+                    <span className="text-slate-100 text-right max-w-[60%]">{supplier.address || 'N/A'}{supplier.state ? `, ${supplier.state}` : ''}</span>
                   </div>
                 </div>
               </div>
 
               <div className="glass-card p-6 space-y-4">
-                <h3 className="text-base font-bold text-white border-b border-slate-700/50 pb-3 flex items-center gap-2">
+                <h3 className="text-base font-bold text-slate-100 border-b border-slate-700/50 pb-3 flex items-center gap-2">
                   <Wallet className="w-5 h-5 text-emerald-400" />
                   Terms & Financials
                 </h3>
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between py-1.5 border-b border-slate-800">
                     <span className="text-slate-400">Payment Terms</span>
-                    <span className="text-white font-medium">{supplier.paymentTerms || 'Standard Terms'}</span>
+                    <span className="text-slate-100 font-medium">{supplier.paymentTerms || 'Standard Terms'}</span>
                   </div>
                   <div className="flex justify-between py-1.5 border-b border-slate-800">
                     <span className="text-slate-400">Opening Balance</span>

@@ -308,12 +308,12 @@ export default function InvoicesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-400 mb-1">{stat.label}</p>
-                <p className="text-3xl font-bold text-white">
+                <p className="text-3xl font-bold text-slate-100">
                   {stat.value}
                 </p>
               </div>
-              <div className={`p-3 rounded-xl ${stat.bgColor} transition-transform group-hover:rotate-[360deg] group-hover:scale-110 duration-700`}>
-                <stat.icon className={`w-6 h-6 ${stat.iconColor}`} />
+              <div className="p-2.5 rounded-lg bg-slate-800 text-slate-400 group-hover:text-slate-200 border border-slate-700/60 transition-colors">
+                <stat.icon className={`w-5 h-5 ${stat.iconColor}`} />
               </div>
             </div>
           </div>
@@ -324,12 +324,12 @@ export default function InvoicesPage() {
       <div className="glass-card p-6">
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center mb-6">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-500/20 rounded-lg transition-transform hover:rotate-[360deg] duration-700">
-              <FileText className="w-5 h-5 text-blue-400" />
+            <div className="p-2.5 bg-slate-800 border border-slate-700/60 rounded-lg text-blue-400">
+              <FileText className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-semibold text-white">All Invoices</h2>
+                <h2 className="text-xl font-semibold text-slate-100">All Invoices</h2>
                 <RefreshIndicator isRefreshing={isValidating} size="sm" />
               </div>
               <p className="text-sm text-slate-400 mt-1">
@@ -367,7 +367,7 @@ export default function InvoicesPage() {
                   onClick={() => {
                     setSearchInput('');
                   }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-100"
                   whileHover={{ rotate: 90 }}
                 >
                   <XCircle className="w-4 h-4" />
@@ -416,7 +416,7 @@ export default function InvoicesPage() {
           {/* Export Button */}
           <button
             onClick={() => setShowExportModal(true)}
-            className="btn bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold flex items-center justify-center gap-2 px-6 py-3 shadow-lg shadow-emerald-500/30 border-0 active:scale-95 transition-transform"
+            className="btn bg-emerald-600 hover:bg-emerald-500 text-white font-semibold flex items-center justify-center gap-2 px-6 py-3 shadow-xs border-0 active:scale-[0.98] transition-all"
           >
             <Download className="w-5 h-5" />
             Export
@@ -505,12 +505,12 @@ export default function InvoicesPage() {
                               <div>
                                 <div className="flex items-center gap-2">
                                   <div
-                                    className={`w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-lg ${isCancelled ? 'bg-red-500/20 text-red-400 shadow-red-500/20' : 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/30'}`}
+                                    className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-semibold border ${isCancelled ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-slate-800 text-slate-200 border-slate-700/60 group-hover:text-emerald-400 group-hover:border-emerald-500/30'} transition-colors`}
                                   >
                                     {invoice.customer?.customerName?.charAt(0)}
                                   </div>
                                   <div>
-                                    <p className={`font-medium ${isCancelled ? 'text-red-400' : 'text-white'}`}>{invoice.customer?.customerName}</p>
+                                    <p className={`font-medium ${isCancelled ? 'text-red-400' : 'text-slate-100'}`}>{invoice.customer?.customerName}</p>
                                     <p className={`text-xs flex items-center gap-1 ${isCancelled ? 'text-red-400 opacity-80' : 'text-slate-400'}`}>
                                       <User className="w-3 h-3" />
                                       {invoice.customer?.phone}
@@ -595,7 +595,7 @@ export default function InvoicesPage() {
                           <FileText className={`w-5 h-5 ${isCancelled ? 'text-red-400' : 'text-blue-400'}`} />
                         </div>
                         <div className="min-w-0">
-                          <h3 className={`font-semibold text-base mb-1 ${isCancelled ? 'text-red-400' : 'text-white'}`}>
+                          <h3 className={`font-semibold text-base mb-1 ${isCancelled ? 'text-red-400' : 'text-slate-100'}`}>
                             {invoice.invoiceNumber}
                           </h3>
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
@@ -622,11 +622,11 @@ export default function InvoicesPage() {
                       <div className="space-y-1.5">
                         <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Customer</p>
                         <div className="flex items-center gap-2">
-                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-lg ${isCancelled ? 'bg-red-500/20 text-red-400 shadow-red-500/20' : 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/30'}`}>
+                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold border ${isCancelled ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'}`}>
                             {invoice.customer?.customerName?.charAt(0)}
                           </div>
                           <div className="min-w-0">
-                            <p className={`font-medium text-sm truncate ${isCancelled ? 'text-red-400' : 'text-white'}`}>
+                            <p className={`font-medium text-sm truncate ${isCancelled ? 'text-red-400' : 'text-slate-100'}`}>
                               {invoice.customer?.customerName}
                             </p>
                             <p className={`text-[10px] flex items-center gap-1 ${isCancelled ? 'text-red-400 opacity-80' : 'text-slate-400'}`}>

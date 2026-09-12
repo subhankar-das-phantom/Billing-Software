@@ -12,7 +12,8 @@ import {
   RefreshCw,
   AlertCircle,
   CheckCircle,
-  X
+  X,
+  Phone
 } from 'lucide-react';
 import { manualEntryService } from '../../services/entries/manualEntryService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
@@ -142,7 +143,7 @@ export default function ManualEntriesPage() {
             <Shield className="w-6 h-6 text-accent-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">Manual Entries</h1>
+            <h1 className="text-2xl font-bold text-slate-100">Manual Entries</h1>
             <p className="text-slate-400 text-sm">{total} total entries</p>
           </div>
         </div>
@@ -180,7 +181,7 @@ export default function ManualEntriesPage() {
               placeholder="Search by customer name or phone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-800/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-accent-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-800/50 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-accent-500 focus:border-transparent"
             />
           </div>
 
@@ -211,7 +212,7 @@ export default function ManualEntriesPage() {
                     type="date"
                     value={filters.startDate}
                     onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white"
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-100"
                   />
                 </div>
 
@@ -221,7 +222,7 @@ export default function ManualEntriesPage() {
                     type="date"
                     value={filters.endDate}
                     onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white"
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-100"
                   />
                 </div>
               </div>
@@ -233,7 +234,7 @@ export default function ManualEntriesPage() {
       {/* Entries Table */}
       <div className="glass-card overflow-hidden">
         {entries.length === 0 ? (
-          <div className="p-12 text-center">
+          <div className="glass-card p-12 text-center">
             <div className="inline-flex p-4 bg-slate-800 rounded-full mb-4">
               <Shield className="w-8 h-8 text-slate-400" />
             </div>
@@ -248,104 +249,265 @@ export default function ManualEntriesPage() {
           </div>
         ) : (
           <>
-            <div className="table-container">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Customer</th>
-                    <th>Type</th>
-                    <th>Payment</th>
-                    <th>Amount</th>
-                    <th>Description</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {entries.map((entry) => {
-                    const typeInfo = getEntryTypeInfo(entry.entryType);
-                    return (
-                      <motion.tr
-                        key={entry._id}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        whileHover={{ backgroundColor: 'rgba(51, 65, 85, 0.5)' }}
-                      >
-                        <td className="text-slate-300">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4 text-slate-500" />
-                            {formatDate(entry.entryDate)}
-                          </div>
-                        </td>
-                        <td className="font-medium text-white">
-                          {entry.customerSnapshot?.customerName || entry.customer?.customerName || 'Unknown'}
-                        </td>
-                        <td>
-                          <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border ${getEntryTypeColor(entry.entryType)}`}>
-                            <span>{typeInfo.icon}</span>
-                            {typeInfo.label}
-                          </span>
-                        </td>
-                        <td>
-                          <span className={`text-xs px-2 py-1 rounded ${
-                            entry.paymentType === 'Credit' 
-                              ? 'bg-amber-500/20 text-amber-400' 
-                              : 'bg-emerald-500/20 text-emerald-400'
-                          }`}>
-                            {entry.paymentType}
-                          </span>
-                        </td>
-                        <td className={`font-semibold ${getAmountColor(entry.entryType)}`}>
-                          {getAmountPrefix(entry.entryType)}{formatCurrency(entry.amount)}
-                          {entry.entryType === 'opening_balance' && entry.paymentType === 'Credit' && entry.paidAmount > 0 && (
-                            <span className="block text-xs text-slate-400">
-                              Remaining: {formatCurrency(entry.amount - entry.paidAmount)}
+            {/* ─── Desktop Table View (Screen >= 768px) ──────────────────────── */}
+            <div className="hidden md:block glass-card overflow-hidden">
+              <div className="overflow-x-auto custom-scrollbar">
+                <table className="w-full text-left border-collapse min-w-[880px]">
+                  <thead className="bg-slate-950/50 dark:bg-slate-950/60 border-b border-slate-800 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    <tr>
+                      <th className="px-4 py-3.5 whitespace-nowrap">Date</th>
+                      <th className="px-4 py-3.5">Customer</th>
+                      <th className="px-4 py-3.5 whitespace-nowrap">Type</th>
+                      <th className="px-4 py-3.5 whitespace-nowrap">Payment</th>
+                      <th className="px-4 py-3.5 text-right whitespace-nowrap">Amount</th>
+                      <th className="px-4 py-3.5">Description</th>
+                      <th className="px-4 py-3.5 text-right whitespace-nowrap">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60 text-sm">
+                    {entries.map((entry) => {
+                      const typeInfo = getEntryTypeInfo(entry.entryType);
+                      return (
+                        <tr
+                          key={entry._id}
+                          className="hover:bg-slate-800/30 dark:hover:bg-slate-800/40 transition-colors group"
+                        >
+                          {/* Date */}
+                          <td className="px-4 py-3.5 whitespace-nowrap text-slate-300 text-xs font-mono">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                              <span>{formatDate(entry.entryDate)}</span>
+                            </div>
+                          </td>
+
+                          {/* Customer */}
+                          <td className="px-4 py-3.5">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="w-7 h-7 rounded-lg bg-blue-500/15 border border-blue-500/30 text-blue-400 flex items-center justify-center font-bold text-xs shrink-0">
+                                {(entry.customerSnapshot?.customerName || entry.customer?.customerName || 'U').charAt(0).toUpperCase()}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="font-semibold text-slate-100 text-xs truncate max-w-[180px]">
+                                  {entry.customerSnapshot?.customerName || entry.customer?.customerName || 'Unknown'}
+                                </div>
+                                {(entry.customerSnapshot?.phone || entry.customer?.phone) && (
+                                  <div className="text-[11px] text-slate-400 font-mono">
+                                    {entry.customerSnapshot?.phone || entry.customer?.phone}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Type */}
+                          <td className="px-4 py-3.5 whitespace-nowrap">
+                            <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border font-medium ${getEntryTypeColor(entry.entryType)}`}>
+                              <span className="text-xs">{typeInfo.icon}</span>
+                              <span>{typeInfo.label}</span>
                             </span>
-                          )}
-                        </td>
-                        <td className="text-slate-300 max-w-xs truncate">
-                          {entry.description}
-                        </td>
-                        <td>
-                          <button
-                            onClick={() => setDeleteConfirm(entry)}
-                            className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </motion.tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                          </td>
+
+                          {/* Payment */}
+                          <td className="px-4 py-3.5 whitespace-nowrap">
+                            <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-md font-medium ${
+                              entry.paymentType === 'Credit' 
+                                ? 'bg-amber-500/15 text-amber-400 border border-amber-500/25' 
+                                : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
+                            }`}>
+                              {entry.paymentType}
+                            </span>
+                          </td>
+
+                          {/* Amount */}
+                          <td className="px-4 py-3.5 text-right whitespace-nowrap font-mono">
+                            <div className={`font-semibold text-sm ${getAmountColor(entry.entryType)}`}>
+                              {getAmountPrefix(entry.entryType)}{formatCurrency(entry.amount)}
+                            </div>
+                            {entry.entryType === 'opening_balance' && entry.paymentType === 'Credit' && entry.paidAmount > 0 && (
+                              <div className="text-[11px] text-slate-400 font-mono mt-0.5">
+                                Remaining: {formatCurrency(entry.amount - entry.paidAmount)}
+                              </div>
+                            )}
+                          </td>
+
+                          {/* Description */}
+                          <td className="px-4 py-3.5">
+                            <div className="text-xs text-slate-300 max-w-[220px] truncate" title={entry.description || '-'}>
+                              {entry.description || '-'}
+                            </div>
+                          </td>
+
+                          {/* Actions */}
+                          <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                            <button
+                              onClick={() => setDeleteConfirm(entry)}
+                              className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/15 rounded-lg transition-colors inline-flex items-center justify-center"
+                              title="Delete entry"
+                              aria-label="Delete entry"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Desktop Pagination */}
+              {totalPages > 1 && (
+                <div className="p-4 border-t border-slate-800 bg-slate-900/30 flex items-center justify-between gap-3 text-xs text-slate-400">
+                  <p>
+                    Showing <span className="font-mono font-medium text-slate-200">{(page - 1) * 20 + 1}</span> to <span className="font-mono font-medium text-slate-200">{Math.min(page * 20, total)}</span> of <span className="font-mono font-medium text-slate-200">{total}</span> entries
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      className="btn btn-secondary btn-sm px-2.5 py-1.5 text-xs disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
+                      title="Previous page"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                      <span>Prev</span>
+                    </button>
+                    <span className="px-2 py-1 font-mono text-slate-300 font-medium">
+                      {page} / {totalPages}
+                    </span>
+                    <button
+                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                      disabled={page === totalPages}
+                      className="btn btn-secondary btn-sm px-2.5 py-1.5 text-xs disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
+                      title="Next page"
+                    >
+                      <span>Next</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="p-4 border-t border-slate-700 flex items-center justify-between">
-                <p className="text-sm text-slate-400">
-                  Page {page} of {totalPages}
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                    className="btn btn-secondary btn-sm"
+            {/* ─── Mobile Cards View (Screen < 768px) ────────────────────────── */}
+            <div className="block md:hidden space-y-3">
+              {entries.map((entry) => {
+                const typeInfo = getEntryTypeInfo(entry.entryType);
+                return (
+                  <div
+                    key={entry._id}
+                    className="glass-card p-4 flex flex-col gap-3 relative overflow-hidden border border-slate-800/80"
                   >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
-                    className="btn btn-secondary btn-sm"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
+                    {/* Header: Entry Type Badge + Payment Badge + Delete Action */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-2 flex-wrap min-w-0">
+                        <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border font-medium ${getEntryTypeColor(entry.entryType)}`}>
+                          <span className="text-xs">{typeInfo.icon}</span>
+                          <span className="font-semibold">{typeInfo.label}</span>
+                        </span>
+                        <span className={`inline-flex items-center text-xs px-2.5 py-0.5 rounded-md font-medium ${
+                          entry.paymentType === 'Credit' 
+                            ? 'bg-amber-500/15 text-amber-400 border border-amber-500/25' 
+                            : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
+                        }`}>
+                          {entry.paymentType}
+                        </span>
+                      </div>
+
+                      {/* Delete Action (Touch target 44x44px buffer) */}
+                      <button
+                        type="button"
+                        onClick={() => setDeleteConfirm(entry)}
+                        className="p-2 -mr-1.5 -mt-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/15 rounded-xl transition-colors inline-flex items-center justify-center min-w-[40px] min-h-[40px] shrink-0 active:scale-95"
+                        title="Delete entry"
+                        aria-label="Delete entry"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Customer + Amount Section (Grid layout mirroring Invoices card) */}
+                    <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-800/80 bg-slate-900/30 -mx-4 px-4 py-2.5">
+                      {/* Customer Column */}
+                      <div className="space-y-1 min-w-0">
+                        <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Customer</p>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-7 h-7 rounded-lg bg-blue-500/15 border border-blue-500/30 text-blue-400 flex items-center justify-center font-bold text-xs shrink-0">
+                            {(entry.customerSnapshot?.customerName || entry.customer?.customerName || 'U').charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-xs text-slate-100 truncate">
+                              {entry.customerSnapshot?.customerName || entry.customer?.customerName || 'Unknown'}
+                            </p>
+                            {(entry.customerSnapshot?.phone || entry.customer?.phone) && (
+                              <p className="text-[11px] text-slate-400 font-mono flex items-center gap-1 mt-0.5">
+                                <Phone className="w-2.5 h-2.5 text-slate-500 shrink-0" />
+                                {entry.customerSnapshot?.phone || entry.customer?.phone}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Amount Column */}
+                      <div className="space-y-1 flex flex-col items-end text-right">
+                        <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Amount</p>
+                        <div className={`font-semibold font-mono text-sm ${getAmountColor(entry.entryType)}`}>
+                          {getAmountPrefix(entry.entryType)}{formatCurrency(entry.amount)}
+                        </div>
+                        {entry.entryType === 'opening_balance' && entry.paymentType === 'Credit' && entry.paidAmount > 0 && (
+                          <p className="text-[10px] text-slate-400 font-mono">
+                            Rem: {formatCurrency(entry.amount - entry.paidAmount)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Footer: Date & Description */}
+                    <div className="flex items-center justify-between gap-3 text-xs text-slate-400 pt-1">
+                      <div className="flex items-center gap-1.5 font-mono text-slate-400 shrink-0">
+                        <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                        <span>{formatDate(entry.entryDate)}</span>
+                      </div>
+
+                      {entry.description && (
+                        <div className="text-right truncate max-w-[180px] text-slate-400 text-[11px]" title={entry.description}>
+                          {entry.description}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Mobile Pagination Card */}
+              {totalPages > 1 && (
+                <div className="glass-card p-4 flex items-center justify-between gap-2 text-xs text-slate-400">
+                  <span className="font-mono text-xs">
+                    Page {page} of {totalPages}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      className="btn btn-secondary btn-sm px-3 py-2 text-xs disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 min-h-[36px]"
+                      title="Previous page"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      <span>Prev</span>
+                    </button>
+                    <button
+                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                      disabled={page === totalPages}
+                      className="btn btn-secondary btn-sm px-3 py-2 text-xs disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 min-h-[36px]"
+                      title="Next page"
+                    >
+                      <span>Next</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </>
         )}
       </div>
@@ -384,7 +546,7 @@ export default function ManualEntriesPage() {
                 <div className="inline-flex p-4 bg-red-500/20 rounded-full mb-4">
                   <AlertCircle className="w-8 h-8 text-red-400" />
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-2">Delete Entry?</h3>
+                <h3 className="text-xl font-semibold text-slate-100 mb-2">Delete Entry?</h3>
                 <p className="text-slate-400 mb-6">
                   This will reverse any balance changes made by this entry. This action cannot be undone.
                 </p>

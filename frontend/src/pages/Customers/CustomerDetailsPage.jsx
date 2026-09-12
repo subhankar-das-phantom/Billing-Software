@@ -561,7 +561,7 @@ export default function CustomerDetailsPage() {
       <motion.div variants={itemVariants}>
         <Link
           to="/customers"
-          className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors group"
+          className="inline-flex items-center gap-2 text-slate-400 hover:text-slate-100 transition-colors group"
         >
           <motion.div
             whileHover={{ x: -4 }}
@@ -577,21 +577,13 @@ export default function CustomerDetailsPage() {
       <motion.div variants={itemVariants} className={`glass-card p-6 ${customer.isActive === false ? 'opacity-90 border-red-500/30 grayscale-[0.2]' : ''}`}>
         <div className="flex flex-col xl:flex-row xl:items-start gap-6">
           {/* Avatar */}
-          <motion.div
-            className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${activeTheme.gradient} flex items-center justify-center flex-shrink-0 shadow-lg ${activeTheme.shadow} relative overflow-hidden`}
-            whileHover={{ scale: 1.05, rotate: 5 }}
-            transition={{ type: 'spring', stiffness: 400 }}
+          <div
+            className={`w-16 h-16 rounded-2xl border flex items-center justify-center flex-shrink-0 relative overflow-hidden font-bold text-2xl ${activeTheme.badge || 'bg-blue-500/10 dark:bg-blue-500/15 border-blue-500/25 dark:border-blue-500/30 text-blue-600 dark:text-blue-400'}`}
           >
-            <span className="text-white font-bold text-3xl relative z-10">
-              {customer.customerName?.charAt(0)}
+            <span className="relative z-10">
+              {customer.customerName?.charAt(0)?.toUpperCase()}
             </span>
-            <motion.div
-              className={`absolute inset-0 bg-gradient-to-br ${activeTheme.hoverGradient}`}
-              initial={{ scale: 0, opacity: 0 }}
-              whileHover={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.3 }}
-            />
-          </motion.div>
+          </div>
 
           {/* Customer Details */}
           <div className="flex-1">
@@ -601,7 +593,7 @@ export default function CustomerDetailsPage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <h1 className="text-2xl font-bold text-white">
+              <h1 className="text-2xl font-bold text-slate-100">
                 {customer.customerName}
               </h1>
               {customer.isActive === false && (
@@ -712,12 +704,12 @@ export default function CustomerDetailsPage() {
                       disabled={themeSaving}
                       aria-pressed={isSelected}
                       title={theme.label}
-                      className={`relative w-9 h-9 rounded-lg bg-gradient-to-br ${theme.gradient} shadow-lg ${theme.shadow} ring-2 ring-transparent transition-transform ${
-                        isSelected ? 'ring-white/70 scale-105' : 'hover:scale-105'
-                      } ${themeSaving ? 'opacity-70 cursor-not-allowed' : ''}`}
+                      className={`relative w-8 h-8 rounded-lg ${theme.swatch || 'bg-blue-500'} ring-2 transition-transform ${
+                        isSelected ? 'ring-blue-400 scale-105 shadow-sm' : 'ring-transparent hover:scale-105 opacity-75 hover:opacity-100'
+                      } ${themeSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                       {isSelected && (
-                        <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-white shadow-sm" />
+                        <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-white shadow-xs" />
                       )}
                     </button>
                   );
@@ -730,24 +722,11 @@ export default function CustomerDetailsPage() {
           {/* Stats Cards */}
           <div className="flex flex-wrap lg:flex-nowrap gap-4">
             {/* Total Purchases */}
-            <motion.div
-              className="text-center px-6 py-4 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:border-emerald-500/50 transition-colors group relative overflow-hidden"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.5, type: 'spring', stiffness: 200 }}
-              whileHover={{ scale: 1.05, y: -5 }}
-            >
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
-              />
-              <motion.div
-                className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-emerald-500/20 mb-2"
-                whileHover={{ rotate: 360 }}
-                transition={{ duration: 0.6 }}
-              >
+            <div className="text-center px-6 py-4 rounded-xl bg-slate-800/50 border border-slate-700/60">
+              <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-slate-800 border border-slate-700/60 mb-2">
                 <DollarSign className="w-5 h-5 text-emerald-400" />
-              </motion.div>
-              <p className="text-2xl font-bold text-emerald-400 mb-1">
+              </div>
+              <p className="text-2xl font-bold text-slate-100 mb-1">
                 <AnimatedCounter 
                   value={customer.totalPurchases || 0} 
                   prefix="₹"
@@ -755,42 +734,17 @@ export default function CustomerDetailsPage() {
                 />
               </p>
               <p className="text-sm text-slate-400">Total Purchases</p>
-            </motion.div>
+            </div>
 
             {/* Outstanding Balance */}
-            <motion.div
-              className={`text-center px-6 py-4 rounded-xl bg-slate-800/50 border transition-colors group relative overflow-hidden ${
-                summary.balance > 0 
-                  ? 'border-amber-500/50 hover:border-amber-400' 
-                  : 'border-slate-700/50 hover:border-emerald-500/50'
-              }`}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.55, type: 'spring', stiffness: 200 }}
-              whileHover={{ scale: 1.05, y: -5 }}
-            >
-              <motion.div
-                className={`absolute inset-0 bg-gradient-to-br ${
-                  summary.balance > 0 
-                    ? 'from-amber-500/10' 
-                    : 'from-emerald-500/10'
-                } to-transparent opacity-0 group-hover:opacity-100 transition-opacity`}
-              />
-              <motion.div
-                className={`inline-flex items-center justify-center w-10 h-10 rounded-full mb-2 ${
-                  summary.balance > 0 
-                    ? 'bg-amber-500/20' 
-                    : 'bg-emerald-500/20'
-                }`}
-                whileHover={{ rotate: 360 }}
-                transition={{ duration: 0.6 }}
-              >
+            <div className="text-center px-6 py-4 rounded-xl bg-slate-800/50 border border-slate-700/60">
+              <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-slate-800 border border-slate-700/60 mb-2">
                 <Wallet className={`w-5 h-5 ${
                   summary.balance > 0 
                     ? 'text-amber-400' 
                     : 'text-emerald-400'
                 }`} />
-              </motion.div>
+              </div>
               <p className={`text-2xl font-bold mb-1 ${
                 summary.balance > 0 
                   ? 'text-amber-400' 
@@ -803,31 +757,18 @@ export default function CustomerDetailsPage() {
                 />
               </p>
               <p className="text-sm text-slate-400">Outstanding</p>
-            </motion.div>
+            </div>
 
             {/* Invoices Count */}
-            <motion.div
-              className="text-center px-6 py-4 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:border-blue-500/50 transition-colors group relative overflow-hidden"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.6, type: 'spring', stiffness: 200 }}
-              whileHover={{ scale: 1.05, y: -5 }}
-            >
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
-              />
-              <motion.div
-                className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-blue-500/20 mb-2"
-                whileHover={{ rotate: 360 }}
-                transition={{ duration: 0.6 }}
-              >
+            <div className="text-center px-6 py-4 rounded-xl bg-slate-800/50 border border-slate-700/60">
+              <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-slate-800 border border-slate-700/60 mb-2">
                 <FileText className="w-5 h-5 text-blue-400" />
-              </motion.div>
-              <p className="text-2xl font-bold text-blue-400 mb-1">
+              </div>
+              <p className="text-2xl font-bold text-slate-100 mb-1">
                 <AnimatedCounter value={customer.invoiceCount || 0} />
               </p>
               <p className="text-sm text-slate-400">Invoices</p>
-            </motion.div>
+            </div>
           </div>
         </div>
       </motion.div>
@@ -849,7 +790,7 @@ export default function CustomerDetailsPage() {
                     className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all text-sm ${
                       activeTab === tab.id
                         ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                        : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/50'
                     }`}
                   >
                     <Icon className="w-4 h-4 flex-shrink-0" />
@@ -1028,7 +969,7 @@ export default function CustomerDetailsPage() {
                           if (isDesktop) {
                             return (
                               <div className={`grid grid-cols-[130px_130px_100px_minmax(120px,1.5fr)_130px_130px_140px] min-w-[880px] items-center px-4 py-3 border-b border-slate-700/50 hover:bg-slate-700/50 transition-colors ${isCancelled ? 'bg-red-500/5' : ''}`}>
-                                <div className={`font-medium flex items-center gap-2 ${isCancelled ? 'text-red-400' : 'text-white'}`}>
+                                <div className={`font-medium flex items-center gap-2 ${isCancelled ? 'text-red-400' : 'text-slate-100'}`}>
                                   <FileText className={`w-4 h-4 ${isCancelled ? 'text-red-400' : 'text-blue-400'}`} />
                                   {invoice.invoiceNumber}
                                 </div>
@@ -1097,7 +1038,7 @@ export default function CustomerDetailsPage() {
                               <div className="flex items-center justify-between">
                                 <Link 
                                   to={`/invoices/${invoice._id}`}
-                                  className={`font-medium flex items-center gap-2 ${isCancelled ? 'text-red-400' : 'text-white hover:text-blue-400'}`}
+                                  className={`font-medium flex items-center gap-2 ${isCancelled ? 'text-red-400' : 'text-slate-100 hover:text-blue-400'}`}
                                 >
                                   <FileText className={`w-4 h-4 ${isCancelled ? 'text-red-400' : 'text-blue-400'}`} />
                                   {invoice.invoiceNumber}
@@ -1229,11 +1170,11 @@ export default function CustomerDetailsPage() {
                                 <div className="flex items-center gap-2 min-w-0">
                                   <FileText className={`w-4 h-4 ${payment.isManualEntry ? 'text-amber-400' : 'text-blue-400'} shrink-0`} />
                                   {payment.isManualEntry ? (
-                                    <span className="text-white font-medium truncate">
+                                    <span className="text-slate-100 font-medium truncate">
                                       {payment.description || (payment.entryType === 'payment_adjustment' ? 'Payment Adj.' : 'Credit Adj.')}
                                     </span>
                                   ) : (
-                                    <Link to={`/invoices/${payment.invoice?._id || payment.invoiceId}`} className="text-white font-medium hover:underline hover:text-blue-400 transition-colors truncate">
+                                    <Link to={`/invoices/${payment.invoice?._id || payment.invoiceId}`} className="text-slate-100 font-medium hover:underline hover:text-blue-400 transition-colors truncate">
                                       {payment.invoice?.invoiceNumber || payment.invoiceNumber || 'Unknown'}
                                     </Link>
                                   )}
@@ -1319,14 +1260,14 @@ export default function CustomerDetailsPage() {
                             <div className="p-4 rounded-xl border bg-slate-800/50 border-slate-700/50 flex flex-col gap-3 relative overflow-hidden transition-colors">
                               <div className="flex items-center justify-between">
                                 {payment.isManualEntry ? (
-                                  <span className="font-medium flex items-center gap-2 text-white">
+                                  <span className="font-medium flex items-center gap-2 text-slate-100">
                                     <FileText className="w-4 h-4 text-amber-400" />
                                     {payment.description || 'Manual Entry'}
                                   </span>
                                 ) : (
                                   <Link 
                                     to={`/invoices/${payment.invoice?._id || payment.invoiceId}`}
-                                    className="font-medium flex items-center gap-2 text-white hover:text-blue-400"
+                                    className="font-medium flex items-center gap-2 text-slate-100 hover:text-blue-400"
                                   >
                                     <FileText className="w-4 h-4 text-blue-400" />
                                     {payment.invoice?.invoiceNumber || payment.invoiceNumber}
@@ -1517,7 +1458,7 @@ export default function CustomerDetailsPage() {
                                     {entry.type}
                                   </span>
                                 </td>
-                                <td className="font-medium text-white">
+                                <td className="font-medium text-slate-100">
                                   {refLink ? (
                                     <Link to={refLink} className="hover:text-blue-400 hover:underline transition-colors">{entry.ref}</Link>
                                   ) : (
@@ -1549,10 +1490,10 @@ export default function CustomerDetailsPage() {
                           {/* Closing Balance row – desktop */}
                           {ledgerData.summary && (
                             <tr className="bg-slate-800/80 border-t border-slate-600">
-                              <td colSpan={5} className="text-right font-bold text-white uppercase text-sm py-4">Closing Balance:</td>
+                              <td colSpan={5} className="text-right font-bold text-slate-100 uppercase text-sm py-4">Closing Balance:</td>
                               <td className="text-right font-bold text-amber-400 py-4 opacity-50">{formatCurrency(ledgerData.summary.totalDebit)}</td>
                               <td className="text-right font-bold text-emerald-400 py-4 opacity-50">{formatCurrency(ledgerData.summary.totalCredit)}</td>
-                              <td className={`text-right font-bold py-4 text-base ${ledgerData.summary.closingBalance > 0 ? 'text-white' : ledgerData.summary.closingBalance < 0 ? 'text-white' : 'text-slate-300'}`}>
+                              <td className={`text-right font-bold py-4 text-base ${ledgerData.summary.closingBalance > 0 ? 'text-slate-100' : ledgerData.summary.closingBalance < 0 ? 'text-slate-100' : 'text-slate-300'}`}>
                                 {formatCurrency(Math.abs(ledgerData.summary.closingBalance))}
                                 {ledgerData.summary.closingBalance > 0 && <span className="text-xs ml-1.5 text-red-400">(Dr)</span>}
                                 {ledgerData.summary.closingBalance < 0 && <span className="text-xs ml-1.5 text-emerald-400">(Cr)</span>}

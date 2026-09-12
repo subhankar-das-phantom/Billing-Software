@@ -18,15 +18,16 @@ import {
   getFilteredNavigation,
   isRouteActive,
 } from './navigationConfig';
+import ThemeToggle from '../Common/Buttons/ThemeToggle';
 
 /**
  * Collapsed Tooltip Component
  * Displays label, section category, and badge details on hover
  */
 const NavItemTooltip = memo(({ label, sectionTitle, badge, isLocked }) => (
-  <div className="fixed left-[72px] z-50 pointer-events-none px-3 py-2 bg-slate-900/95 backdrop-blur-md border border-slate-700/80 rounded-xl shadow-xl shadow-black/50 whitespace-nowrap animate-in fade-in zoom-in-95 duration-150">
+  <div className="fixed left-[72px] z-50 pointer-events-none px-3 py-2 bg-slate-900 dark:bg-slate-950 backdrop-blur-md border border-slate-700/80 rounded-xl shadow-xl shadow-black/50 whitespace-nowrap animate-in fade-in zoom-in-95 duration-150">
     <div className="flex items-center gap-2">
-      <span className="text-xs font-semibold text-white">{label}</span>
+      <span className="text-xs font-semibold text-slate-100">{label}</span>
       {isLocked ? (
         <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
           <Lock size={10} /> Upgrade
@@ -84,7 +85,7 @@ const SidebarNavItem = memo(
               : 'px-3.5 py-2.5 my-0.5'
           } ${
             isActive
-              ? 'bg-gradient-to-r from-blue-600/20 to-accent-600/20 border border-blue-500/30 text-blue-400 font-semibold shadow-sm'
+              ? 'bg-blue-500/15 border border-blue-500/25 text-blue-400 font-semibold'
               : isLocked
               ? 'text-slate-400/90 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
               : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 border border-transparent'
@@ -94,7 +95,7 @@ const SidebarNavItem = memo(
           {isActive && (
             <motion.div
               layoutId={isMobile ? undefined : 'sidebarActiveIndicator'}
-              className="absolute left-0 w-1 h-5 bg-gradient-to-b from-blue-400 to-accent-400 rounded-r-full"
+              className="absolute left-0 w-1 h-5 bg-blue-500 rounded-r-full"
               transition={{ type: 'spring', stiffness: 400, damping: 30 }}
             />
           )}
@@ -114,11 +115,11 @@ const SidebarNavItem = memo(
             />
             {/* Lock indicator in collapsed mode */}
             {isCollapsed && !isMobile && isLocked && (
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-slate-900 flex items-center justify-center" />
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-slate-900 dark:ring-slate-950 flex items-center justify-center" />
             )}
             {/* Indicator dot when collapsed and item has a badge */}
             {isCollapsed && !isMobile && !isLocked && item.badge && (
-              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-blue-500 ring-2 ring-slate-900" />
+              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-blue-500 ring-2 ring-slate-900 dark:ring-slate-950" />
             )}
           </div>
 
@@ -203,7 +204,7 @@ export default function Sidebar({
 
   return (
     <aside
-      className={`h-full bg-slate-900/95 border-r border-slate-800/80 flex flex-col backdrop-blur-xl transition-all duration-300 select-none no-print ${
+      className={`h-full bg-slate-900 dark:bg-slate-950 border-r border-slate-800/80 flex flex-col backdrop-blur-xl transition-all duration-300 select-none no-print ${
         isMobile ? 'w-full' : isCollapsed ? 'w-[68px]' : 'w-64'
       }`}
     >
@@ -222,14 +223,14 @@ export default function Sidebar({
           title="Bharat Enterprise"
         >
           {/* Logo Badge */}
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-accent-600 flex items-center justify-center shadow-lg shadow-blue-500/20 shrink-0 group-hover:scale-105 transition-transform duration-200">
-            <span className="text-white font-bold text-base">B</span>
+          <div className="w-9 h-9 rounded-xl bg-blue-600 dark:bg-blue-500/15 dark:border dark:border-blue-500/30 text-white dark:text-blue-400 flex items-center justify-center font-bold text-base shadow-xs shrink-0">
+            B
           </div>
 
           {/* Brand Name (Expanded/Mobile) */}
           {(!isCollapsed || isMobile) && (
             <div className="min-w-0">
-              <h1 className="font-bold text-base text-white tracking-tight leading-none truncate">
+              <h1 className="font-bold text-base text-slate-100 tracking-tight leading-none truncate">
                 Bharat
               </h1>
               <p className="text-[11px] text-slate-400 font-medium tracking-wide uppercase mt-0.5">
@@ -244,7 +245,7 @@ export default function Sidebar({
           <button
             type="button"
             onClick={onClose}
-            className="w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 active:bg-slate-800/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-100 hover:bg-slate-800 active:bg-slate-800/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
             aria-label="Close sidebar"
           >
             <X size={20} />
@@ -256,7 +257,7 @@ export default function Sidebar({
           <button
             type="button"
             onClick={onToggleCollapse}
-            className={`p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 active:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+            className={`p-2 rounded-xl text-slate-400 hover:text-slate-100 hover:bg-slate-800/80 active:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
               isCollapsed ? 'hidden' : 'block'
             }`}
             title={isCollapsed ? 'Expand sidebar (Ctrl+B)' : 'Collapse sidebar (Ctrl+B)'}
@@ -273,7 +274,7 @@ export default function Sidebar({
           <button
             type="button"
             onClick={onToggleCollapse}
-            className="w-full py-1.5 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="w-full py-1.5 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
             title="Expand sidebar (Ctrl+B)"
             aria-label="Expand sidebar"
           >
@@ -322,19 +323,13 @@ export default function Sidebar({
           <div className="space-y-2.5">
             {/* User Profile Card */}
             <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-800/40 border border-slate-700/40">
-              <div
-                className={`w-9 h-9 rounded-full flex items-center justify-center shadow-md shrink-0 text-white font-semibold text-sm ${
-                  isAdmin
-                    ? 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/20'
-                    : 'bg-gradient-to-br from-blue-500 to-accent-600 shadow-blue-500/20'
-                }`}
-              >
+              <div className="w-9 h-9 rounded-full flex items-center justify-center bg-slate-800 border border-slate-700/60 shrink-0 text-slate-200 font-semibold text-sm shadow-xs">
                 {userInitial}
               </div>
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <p className="text-xs font-semibold text-white truncate">
+                  <p className="text-xs font-semibold text-slate-100 truncate">
                     {displayName}
                   </p>
                   {isAdmin && (
@@ -347,6 +342,12 @@ export default function Sidebar({
                   {displayEmail}
                 </p>
               </div>
+            </div>
+
+            {/* Appearance Theme Row */}
+            <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-800/30 border border-slate-700/30">
+              <span className="text-[11px] font-medium text-slate-400">Theme</span>
+              <ThemeToggle />
             </div>
 
             {/* Logout Button */}
@@ -363,15 +364,14 @@ export default function Sidebar({
           /* Collapsed Rail Footer Mode */
           <div className="flex flex-col items-center gap-2">
             <div
-              className={`w-9 h-9 rounded-full flex items-center justify-center shadow-md text-white font-semibold text-sm cursor-default ${
-                isAdmin
-                  ? 'bg-gradient-to-br from-emerald-500 to-teal-600'
-                  : 'bg-gradient-to-br from-blue-500 to-accent-600'
-              }`}
+              className="w-9 h-9 rounded-full flex items-center justify-center bg-slate-800 border border-slate-700/60 text-slate-200 font-semibold text-sm cursor-default shadow-xs"
               title={`${displayName} (${displayEmail})`}
             >
               {userInitial}
             </div>
+
+            {/* Theme Toggle in collapsed mode */}
+            <ThemeToggle />
 
             <button
               type="button"

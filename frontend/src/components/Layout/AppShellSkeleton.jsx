@@ -11,7 +11,7 @@ import { ShimmerBone } from '../../features/salesAnalytics/components/SkeletonCa
    ─────────────────────────────────────────────────────────────────── */
 
 const SidebarSkeleton = () => (
-  <div className="hidden lg:flex w-64 h-screen bg-slate-900/95 border-r border-slate-800/80 flex-col p-4 shrink-0">
+  <div className="hidden lg:flex w-64 h-screen bg-slate-900 dark:bg-slate-950 border-r border-slate-800/80 flex-col p-4 shrink-0">
     {/* Logo & Brand Skeleton */}
     <div className="flex items-center gap-3 pb-6 border-b border-slate-800/80">
       <ShimmerBone className="w-9 h-9 rounded-xl shrink-0" />
@@ -65,7 +65,7 @@ const SidebarSkeleton = () => (
 );
 
 const HeaderSkeleton = () => (
-  <header className="sticky top-0 z-30 bg-slate-900/80 backdrop-blur-xl border-b border-slate-800/80 h-16 flex items-center justify-between px-4 sm:px-6">
+  <header className="sticky top-0 z-30 bg-slate-900/80 dark:bg-slate-950/80 backdrop-blur-xl border-b border-slate-800/80 h-16 flex items-center justify-between px-4 sm:px-6">
     <div className="flex items-center gap-3">
       <ShimmerBone className="w-8 h-8 rounded-lg lg:hidden" />
       <div>

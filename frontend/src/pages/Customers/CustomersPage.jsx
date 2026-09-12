@@ -62,15 +62,15 @@ const CustomerCard = memo(function CustomerCard({
     >
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3 flex-1 min-w-0">
-          <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${theme.gradient} flex items-center justify-center relative overflow-hidden shadow-lg ${theme.shadow} flex-shrink-0`}>
-            <span className="text-white font-bold text-lg">
-              {customer.customerName?.charAt(0)}
+          <div className={`w-11 h-11 rounded-xl border flex items-center justify-center relative overflow-hidden shrink-0 font-bold text-base ${theme.badge || 'bg-blue-500/10 dark:bg-blue-500/15 border-blue-500/25 dark:border-blue-500/30 text-blue-600 dark:text-blue-400'}`}>
+            <span>
+              {customer.customerName?.charAt(0)?.toUpperCase()}
             </span>
           </div>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-0.5">
-              <h3 className="font-semibold text-white truncate">
+              <h3 className="font-semibold text-slate-100 truncate">
                 {customer.customerName}
               </h3>
               {customer.isActive === false && (
@@ -447,7 +447,7 @@ export default function CustomersPage() {
                 <motion.button
                   type="button"
                   onClick={handleClearSearch}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-100"
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0 }}

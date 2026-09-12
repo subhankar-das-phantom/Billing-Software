@@ -167,7 +167,7 @@ export default function EditPaymentModal({
                   <Edit3 className="w-5 h-5 text-blue-400" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-white">{isManual ? 'Edit Manual Entry' : 'Edit Payment'}</h2>
+                  <h2 className="text-lg font-semibold text-slate-100">{isManual ? 'Edit Manual Entry' : 'Edit Payment'}</h2>
                   {payment && (
                     <p className="text-sm text-slate-400">{isManual ? payment.reference : payment.invoiceNumber}</p>
                   )}
@@ -175,7 +175,7 @@ export default function EditPaymentModal({
               </div>
               <motion.button
                 onClick={onClose}
-                className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+                className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-slate-100 transition-colors"
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -194,7 +194,7 @@ export default function EditPaymentModal({
                   <div className="inline-flex p-4 bg-emerald-500/20 rounded-full mb-4">
                     <CheckCircle className="w-12 h-12 text-emerald-400" />
                   </div>
-                  <h3 className="text-xl font-semibold text-white mb-2">Payment Updated!</h3>
+                  <h3 className="text-xl font-semibold text-slate-100 mb-2">Payment Updated!</h3>
                   <p className="text-slate-400">
                     {formatCurrency(parseFloat(formData.amount))} updated successfully
                   </p>
@@ -220,7 +220,7 @@ export default function EditPaymentModal({
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
                           <span className="text-slate-400">Invoice Total:</span>
-                          <span className="ml-2 text-white font-medium">
+                          <span className="ml-2 text-slate-100 font-medium">
                             {formatCurrency(payment.invoiceTotal || 0)}
                           </span>
                         </div>
@@ -250,7 +250,7 @@ export default function EditPaymentModal({
                         value={formData.amount}
                         onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
                         placeholder="0.00"
-                        className="w-full pl-8 pr-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full pl-8 pr-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         required
                       />
                     </div>
@@ -268,11 +268,11 @@ export default function EditPaymentModal({
                         <select
                           value={formData.paymentMethod}
                           onChange={(e) => setFormData(prev => ({ ...prev, paymentMethod: e.target.value }))}
-                          className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer hover:border-slate-500 transition-colors"
+                          className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer hover:border-slate-500 transition-colors"
                           style={{ backgroundImage: 'none' }}
                         >
                           {PAYMENT_METHODS.map((method) => (
-                            <option key={method.value} value={method.value} className="bg-slate-800 text-white py-2">
+                            <option key={method.value} value={method.value} className="bg-slate-800 text-slate-100 py-2">
                               {method.label}
                             </option>
                           ))}
@@ -295,7 +295,7 @@ export default function EditPaymentModal({
                         type="date"
                         value={formData.paymentDate}
                         onChange={(e) => setFormData(prev => ({ ...prev, paymentDate: e.target.value }))}
-                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
                   </div>
@@ -310,7 +310,7 @@ export default function EditPaymentModal({
                       value={formData.referenceNumber}
                       onChange={(e) => setFormData(prev => ({ ...prev, referenceNumber: e.target.value }))}
                       placeholder="Transaction ID, Cheque No., etc."
-                      className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
 
@@ -324,20 +324,18 @@ export default function EditPaymentModal({
                       onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                       placeholder="Any additional notes..."
                       rows={2}
-                      className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                      className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                     />
                   </div>
 
                   </div>
 
                   {/* Submit Button Footer */}
-                  <div className="p-4 sm:p-6 border-t border-slate-700/50 bg-slate-800/95 shrink-0 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] w-full sticky bottom-0 z-10">
-                    <motion.button
+                  <div className="p-4 sm:p-6 border-t border-slate-200 dark:border-slate-700/50 bg-white/95 dark:bg-slate-800/95 shrink-0 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] w-full sticky bottom-0 z-10">
+                    <button
                       type="submit"
                       disabled={loading}
-                      className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-accent2-600 hover:from-blue-500 hover:to-accent2-500 text-white font-medium rounded-lg transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                      whileHover={{ scale: loading ? 1 : 1.01 }}
-                      whileTap={{ scale: loading ? 1 : 0.99 }}
+                      className="btn btn-primary w-full py-3.5 flex items-center justify-center gap-2 text-base font-semibold"
                     >
                       {loading ? (
                         <>
@@ -350,7 +348,7 @@ export default function EditPaymentModal({
                           Update Payment
                         </>
                       )}
-                    </motion.button>
+                    </button>
                   </div>
                 </form>
               )}

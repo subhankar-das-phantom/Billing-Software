@@ -87,7 +87,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const result = await login(email, password);
-      if (result.success) {
+      if (result?.success) {
         navigate('/');
       }
     } catch (err) {
@@ -98,50 +98,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-      {/* Animated Background Gradients - Only on desktop */}
-      {!shouldReduceMotion && (
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <motion.div
-            animate={{
-              y: [0, -20, 0],
-              opacity: [0.5, 0.8, 0.5],
-              scale: [1, 1.1, 1],
-              transition: { duration: 5, repeat: Infinity, ease: 'easeInOut' }
-            }}
-            className="absolute -top-40 -right-40 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl"
-          />
-          <motion.div
-            animate={{
-              y: [0, 20, 0],
-              opacity: [0.5, 0.8, 0.5],
-              scale: [1, 1.2, 1],
-              transition: { duration: 7, repeat: Infinity, ease: 'easeInOut', delay: 1 }
-            }}
-            className="absolute -bottom-40 -left-40 w-96 h-96 bg-accent-500/20 rounded-full blur-3xl"
-          />
-          <motion.div
-            animate={{
-              y: [0, -15, 0],
-              opacity: [0.3, 0.6, 0.3],
-              scale: [1, 1.15, 1],
-              transition: { duration: 6, repeat: Infinity, ease: 'easeInOut', delay: 2 }
-            }}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl"
-          />
-        </div>
-      )}
-
-      {/* Static gradient background for mobile */}
-      {shouldReduceMotion && (
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl" />
-          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-accent-500/20 rounded-full blur-3xl" />
-        </div>
-      )}
-
-      {/* Animated Grid Background - CSS only, no JS animation */}
-      <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:50px_50px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]" />
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-slate-950">
+      {/* Crisp Subtle Grid Background */}
+      <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_75%_50%_at_50%_50%,black,transparent)]" />
 
       {/* Login Card */}
       <motion.div
@@ -150,62 +109,20 @@ export default function LoginPage() {
         animate="visible"
         className="relative w-full max-w-md z-10"
       >
-        <motion.div
-          className="glass-card p-8 md:p-10 shadow-2xl border border-white/10 backdrop-blur-xl bg-slate-900/80 relative overflow-hidden"
-          whileHover={shouldReduceMotion ? undefined : { boxShadow: '0 25px 50px -12px rgba(59, 130, 246, 0.3)' }}
-          transition={{ duration: 0.3 }}
-        >
-          {/* Card Shimmer Effect - Only on desktop */}
-          {!shouldReduceMotion && (
-            <motion.div
-              className="absolute inset-0 pointer-events-none bg-gradient-to-r from-transparent via-white/5 to-transparent"
-              animate={{ x: ['-100%', '100%'], transition: { duration: 2, repeat: Infinity, ease: 'linear' } }}
-            />
-          )}
-
+        <div className="glass-card p-8 md:p-10 shadow-xl border border-slate-700/60 relative overflow-hidden">
           {/* Logo Section */}
           <motion.div variants={itemVariants} className="text-center mb-8">
-            <motion.div
-              className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-accent-600 mb-4 shadow-lg shadow-blue-500/50 relative overflow-hidden"
-              whileHover={shouldReduceMotion ? undefined : { 
-                scale: 1.1, 
-                rotate: 360,
-                boxShadow: '0 20px 40px -15px rgba(59, 130, 246, 0.6)'
-              }}
-              transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-            >
-              {/* Pulsing gradient - Only on desktop */}
-              {!shouldReduceMotion && (
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-br from-accent-600 to-blue-500"
-                  animate={{ scale: [1, 1.2, 1], opacity: [0, 0.5, 0] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                />
-              )}
-              <span className="text-white font-bold text-3xl relative z-10">B</span>
-              {!shouldReduceMotion && (
-                <motion.div
-                  className="absolute -top-1 -right-1"
-                  animate={{ scale: [1, 1.2, 1], opacity: [1, 0.5, 1] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                >
-                  <Sparkles className="w-4 h-4 text-yellow-300" />
-                </motion.div>
-              )}
-              {shouldReduceMotion && (
-                <div className="absolute -top-1 -right-1">
-                  <Sparkles className="w-4 h-4 text-yellow-300" />
-                </div>
-              )}
-            </motion.div>
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-blue-600 mb-4 shadow-sm text-white font-bold text-2xl">
+              B
+            </div>
 
             <motion.div variants={itemVariants}>
-              <h1 className="text-3xl font-bold text-white mb-2 tracking-tight bg-gradient-to-r from-white via-blue-100 to-white bg-clip-text text-transparent">
+              <h1 className="text-2xl sm:text-3xl font-bold text-slate-100 mb-2 tracking-tight">
                 Bharat Enterprise
               </h1>
-              <p className="text-slate-400 font-medium flex items-center justify-center gap-2">
-                <Shield className="w-4 h-4" />
-                Billing & Inventory System
+              <p className="text-slate-400 font-medium flex items-center justify-center gap-2 text-sm">
+                <Shield className="w-4 h-4 text-blue-500" />
+                Billing & Business Operations
               </p>
             </motion.div>
           </motion.div>
@@ -213,10 +130,10 @@ export default function LoginPage() {
           {/* Welcome Message */}
           <motion.div
             variants={itemVariants}
-            className="text-center mb-6 p-4 rounded-xl bg-gradient-to-r from-blue-500/10 via-accent-500/10 to-blue-500/10 border border-blue-500/20"
+            className="text-center mb-6 p-3.5 rounded-xl bg-slate-800/40 border border-slate-700/60"
           >
             <p className="text-slate-300 text-sm">
-              👋 Welcome back! Please sign in to continue
+              Welcome back. Sign in to your workstation.
             </p>
           </motion.div>
 
@@ -285,18 +202,14 @@ export default function LoginPage() {
             </motion.div>
 
             {/* Submit Button */}
-            <motion.button
-              variants={itemVariants}
-              whileHover={shouldReduceMotion ? undefined : { scale: 1.02, y: -2 }}
-              whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}
+            <button
               type="submit"
               disabled={loading}
-              className="btn btn-primary w-full py-3.5 font-semibold shadow-lg shadow-blue-500/30 relative overflow-hidden group"
+              className="btn btn-primary w-full py-3 font-semibold shadow-xs relative overflow-hidden group"
             >
               <span className="relative z-10 flex items-center justify-center gap-2">
                 {loading ? (
                   <>
-                    {/* Use CSS animation instead of Framer Motion for spinner */}
                     <Loader2 className="w-5 h-5 animate-spin" />
                     <span>Signing in...</span>
                   </>
@@ -308,34 +221,30 @@ export default function LoginPage() {
                   </>
                 )}
               </span>
-            </motion.button>
+            </button>
           </form>
 
           {/* Demo Credentials */}
           <motion.div
             variants={itemVariants}
-            className="mt-6 p-4 rounded-xl bg-gradient-to-r from-slate-800/80 to-slate-800/40 border border-slate-700/50 relative overflow-hidden"
+            className="mt-6 p-3.5 rounded-xl bg-slate-800/40 border border-slate-700/60"
           >
-            <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-2">
-                <AlertCircle size={16} className="text-blue-400" />
-                <p className="text-sm font-semibold text-slate-300">Demo Credentials</p>
+            <div className="flex items-center gap-2 mb-2">
+              <AlertCircle size={15} className="text-blue-400" />
+              <p className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Demo Credentials</p>
+            </div>
+            <div className="space-y-1.5 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Email:</span>
+                <code className="text-blue-400 font-mono bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700/60">
+                  admin@bharat.com
+                </code>
               </div>
-              <div className="space-y-1 text-sm">
-                <p className="flex items-center gap-2">
-                  <Mail size={14} className="text-slate-500" />
-                  <span className="text-slate-400">Email:</span>
-                  <code className="text-blue-400 font-mono bg-slate-900/50 px-2 py-0.5 rounded">
-                    admin@bharat.com
-                  </code>
-                </p>
-                <p className="flex items-center gap-2">
-                  <Lock size={14} className="text-slate-500" />
-                  <span className="text-slate-400">Password:</span>
-                  <code className="text-blue-400 font-mono bg-slate-900/50 px-2 py-0.5 rounded">
-                    admin123
-                  </code>
-                </p>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Password:</span>
+                <code className="text-blue-400 font-mono bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700/60">
+                  admin123
+                </code>
               </div>
             </div>
           </motion.div>
@@ -377,30 +286,7 @@ export default function LoginPage() {
               ← Back to Home
             </Link>
           </motion.div>
-        </motion.div>
-
-        {/* Floating Particles - Only on desktop */}
-        {!shouldReduceMotion && [...Array(5)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-1 h-1 bg-blue-400/30 rounded-full pointer-events-none"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`
-            }}
-            animate={{
-              y: [0, -30, 0],
-              opacity: [0, 1, 0],
-              scale: [0, 1, 0]
-            }}
-            transition={{
-              duration: 3 + Math.random() * 2,
-              repeat: Infinity,
-              delay: i * 0.5,
-              ease: 'easeInOut'
-            }}
-          />
-        ))}
+        </div>
       </motion.div>
     </div>
   );

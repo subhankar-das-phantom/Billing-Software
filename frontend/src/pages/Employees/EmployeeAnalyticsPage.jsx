@@ -43,12 +43,12 @@ const formatCurrency = (amount) => {
 // Stat Card Component - Responsive & Mobile-optimized
 const StatCard = ({ icon: Icon, label, value, subValue, color = 'blue', delay = 0, isMobile = false, isFirstVisit }) => {
   const colors = {
-    blue: 'from-blue-500 to-blue-600',
-    green: 'from-green-500 to-green-600',
-    accent: 'from-accent-500 to-accent-600',
-    orange: 'from-orange-500 to-orange-600',
-    emerald: 'from-emerald-500 to-emerald-600',
-    pink: 'from-pink-500 to-pink-600'
+    blue: 'bg-blue-500/10 dark:bg-blue-500/15 border-blue-500/20 text-blue-600 dark:text-blue-400',
+    green: 'bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500/20 text-emerald-600 dark:text-emerald-400',
+    accent: 'bg-indigo-500/10 dark:bg-indigo-500/15 border-indigo-500/20 text-indigo-600 dark:text-indigo-400',
+    orange: 'bg-amber-500/10 dark:bg-amber-500/15 border-amber-500/20 text-amber-600 dark:text-amber-400',
+    emerald: 'bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500/20 text-emerald-600 dark:text-emerald-400',
+    pink: 'bg-rose-500/10 dark:bg-rose-500/15 border-rose-500/20 text-rose-600 dark:text-rose-400'
   };
 
   return (
@@ -62,7 +62,7 @@ const StatCard = ({ icon: Icon, label, value, subValue, color = 'blue', delay = 
         <div className="min-w-0 flex-1">
           <p className="text-slate-400 text-xs sm:text-sm mb-0.5 sm:mb-1 truncate font-medium">{label}</p>
           <p
-            className="text-base sm:text-xl md:text-2xl font-bold text-white tracking-tight truncate"
+            className="text-base sm:text-xl md:text-2xl font-bold text-slate-100 tracking-tight truncate"
             title={typeof value === 'string' || typeof value === 'number' ? String(value) : undefined}
           >
             {value}
@@ -71,8 +71,8 @@ const StatCard = ({ icon: Icon, label, value, subValue, color = 'blue', delay = 
             <p className="text-slate-500 text-[10px] sm:text-xs mt-0.5 sm:mt-1 truncate">{subValue}</p>
           )}
         </div>
-        <div className={`p-2 sm:p-2.5 md:p-3 rounded-xl bg-gradient-to-br ${colors[color]} shadow-md shrink-0`}>
-          <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+        <div className={`p-2 sm:p-2.5 md:p-3 rounded-xl border shrink-0 ${colors[color] || colors.blue}`}>
+          <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
         </div>
       </div>
     </motion.div>
@@ -95,7 +95,7 @@ const LeaderboardCard = ({ employees, metric, title, formatValue, isMobile = fal
       <div className="flex items-center justify-between gap-2 mb-3.5 sm:mb-4">
         <div className="flex items-center gap-2 min-w-0">
           <Award className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400 shrink-0" />
-          <h3 className="font-semibold text-white text-sm sm:text-base truncate">{title}</h3>
+          <h3 className="font-semibold text-slate-100 text-sm sm:text-base truncate">{title}</h3>
         </div>
         <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-slate-700/60 text-slate-300 shrink-0 font-medium">
           Top 5
@@ -116,7 +116,7 @@ const LeaderboardCard = ({ employees, metric, title, formatValue, isMobile = fal
               {index + 1}
             </span>
             <div className="flex-1 min-w-0">
-              <p className="text-white text-xs sm:text-sm font-medium truncate" title={emp.name}>
+              <p className="text-slate-100 text-xs sm:text-sm font-medium truncate" title={emp.name}>
                 {emp.name}
               </p>
             </div>
@@ -148,11 +148,11 @@ const ComparisonRow = ({ employee, maxSales, isFirstVisit }) => {
       <div className="flex flex-col md:flex-row md:items-center gap-3 sm:gap-4">
         {/* Profile */}
         <div className="flex items-center gap-2.5 sm:gap-3 md:w-52 lg:w-60 min-w-0 shrink-0">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-blue-500 to-accent-600 flex items-center justify-center text-white font-bold text-sm sm:text-base shrink-0 shadow-sm">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-sm sm:text-base shrink-0">
             {employee.name?.charAt(0) || 'E'}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-white font-medium text-xs sm:text-sm truncate" title={employee.name}>
+            <p className="text-slate-100 font-medium text-xs sm:text-sm truncate" title={employee.name}>
               {employee.name}
             </p>
             <p className="text-slate-500 text-[11px] sm:text-xs truncate">
@@ -165,7 +165,7 @@ const ComparisonRow = ({ employee, maxSales, isFirstVisit }) => {
         <div className="flex-1 min-w-0 my-0.5 md:my-0">
           <div className="flex justify-between items-center mb-1 gap-2">
             <span className="text-slate-400 text-[11px] sm:text-xs font-medium">Sales Performance</span>
-            <span className="text-white text-xs sm:text-sm font-semibold tabular-nums">
+            <span className="text-slate-100 text-xs sm:text-sm font-semibold tabular-nums">
               {formatCurrency(employee.period?.salesGenerated)}
             </span>
           </div>
@@ -183,19 +183,19 @@ const ComparisonRow = ({ employee, maxSales, isFirstVisit }) => {
         <div className="grid grid-cols-3 gap-2 p-2 sm:p-2.5 bg-slate-900/50 rounded-lg border border-slate-800/80 md:w-64 lg:w-72 text-center shrink-0">
           <div className="min-w-0">
             <p className="text-slate-400 text-[10px] sm:text-xs font-medium truncate">Invoices</p>
-            <p className="text-white font-semibold text-xs sm:text-sm mt-0.5 tabular-nums truncate">
+            <p className="text-slate-100 font-semibold text-xs sm:text-sm mt-0.5 tabular-nums truncate">
               {employee.period?.invoicesCreated || 0}
             </p>
           </div>
           <div className="min-w-0 border-x border-slate-800/80">
             <p className="text-slate-400 text-[10px] sm:text-xs font-medium truncate">Payments</p>
-            <p className="text-white font-semibold text-xs sm:text-sm mt-0.5 tabular-nums truncate">
+            <p className="text-slate-100 font-semibold text-xs sm:text-sm mt-0.5 tabular-nums truncate">
               {employee.period?.paymentsRecorded || 0}
             </p>
           </div>
           <div className="min-w-0">
             <p className="text-slate-400 text-[10px] sm:text-xs font-medium truncate">Session</p>
-            <p className="text-white font-semibold text-xs sm:text-sm mt-0.5 tabular-nums truncate" title={formatDuration(employee.period?.totalSessionTime)}>
+            <p className="text-slate-100 font-semibold text-xs sm:text-sm mt-0.5 tabular-nums truncate" title={formatDuration(employee.period?.totalSessionTime)}>
               {formatDuration(employee.period?.totalSessionTime)}
             </p>
           </div>
@@ -263,7 +263,7 @@ export default function EmployeeAnalyticsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white flex items-center gap-2.5 sm:gap-3 tracking-tight">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-100 flex items-center gap-2.5 sm:gap-3 tracking-tight">
             <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 text-accent-500 shrink-0" />
             <span className="truncate">Employee Analytics</span>
           </h1>
@@ -274,7 +274,7 @@ export default function EmployeeAnalyticsPage() {
         <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
           <Link
             to="/employees"
-            className="flex-1 sm:flex-initial text-center px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 hover:text-white hover:bg-slate-700 transition-colors text-xs sm:text-sm font-medium shadow-sm"
+            className="flex-1 sm:flex-initial text-center px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 hover:text-slate-100 hover:bg-slate-700 transition-colors text-xs sm:text-sm font-medium shadow-sm"
           >
             Manage Employees
           </Link>
@@ -282,7 +282,7 @@ export default function EmployeeAnalyticsPage() {
             type="button"
             onClick={() => fetchData(true)}
             disabled={isRefreshing}
-            className="p-2 sm:p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 transition-colors disabled:opacity-50"
+            className="p-2 sm:p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 hover:text-slate-100 hover:bg-slate-700 transition-colors disabled:opacity-50"
             title="Refresh analytics data"
             aria-label="Refresh analytics data"
           >
@@ -357,31 +357,31 @@ export default function EmployeeAnalyticsPage() {
         animate={{ opacity: 1, y: 0 }}
         className="bg-slate-800/50 rounded-xl p-4 sm:p-5 md:p-6 border border-slate-700/80"
       >
-        <h2 className="text-base sm:text-lg font-semibold text-white mb-3.5 sm:mb-4 flex items-center gap-2">
+        <h2 className="text-base sm:text-lg font-semibold text-slate-100 mb-3.5 sm:mb-4 flex items-center gap-2">
           <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400 shrink-0" />
           Session Activity
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3.5 md:gap-4">
           <div className="text-center p-3 sm:p-4 bg-slate-900/60 rounded-xl border border-slate-800/80">
-            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white tracking-tight truncate">
+            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-100 tracking-tight truncate">
               {sessionSummary?.stats?.todayLogins || 0}
             </p>
             <p className="text-slate-400 text-xs sm:text-sm mt-0.5 sm:mt-1 truncate">Today's Logins</p>
           </div>
           <div className="text-center p-3 sm:p-4 bg-slate-900/60 rounded-xl border border-slate-800/80">
-            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white tracking-tight truncate">
+            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-100 tracking-tight truncate">
               {sessionSummary?.stats?.weekLogins || 0}
             </p>
             <p className="text-slate-400 text-xs sm:text-sm mt-0.5 sm:mt-1 truncate">This Week</p>
           </div>
           <div className="text-center p-3 sm:p-4 bg-slate-900/60 rounded-xl border border-slate-800/80">
-            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white tracking-tight truncate">
+            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-100 tracking-tight truncate">
               {sessionSummary?.stats?.monthLogins || 0}
             </p>
             <p className="text-slate-400 text-xs sm:text-sm mt-0.5 sm:mt-1 truncate">This Month</p>
           </div>
           <div className="text-center p-3 sm:p-4 bg-slate-900/60 rounded-xl border border-slate-800/80">
-            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white tracking-tight truncate">
+            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-100 tracking-tight truncate">
               {formatDuration(sessionSummary?.stats?.avgSessionDuration)}
             </p>
             <p className="text-slate-400 text-xs sm:text-sm mt-0.5 sm:mt-1 truncate">Avg. Session</p>
@@ -423,7 +423,7 @@ export default function EmployeeAnalyticsPage() {
         className="bg-slate-800/50 rounded-xl p-4 sm:p-5 md:p-6 border border-slate-700/80"
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
-          <h2 className="text-base sm:text-lg font-semibold text-white flex items-center gap-2">
+          <h2 className="text-base sm:text-lg font-semibold text-slate-100 flex items-center gap-2">
             <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-accent-400 shrink-0" />
             Performance Comparison
           </h2>
@@ -432,12 +432,12 @@ export default function EmployeeAnalyticsPage() {
             <select
               value={comparisonDays}
               onChange={e => setComparisonDays(Number(e.target.value))}
-              className="bg-transparent text-white text-xs sm:text-sm focus:outline-none cursor-pointer w-full sm:w-auto"
+              className="bg-transparent text-slate-100 text-xs sm:text-sm focus:outline-none cursor-pointer w-full sm:w-auto"
             >
-              <option value={7} className="bg-slate-900 text-white">Last 7 days</option>
-              <option value={14} className="bg-slate-900 text-white">Last 14 days</option>
-              <option value={30} className="bg-slate-900 text-white">Last 30 days</option>
-              <option value={90} className="bg-slate-900 text-white">Last 90 days</option>
+              <option value={7} className="bg-slate-900 text-slate-100">Last 7 days</option>
+              <option value={14} className="bg-slate-900 text-slate-100">Last 14 days</option>
+              <option value={30} className="bg-slate-900 text-slate-100">Last 30 days</option>
+              <option value={90} className="bg-slate-900 text-slate-100">Last 90 days</option>
             </select>
           </div>
         </div>
@@ -469,7 +469,7 @@ export default function EmployeeAnalyticsPage() {
           className="bg-slate-800/50 rounded-xl p-4 sm:p-5 md:p-6 border border-slate-700/80"
         >
           <div className="flex flex-wrap items-center justify-between gap-2 mb-3.5 sm:mb-4">
-            <h2 className="text-base sm:text-lg font-semibold text-white flex items-center gap-2">
+            <h2 className="text-base sm:text-lg font-semibold text-slate-100 flex items-center gap-2">
               <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-green-400 shrink-0" />
               Currently Active
             </h2>
@@ -484,7 +484,7 @@ export default function EmployeeAnalyticsPage() {
                 className="flex items-center gap-2 px-2.5 py-1.5 sm:px-3 sm:py-2 bg-slate-900/70 rounded-lg border border-slate-700/70 text-xs sm:text-sm max-w-full"
               >
                 <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse shrink-0" />
-                <span className="text-white font-medium truncate max-w-[140px] sm:max-w-[200px]" title={session.user?.name || session.user?.firmName || 'User'}>
+                <span className="text-slate-100 font-medium truncate max-w-[140px] sm:max-w-[200px]" title={session.user?.name || session.user?.firmName || 'User'}>
                   {session.user?.name || session.user?.firmName || 'User'}
                 </span>
                 <span className="text-slate-500 text-[10px] sm:text-xs shrink-0">

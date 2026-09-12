@@ -4,6 +4,43 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.4.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.4.0) — 2026-09-12 — Pro UI/UX Obsidian Dark Palette, Mobile Manual Entries Cards, Activity Log DOM Virtualization & Zero-CLS Skeletons
+
+### 💎 Senior Enterprise UI & High-Performance Virtualization Milestone
+Version 2.4.0 introduces an enterprise visual and architectural overhaul. It replaces amateur, high-saturation midnight-navy backgrounds with industry-standard neutral obsidian dark tokens (`#09090b` canvas, `#121215` card surfaces, and `#2a2b32` borders) modeled after Linear and Vercel. It unifies the Header, Sidebar, and Page Canvas into one cohesive surface, adds responsive mobile card layouts for Manual Entries, replaces raw loading spinners with dedicated zero-CLS shimmer skeletons across Activity Log and Employee Detail views, and incorporates `@tanstack/react-virtual` DOM virtualization across both top-level session cards and high-volume shift sub-lists.
+
+---
+
+### 🎨 Pro UI/UX Obsidian Dark Theme & Canvas Unification (`index.css`, `DashboardLayout.jsx`, `Header.jsx`, `AppShellSkeleton.jsx`, `LoginPage.jsx`, `RegisterPage.jsx`)
+- **Pro Obsidian Color Tokens (`index.css`)** — Replaced 84% blue-saturated dark tokens with neutral obsidian charcoal (`#09090b` canvas, `#121215` card surfaces, `#17171c` inner sub-panels, `#1c1d22` secondary surfaces, and `#2a2b32` refined borders), eliminating eye strain, chromatic aberration, and amateur "vibecoded" blue glows while keeping light mode 100% untouched.
+- **Unified Obsidian Canvas (`DashboardLayout.jsx`, `Header.jsx`)** — Eliminated diagonal gradient bleeds and rotating radial haze overlays that created color mismatches between the sidebar and main canvas. Added `dark:bg-slate-950/80` to Header and AppShellSkeleton for seamless edge-to-edge dark consistency.
+- **Auth Page Obsidian Canvas (`LoginPage.jsx`, `RegisterPage.jsx`)** — Replaced diagonal blue gradients with pure obsidian canvas `#09090b`.
+
+---
+
+### 📱 Responsive Mobile Cards for Manual Entries (`ManualEntriesPage.jsx`, `ManualEntriesPageSkeleton.jsx`)
+- **Dual-Mode Desktop & Mobile Split** — Preserved high-density administrative table with monospace typography on desktop (`hidden md:block`), while dynamically displaying standalone glass cards (`block md:hidden space-y-3`) on mobile (< 768px).
+- **Mobile Card Architecture** — Modeled after `InvoicesPage.jsx`: Entry Type & Payment pills, 44px touch-accessible delete action buttons (`min-w-[40px] min-h-[40px] active:scale-95`), customer avatar badges with phone numbers, right-aligned monospace amounts with remaining credit balance, and formatted timestamps.
+- **Dedicated Mobile Pagination Card** — Clean pagination card with 36px touch targets for `Prev` and `Next` navigation.
+- **Symmetric Zero-CLS Skeleton (`ManualEntriesPageSkeleton.jsx`)** — Synchronized mobile card placeholders and desktop table skeletons for smooth loading transitions.
+
+---
+
+### ⚡ DOM Virtualization & Bounded Session Lists (`ActivityLogPage.jsx`, `ActivityLogPageSkeleton.jsx`, `EmployeeDetailPage.jsx`, `EmployeeDetailPageSkeleton.jsx`)
+- **Top-Level Sessions Virtualization (`VirtualizedList`)** — Wrapped the main `activityLog` list in `@tanstack/react-virtual` with dynamic height measurement (`measureElement`). When selecting 30-day ranges across multi-shift enterprises (50–150+ sessions), only the visible 5–8 session cards in the viewport are mounted in the DOM.
+- **Accordion Height Recalibration** — Attached a debounced `window.dispatchEvent(new Event('resize'))` listener to `SessionCard` triggering whenever accordions expand or sub-lists toggle, dynamically recalculating parent virtualizer bounds with zero layout overlap.
+- **Shift Sub-Lists Virtualization** — In busy shifts with 80–200+ invoices or payments, the expanded list inside `max-h-72 overflow-y-auto custom-scrollbar` renders through nested `VirtualizedList` components (`estimateSize={() => 48}`), ensuring minimal memory consumption and 60fps smooth scrolling.
+- **5-Item Initial Limit & Category Filter Pills** — Invoices and payments are capped to 5 items initially with "Show all {count} (+X more) / Show fewer" toggles, product chips capped at 8, and quick-jump category filter tabs (`[All] [Invoices] [Payments] [Products]`).
+- **Activity Log & Employee Detail Shimmer Skeletons** — Created `ActivityLogPageSkeleton.jsx` and `EmployeeDetailPageSkeleton.jsx` to replace raw `<RefreshCw />` spinners with full-page zero-CLS shimmer skeletons.
+
+---
+
+### 🛡️ Auth Reliability & Brand Loading Experience (`AuthContext.jsx`)
+- **Auth Brand Loader** — Isolated `/login` and `/register` in `AuthContext.jsx` to render a focused, sleek brand loader (pulsing "B" badge + spinner on `#09090b` canvas) instead of momentarily flashing the entire dashboard sidebar and metric skeletons.
+- **Null-Safety Hardening** — Guarded `checkAuth`, `login`, and `register` responses with optional chaining (`data?.success`, `result?.success`) to prevent unhandled TypeErrors during transient server restarts or network drops.
+
+---
+
 ## [v2.3.1](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.3.1) — 2026-09-06 — Canonical Support Email Standardization & Post-Versioning Release Note Automation
 
 ### 📧 Canonical Support Email Standardization

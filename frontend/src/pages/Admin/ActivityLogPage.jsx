@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import { employeeService } from '../../services/employees/employeeService';
 import { useMotionConfig, useFirstVisit } from '../../hooks';
+import { ActivityLogPageSkeleton } from './ActivityLogPageSkeleton';
+import { VirtualizedList } from '../../components/Common/VirtualizedList';
 
 // Format currency
 const formatCurrency = (amount) => {
@@ -59,21 +61,49 @@ const formatDuration = (minutes) => {
   return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
 };
 
-// Session Card Component - Mobile optimized
+// Session Card Component - Mobile optimized & Bounded activity list
 const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
   const [expanded, setExpanded] = useState(false);
+  const [activeTab, setActiveTab] = useState('all'); // 'all' | 'invoices' | 'payments' | 'products'
+  const [showAllInvoices, setShowAllInvoices] = useState(false);
+  const [showAllPayments, setShowAllPayments] = useState(false);
+  const [showAllProductsAdded, setShowAllProductsAdded] = useState(false);
+  const [showAllProductsUpdated, setShowAllProductsUpdated] = useState(false);
+
   const { session, employee, activities, summary } = entry;
 
-  const hasActivities = summary.invoiceCount > 0 || summary.paymentCount > 0 || 
-                        summary.productsAdded > 0 || summary.productsUpdated > 0;
+  const DEFAULT_DISPLAY_LIMIT = 5;
+  const DEFAULT_PRODUCT_LIMIT = 8;
+
+  // Recalibrate virtualizer offsets when accordion toggles or inner lists expand
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      window.dispatchEvent(new Event('resize'));
+    }, 220);
+    return () => clearTimeout(timer);
+  }, [expanded, showAllInvoices, showAllPayments, showAllProductsAdded, showAllProductsUpdated, activeTab]);
+
+  const totalProducts = (activities.productsAdded?.length || 0) + (activities.productsUpdated?.length || 0);
+  const hasActivities = summary.invoiceCount > 0 || summary.paymentCount > 0 || totalProducts > 0;
+
+  const visibleInvoices = showAllInvoices 
+    ? activities.invoicesCreated 
+    : activities.invoicesCreated.slice(0, DEFAULT_DISPLAY_LIMIT);
+
+  const visiblePayments = showAllPayments 
+    ? activities.paymentsRecorded 
+    : activities.paymentsRecorded.slice(0, DEFAULT_DISPLAY_LIMIT);
+
+  const visibleProductsAdded = showAllProductsAdded
+    ? activities.productsAdded
+    : activities.productsAdded.slice(0, DEFAULT_PRODUCT_LIMIT);
+
+  const visibleProductsUpdated = showAllProductsUpdated
+    ? activities.productsUpdated
+    : activities.productsUpdated.slice(0, DEFAULT_PRODUCT_LIMIT);
 
   return (
-    <motion.div
-      initial={isFirstVisit ? (isMobile ? { opacity: 0 } : { opacity: 0, y: 10 }) : false}
-      animate={{ opacity: 1, y: 0 }}
-      transition={isMobile ? { duration: 0.15 } : { type: 'spring', stiffness: 300, damping: 24 }}
-      className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden hover:border-slate-600 transition-colors"
-    >
+    <div className="bg-slate-900/60 rounded-xl border border-slate-800/80 overflow-hidden hover:border-slate-700/80 transition-colors">
       {/* Header - Always visible */}
       <div 
         className={`p-4 ${hasActivities ? 'cursor-pointer' : ''}`}
@@ -81,41 +111,41 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
       >
         {/* Top row: Employee + Status */}
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             {/* Employee Avatar */}
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-accent-600 flex items-center justify-center text-white font-bold shadow-lg shadow-blue-500/20">
+            <div className="w-10 h-10 rounded-full bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 flex items-center justify-center text-blue-400 font-bold shrink-0">
               {employee.name?.charAt(0)?.toUpperCase() || 'E'}
             </div>
             
-            <div>
-              <h3 className="font-semibold text-white">{employee.name}</h3>
-              <p className="text-xs text-slate-500">{employee.email}</p>
+            <div className="min-w-0">
+              <h3 className="font-semibold text-slate-100 text-sm sm:text-base truncate">{employee.name}</h3>
+              <p className="text-xs text-slate-400 truncate">{employee.email}</p>
             </div>
           </div>
 
           {/* Duration Badge */}
-          <div className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
+          <div className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium shrink-0 ${
             session?.isActive 
               ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
               : session
-                ? 'bg-slate-700/50 text-slate-300'
+                ? 'bg-slate-800 text-slate-300 border border-slate-700/60'
                 : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
           }`}>
             {session ? (
               session.isActive ? (
-                <span className="flex items-center gap-1.5">
+                <span className="flex items-center gap-1.5 font-mono">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                   Active
                 </span>
               ) : (
-                <span className="flex items-center gap-1.5">
-                  <Clock size={14} />
+                <span className="flex items-center gap-1.5 font-mono">
+                  <Clock size={13} />
                   {formatDuration(session.duration)}
                 </span>
               )
             ) : (
               <span className="flex items-center gap-1.5">
-                <Activity size={14} />
+                <Activity size={13} />
                 Direct Activity
               </span>
             )}
@@ -123,53 +153,57 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
         </div>
 
         {/* Time row */}
-        <div className="flex items-center gap-4 text-sm mb-3 pl-1">
+        <div className="flex items-center gap-4 text-xs sm:text-sm mb-3 pl-1 text-slate-300">
           {session ? (
             <>
               <div className="flex items-center gap-2">
-                <LogIn size={14} className="text-emerald-400" />
-                <span className="text-slate-300">{formatDateTime(session.loginTime)}</span>
+                <LogIn size={14} className="text-emerald-400 shrink-0" />
+                <span className="font-mono">{formatDateTime(session.loginTime)}</span>
               </div>
               {session.logoutTime && (
                 <div className="flex items-center gap-2">
-                  <LogOutIcon size={14} className="text-red-400" />
-                  <span className="text-slate-400">{formatTime(session.logoutTime)}</span>
+                  <LogOutIcon size={14} className="text-rose-400 shrink-0" />
+                  <span className="font-mono text-slate-400">{formatTime(session.logoutTime)}</span>
                 </div>
               )}
             </>
           ) : (
             <div className="flex items-center gap-2 text-slate-400">
-              <Activity size={14} className="text-blue-400" />
+              <Activity size={14} className="text-blue-400 shrink-0" />
               <span>Authenticated work without separate login session</span>
             </div>
           )}
         </div>
 
         {/* Quick Summary - Stats row */}
-        <div className="flex flex-wrap gap-3 pt-3 border-t border-slate-700/50">
-          <div className="flex items-center gap-1.5 text-sm px-2 py-1 rounded-lg bg-blue-500/10">
-            <FileText size={14} className="text-blue-400" />
-            <span className="text-blue-300 font-medium">{summary.invoiceCount}</span>
+        <div className="flex flex-wrap items-center gap-2.5 pt-3 border-t border-slate-800/80">
+          <div className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20">
+            <FileText size={13} className="text-blue-400" />
+            <span className="text-blue-300 font-mono font-medium">{summary.invoiceCount}</span>
           </div>
-          <div className="flex items-center gap-1.5 text-sm px-2 py-1 rounded-lg bg-green-500/10">
-            <Wallet size={14} className="text-green-400" />
-            <span className="text-green-300 font-medium">{summary.paymentCount}</span>
+          <div className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+            <Wallet size={13} className="text-emerald-400" />
+            <span className="text-emerald-300 font-mono font-medium">{summary.paymentCount}</span>
           </div>
-          <div className="flex items-center gap-1.5 text-sm px-2 py-1 rounded-lg bg-orange-500/10">
-            <Package size={14} className="text-orange-400" />
-            <span className="text-orange-300 font-medium">{summary.productsAdded + summary.productsUpdated}</span>
+          <div className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20">
+            <Package size={13} className="text-amber-400" />
+            <span className="text-amber-300 font-mono font-medium">{totalProducts}</span>
           </div>
           {summary.totalSales > 0 && (
-            <div className="ml-auto flex items-center gap-1.5 text-sm px-2 py-1 rounded-lg bg-emerald-500/10">
-              <TrendingUp size={14} className="text-emerald-400" />
-              <span className="text-emerald-300 font-medium">{formatCurrency(summary.totalSales)}</span>
+            <div className="ml-auto flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+              <TrendingUp size={13} className="text-emerald-400" />
+              <span className="text-emerald-300 font-mono font-medium">{formatCurrency(summary.totalSales)}</span>
             </div>
           )}
           
           {/* Expand Icon */}
           {hasActivities && (
-            <button className="ml-auto p-1 text-slate-400 hover:text-white transition-colors">
-              {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            <button 
+              type="button"
+              className="ml-auto p-1.5 text-slate-400 hover:text-slate-100 hover:bg-slate-800 rounded-lg transition-colors"
+              aria-label={expanded ? 'Collapse session details' : 'Expand session details'}
+            >
+              {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             </button>
           )}
         </div>
@@ -183,85 +217,266 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="border-t border-slate-700 bg-slate-900/50"
+            className="border-t border-slate-800/80 bg-slate-950/40"
           >
             <div className="p-4 space-y-4">
+              {/* Category Filter Tabs (Quick jump for high-density sessions) */}
+              <div className="flex items-center gap-2 flex-wrap pb-2 border-b border-slate-800/80 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('all')}
+                  className={`px-3 py-1 rounded-lg font-medium transition-colors ${
+                    activeTab === 'all'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'bg-slate-800/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                  }`}
+                >
+                  All
+                </button>
+                {activities.invoicesCreated.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('invoices')}
+                    className={`px-3 py-1 rounded-lg font-medium transition-colors flex items-center gap-1.5 ${
+                      activeTab === 'invoices'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'bg-slate-800/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                    }`}
+                  >
+                    <FileText size={12} />
+                    <span>Invoices ({activities.invoicesCreated.length})</span>
+                  </button>
+                )}
+                {activities.paymentsRecorded.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('payments')}
+                    className={`px-3 py-1 rounded-lg font-medium transition-colors flex items-center gap-1.5 ${
+                      activeTab === 'payments'
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'bg-slate-800/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                    }`}
+                  >
+                    <Wallet size={12} />
+                    <span>Payments ({activities.paymentsRecorded.length})</span>
+                  </button>
+                )}
+                {totalProducts > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('products')}
+                    className={`px-3 py-1 rounded-lg font-medium transition-colors flex items-center gap-1.5 ${
+                      activeTab === 'products'
+                        ? 'bg-amber-600 text-white shadow-sm'
+                        : 'bg-slate-800/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                    }`}
+                  >
+                    <Package size={12} />
+                    <span>Products ({totalProducts})</span>
+                  </button>
+                )}
+              </div>
+
               {/* Invoices Created */}
-              {activities.invoicesCreated.length > 0 && (
+              {(activeTab === 'all' || activeTab === 'invoices') && activities.invoicesCreated.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-medium text-blue-400 mb-2 flex items-center gap-2">
-                    <FileText size={14} /> Invoices Created ({activities.invoicesCreated.length})
-                  </h4>
-                  <div className="space-y-2">
-                    {activities.invoicesCreated.map((inv, idx) => (
-                      <div key={idx} className="flex items-center justify-between text-sm bg-slate-800/80 rounded-lg p-3 border border-slate-700/50">
-                        <div className="flex items-center gap-3">
-                          <span className="text-white font-medium">{inv.invoiceNumber}</span>
-                          <span className="text-slate-500">•</span>
-                          <span className="text-slate-400">{inv.customer}</span>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <span className="text-emerald-400 font-medium">{formatCurrency(inv.amount)}</span>
-                          <span className="text-slate-500 text-xs">{formatTime(inv.time)}</span>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-xs sm:text-sm font-semibold text-blue-400 flex items-center gap-2">
+                      <FileText size={14} /> Invoices Created ({activities.invoicesCreated.length})
+                    </h4>
+                    {activities.invoicesCreated.length > DEFAULT_DISPLAY_LIMIT && (
+                      <span className="text-[11px] text-slate-400 font-mono">
+                        Showing {visibleInvoices.length} of {activities.invoicesCreated.length}
+                      </span>
+                    )}
                   </div>
+
+                  {showAllInvoices && activities.invoicesCreated.length > DEFAULT_DISPLAY_LIMIT ? (
+                    <div className="max-h-72 overflow-y-auto custom-scrollbar pr-1 relative">
+                      <VirtualizedList
+                        items={activities.invoicesCreated}
+                        estimateSize={() => 48}
+                        gap={8}
+                        getKey={(inv, idx) => inv.invoiceNumber ? `${inv.invoiceNumber}-${idx}` : idx}
+                        className="min-h-[48px]"
+                        renderItem={(inv) => (
+                          <div className="flex items-center justify-between text-xs sm:text-sm bg-slate-900/80 rounded-xl p-3 border border-slate-800/60 hover:border-slate-700/80 transition-colors">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <span className="text-slate-100 font-mono font-medium">{inv.invoiceNumber}</span>
+                              <span className="text-slate-600">•</span>
+                              <span className="text-slate-400 truncate max-w-[140px] sm:max-w-[220px]">{inv.customer}</span>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
+                              <span className="text-emerald-400 font-mono font-semibold">{formatCurrency(inv.amount)}</span>
+                              <span className="text-slate-400 font-mono text-[11px] sm:text-xs">{formatTime(inv.time)}</span>
+                            </div>
+                          </div>
+                        )}
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {visibleInvoices.map((inv, idx) => (
+                        <div key={idx} className="flex items-center justify-between text-xs sm:text-sm bg-slate-900/80 rounded-xl p-3 border border-slate-800/60 hover:border-slate-700/80 transition-colors">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <span className="text-slate-100 font-mono font-medium">{inv.invoiceNumber}</span>
+                            <span className="text-slate-600">•</span>
+                            <span className="text-slate-400 truncate max-w-[140px] sm:max-w-[220px]">{inv.customer}</span>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <span className="text-emerald-400 font-mono font-semibold">{formatCurrency(inv.amount)}</span>
+                            <span className="text-slate-400 font-mono text-[11px] sm:text-xs">{formatTime(inv.time)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {activities.invoicesCreated.length > DEFAULT_DISPLAY_LIMIT && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllInvoices(!showAllInvoices)}
+                      className="mt-2 text-xs font-medium text-blue-400 hover:text-blue-300 flex items-center gap-1.5 transition-colors py-1.5 px-3 rounded-lg hover:bg-blue-500/10 border border-blue-500/20 active:scale-95"
+                    >
+                      {showAllInvoices ? (
+                        <>
+                          <ChevronUp size={14} />
+                          <span>Show fewer ({DEFAULT_DISPLAY_LIMIT} items)</span>
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown size={14} />
+                          <span>Show all {activities.invoicesCreated.length} invoices (+{activities.invoicesCreated.length - DEFAULT_DISPLAY_LIMIT} more)</span>
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               )}
 
               {/* Payments Recorded */}
-              {activities.paymentsRecorded.length > 0 && (
+              {(activeTab === 'all' || activeTab === 'payments') && activities.paymentsRecorded.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-medium text-green-400 mb-2 flex items-center gap-2">
-                    <Wallet size={14} /> Payments Recorded ({activities.paymentsRecorded.length})
-                  </h4>
-                  <div className="space-y-2">
-                    {activities.paymentsRecorded.map((p, idx) => (
-                      <div key={idx} className="flex items-center justify-between text-sm bg-slate-800/80 rounded-lg p-3 border border-slate-700/50">
-                        <div className="flex items-center gap-3">
-                          <span className="text-white">{p.invoiceNumber || 'Invoice'}</span>
-                          <span className="text-slate-500">•</span>
-                          <span className="text-slate-400 capitalize">{p.method}</span>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <span className="text-green-400 font-medium">{formatCurrency(p.amount)}</span>
-                          <span className="text-slate-500 text-xs">{formatTime(p.time)}</span>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-xs sm:text-sm font-semibold text-emerald-400 flex items-center gap-2">
+                      <Wallet size={14} /> Payments Recorded ({activities.paymentsRecorded.length})
+                    </h4>
+                    {activities.paymentsRecorded.length > DEFAULT_DISPLAY_LIMIT && (
+                      <span className="text-[11px] text-slate-400 font-mono">
+                        Showing {visiblePayments.length} of {activities.paymentsRecorded.length}
+                      </span>
+                    )}
                   </div>
+
+                  {showAllPayments && activities.paymentsRecorded.length > DEFAULT_DISPLAY_LIMIT ? (
+                    <div className="max-h-72 overflow-y-auto custom-scrollbar pr-1 relative">
+                      <VirtualizedList
+                        items={activities.paymentsRecorded}
+                        estimateSize={() => 48}
+                        gap={8}
+                        getKey={(p, idx) => p.invoiceNumber ? `${p.invoiceNumber}-${idx}` : idx}
+                        className="min-h-[48px]"
+                        renderItem={(p) => (
+                          <div className="flex items-center justify-between text-xs sm:text-sm bg-slate-900/80 rounded-xl p-3 border border-slate-800/60 hover:border-slate-700/80 transition-colors">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <span className="text-slate-100 font-mono font-medium">{p.invoiceNumber || 'Invoice'}</span>
+                              <span className="text-slate-600">•</span>
+                              <span className="text-slate-400 capitalize truncate max-w-[120px]">{p.method}</span>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
+                              <span className="text-emerald-400 font-mono font-semibold">{formatCurrency(p.amount)}</span>
+                              <span className="text-slate-400 font-mono text-[11px] sm:text-xs">{formatTime(p.time)}</span>
+                            </div>
+                          </div>
+                        )}
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {visiblePayments.map((p, idx) => (
+                        <div key={idx} className="flex items-center justify-between text-xs sm:text-sm bg-slate-900/80 rounded-xl p-3 border border-slate-800/60 hover:border-slate-700/80 transition-colors">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <span className="text-slate-100 font-mono font-medium">{p.invoiceNumber || 'Invoice'}</span>
+                            <span className="text-slate-600">•</span>
+                            <span className="text-slate-400 capitalize truncate max-w-[120px]">{p.method}</span>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <span className="text-emerald-400 font-mono font-semibold">{formatCurrency(p.amount)}</span>
+                            <span className="text-slate-400 font-mono text-[11px] sm:text-xs">{formatTime(p.time)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {activities.paymentsRecorded.length > DEFAULT_DISPLAY_LIMIT && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllPayments(!showAllPayments)}
+                      className="mt-2 text-xs font-medium text-emerald-400 hover:text-emerald-300 flex items-center gap-1.5 transition-colors py-1.5 px-3 rounded-lg hover:bg-emerald-500/10 border border-emerald-500/20 active:scale-95"
+                    >
+                      {showAllPayments ? (
+                        <>
+                          <ChevronUp size={14} />
+                          <span>Show fewer ({DEFAULT_DISPLAY_LIMIT} items)</span>
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown size={14} />
+                          <span>Show all {activities.paymentsRecorded.length} payments (+{activities.paymentsRecorded.length - DEFAULT_DISPLAY_LIMIT} more)</span>
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               )}
 
               {/* Products Added */}
-              {activities.productsAdded.length > 0 && (
+              {(activeTab === 'all' || activeTab === 'products') && activities.productsAdded.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-medium text-orange-400 mb-2 flex items-center gap-2">
+                  <h4 className="text-xs sm:text-sm font-semibold text-amber-400 mb-2 flex items-center gap-2">
                     <Package size={14} /> Products Added ({activities.productsAdded.length})
                   </h4>
                   <div className="flex flex-wrap gap-2">
-                    {activities.productsAdded.map((p, idx) => (
-                      <span key={idx} className="px-3 py-1.5 bg-orange-500/10 text-orange-300 rounded-lg text-sm border border-orange-500/20">
+                    {visibleProductsAdded.map((p, idx) => (
+                      <span key={idx} className="px-2.5 py-1 bg-amber-500/10 text-amber-300 rounded-lg text-xs border border-amber-500/20 truncate max-w-[200px]">
                         {p.name}
                       </span>
                     ))}
+                    {activities.productsAdded.length > DEFAULT_PRODUCT_LIMIT && (
+                      <button
+                        type="button"
+                        onClick={() => setShowAllProductsAdded(!showAllProductsAdded)}
+                        className="px-2.5 py-1 bg-slate-800 text-amber-400 hover:text-amber-300 rounded-lg text-xs border border-slate-700 hover:bg-slate-700 transition-colors font-medium"
+                      >
+                        {showAllProductsAdded ? 'Show less' : `+${activities.productsAdded.length - DEFAULT_PRODUCT_LIMIT} more`}
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
 
               {/* Products Updated */}
-              {activities.productsUpdated.length > 0 && (
+              {(activeTab === 'all' || activeTab === 'products') && activities.productsUpdated.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-medium text-yellow-400 mb-2 flex items-center gap-2">
+                  <h4 className="text-xs sm:text-sm font-semibold text-yellow-400 mb-2 flex items-center gap-2">
                     <Package size={14} /> Products Updated ({activities.productsUpdated.length})
                   </h4>
                   <div className="flex flex-wrap gap-2">
-                    {activities.productsUpdated.map((p, idx) => (
-                      <span key={idx} className="px-3 py-1.5 bg-yellow-500/10 text-yellow-300 rounded-lg text-sm border border-yellow-500/20">
+                    {visibleProductsUpdated.map((p, idx) => (
+                      <span key={idx} className="px-2.5 py-1 bg-yellow-500/10 text-yellow-300 rounded-lg text-xs border border-yellow-500/20 truncate max-w-[200px]">
                         {p.name}
                       </span>
                     ))}
+                    {activities.productsUpdated.length > DEFAULT_PRODUCT_LIMIT && (
+                      <button
+                        type="button"
+                        onClick={() => setShowAllProductsUpdated(!showAllProductsUpdated)}
+                        className="px-2.5 py-1 bg-slate-800 text-yellow-400 hover:text-yellow-300 rounded-lg text-xs border border-slate-700 hover:bg-slate-700 transition-colors font-medium"
+                      >
+                        {showAllProductsUpdated ? 'Show less' : `+${activities.productsUpdated.length - DEFAULT_PRODUCT_LIMIT} more`}
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -269,7 +484,7 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 };
 
@@ -352,14 +567,18 @@ export default function ActivityLogPage() {
     setEmployeeSearch('');
   };
 
+  if (loading) {
+    return <ActivityLogPageSkeleton />;
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-accent-600 shadow-lg shadow-blue-500/20">
-              <Activity size={20} className="text-white" />
+          <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 text-blue-600 dark:text-blue-400">
+              <Activity size={20} />
             </div>
             Activity Log
           </h1>
@@ -371,7 +590,7 @@ export default function ActivityLogPage() {
           whileTap={{ scale: 0.98 }}
           onClick={fetchActivityLog}
           disabled={refreshing}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white hover:bg-slate-700 transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900/80 border border-slate-800/80 text-slate-100 hover:bg-slate-800 transition-colors disabled:opacity-50"
         >
           <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
           Refresh
@@ -383,15 +602,15 @@ export default function ActivityLogPage() {
         {/* Time Range */}
         <div className="flex items-center gap-2">
           <Calendar size={18} className="text-slate-400" />
-          <div className="flex rounded-xl overflow-hidden border border-slate-700 bg-slate-800">
+          <div className="flex rounded-xl overflow-hidden border border-slate-800/80 bg-slate-900/80 p-0.5">
             {timeRangeOptions.map(opt => (
               <button
                 key={opt.value}
                 onClick={() => setTimeRange(opt.value)}
-                className={`px-3 py-2 text-sm font-medium transition-colors ${
+                className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-colors ${
                   timeRange === opt.value
-                    ? 'bg-blue-600 text-white'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
                 }`}
               >
                 {opt.label}
@@ -414,12 +633,12 @@ export default function ActivityLogPage() {
                 setShowEmployeeDropdown(true);
               }}
               onFocus={() => setShowEmployeeDropdown(true)}
-              className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-colors"
+              className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-slate-900/80 border border-slate-800/80 text-slate-100 placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-colors text-sm"
             />
             {(selectedEmployee || employeeSearch) && (
               <button 
                 onClick={clearEmployeeFilter}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-100 transition-colors"
               >
                 <X size={16} />
               </button>
@@ -435,7 +654,7 @@ export default function ActivityLogPage() {
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-20 max-h-60 overflow-y-auto"
+                  className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-800 rounded-xl shadow-xl overflow-hidden z-20 max-h-60 overflow-y-auto"
                 >
                   {filteredEmployees.map(emp => (
                     <button
@@ -445,13 +664,13 @@ export default function ActivityLogPage() {
                         setEmployeeSearch('');
                         setShowEmployeeDropdown(false);
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-700/50 transition-colors text-left"
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-800/60 transition-colors text-left"
                     >
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-accent-600 flex items-center justify-center text-white font-bold text-sm">
+                      <div className="w-8 h-8 rounded-full bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 flex items-center justify-center text-blue-400 font-bold text-sm">
                         {emp.name?.charAt(0)?.toUpperCase()}
                       </div>
                       <div>
-                        <p className="text-white font-medium text-sm">{emp.name}</p>
+                        <p className="text-slate-100 font-medium text-sm">{emp.name}</p>
                         <p className="text-slate-400 text-xs">{emp.email}</p>
                       </div>
                     </button>
@@ -476,12 +695,12 @@ export default function ActivityLogPage() {
             initial={isFirstVisit ? (isMobile ? { opacity: 0 } : { opacity: 0, y: 20 }) : false}
             animate={{ opacity: 1, y: 0 }}
             transition={isMobile ? { duration: 0.15 } : { delay: index * 0.05 }}
-            className="bg-slate-800/50 rounded-xl p-4 border border-slate-700"
+            className="bg-slate-900/60 rounded-xl p-4 border border-slate-800/80"
           >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-slate-400 mb-1">{stat.label}</p>
-                <p className={`text-xl font-bold text-${stat.color === 'slate' ? 'white' : stat.color + '-400'}`}>
+                <p className={`text-xl font-bold font-mono text-${stat.color === 'slate' ? 'white' : stat.color + '-400'}`}>
                   {stat.value}
                 </p>
               </div>
@@ -492,12 +711,8 @@ export default function ActivityLogPage() {
       </div>
 
       {/* Activity Log */}
-      {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <RefreshCw className="animate-spin text-blue-400" size={32} />
-        </div>
-      ) : activityLog.length === 0 ? (
-        <div className="text-center py-12 bg-slate-800/50 rounded-xl border border-slate-700">
+      {activityLog.length === 0 ? (
+        <div className="text-center py-12 bg-slate-900/60 rounded-xl border border-slate-800/80">
           <Clock className="mx-auto text-slate-600 mb-4" size={48} />
           <h3 className="text-lg font-medium text-slate-400">No activities or sessions found</h3>
           <p className="text-slate-500 mt-1">
@@ -508,16 +723,20 @@ export default function ActivityLogPage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {activityLog.map((entry, index) => (
+        <VirtualizedList
+          items={activityLog}
+          estimateSize={() => 150}
+          gap={12}
+          getKey={(entry, index) => entry.session?.id || `direct-${entry.employee?.id || 'emp'}-${index}`}
+          className="min-h-[150px]"
+          renderItem={(entry, index) => (
             <SessionCard 
-              key={entry.session?.id || `direct-${entry.employee?.id || 'emp'}-${index}`} 
               entry={entry} 
               isMobile={isMobile}
               isFirstVisit={isFirstVisit}
             />
-          ))}
-        </div>
+          )}
+        />
       )}
     </div>
   );

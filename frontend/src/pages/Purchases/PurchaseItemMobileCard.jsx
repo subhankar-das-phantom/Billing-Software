@@ -20,7 +20,7 @@ export default function PurchaseItemMobileCard({
       <div className="p-4 border-b border-slate-700 bg-slate-800/50">
         <div className="flex justify-between items-start gap-4">
           <div>
-            <h3 className="font-semibold text-white text-base leading-tight flex items-center gap-2 flex-wrap">
+            <h3 className="font-semibold text-slate-100 text-base leading-tight flex items-center gap-2 flex-wrap">
               {item.productName}
             </h3>
             <p className="text-xs text-slate-400 mt-1">Current Stock: <span className="text-emerald-400 font-medium">{item.currentStock}</span></p>

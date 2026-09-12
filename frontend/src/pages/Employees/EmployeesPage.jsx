@@ -185,12 +185,12 @@ const EmployeeModal = ({ isOpen, onClose, employee, onSave }) => {
           onClick={e => e.stopPropagation()}
         >
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-white">
+            <h2 className="text-xl font-bold text-slate-100">
               {employee ? 'Edit Employee' : 'Add New Employee'}
             </h2>
             <button
               onClick={onClose}
-              className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+              className="p-2 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-700 transition-colors"
             >
               <X size={20} />
             </button>
@@ -213,7 +213,7 @@ const EmployeeModal = ({ isOpen, onClose, employee, onSave }) => {
                 name="emp_name_new"
                 value={formData.name}
                 onChange={e => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-lg bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                className="w-full px-4 py-2.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
                 placeholder="Enter full name"
                 autoComplete="off"
                 required
@@ -229,7 +229,7 @@ const EmployeeModal = ({ isOpen, onClose, employee, onSave }) => {
                 name="emp_email_new"
                 value={formData.email}
                 onChange={e => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-lg bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                className="w-full px-4 py-2.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
                 placeholder="Enter email address"
                 autoComplete="off"
                 required
@@ -248,7 +248,7 @@ const EmployeeModal = ({ isOpen, onClose, employee, onSave }) => {
                     name="emp_password_new"
                     value={formData.password}
                     onChange={e => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full px-4 py-2.5 pr-12 rounded-lg bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full px-4 py-2.5 pr-12 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
                     placeholder="Enter password (min 6 chars)"
                     autoComplete="new-password"
                     minLength={6}
@@ -257,7 +257,7 @@ const EmployeeModal = ({ isOpen, onClose, employee, onSave }) => {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-100 transition-colors"
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
@@ -274,7 +274,7 @@ const EmployeeModal = ({ isOpen, onClose, employee, onSave }) => {
                 name="emp_phone_new"
                 value={formData.phone}
                 onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-lg bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                className="w-full px-4 py-2.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
                 placeholder="Optional"
                 autoComplete="off"
               />
@@ -289,7 +289,7 @@ const EmployeeModal = ({ isOpen, onClose, employee, onSave }) => {
                 name="emp_dob_new"
                 value={formData.dob}
                 onChange={e => setFormData({ ...formData, dob: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-lg bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                className="w-full px-4 py-2.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
                 autoComplete="off"
               />
             </div>
@@ -302,7 +302,7 @@ const EmployeeModal = ({ isOpen, onClose, employee, onSave }) => {
                 name="emp_address_new"
                 value={formData.address}
                 onChange={e => setFormData({ ...formData, address: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-lg bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors resize-none h-20"
+                className="w-full px-4 py-2.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors resize-none h-20"
                 placeholder="Optional"
                 autoComplete="off"
               />
@@ -316,7 +316,7 @@ const EmployeeModal = ({ isOpen, onClose, employee, onSave }) => {
                 <select
                   value={formData.govIdType}
                   onChange={e => setFormData({ ...formData, govIdType: e.target.value, govIdNumber: '', govIdCustomType: '' })}
-                  className="w-full px-4 py-2.5 rounded-lg bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                  className="w-full px-4 py-2.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:border-blue-500 transition-colors"
                 >
                   <option value="">None</option>
                   <option value="Aadhar">Aadhar</option>
@@ -336,7 +336,7 @@ const EmployeeModal = ({ isOpen, onClose, employee, onSave }) => {
                     name="emp_govid_custom"
                     value={formData.govIdCustomType}
                     onChange={e => setFormData({ ...formData, govIdCustomType: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-lg bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full px-4 py-2.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
                     placeholder="E.g. Passport"
                     autoComplete="off"
                     required
@@ -353,7 +353,7 @@ const EmployeeModal = ({ isOpen, onClose, employee, onSave }) => {
                   value={formData.govIdNumber}
                   onChange={e => setFormData({ ...formData, govIdNumber: e.target.value })}
                   disabled={!formData.govIdType}
-                  className="w-full px-4 py-2.5 rounded-lg bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50"
+                  className="w-full px-4 py-2.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50"
                   placeholder={formData.govIdType ? 'Enter ID number' : 'Select ID type first'}
                   autoComplete="off"
                 />
@@ -446,17 +446,17 @@ const PasswordResetModal = ({ isOpen, onClose, employee, onSave }) => {
           onClick={e => e.stopPropagation()}
         >
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-white">Reset Password</h2>
+            <h2 className="text-xl font-bold text-slate-100">Reset Password</h2>
             <button
               onClick={onClose}
-              className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+              className="p-2 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-700 transition-colors"
             >
               <X size={20} />
             </button>
           </div>
 
           <p className="text-slate-400 mb-4">
-            Reset password for <span className="text-white font-medium">{employee.name}</span>
+            Reset password for <span className="text-slate-100 font-medium">{employee.name}</span>
           </p>
 
           {error && (
@@ -477,7 +477,7 @@ const PasswordResetModal = ({ isOpen, onClose, employee, onSave }) => {
                   name="emp_reset_password"
                   value={newPassword}
                   onChange={e => setNewPassword(e.target.value)}
-                  className="w-full px-4 py-2.5 pr-12 rounded-lg bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                  className="w-full px-4 py-2.5 pr-12 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
                   placeholder="Enter new password"
                   autoComplete="new-password"
                   minLength={6}
@@ -486,7 +486,7 @@ const PasswordResetModal = ({ isOpen, onClose, employee, onSave }) => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-100 transition-colors"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -504,7 +504,7 @@ const PasswordResetModal = ({ isOpen, onClose, employee, onSave }) => {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 px-4 py-2.5 rounded-lg bg-orange-600 text-white hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-2.5 rounded-lg bg-orange-600 text-slate-100 hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>
@@ -549,7 +549,7 @@ const EmployeeCard = ({ employee, onEdit, onResetPassword, onToggleStatus, isMob
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-accent-600 flex items-center justify-center text-white font-bold text-lg">
+            <div className="w-12 h-12 rounded-full bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-lg">
               {employee.name?.charAt(0)?.toUpperCase() || 'E'}
             </div>
             {/* Online indicator */}
@@ -559,7 +559,7 @@ const EmployeeCard = ({ employee, onEdit, onResetPassword, onToggleStatus, isMob
             )}
           </div>
           <div>
-            <h3 className="font-semibold text-white flex items-center gap-2">
+            <h3 className="font-semibold text-slate-100 flex items-center gap-2">
               {employee.name}
               {employee.isOnline && (
                 <span className="text-[10px] px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 rounded font-medium">Online</span>
@@ -575,7 +575,7 @@ const EmployeeCard = ({ employee, onEdit, onResetPassword, onToggleStatus, isMob
       <div className="grid grid-cols-2 gap-3 mb-4">
         <div className="bg-slate-900/50 rounded-lg p-3">
           <p className="text-xs text-slate-500 mb-1">Invoices</p>
-          <p className="text-lg font-semibold text-white">{employee.metrics?.invoicesCreatedCount || 0}</p>
+          <p className="text-lg font-semibold text-slate-100">{employee.metrics?.invoicesCreatedCount || 0}</p>
         </div>
         <div className="bg-slate-900/50 rounded-lg p-3">
           <p className="text-xs text-slate-500 mb-1">Sales</p>
@@ -583,7 +583,7 @@ const EmployeeCard = ({ employee, onEdit, onResetPassword, onToggleStatus, isMob
         </div>
         <div className="bg-slate-900/50 rounded-lg p-3">
           <p className="text-xs text-slate-500 mb-1">Payments</p>
-          <p className="text-lg font-semibold text-white">{employee.metrics?.paymentsRecordedCount || 0}</p>
+          <p className="text-lg font-semibold text-slate-100">{employee.metrics?.paymentsRecordedCount || 0}</p>
         </div>
         <div className="bg-slate-900/50 rounded-lg p-3">
           <p className="text-xs text-slate-500 mb-1">Last Active</p>
@@ -733,14 +733,14 @@ export default function EmployeesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Employee Management</h1>
+          <h1 className="text-2xl font-bold text-slate-100">Employee Management</h1>
           <p className="text-slate-400 mt-1">Manage your team members and their access</p>
         </div>
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={handleAddNew}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-medium shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-shadow"
+          className="btn btn-primary flex items-center gap-2"
         >
           <UserPlus size={18} />
           Add Employee
@@ -760,7 +760,7 @@ export default function EmployeesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-400">{stat.label}</p>
-                <p className="text-2xl font-bold text-white mt-1">{stat.value}</p>
+                <p className="text-2xl font-bold text-slate-100 mt-1">{stat.value}</p>
               </div>
               <div className={`w-12 h-12 rounded-xl bg-${stat.color}-500/20 flex items-center justify-center`}>
                 <stat.icon className={`text-${stat.color}-400`} size={24} />
@@ -779,13 +779,13 @@ export default function EmployeesPage() {
             placeholder="Search employees..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-colors"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-colors"
           />
         </div>
         <select
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value)}
-          className="px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-blue-500 transition-colors"
+          className="px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 focus:outline-none focus:border-blue-500 transition-colors"
         >
           <option value="all">All Status</option>
           <option value="active">Active Only</option>

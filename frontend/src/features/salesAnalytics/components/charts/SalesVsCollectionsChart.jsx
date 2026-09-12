@@ -3,14 +3,15 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tool
 import { ChartWrapper } from './ChartWrapper';
 import { useDailySalesQuery } from '../../queries/useDailySalesQuery';
 import { formatCurrency } from '../../../../utils/formatters';
+import { useChartTheme } from '../../utils/chartTheme';
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
       <div className="glass-card p-3 border-emerald-500/30">
-        <p className="text-sm text-slate-300 mb-1">{label}</p>
+        <p className="text-sm text-slate-400 mb-1">{label}</p>
         {payload.map((entry, index) => (
-          <p key={index} className={`font-bold text-base ${entry.dataKey === 'revenue' ? 'text-blue-400' : 'text-emerald-400'}`}>
+          <p key={index} className={`font-bold text-base ${entry.dataKey === 'revenue' ? 'text-blue-500' : 'text-emerald-500'}`}>
             {entry.name}: {formatCurrency(entry.value)}
           </p>
         ))}
@@ -22,6 +23,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 export const SalesVsCollectionsChart = ({ filterParams }) => {
   const { data, isLoading, isError, refetch } = useDailySalesQuery(filterParams);
+  const { gridStroke, axisStroke } = useChartTheme();
   
   const chartData = data?.data || [];
   
@@ -38,10 +40,10 @@ export const SalesVsCollectionsChart = ({ filterParams }) => {
     >
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} vertical={false} />
           <XAxis 
             dataKey="date" 
-            stroke="#94a3b8" 
+            stroke={axisStroke} 
             fontSize={12} 
             tickLine={false} 
             axisLine={false}
@@ -51,7 +53,7 @@ export const SalesVsCollectionsChart = ({ filterParams }) => {
             }}
           />
           <YAxis 
-            stroke="#94a3b8" 
+            stroke={axisStroke} 
             fontSize={12} 
             tickLine={false} 
             axisLine={false} 

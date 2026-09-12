@@ -66,7 +66,7 @@ export const DashboardQuickActions = () => {
     <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-sm font-semibold text-white">Quick Actions</h2>
+          <h2 className="text-sm font-semibold text-slate-100">Quick Actions</h2>
           <p className="text-xs text-slate-400">Direct shortcuts for daily business operations</p>
         </div>
       </div>
@@ -82,7 +82,7 @@ export const DashboardQuickActions = () => {
             >
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <div className="p-2 rounded-md bg-slate-800 text-slate-400 group-hover:text-white transition-colors">
+                  <div className="p-2 rounded-md bg-slate-800 text-slate-400 group-hover:text-slate-100 transition-colors">
                     <Icon className={`w-4 h-4 ${action.iconColor}`} />
                   </div>
                   {action.shortcut && (
@@ -92,7 +92,7 @@ export const DashboardQuickActions = () => {
                   )}
                 </div>
 
-                <h3 className="font-medium text-xs text-white group-hover:text-blue-300 transition-colors">
+                <h3 className="font-medium text-xs text-slate-100 group-hover:text-blue-300 transition-colors">
                   {action.label}
                 </h3>
                 <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">

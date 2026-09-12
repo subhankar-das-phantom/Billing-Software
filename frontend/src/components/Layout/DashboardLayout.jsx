@@ -342,7 +342,7 @@ export default function DashboardLayout() {
         {/* Main Content Area */}
         <main
           ref={mainRef}
-          className="flex-1 p-4 sm:p-6 lg:p-8 xl:p-10 overflow-y-auto overflow-x-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 min-w-0"
+          className="flex-1 p-4 sm:p-6 lg:p-8 xl:p-10 overflow-y-auto overflow-x-hidden bg-slate-950 min-w-0"
         >
           <div className="max-w-[1600px] mx-auto w-full">
             <div className="no-print">
@@ -359,26 +359,6 @@ export default function DashboardLayout() {
             </RouteTransition>
           </div>
         </main>
-
-        {/* Animated background gradient - Desktop only */}
-        {motionConfig.shouldInfiniteAnimate && (
-          <motion.div
-            className="fixed inset-0 pointer-events-none opacity-20 z-0 no-print"
-            animate={{
-              background: [
-                'radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.08) 0%, transparent 50%)',
-                'radial-gradient(circle at 80% 50%, rgba(20, 184, 166, 0.08) 0%, transparent 50%)',
-                'radial-gradient(circle at 50% 80%, rgba(59, 130, 246, 0.08) 0%, transparent 50%)',
-                'radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.08) 0%, transparent 50%)',
-              ],
-            }}
-            transition={{
-              duration: 20,
-              repeat: Infinity,
-              ease: 'linear',
-            }}
-          />
-        )}
       </div>
 
       {/* ─── 4. Global Utilities ──────────────────────────────────────── */}

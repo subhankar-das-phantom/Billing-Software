@@ -335,12 +335,12 @@ export default function PurchasesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-400 mb-1">{stat.label}</p>
-                <p className="text-2xl font-bold text-white">
+                <p className="text-2xl font-bold text-slate-100">
                   {stat.value}
                 </p>
               </div>
-              <div className={`p-3 rounded-xl ${stat.bgColor} transition-transform group-hover:rotate-[360deg] group-hover:scale-110 duration-700`}>
-                <stat.icon className={`w-6 h-6 ${stat.iconColor}`} />
+              <div className="p-2.5 rounded-lg bg-slate-800 text-slate-400 group-hover:text-slate-200 border border-slate-700/60 transition-colors">
+                <stat.icon className={`w-5 h-5 ${stat.iconColor}`} />
               </div>
             </div>
           </div>
@@ -351,12 +351,12 @@ export default function PurchasesPage() {
       <div className="glass-card p-6 relative z-10">
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center mb-6">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-500/20 rounded-lg transition-transform hover:rotate-[360deg] duration-700">
-              <ShoppingBag className="w-5 h-5 text-blue-400" />
+            <div className="p-2.5 bg-slate-800 border border-slate-700/60 rounded-lg text-blue-400">
+              <ShoppingBag className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-semibold text-white">All Purchases</h2>
+                <h2 className="text-xl font-semibold text-slate-100">All Purchases</h2>
                 <RefreshIndicator isRefreshing={isValidating} size="sm" />
               </div>
               <p className="text-sm text-slate-400 mt-1">
@@ -395,7 +395,7 @@ export default function PurchasesPage() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0 }}
                   onClick={() => setSearchInput('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-100"
                   whileHover={{ rotate: 90 }}
                 >
                   <XCircle className="w-4 h-4" />
@@ -445,7 +445,7 @@ export default function PurchasesPage() {
           <button
             type="button"
             onClick={() => setShowExportModal(true)}
-            className="btn bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold flex items-center justify-center gap-2 px-6 py-3 shadow-lg shadow-emerald-500/30 border-0 active:scale-95 transition-transform"
+            className="btn bg-emerald-600 hover:bg-emerald-500 text-white font-semibold flex items-center justify-center gap-2 px-6 py-3 shadow-xs border-0 active:scale-[0.98] transition-all"
           >
             <Download className="w-5 h-5" />
             Export
@@ -536,13 +536,13 @@ export default function PurchasesPage() {
 
                           <div>
                             <div className="flex items-center gap-2">
-                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-lg ${
-                                isCancelled ? 'bg-rose-500/20 text-rose-400 shadow-rose-500/20' : 'bg-gradient-to-br from-blue-500 to-teal-600 shadow-blue-500/30'
-                              }`}>
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-semibold border ${
+                                isCancelled ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-slate-800 text-slate-200 border-slate-700/60 group-hover:text-blue-400 group-hover:border-blue-500/30'
+                              } transition-colors shrink-0`}>
                                 {purchase.supplierId?.name ? purchase.supplierId.name.charAt(0).toUpperCase() : 'S'}
                               </div>
                               <div className="min-w-0">
-                                <p className={`font-medium truncate ${isCancelled ? 'text-rose-400' : 'text-white'}`}>
+                                <p className={`font-medium truncate ${isCancelled ? 'text-rose-400' : 'text-slate-100'}`}>
                                   {purchase.supplierId?.name || 'Unknown Supplier'}
                                 </p>
                                 <p className={`text-xs flex items-center gap-1 ${isCancelled ? 'text-rose-400 opacity-80' : 'text-slate-400'}`}>
@@ -660,7 +660,7 @@ export default function PurchasesPage() {
                             <ShoppingBag className={`w-5 h-5 ${isCancelled ? 'text-rose-400' : 'text-blue-400'}`} />
                           </div>
                           <div className="min-w-0">
-                            <h3 className={`font-semibold text-base mb-1 ${isCancelled ? 'text-rose-400' : 'text-white'}`}>
+                            <h3 className={`font-semibold text-base mb-1 ${isCancelled ? 'text-rose-400' : 'text-slate-100'}`}>
                               {purchase.purchaseNumber}
                             </h3>
                             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">

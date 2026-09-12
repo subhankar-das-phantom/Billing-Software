@@ -234,16 +234,12 @@ export const FeatureCard = ({
         animate={{ opacity: 1 }}
         transition={{ delay: delay + 0.2 }}
       >
-        <motion.div
-          className="p-3 bg-blue-500/10 rounded-lg"
-          whileHover={{ rotate: 360, scale: 1.1 }}
-          transition={{ duration: 0.6, ease: 'easeInOut' }}
-        >
-          <Icon className="w-6 h-6 text-blue-400" />
-        </motion.div>
+        <div className="p-2.5 bg-slate-800 border border-slate-700/60 rounded-lg text-blue-400 shrink-0">
+          <Icon className="w-5 h-5" />
+        </div>
         
         <div className="flex-1">
-          <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>
+          <h3 className="text-lg font-semibold text-slate-100 mb-2">{title}</h3>
           <p className="text-slate-400 text-sm leading-relaxed">{description}</p>
         </div>
       </motion.div>

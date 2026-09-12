@@ -97,7 +97,7 @@ export default function EmployeePermissionsEditor({ employee, onUpdate }) {
   return (
     <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-5 mt-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-slate-100 flex items-center gap-2">
           <Shield size={20} className="text-accent-400 shrink-0" />
           Access & Permissions
         </h3>
@@ -105,7 +105,7 @@ export default function EmployeePermissionsEditor({ employee, onUpdate }) {
           <select 
             value={role} 
             onChange={handleRoleChange}
-            className="bg-slate-900 border border-slate-700 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 w-full sm:w-auto"
+            className="bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 w-full sm:w-auto"
           >
             {ROLES.map(r => (
               <option key={r.id} value={r.id}>{r.label}</option>
@@ -137,7 +137,7 @@ export default function EmployeePermissionsEditor({ employee, onUpdate }) {
           <tbody>
             {Object.entries(modulesToShow).map(([moduleKey, config]) => (
               <tr key={moduleKey} className="border-b border-slate-700/50 hover:bg-slate-800/30">
-                <td className="py-3 px-4 text-sm font-medium text-white">{config.label}</td>
+                <td className="py-3 px-4 text-sm font-medium text-slate-100">{config.label}</td>
                 {['view', 'create', 'edit', 'delete', 'cancel'].map(action => (
                   <td key={action} className="py-3 px-4 text-center">
                     {config.actions.includes(action) ? (

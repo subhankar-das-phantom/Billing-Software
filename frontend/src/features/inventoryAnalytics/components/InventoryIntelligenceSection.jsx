@@ -194,7 +194,7 @@ export function InventoryIntelligenceSection() {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-bold text-white tracking-tight">Inventory Intelligence</h2>
+                  <h2 className="text-lg font-bold text-slate-100 tracking-tight">Inventory Intelligence</h2>
                   <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-wide uppercase bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm">
                     Professional
                   </span>
@@ -259,7 +259,7 @@ export function InventoryIntelligenceSection() {
               <span className="text-[11px] font-medium uppercase tracking-wider">Active Batches</span>
               <Clock className="w-4 h-4 text-amber-400/80" />
             </div>
-            <div className="text-xl font-bold text-white font-mono">
+            <div className="text-xl font-bold text-slate-100 font-mono">
               {expiryData?.totalActiveBatches || 0}
             </div>
             <div className="text-[11px] text-slate-500 mt-0.5">
@@ -272,7 +272,7 @@ export function InventoryIntelligenceSection() {
               <span className="text-[11px] font-medium uppercase tracking-wider">Units Sold (Period)</span>
               <TrendingUp className="w-4 h-4 text-emerald-400/80" />
             </div>
-            <div className="text-xl font-bold text-white font-mono">
+            <div className="text-xl font-bold text-slate-100 font-mono">
               {(velocityData?.summary?.totalUnitsSold || 0).toLocaleString()}
             </div>
             <div className="text-[11px] text-slate-500 mt-0.5">
@@ -285,7 +285,7 @@ export function InventoryIntelligenceSection() {
               <span className="text-[11px] font-medium uppercase tracking-wider">Stock Health</span>
               <ShieldAlert className="w-4 h-4 text-rose-400/80" />
             </div>
-            <div className="text-xl font-bold text-white font-mono flex items-baseline gap-2">
+            <div className="text-xl font-bold text-slate-100 font-mono flex items-baseline gap-2">
               <span className="text-rose-400">{stockRiskData?.summary?.outOfStockCount || 0} Out</span>
               <span className="text-xs text-slate-500">/ {stockRiskData?.summary?.healthyCount || 0} Healthy</span>
             </div>
@@ -299,7 +299,7 @@ export function InventoryIntelligenceSection() {
               <span className="text-[11px] font-medium uppercase tracking-wider">Procurement Spend</span>
               <Truck className="w-4 h-4 text-blue-400/80" />
             </div>
-            <div className="text-xl font-bold text-white font-mono">
+            <div className="text-xl font-bold text-slate-100 font-mono">
               {formatCurrency(procurementData?.summary?.totalPurchasedValue || 0)}
             </div>
             <div className="text-[11px] text-slate-500 mt-0.5">
@@ -405,7 +405,7 @@ export function InventoryIntelligenceSection() {
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-xs font-semibold text-rose-400 uppercase tracking-wider">Out of Stock</span>
-                    <div className="text-2xl font-bold text-white font-mono mt-1">
+                    <div className="text-2xl font-bold text-slate-100 font-mono mt-1">
                       {stockRiskData?.summary?.outOfStockCount || 0}
                     </div>
                     <span className="text-[11px] text-slate-400">Zero inventory remaining</span>
@@ -425,7 +425,7 @@ export function InventoryIntelligenceSection() {
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-xs font-semibold text-amber-400 uppercase tracking-wider">Low Stock (≤10 Units)</span>
-                    <div className="text-2xl font-bold text-white font-mono mt-1">
+                    <div className="text-2xl font-bold text-slate-100 font-mono mt-1">
                       {stockRiskData?.summary?.lowStockCount || 0}
                     </div>
                     <span className="text-[11px] text-slate-400">Near stockout threshold</span>
@@ -445,7 +445,7 @@ export function InventoryIntelligenceSection() {
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Healthy Stock (&gt;10 Units)</span>
-                    <div className="text-2xl font-bold text-white font-mono mt-1">
+                    <div className="text-2xl font-bold text-slate-100 font-mono mt-1">
                       {stockRiskData?.summary?.healthyCount || 0}
                     </div>
                     <span className="text-[11px] text-slate-400">Adequate operational buffer</span>
@@ -481,7 +481,7 @@ export function InventoryIntelligenceSection() {
                   <button
                     onClick={() => setRiskFilter('ALL')}
                     className={`px-2.5 py-1 text-xs rounded-md transition-all ${
-                      riskFilter === 'ALL' ? 'bg-slate-700 text-white font-medium' : 'text-slate-400 hover:text-slate-200'
+                      riskFilter === 'ALL' ? 'bg-slate-700 text-slate-100 font-medium' : 'text-slate-400 hover:text-slate-200'
                     }`}
                   >
                     View All
@@ -504,7 +504,7 @@ export function InventoryIntelligenceSection() {
                   <tbody className="divide-y divide-slate-800/60 font-sans">
                     {displayedRiskItems.map((item, idx) => (
                       <tr key={item.productId || idx} className="hover:bg-slate-800/30 transition-colors">
-                        <td className="p-3 font-medium text-white">
+                        <td className="p-3 font-medium text-slate-100">
                           <div>{item.productName}</div>
                         </td>
                         <td className="p-3 text-slate-400 font-mono">{item.hsnCode || '—'}</td>
@@ -575,7 +575,7 @@ export function InventoryIntelligenceSection() {
                 return (
                   <div key={b.key} className={`p-3.5 rounded-xl border ${color.border} ${color.bg} bg-opacity-40`}>
                     <p className={`text-[11px] font-semibold uppercase tracking-wider ${color.text} mb-1`}>{b.label}</p>
-                    <div className="text-xl font-bold text-white font-mono">{b.batchCount} <span className="text-xs font-normal text-slate-400 font-sans">batches</span></div>
+                    <div className="text-xl font-bold text-slate-100 font-mono">{b.batchCount} <span className="text-xs font-normal text-slate-400 font-sans">batches</span></div>
                     <div className="mt-2 text-[11px] flex flex-col text-slate-400 gap-0.5">
                       <span className="font-mono">{b.totalRemainingQty.toLocaleString()} units</span>
                       <span>{b.uniqueProductCount} products</span>
@@ -610,11 +610,11 @@ export function InventoryIntelligenceSection() {
                   <tbody className="divide-y divide-slate-800/60">
                     {expiryData?.criticalBatches?.map((cb, idx) => (
                       <tr key={idx} className="hover:bg-slate-800/30 transition-colors">
-                        <td className="p-3 font-medium text-white">{cb.productName}</td>
+                        <td className="p-3 font-medium text-slate-100">{cb.productName}</td>
                         <td className="p-3 text-slate-300 font-mono">{cb.batchNo}</td>
                         <td className="p-3 text-slate-400">{cb.manufacturer || 'General'}</td>
                         <td className="p-3 text-slate-400">{cb.expiryDate ? new Date(cb.expiryDate).toLocaleDateString() : '—'}</td>
-                        <td className="p-3 text-right font-bold text-white font-mono">{cb.remainingQty}</td>
+                        <td className="p-3 text-right font-bold text-slate-100 font-mono">{cb.remainingQty}</td>
                         <td className="p-3 text-center">
                           <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                             cb.status === 'EXPIRED' 
@@ -657,7 +657,7 @@ export function InventoryIntelligenceSection() {
                   <span className="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider">Fast Moving</span>
                   <TrendingUp className="w-4 h-4 text-emerald-400" />
                 </div>
-                <div className="text-2xl font-bold text-white font-mono">{velocityData?.summary?.fastMovingCount || 0}</div>
+                <div className="text-2xl font-bold text-slate-100 font-mono">{velocityData?.summary?.fastMovingCount || 0}</div>
                 <div className="text-[11px] text-slate-500 mt-0.5">Top 25% by sales volume</div>
               </div>
 
@@ -666,7 +666,7 @@ export function InventoryIntelligenceSection() {
                   <span className="text-[11px] font-semibold text-blue-400 uppercase tracking-wider">Normal Velocity</span>
                   <Layers className="w-4 h-4 text-blue-400" />
                 </div>
-                <div className="text-2xl font-bold text-white font-mono">{velocityData?.summary?.normalCount || 0}</div>
+                <div className="text-2xl font-bold text-slate-100 font-mono">{velocityData?.summary?.normalCount || 0}</div>
                 <div className="text-[11px] text-slate-500 mt-0.5">Middle 50% regular sales</div>
               </div>
 
@@ -675,7 +675,7 @@ export function InventoryIntelligenceSection() {
                   <span className="text-[11px] font-semibold text-amber-400 uppercase tracking-wider">Slow Moving</span>
                   <TrendingDown className="w-4 h-4 text-amber-400" />
                 </div>
-                <div className="text-2xl font-bold text-white font-mono">{velocityData?.summary?.slowMovingCount || 0}</div>
+                <div className="text-2xl font-bold text-slate-100 font-mono">{velocityData?.summary?.slowMovingCount || 0}</div>
                 <div className="text-[11px] text-slate-500 mt-0.5">Bottom 25% non-zero sales</div>
               </div>
 
@@ -684,7 +684,7 @@ export function InventoryIntelligenceSection() {
                   <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Zero Sales</span>
                   <XCircle className="w-4 h-4 text-slate-500" />
                 </div>
-                <div className="text-2xl font-bold text-white font-mono">{velocityData?.summary?.noSalesCount || 0}</div>
+                <div className="text-2xl font-bold text-slate-100 font-mono">{velocityData?.summary?.noSalesCount || 0}</div>
                 <div className="text-[11px] text-slate-500 mt-0.5">0 units billed in period</div>
               </div>
             </div>
@@ -714,7 +714,7 @@ export function InventoryIntelligenceSection() {
                     <tbody className="divide-y divide-slate-800/60">
                       {displayedVelocityFast.map((p, idx) => (
                         <tr key={idx} className="hover:bg-slate-800/30 transition-colors">
-                          <td className="p-2.5 font-medium text-white">
+                          <td className="p-2.5 font-medium text-slate-100">
                             <div>{p.productName}</div>
                             {p.manufacturer && <div className="text-[10px] text-slate-500">{p.manufacturer}</div>}
                           </td>
@@ -754,7 +754,7 @@ export function InventoryIntelligenceSection() {
                     <tbody className="divide-y divide-slate-800/60">
                       {displayedVelocitySlow.slice(0, 15).map((p, idx) => (
                         <tr key={idx} className="hover:bg-slate-800/30 transition-colors">
-                          <td className="p-2.5 font-medium text-white">
+                          <td className="p-2.5 font-medium text-slate-100">
                             <div>{p.productName}</div>
                             {p.manufacturer && <div className="text-[10px] text-slate-500">{p.manufacturer}</div>}
                           </td>
@@ -828,7 +828,7 @@ export function InventoryIntelligenceSection() {
                     {displayedSuppliers.map((s, idx) => (
                       <tr key={idx} className="hover:bg-slate-800/30 transition-colors">
                         <td className="p-3">
-                          <div className="font-semibold text-white">{s.supplierName}</div>
+                          <div className="font-semibold text-slate-100">{s.supplierName}</div>
                           {s.supplierGstin && <div className="text-[10px] text-slate-500 font-mono">GST: {s.supplierGstin}</div>}
                         </td>
                         <td className="p-3 text-right text-slate-300 font-mono">{s.orderCount}</td>

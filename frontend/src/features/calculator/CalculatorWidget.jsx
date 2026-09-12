@@ -131,7 +131,7 @@ export default function CalculatorWidget() {
           <Calculator className="h-4 w-4" />
         </div>
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-sm font-semibold text-white">Calculator</h2>
+          <h2 className="truncate text-sm font-semibold text-slate-100">Calculator</h2>
           <p className="truncate text-[10px] text-slate-400">Drag to move · releases dock</p>
         </div>
         <button
@@ -148,7 +148,7 @@ export default function CalculatorWidget() {
         </button>
         <button
           type="button"
-          className={`rounded-md p-1.5 transition-colors hover:bg-slate-700 ${showHistory ? 'text-blue-300' : 'text-slate-400 hover:text-white'}`}
+          className={`rounded-md p-1.5 transition-colors hover:bg-slate-700 ${showHistory ? 'text-blue-300' : 'text-slate-400 hover:text-slate-100'}`}
           onPointerDown={(event) => event.stopPropagation()}
           onClick={() => setShowHistory((current) => !current)}
           aria-label={showHistory ? 'Show calculator keypad' : 'Show calculation history'}
@@ -158,7 +158,7 @@ export default function CalculatorWidget() {
         </button>
         <button
           type="button"
-          className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-700 hover:text-white"
+          className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-700 hover:text-slate-100"
           onPointerDown={(event) => event.stopPropagation()}
           onClick={() => setMinimized(true)}
           aria-label="Minimize calculator"

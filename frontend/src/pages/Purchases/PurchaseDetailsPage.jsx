@@ -127,7 +127,7 @@ export default function PurchaseDetailsPage() {
   if (!purchase) {
     return (
       <div className="p-8 text-center glass-card max-w-lg mx-auto my-12">
-        <h2 className="text-xl font-bold text-white mb-2">Purchase Not Found</h2>
+        <h2 className="text-xl font-bold text-slate-100 mb-2">Purchase Not Found</h2>
         <p className="text-slate-400 mb-6">The requested purchase record could not be found.</p>
         <Link to="/purchases" className="btn btn-primary inline-flex items-center gap-2">
           <ArrowLeft className="w-4 h-4" />
@@ -150,7 +150,7 @@ export default function PurchaseDetailsPage() {
       <motion.div variants={cardVariants}>
         <Link
           to="/purchases"
-          className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors group"
+          className="inline-flex items-center gap-2 text-slate-400 hover:text-slate-100 transition-colors group"
         >
           <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
           Back to Purchases
@@ -160,12 +160,12 @@ export default function PurchaseDetailsPage() {
       {/* Header Card */}
       <motion.div variants={cardVariants} className="glass-card p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 transition-all">
         <div className="flex items-start md:items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 shrink-0">
+          <div className="w-14 h-14 rounded-2xl bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
             <Package className="w-7 h-7" />
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-3 mb-1.5">
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-100 tracking-tight">
                 {purchase.purchaseNumber}
               </h1>
               <span className={`px-3 py-1 text-xs font-bold rounded-full border flex items-center gap-1.5 shadow-sm ${
@@ -256,7 +256,7 @@ export default function PurchaseDetailsPage() {
           {/* Supplier Info */}
           <motion.div variants={cardVariants} className="glass-card p-6">
             <div className="flex items-center justify-between mb-4 border-b border-slate-700/50 pb-3">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2.5">
+              <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2.5">
                 <Package className="w-5 h-5 text-blue-400" />
                 Supplier Details
               </h2>
@@ -266,7 +266,7 @@ export default function PurchaseDetailsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 <div>
                   <p className="text-xs text-slate-400 uppercase tracking-wider mb-1 font-semibold">Company Name</p>
-                  <p className="font-semibold text-white text-base">{supplierId.name}</p>
+                  <p className="font-semibold text-slate-100 text-base">{supplierId.name}</p>
                 </div>
                 <div>
                   <p className="text-xs text-slate-400 uppercase tracking-wider mb-1 font-semibold">GSTIN</p>
@@ -293,7 +293,7 @@ export default function PurchaseDetailsPage() {
           {/* Items Table */}
           <motion.div variants={cardVariants} className="glass-card overflow-hidden">
             <div className="p-4 sm:p-6 border-b border-slate-700/50 flex justify-between items-center">
-              <h2 className="text-lg font-bold text-white">Line Items ({items?.length || 0})</h2>
+              <h2 className="text-lg font-bold text-slate-100">Line Items ({items?.length || 0})</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm whitespace-nowrap">
@@ -313,7 +313,7 @@ export default function PurchaseDetailsPage() {
                   {items.map((item, index) => (
                     <tr key={index} className="hover:bg-slate-800/30 transition-colors">
                       <td className="px-4 py-3">
-                        <span className="font-medium text-white">
+                        <span className="font-medium text-slate-100">
                           {item.productId?.productName || 'Unknown Product'}
                         </span>
                       </td>
@@ -349,13 +349,13 @@ export default function PurchaseDetailsPage() {
         <div className="space-y-6">
           <motion.div variants={cardVariants} className="glass-card overflow-hidden sticky top-6">
             <div className="p-4 sm:p-6 border-b border-slate-700/50 bg-slate-800/30">
-              <h2 className="text-lg font-bold text-white">Payment Summary</h2>
+              <h2 className="text-lg font-bold text-slate-100">Payment Summary</h2>
             </div>
             
             <div className="p-4 sm:p-6 space-y-3 text-sm">
               <div className="flex justify-between items-center text-slate-300">
                 <span>Subtotal</span>
-                <span className="text-white font-medium">{formatCurrency(totals.subtotal)}</span>
+                <span className="text-slate-100 font-medium">{formatCurrency(totals.subtotal)}</span>
               </div>
               
               {totals.totalDiscount > 0 && (
@@ -367,7 +367,7 @@ export default function PurchaseDetailsPage() {
               
               <div className="flex justify-between items-center text-slate-300">
                 <span>Taxable Amount</span>
-                <span className="text-white font-medium">{formatCurrency(totals.totalTaxable)}</span>
+                <span className="text-slate-100 font-medium">{formatCurrency(totals.totalTaxable)}</span>
               </div>
               
               <div className="pt-3 border-t border-slate-700/50 space-y-2">

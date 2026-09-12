@@ -298,7 +298,7 @@ export default function CreditNoteViewPage() {
             </div>
             <div>
               <p className="text-xs text-slate-400">Customer</p>
-              <p className="text-lg font-semibold text-white">{creditNote.customer?.customerName}</p>
+              <p className="text-lg font-semibold text-slate-100">{creditNote.customer?.customerName}</p>
             </div>
           </div>
           <div className="space-y-1 text-sm">
@@ -342,7 +342,7 @@ export default function CreditNoteViewPage() {
 
       {/* Items Card - no-print */}
       <motion.div variants={cardVariants} className="glass-card p-6 no-print">
-        <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-slate-100 mb-4 flex items-center gap-2">
           <RotateCcw className="w-5 h-5 text-amber-400" />
           Returned Items
         </h2>
@@ -368,8 +368,8 @@ export default function CreditNoteViewPage() {
                   transition={{ delay: idx * 0.05 }}
                   className="hover:bg-slate-700/50"
                 >
-                  <td className="font-medium text-white text-left">{item.productName}</td>
-                  <td className="text-white font-semibold text-center">{item.quantityReturned}</td>
+                  <td className="font-medium text-slate-100 text-left">{item.productName}</td>
+                  <td className="text-slate-100 font-semibold text-center">{item.quantityReturned}</td>
                   <td className="text-slate-300 text-right">{formatCurrency(item.rate)}</td>
                   <td className="text-slate-300 text-center">{item.gstPercent}%</td>
                   <td className="text-slate-300 text-right">{formatCurrency(item.taxableAmount)}</td>

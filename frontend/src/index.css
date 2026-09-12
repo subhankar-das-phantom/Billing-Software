@@ -22,15 +22,89 @@
   /* cyan-600 */
 }
 
+/* ═══════════════════════════════════════════
+   THEME PALETTE: Light Mode Inversion
+   Remaps Tailwind v4 Slate CSS variables when html.light is active
+   ═══════════════════════════════════════════ */
+html.light {
+  /* ── Canvas & Surface Inversion ── */
+  --color-slate-950: #f8fafc; /* canvas: soft, modern slate-50 (harmonious, cohesive) */
+  --color-slate-900: #ffffff; /* primary card & surface background */
+  --color-slate-850: #f8fafc; /* subtle inner panel / nested surface */
+  --color-slate-800: #f1f5f9; /* secondary surface, table zebra, input hover */
+  --color-slate-700: #e2e8f0; /* primary borders & dividers (soft slate-200) */
+  --color-slate-600: #cbd5e1; /* secondary borders */
+  --color-slate-500: #64748b; /* muted labels */
+  --color-slate-400: #475569; /* secondary text (WCAG AA compliant > 5:1 contrast) */
+  --color-slate-300: #334155; /* body / subtle text */
+  --color-slate-200: #1e293b; /* prominent text */
+  --color-slate-100: #0f172a; /* titles & subheadings */
+  --color-slate-50:  #09090b; /* boldest headings */
+
+  /* ── Accessible Semantic Inversion for Amber & Yellow ──
+     Pastel yellows (300/400) on white have unacceptable 1.3:1 contrast.
+     Remap them in light mode to deep golden amber & rich ochre
+     so all 154+ badges, warnings, and alerts achieve > 5:1 (WCAG AA/AAA) */
+  --color-amber-100: #fef3c7;
+  --color-amber-200: #d97706; /* amber-600 */
+  --color-amber-300: #b45309; /* amber-700: deep warm amber, 5.05:1 on white */
+  --color-amber-400: #92400e; /* amber-800: rich dark amber, 7.47:1 on white */
+  --color-amber-500: #78350f; /* amber-900: strong contrast amber */
+  --color-yellow-100: #fef9c3;
+  --color-yellow-200: #ca8a04; /* yellow-600 */
+  --color-yellow-300: #a16207; /* yellow-700: deep gold, 5.08:1 on white */
+  --color-yellow-400: #854d0e; /* yellow-800: rich bronze, 7.08:1 on white */
+  --color-yellow-500: #713f12; /* yellow-900: high contrast */
+
+  /* ── Accessible Semantic Inversion for Other Accents ── */
+  --color-blue-300: #1d4ed8;    /* blue-700 */
+  --color-blue-400: #2563eb;    /* blue-600 */
+  --color-emerald-300: #047857; /* emerald-700 */
+  --color-emerald-400: #059669; /* emerald-600 */
+  --color-red-300: #b91c1c;     /* red-700 */
+  --color-red-400: #dc2626;     /* red-600 */
+  --color-rose-300: #be123c;    /* rose-700 */
+  --color-rose-400: #e11d48;    /* rose-600 */
+  --color-teal-300: #0f766e;    /* teal-700 */
+  --color-teal-400: #0d9488;    /* teal-600 */
+  --color-violet-300: #6d28d9;  /* violet-700 */
+  --color-violet-400: #7c3aed;  /* violet-600 */
+  --color-purple-300: #6d28d9;  /* purple-700 */
+  --color-purple-400: #7c3aed;  /* purple-600 */
+  --color-accent-400: #0d9488;  /* teal-600 */
+  --color-accent2-400: #0891b2; /* cyan-600 */
+
+  color-scheme: light;
+}
+
+.dark,
+html.dark {
+  /* ── Pro UI/UX Obsidian Dark Mode Palette (Linear / Vercel / Zinc Standard) ── */
+  --color-slate-950: #09090b; /* canvas: sleek, neutral obsidian black */
+  --color-slate-900: #121215; /* primary card, elevated surfaces & sidebar */
+  --color-slate-850: #17171c; /* inner panels / nested surface */
+  --color-slate-800: #1c1d22; /* secondary surface, table zebra, input hover */
+  --color-slate-700: #2a2b32; /* primary borders & dividers */
+  --color-slate-600: #3f404a; /* secondary borders */
+  --color-slate-500: #71717a; /* muted labels */
+  --color-slate-400: #a1a1aa; /* secondary text */
+  --color-slate-300: #d4d4d8; /* body / subtle text */
+  --color-slate-200: #e4e4e7; /* prominent text */
+  --color-slate-100: #f4f4f5; /* titles & subheadings */
+  --color-slate-50:  #ffffff; /* boldest headings */
+
+  color-scheme: dark;
+}
+
 /* Base Styles & CSS Variables */
 @layer base {
   :root {
     /* Color palette */
-    --color-bg-primary: 15 23 42;
+    --color-bg-primary: 9 9 11;
     /* slate-950 */
-    --color-bg-secondary: 30 41 59;
+    --color-bg-secondary: 28 29 34;
     /* slate-800 */
-    --color-bg-tertiary: 51 65 85;
+    --color-bg-tertiary: 42 43 50;
     /* slate-700 */
 
     --color-text-primary: 248 250 252;
@@ -52,26 +126,27 @@
   }
 
   body {
-    @apply bg-slate-950 text-slate-50 antialiased;
+    @apply bg-slate-950 text-slate-100 antialiased;
     font-feature-settings: 'rlig' 1, 'calt' 1;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
-  /* Ensure all text is visible by default */
+  /* Ensure all text is visible and adaptive by default */
   h1,
   h2,
   h3,
   h4,
   h5,
   h6 {
-    @apply text-white;
+    @apply text-slate-100;
   }
 
   p {
-    @apply text-slate-200;
+    @apply text-slate-300;
   }
 
   a {
-    @apply text-blue-400 hover:text-blue-300;
+    @apply text-blue-500 hover:text-blue-400;
   }
 
   /* Glass Card Effect */
@@ -79,14 +154,128 @@
     @apply bg-slate-800/80 backdrop-blur-xl border border-slate-700/50 rounded-xl shadow-2xl overflow-visible;
   }
 
+  html.light .glass-card {
+    background-color: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.02) !important;
+  }
+
   /* Stat Cards */
   .stat-card {
     @apply bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700/50 shadow-lg;
   }
 
+  html.light .stat-card {
+    background-color: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.02) !important;
+  }
+
   /* Modal Styles */
   .modal {
     @apply bg-slate-800/95 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl p-6;
+  }
+
+  html.light .modal {
+    background-color: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04) !important;
+  }
+
+  /* ═══════════════════════════════════════════
+     CANVAS & CARD HARMONY SYSTEM (Light & Dark)
+     Provides clean structural clarity without harsh separation,
+     excessive borders, or disjointed floating boxes.
+     ═══════════════════════════════════════════ */
+  html.light main {
+    background: #f8fafc !important;
+  }
+
+  /* Main background gradient reset in light mode (Auth, Dashboard) */
+  html.light .bg-gradient-to-br.from-slate-950.via-slate-900.to-slate-950 {
+    background: #f8fafc !important;
+  }
+
+  /* Universal Card Elevation in Light Mode */
+  html.light [class*="bg-slate-900"].rounded-xl,
+  html.light [class*="bg-slate-900"].rounded-2xl,
+  html.light [class*="bg-slate-800"].rounded-xl,
+  html.light [class*="bg-slate-800"].rounded-2xl {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.02);
+  }
+
+  html.light .glass-card:hover,
+  html.light [class*="bg-slate-900"].rounded-xl:hover,
+  html.light [class*="bg-slate-900"].rounded-2xl:hover,
+  html.light [class*="bg-slate-800"].rounded-xl:hover,
+  html.light [class*="bg-slate-800"].rounded-2xl:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.03);
+  }
+
+  /* Universal Card Elevation in Dark Mode */
+  html.dark .glass-card,
+  html.dark .stat-card {
+    background-color: #121215;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.25);
+  }
+
+  html.dark [class*="bg-slate-900"].rounded-xl,
+  html.dark [class*="bg-slate-900"].rounded-2xl,
+  html.dark [class*="bg-slate-800"].rounded-xl,
+  html.dark [class*="bg-slate-800"].rounded-2xl {
+    border-color: rgba(255, 255, 255, 0.07);
+  }
+
+  /* ═══════════════════════════════════════════
+     ENTERPRISE BADGE SYSTEM
+     Accessible, theme-aware status badges
+     ═══════════════════════════════════════════ */
+  .badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border;
+  }
+
+  .badge-success {
+    @apply bg-emerald-500/15 text-emerald-400 border-emerald-500/25;
+  }
+
+  .badge-warning {
+    @apply bg-amber-500/15 text-amber-400 border-amber-500/25;
+  }
+
+  .badge-danger {
+    @apply bg-rose-500/15 text-rose-400 border-rose-500/25;
+  }
+
+  .badge-info {
+    @apply bg-blue-500/15 text-blue-400 border-blue-500/25;
+  }
+
+  html.light .badge-warning {
+    background-color: rgba(217, 119, 6, 0.12) !important;
+    color: #92400e !important;
+    border-color: rgba(217, 119, 6, 0.28) !important;
+  }
+
+  html.light .badge-success {
+    background-color: rgba(5, 150, 105, 0.12) !important;
+    color: #047857 !important;
+    border-color: rgba(5, 150, 105, 0.28) !important;
+  }
+
+  html.light .badge-danger {
+    background-color: rgba(225, 29, 72, 0.12) !important;
+    color: #be123c !important;
+    border-color: rgba(225, 29, 72, 0.28) !important;
+  }
+
+  html.light .badge-info {
+    background-color: rgba(37, 99, 235, 0.12) !important;
+    color: #1d4ed8 !important;
+    border-color: rgba(37, 99, 235, 0.28) !important;
   }
 
   .modal-header {
@@ -102,11 +291,11 @@
     @apply w-12 h-12 border-4 border-slate-700 border-t-blue-500 rounded-full animate-spin;
   }
 
-  /* Input Fields - ensure text is visible */
+  /* Input Fields - ensure text is adaptive and visible */
   input,
   textarea,
   select {
-    @apply bg-slate-800 text-white placeholder-slate-400 border-slate-700;
+    @apply bg-slate-800 text-slate-100 placeholder-slate-400 border-slate-700;
   }
 
   input:focus,
@@ -117,7 +306,7 @@
 
   /* Custom Input Class for Styled Inputs */
   .input {
-    @apply w-full px-4 py-3 bg-slate-800/80 text-white placeholder-slate-400 border border-slate-700/50 rounded-lg transition-all duration-200;
+    @apply w-full px-4 py-3 bg-slate-800/80 text-slate-100 placeholder-slate-400 border border-slate-700/50 rounded-lg transition-all duration-200;
   }
 
   .input:focus {
@@ -130,7 +319,7 @@
 
   /* Custom Select Class for Styled Selects */
   .select {
-    @apply px-4 py-3 bg-slate-800/80 text-white border border-slate-700/50 rounded-lg transition-all duration-200 cursor-pointer;
+    @apply px-4 py-3 bg-slate-800/80 text-slate-100 border border-slate-700/50 rounded-lg transition-all duration-200 cursor-pointer;
   }
 
   .select:focus {
@@ -142,7 +331,28 @@
   }
 
   .select option {
-    @apply bg-slate-800 text-white;
+    @apply bg-slate-800 text-slate-100;
+  }
+
+  /* Light mode inputs & selects */
+  html.light input,
+  html.light textarea,
+  html.light select,
+  html.light .input,
+  html.light .select {
+    background-color: #ffffff;
+    border-color: #cbd5e1;
+    color: #0f172a;
+  }
+
+  html.light input:focus,
+  html.light textarea:focus,
+  html.light select:focus,
+  html.light .input:focus,
+  html.light .select:focus {
+    background-color: #ffffff;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
   }
 
   /* Buttons - ensure text is visible */
@@ -160,11 +370,23 @@
   }
 
   .btn-primary {
-    @apply bg-gradient-to-r from-blue-600 to-accent2-600 text-white hover:from-blue-500 hover:to-accent2-500 shadow-lg shadow-blue-500/20;
+    @apply bg-blue-600 hover:bg-blue-500 text-white font-medium shadow-xs active:scale-[0.98];
   }
 
   .btn-secondary {
     @apply bg-slate-700/80 text-slate-200 border-slate-600 hover:bg-slate-600/80 hover:text-white;
+  }
+
+  html.light .btn-secondary {
+    background-color: #ffffff;
+    color: #1e293b;
+    border: 1px solid #cbd5e1;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  }
+  html.light .btn-secondary:hover {
+    background-color: #f1f5f9;
+    color: #0f172a;
+    border-color: #94a3b8;
   }
 
   .btn-danger {
@@ -181,6 +403,41 @@
 
   .btn-lg {
     @apply px-6 py-3 text-base;
+  }
+
+  /* ═══════════════════════════════════════════
+     SEARCH DROPDOWN ITEM SYSTEM
+     Centralized, high-contrast hover styling
+     ═══════════════════════════════════════════ */
+  .search-dropdown-item {
+    @apply w-full px-4 py-3 text-left transition-all duration-150 cursor-pointer
+           border-b border-slate-200/80 dark:border-slate-800/80 last:border-b-0
+           first:rounded-t-xl last:rounded-b-xl
+           border-l-[3px] border-l-transparent;
+    background-color: transparent;
+  }
+
+  .search-dropdown-item:hover,
+  .search-dropdown-item:focus-visible {
+    background-color: #e0edff !important;
+    border-left-color: #2563eb !important;
+  }
+
+  html.dark .search-dropdown-item:hover,
+  html.dark .search-dropdown-item:focus-visible {
+    background-color: #1c1d22 !important;
+    border-left-color: #60a5fa !important;
+  }
+
+  .search-dropdown-item:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .search-dropdown-item:disabled:hover,
+  .search-dropdown-item:disabled:focus-visible {
+    background-color: transparent !important;
+    border-left-color: transparent !important;
   }
 
   /* Tables */
@@ -232,9 +489,9 @@
     .customer-invoices-table th:first-child,
     .customer-invoices-table td:first-child {
       left: 0;
-      background: rgb(30 41 59);
-      border-right: 1px solid rgba(51, 65, 85, 0.8);
-      box-shadow: 6px 0 10px -8px rgba(2, 6, 23, 0.95);
+      background: var(--color-slate-800);
+      border-right: 1px solid var(--color-slate-700);
+      box-shadow: 4px 0 10px -6px rgba(0, 0, 0, 0.3);
     }
 
     .customer-invoices-table th:first-child {
@@ -244,12 +501,20 @@
 
   /* Labels */
   label {
-    @apply text-slate-300 font-medium;
+    @apply text-slate-400 font-medium;
   }
 
-  /* Fix any black text issues */
-  .text-black {
+  /* Fix any black text issues in dark mode only */
+  html.dark .text-black {
     @apply !text-white;
+  }
+  html.light .text-black {
+    color: #000000 !important;
+  }
+
+  /* Safety guard in light mode: any unmigrated plain text-white defaults to dark slate */
+  html.light .text-white:not([class*="bg-"]):not([class*="btn-"]):not([class*="badge-"]):not([class*="toast"]):not([class*="from-"]) {
+    color: var(--color-slate-900) !important;
   }
 
   /* Scrollbar styling */
@@ -1089,3 +1354,51 @@
     transform: translateY(0) rotate(var(--end-rotate, 0deg));
   }
 }
+
+/* ═══════════════════════════════════════════
+   SKELETON & SHIMMER BONE SYSTEM
+   High-contrast, accessible loading states
+   ═══════════════════════════════════════════ */
+.shimmer-bone {
+  position: relative;
+  overflow: hidden;
+  background-color: #cbd5e1 !important; /* Solid slate-300: crisp contrast on white cards */
+}
+
+html.dark .shimmer-bone {
+  background-color: #334155 !important; /* Solid slate-700: visible on dark surfaces */
+}
+
+.shimmer-bone::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.70) 50%,
+    transparent 100%
+  );
+  animation: shimmer-sweep 1.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+html.dark .shimmer-bone::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    transparent 100%
+  );
+}
+
+@keyframes shimmer-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
