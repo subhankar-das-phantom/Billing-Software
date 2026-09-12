@@ -132,7 +132,7 @@ export const AuthProvider = ({ children }) => {
     const checkAuth = async () => {
       try {
         const data = await authService.getMe();
-        if (data.success) {
+        if (data?.success) {
           const role = data.role || 'admin';
           setUserRole(role);
           
@@ -193,7 +193,7 @@ export const AuthProvider = ({ children }) => {
       clearClientCaches();
       const data = await authService.login(email, password);
       
-      if (data.success) {
+      if (data?.success) {
         if (data.role === 'admin') {
           // Admin login
           localStorage.setItem('admin', JSON.stringify(data.admin));
@@ -204,7 +204,7 @@ export const AuthProvider = ({ children }) => {
           
           setAuthTransition(null);
           requestAnimationFrame(() => {
-            showToast(`Welcome back, ${data.admin.firmName || 'Admin'}!`, 'success');
+            showToast(`Welcome back, ${data.admin?.firmName || 'Admin'}!`, 'success');
           });
         } else if (data.role === 'employee') {
           // Employee login
@@ -216,12 +216,12 @@ export const AuthProvider = ({ children }) => {
           
           setAuthTransition(null);
           requestAnimationFrame(() => {
-            showToast(`Welcome back, ${data.employee.name || 'Employee'}!`, 'success');
+            showToast(`Welcome back, ${data.employee?.name || 'Employee'}!`, 'success');
           });
         }
       } else {
         setAuthTransition(null);
-        showToast(data.message || 'Login failed', 'error');
+        showToast(data?.message || 'Login failed', 'error');
       }
       
       return data;

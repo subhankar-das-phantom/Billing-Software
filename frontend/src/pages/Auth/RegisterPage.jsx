@@ -129,9 +129,11 @@ export default function RegisterPage() {
       const { confirmPassword, ...registerData } = formData;
       const result = await authService.register(registerData);
       
-      if (result.success) {
+      if (result?.success) {
         // Auto-login: Set user state
-        updateAdmin(result.admin);
+        if (result?.admin) {
+          updateAdmin(result.admin);
+        }
         
         // Apply referral code if present
         if (refCode) {
@@ -211,7 +213,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-slate-950">
       {/* Crisp Subtle Grid Background */}
       <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_75%_50%_at_50%_50%,black,transparent)]" />
 
