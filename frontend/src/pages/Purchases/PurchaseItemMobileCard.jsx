@@ -14,10 +14,10 @@ export default function PurchaseItemMobileCard({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       layout
-      className="bg-slate-800/80 border border-slate-700 rounded-xl overflow-hidden mb-4 shadow-sm"
+      className="glass-card rounded-xl overflow-hidden mb-4 shadow-sm"
     >
       {/* Header: Product Info */}
-      <div className="p-4 border-b border-slate-700 bg-slate-800/50">
+      <div className="p-4 border-b border-slate-700/60 bg-slate-950/20 dark:bg-slate-950/40">
         <div className="flex justify-between items-start gap-4">
           <div>
             <h3 className="font-semibold text-slate-100 text-base leading-tight flex items-center gap-2 flex-wrap">

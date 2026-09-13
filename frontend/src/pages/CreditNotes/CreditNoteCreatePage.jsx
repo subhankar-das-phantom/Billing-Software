@@ -316,10 +316,14 @@ export default function CreditNoteCreatePage() {
 
       {/* Return Summary */}
       <motion.div variants={cardVariants} initial={isFirstVisit ? "hidden" : false} animate="visible" className="glass-card p-6">
-        <h2 className="text-lg font-semibold text-slate-100 mb-4 flex items-center gap-2">
-          <Calculator className="w-5 h-5 text-accent-400" />
-          Credit Note Summary
-        </h2>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2.5 bg-accent-500/10 dark:bg-accent-500/15 border border-accent-500/25 dark:border-accent-500/30 rounded-xl text-accent-600 dark:text-accent-400">
+            <Calculator className="w-5 h-5" />
+          </div>
+          <h2 className="text-lg font-semibold text-slate-100">
+            Credit Note Summary
+          </h2>
+        </div>
 
         <div className="space-y-4">
           <div>

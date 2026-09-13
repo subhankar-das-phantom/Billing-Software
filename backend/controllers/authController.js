@@ -538,7 +538,7 @@ const VALID_INVOICE_COLUMNS = new Set([
 
 exports.updatePreferences = async (req, res, next) => {
   try {
-    const { showCalculator, invoiceColumns, enableBatchTracking } = req.body;
+    const { showCalculator, invoiceColumns, enableBatchTracking, themeMode } = req.body;
     
     let user;
     if (req.userRole === 'employee') {
@@ -555,11 +555,28 @@ exports.updatePreferences = async (req, res, next) => {
     }
 
     // Update preferences if provided
+    if (themeMode !== undefined) {
+      if (!['dark', 'light', 'system'].includes(themeMode)) {
+        return res.status(400).json({
+          success: false,
+          message: 'themeMode must be "dark", "light", or "system"'
+        });
+      }
+      user.set('preferences.themeMode', themeMode);
+    }
+
     if (showCalculator !== undefined) {
       user.set('preferences.showCalculator', showCalculator);
     }
 
     if (invoiceColumns !== undefined) {
+      if (req.userRole !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Only admins can customize global invoice columns'
+        });
+      }
+
       // Validate: must be an array
       if (!Array.isArray(invoiceColumns)) {
         return res.status(400).json({

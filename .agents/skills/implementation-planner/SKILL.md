@@ -2,13 +2,13 @@
 name: implementation-planner
 description: >-
   Use this skill whenever drafting, reviewing, or iterating on an implementation plan
-  for the Bharat Enterprise platform. Enforces a multi-iteration review loop and prevents
-  code generation until the user explicitly commands "code" or "proceed".
+  for the Bharat Enterprise platform. Enforces a multi-iteration review loop, architectural audits
+  (zero N+1, zero CLS, universal debouncing), and prevents code generation until the user explicitly commands "code" or "proceed".
 ---
 
 # Implementation Planner Skill
 
-This skill guides the agent through requirements analysis, multi-iteration architectural planning, and explicit user gatekeeping.
+This skill guides the agent through requirements analysis, architectural impact assessment, multi-iteration planning, and explicit user gatekeeping.
 
 ---
 
@@ -17,15 +17,20 @@ This skill guides the agent through requirements analysis, multi-iteration archi
 ### Step 1: Research & Discovery (Strictly Read-Only)
 - Inspect the codebase using `view_file`, `grep_search`, and `list_dir`.
 - Identify affected layers: database models, controllers, services, API routes, frontend components, and hooks.
+- **Architectural Bottleneck Checklist**:
+  - **Check for N+1 Queries**: Are any database lookups executed inside loops or `Array.map`?
+  - **Check for CLS / Layout Reflow Risks**: Do banners or alerts use `height: 'auto'` spring animations or unseeded asynchronous states?
+  - **Check Search Debouncing**: Do search inputs lack debounce protection (keystroke network spam)?
+  - **Check Date Boundary Traps**: Do transaction lookups default to today's date boundary without an all-time search override?
 - **DO NOT** execute file edits, write code, or execute mutating scripts during this stage.
 
 ### Step 2: Formulate the Implementation Plan Artifact
 Draft `implementation_plan.md` in the active artifact directory containing:
-1. **Goal & Problem Analysis**: Background, symptom, and root cause.
+1. **Goal & Problem Analysis**: Background, symptom, and technical root cause.
 2. **User Review Required**: Critical architectural decisions, permission boundaries, and schema impacts highlighted with GitHub alerts (`[!IMPORTANT]`, `[!WARNING]`).
 3. **Open Questions**: Explicit ambiguities requiring clarification.
-4. **Proposed Changes**: File-by-file breakdown (`[MODIFY]`, `[NEW]`, `[DELETE]`) with exact function signatures and logic flow.
-5. **Verification Plan**: Automated tests (`tsc`, `npm run build`), DB test scripts, and manual UI verification steps.
+4. **Proposed Changes**: File-by-file breakdown (`[MODIFY]`, `[NEW]`, `[DELETE]`) with exact function signatures, logic flow, indexing strategies, and component structures.
+5. **Verification Plan**: Automated tests (`npx tsc --noEmit`, `npm run build`), DB queries/validations, and manual UI verification steps.
 
 ### Step 3: The Iterative Review Loop
 - Present the plan to the user.
@@ -33,7 +38,7 @@ Draft `implementation_plan.md` in the active artifact directory containing:
 - Update `implementation_plan.md` across iterations until 100% alignment is achieved.
 
 ### Step 4: The Execution Gate
-- **HALT and WAIT**: Do not touch source code while discussing the plan.
+- **HALT and WAIT**: Do not touch source code while discussing or refining the plan.
 - Only begin executing file modifications when the user explicitly provides the instruction:
   - `"code"`
   - `"proceed"`

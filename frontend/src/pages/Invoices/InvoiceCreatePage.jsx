@@ -1913,7 +1913,7 @@ export default function InvoiceCreatePage() {
             <div className="p-2.5 bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 rounded-xl text-blue-600 dark:text-blue-400">
               <User className="w-5 h-5" />
             </div>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+            <h2 className="text-lg font-semibold text-slate-100">
               Customer Details
             </h2>
           </div>
@@ -1965,10 +1965,10 @@ export default function InvoiceCreatePage() {
                 initial="hidden"
                 animate="visible"
                 exit="exit"
-                className="absolute z-50 w-full mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl max-h-60 overflow-y-auto"
+                className="absolute z-50 w-full mt-2 bg-slate-900 border border-slate-800 rounded-xl shadow-xl max-h-60 overflow-y-auto"
               >
                 {isCustomerSearchLoading && (
-                  <div className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300 flex items-center gap-2">
+                  <div className="px-4 py-3 text-sm text-slate-300 flex items-center gap-2">
                     <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
                     Searching customers...
                   </div>
@@ -1976,7 +1976,7 @@ export default function InvoiceCreatePage() {
 
                 {!isCustomerSearchLoading &&
                   customerSearch.trim().length < 1 && (
-                    <div className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">
+                    <div className="px-4 py-3 text-sm text-slate-400">
                       Start typing to search customers
                     </div>
                   )}
@@ -1984,7 +1984,7 @@ export default function InvoiceCreatePage() {
                 {!isCustomerSearchLoading &&
                   customerSearch.trim().length >= 1 &&
                   customerResults.length === 0 && (
-                    <div className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">
+                    <div className="px-4 py-3 text-sm text-slate-400">
                       No customers found
                     </div>
                   )}
@@ -2005,27 +2005,27 @@ export default function InvoiceCreatePage() {
                     >
                       <div className="flex justify-between items-center gap-4">
                         <div>
-                          <p className="font-medium text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                            <User className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                          <p className="font-medium text-slate-100 flex items-center gap-2">
+                            <User className="w-4 h-4 text-blue-500 dark:text-blue-400 shrink-0" />
                             {customer.customerName}
                           </p>
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400 mt-1">
                             {customer.phone && (
                               <span className="flex items-center gap-1.5">
-                                <Phone className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
+                                <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                                 <span>{customer.phone}</span>
                               </span>
                             )}
                             {customer.address && (
                               <span className="flex items-center gap-1.5 truncate max-w-xs">
-                                <MapPin className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
+                                <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                                 <span>{customer.address}</span>
                               </span>
                             )}
                           </div>
                         </div>
                         {customer.gstin && (
-                          <span className="text-xs bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded font-mono shrink-0">
+                          <span className="text-xs bg-slate-800/80 border border-slate-700 text-slate-300 px-2 py-0.5 rounded font-mono shrink-0">
                             {customer.gstin}
                           </span>
                         )}
@@ -2044,7 +2044,7 @@ export default function InvoiceCreatePage() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
-              className="mt-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/60 relative overflow-hidden"
+              className="mt-4 p-4 rounded-xl bg-slate-900/60 border border-slate-800 relative overflow-hidden"
             >
               <div className="relative z-10 flex items-start justify-between">
                 <div className="flex items-start gap-3">
@@ -2052,25 +2052,25 @@ export default function InvoiceCreatePage() {
                     {selectedCustomer.customerName.charAt(0)?.toUpperCase()}
                   </div>
                   <div>
-                    <p className="font-semibold text-slate-900 dark:text-slate-100 text-base">
+                    <p className="font-semibold text-slate-100 text-base">
                       {selectedCustomer.customerName}
                     </p>
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-600 dark:text-slate-300 mt-1">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-300 mt-1">
                       {selectedCustomer.phone && (
                         <span className="flex items-center gap-1.5">
-                          <Phone className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                          <Phone className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400" />
                           <span>{selectedCustomer.phone}</span>
                         </span>
                       )}
                       {selectedCustomer.gstin && (
-                        <span className="flex items-center gap-1 font-mono text-xs bg-white dark:bg-slate-800/80 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
+                        <span className="flex items-center gap-1 font-mono text-xs bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700 text-slate-300">
                           GSTIN: {selectedCustomer.gstin}
                         </span>
                       )}
                     </div>
                     {selectedCustomer.address && (
-                      <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-1">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
+                      <p className="text-xs text-slate-400 flex items-center gap-1 mt-1">
+                        <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                         <span>{selectedCustomer.address}</span>
                       </p>
                     )}
@@ -2102,7 +2102,7 @@ export default function InvoiceCreatePage() {
           <div className="p-2.5 bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 rounded-xl text-blue-600 dark:text-blue-400">
             <ShoppingCart className="w-5 h-5" />
           </div>
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Add Products</h2>
+          <h2 className="text-lg font-semibold text-slate-100">Add Products</h2>
           {invoiceItems.length > 0 && (
             <>
               <motion.span
@@ -2157,17 +2157,17 @@ export default function InvoiceCreatePage() {
                 initial="hidden"
                 animate="visible"
                 exit="exit"
-                className="absolute z-50 w-full mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl max-h-60 overflow-y-auto"
+                className="absolute z-50 w-full mt-2 bg-slate-900 border border-slate-800 rounded-xl shadow-xl max-h-60 overflow-y-auto"
               >
                 {isProductSearchLoading && (
-                  <div className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300 flex items-center gap-2">
+                  <div className="px-4 py-3 text-sm text-slate-300 flex items-center gap-2">
                     <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
                     Searching products...
                   </div>
                 )}
 
                 {!isProductSearchLoading && productSearch.trim().length < 1 && (
-                  <div className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">
+                  <div className="px-4 py-3 text-sm text-slate-400">
                     Start typing to search products
                   </div>
                 )}
@@ -2175,7 +2175,7 @@ export default function InvoiceCreatePage() {
                 {!isProductSearchLoading &&
                   productSearch.trim().length >= 1 &&
                   productResults.length === 0 && (
-                    <div className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">
+                    <div className="px-4 py-3 text-sm text-slate-400">
                       No products found
                     </div>
                   )}
@@ -2212,11 +2212,11 @@ export default function InvoiceCreatePage() {
                       >
                         <div className="flex justify-between items-center gap-4">
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-slate-900 dark:text-slate-100 flex items-center gap-2 truncate">
+                            <p className="font-medium text-slate-100 flex items-center gap-2 truncate">
                               <Package className="w-4 h-4 text-blue-500 dark:text-accent-400 shrink-0" />
                               <span className="truncate">{product.productName}</span>
                             </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                            <p className="text-xs text-slate-400 mt-1">
                               GST: {product.gstPercentage}%
                               {product.hsnCode && ` • HSN: ${product.hsnCode}`}
                             </p>
@@ -2229,7 +2229,7 @@ export default function InvoiceCreatePage() {
                               className={`text-xs mt-0.5 flex items-center justify-end gap-1 ${
                                 availableStock <= 10
                                   ? "text-rose-600 dark:text-rose-400 font-semibold"
-                                  : "text-slate-500 dark:text-slate-400"
+                                  : "text-slate-400"
                               }`}
                             >
                               <Package className="w-3 h-3" />
@@ -2292,9 +2292,7 @@ export default function InvoiceCreatePage() {
                               animate="visible"
                               exit="exit"
                               layout
-                              whileHover={{
-                                backgroundColor: "rgba(51, 65, 85, 0.5)",
-                              }}
+                              className="hover:bg-slate-800/40 transition-colors"
                             >
                               <td>
                                 <div>
@@ -2649,8 +2647,8 @@ export default function InvoiceCreatePage() {
           {/* Totals */}
           <div className="glass-card p-6 relative z-0">
             <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 bg-emerald-500/20 rounded-lg">
-                <Calculator className="w-5 h-5 text-emerald-400" />
+              <div className="p-2.5 bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/25 dark:border-emerald-500/30 rounded-xl text-emerald-600 dark:text-emerald-400">
+                <Calculator className="w-5 h-5" />
               </div>
               <h2 className="text-lg font-semibold text-slate-100">
                 Invoice Summary

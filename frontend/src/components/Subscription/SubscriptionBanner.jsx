@@ -13,8 +13,23 @@ const SUPPORT_EMAIL = 'support.bharatenterprise@gmail.com';
  */
 export default function SubscriptionBanner() {
   const { isGrace, isExpired, isTrial, daysRemaining, planName } = useSubscription();
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissed, setDismissed] = useState(() => {
+    try {
+      return sessionStorage.getItem('dismissed_subscription_banner') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const navigate = useNavigate();
+
+  const handleDismiss = () => {
+    setDismissed(true);
+    try {
+      sessionStorage.setItem('dismissed_subscription_banner', 'true');
+    } catch {
+      // Ignore storage errors in private browsing
+    }
+  };
 
   // Don't show if subscription is healthy or dismissed
   if (dismissed) return null;
@@ -91,11 +106,11 @@ export default function SubscriptionBanner() {
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0, y: -20, height: 0 }}
-        animate={{ opacity: 1, y: 0, height: 'auto' }}
-        exit={{ opacity: 0, y: -20, height: 0 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-        className={`relative ${bgClass} border ${borderClass} rounded-xl p-3.5 sm:p-4 mb-4 sm:mb-6 shadow-sm no-print subscription-banner`}
+        initial={{ opacity: 0, y: -6 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -6 }}
+        transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
+        className={`relative ${bgClass} border ${borderClass} rounded-xl p-3.5 sm:p-4 mb-4 sm:mb-6 shadow-sm no-print subscription-banner will-change-[transform,opacity]`}
       >
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5 sm:gap-4">
           {/* Left: Icon & Text block */}
@@ -116,33 +131,31 @@ export default function SubscriptionBanner() {
 
           {/* Right / Bottom: Action button & Dismiss button */}
           <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto pt-1 sm:pt-0">
-            <motion.button
+            <button
+              type="button"
               className={`w-full sm:w-auto px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold ${
                 isExpired
                   ? 'bg-red-500 hover:bg-red-600 text-white'
                   : 'bg-blue-600 hover:bg-blue-500 text-white'
-              } transition-colors flex items-center justify-center gap-1.5 shadow-sm`}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              } transition-all active:scale-95 flex items-center justify-center gap-1.5 shadow-sm`}
               onClick={() => {
                 navigate('/subscription');
               }}
             >
               <span>{buttonLabel}</span>
               <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            </motion.button>
+            </button>
 
             {!isExpired && (
-              <motion.button
-                onClick={() => setDismissed(true)}
-                className="absolute top-3 right-3 sm:static p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-colors"
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
+              <button
+                type="button"
+                onClick={handleDismiss}
+                className="absolute top-3 right-3 sm:static p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-colors active:scale-90"
                 aria-label="Dismiss notification"
                 title="Dismiss"
               >
                 <X className="w-4 h-4" />
-              </motion.button>
+              </button>
             )}
           </div>
         </div>

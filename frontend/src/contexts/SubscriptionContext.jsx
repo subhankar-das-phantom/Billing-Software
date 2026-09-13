@@ -7,15 +7,25 @@ const SubscriptionContext = createContext(null);
 
 export const SubscriptionProvider = ({ children }) => {
   const { user, userRole } = useAuth();
-  const [subscription, setSubscription] = useState(null);
+  const [subscription, setSubscription] = useState(() => {
+    try {
+      const saved = localStorage.getItem('cached_subscription');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const [activeDbSub, setActiveDbSub] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!subscription);
   const [error, setError] = useState(null);
 
   // Fetch subscription info when user is authenticated
   useEffect(() => {
     if (!user) {
       setSubscription(null);
+      try {
+        localStorage.removeItem('cached_subscription');
+      } catch {}
       setLoading(false);
       return;
     }
@@ -24,11 +34,14 @@ export const SubscriptionProvider = ({ children }) => {
 
     const fetchSubscription = async () => {
       try {
-        setLoading(true);
+        if (!subscription) setLoading(true);
         const data = await subscriptionService.getSubscription();
         if (!cancelled && data.success) {
           setSubscription(data.info);
           setActiveDbSub(data.subscription);
+          try {
+            localStorage.setItem('cached_subscription', JSON.stringify(data.info));
+          } catch {}
           setError(null);
         }
       } catch (err) {

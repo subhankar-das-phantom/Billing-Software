@@ -9,16 +9,21 @@ export default function Modal({
   title, 
   children, 
   size = 'md',
+  maxWidth,
   closeOnOverlayClick = true,
   showCloseButton = true
 }) {
+  const effectiveSize = size === 'md' && maxWidth ? maxWidth : size;
   const sizes = {
     sm: 'max-w-md',
     md: 'max-w-lg',
     lg: 'max-w-2xl',
+    '2xl': 'max-w-2xl',
     xl: 'max-w-4xl',
+    '4xl': 'max-w-4xl',
     full: 'max-w-7xl'
   };
+  const sizeClass = sizes[effectiveSize] || sizes.md;
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -51,71 +56,62 @@ export default function Modal({
   };
 
   return createPortal(
-    <AnimatePresence mode="wait">
+    <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-hidden no-print">
+        <motion.div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-hidden no-print"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15, ease: 'easeOut' }}
+          style={{ willChange: 'opacity' }}
+        >
           {/* Backdrop Overlay */}
-          <motion.div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+          <div
+            className="absolute inset-0 bg-slate-950/75 backdrop-blur-[2px] transition-opacity"
             onClick={handleOverlayClick}
           />
 
           {/* Modal Container */}
           <motion.div
-            className={`modal ${sizes[size]} relative z-10 w-full max-h-[90vh] overflow-y-auto`}
-            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+            className={`modal ${sizeClass} relative z-10 w-full max-h-[90vh] overflow-y-auto bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl`}
+            initial={{ scale: 0.97, opacity: 0, y: 8 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+            exit={{ scale: 0.97, opacity: 0, y: 8 }}
             transition={{ 
-              type: 'spring',
-              stiffness: 300,
-              damping: 30,
-              duration: 0.3
+              duration: 0.15,
+              ease: [0.16, 1, 0.3, 1]
             }}
+            style={{ willChange: 'transform, opacity' }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
             {(title || showCloseButton) && (
-              <motion.div 
-                className="modal-header flex items-center justify-between"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1, duration: 0.2 }}
-              >
+              <div className="modal-header flex items-center justify-between p-5 border-b border-slate-800">
                 <h2 className="text-lg font-semibold text-slate-100">{title}</h2>
                 
                 {showCloseButton && (
-                  <motion.button
+                  <button
+                    type="button"
                     onClick={onClose}
-                    className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-slate-100 transition-colors group"
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
+                    className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-100 transition-colors group cursor-pointer"
                     aria-label="Close modal"
                   >
                     <X 
                       className="w-5 h-5 transition-transform group-hover:rotate-90" 
-                      strokeWidth={2.5}
+                      strokeWidth={2}
                     />
-                  </motion.button>
+                  </button>
                 )}
-              </motion.div>
+              </div>
             )}
 
             {/* Body */}
-            <motion.div 
-              className="modal-body"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15, duration: 0.25 }}
-            >
+            <div className="modal-body p-5">
               {children}
-            </motion.div>
+            </div>
           </motion.div>
-        </div>
+        </motion.div>
       )}
     </AnimatePresence>,
     document.body
@@ -133,62 +129,49 @@ export function AlertModal({
   iconBgColor = 'bg-blue-500/10'
 }) {
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 no-print">
-          <motion.div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+        <motion.div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 no-print"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15, ease: 'easeOut' }}
+          style={{ willChange: 'opacity' }}
+        >
+          <div
+            className="absolute inset-0 bg-slate-950/75 backdrop-blur-[2px]"
             onClick={onClose}
           />
 
           <motion.div
-            className="modal max-w-md relative z-10 w-full"
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            className="modal max-w-md relative z-10 w-full bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6"
+            initial={{ scale: 0.96, opacity: 0, y: 8 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.96, opacity: 0, y: 8 }}
+            transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
+            style={{ willChange: 'transform, opacity' }}
             onClick={(e) => e.stopPropagation()}
           >
             {Icon && (
-              <motion.div 
-                className="flex justify-center mb-4"
-                initial={{ scale: 0, rotate: -180 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{ 
-                  delay: 0.1,
-                  type: 'spring',
-                  stiffness: 200
-                }}
-              >
+              <div className="flex justify-center mb-4">
                 <div className={`p-3 rounded-full ${iconBgColor}`}>
                   <Icon className={`w-8 h-8 ${iconColor}`} strokeWidth={2} />
                 </div>
-              </motion.div>
+              </div>
             )}
 
             {title && (
-              <motion.h3 
-                className="text-xl font-semibold text-slate-100 text-center mb-4"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15 }}
-              >
+              <h3 className="text-xl font-semibold text-slate-100 text-center mb-4">
                 {title}
-              </motion.h3>
+              </h3>
             )}
 
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
-            >
+            <div>
               {children}
-            </motion.div>
+            </div>
           </motion.div>
-        </div>
+        </motion.div>
       )}
     </AnimatePresence>
   );
@@ -199,7 +182,7 @@ export function SlideModal({
   isOpen, 
   onClose, 
   title, 
-  children,
+  children, 
   position = 'right' // 'left', 'right', 'top', 'bottom'
 }) {
   const slideVariants = {
@@ -217,45 +200,44 @@ export function SlideModal({
   };
 
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 no-print">
-          <motion.div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+        <motion.div 
+          className="fixed inset-0 z-50 no-print"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15, ease: 'easeOut' }}
+        >
+          <div
+            className="absolute inset-0 bg-slate-950/75 backdrop-blur-[2px]"
             onClick={onClose}
           />
 
           <motion.div
-            className={`absolute ${positionClasses[position]} bg-slate-800 border border-slate-700 shadow-2xl max-w-md w-full overflow-auto`}
+            className={`absolute ${positionClasses[position]} bg-slate-900 border border-slate-800 shadow-2xl max-w-md w-full overflow-auto`}
             initial={slideVariants[position]}
             animate={{ x: 0, y: 0 }}
             exit={slideVariants[position]}
-            transition={{ 
-              type: 'spring',
-              stiffness: 300,
-              damping: 30
-            }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            style={{ willChange: 'transform' }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-slate-100">{title}</h2>
-                <motion.button
+                <button
+                  type="button"
                   onClick={onClose}
-                  className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-slate-100 transition-colors"
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
+                  className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-100 transition-colors cursor-pointer"
                 >
                   <X className="w-5 h-5" />
-                </motion.button>
+                </button>
               </div>
               {children}
             </div>
           </motion.div>
-        </div>
+        </motion.div>
       )}
     </AnimatePresence>
   );

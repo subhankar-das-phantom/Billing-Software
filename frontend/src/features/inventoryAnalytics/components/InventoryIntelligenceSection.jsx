@@ -17,12 +17,14 @@ import {
   Sparkles,
   BarChart3,
   ArrowUpRight,
-  Filter
+  Filter,
+  X
 } from 'lucide-react';
 import { inventoryAnalyticsService } from '../../../services/inventoryAnalyticsService';
 import { formatCurrency } from '../../../utils/formatters';
 import { useToast } from '../../../contexts/ToastContext';
 import { InventoryIntelligenceSkeleton } from './InventoryIntelligenceSkeleton';
+import { useDebounce } from '../../../hooks';
 
 export function InventoryIntelligenceSection() {
   const [initialLoading, setInitialLoading] = useState(true);
@@ -45,6 +47,10 @@ export function InventoryIntelligenceSection() {
   const [riskSearch, setRiskSearch] = useState('');
   const [velocitySearch, setVelocitySearch] = useState('');
   const [procurementSearch, setProcurementSearch] = useState('');
+
+  const debouncedRiskSearch = useDebounce(riskSearch, 250);
+  const debouncedVelocitySearch = useDebounce(velocitySearch, 250);
+  const debouncedProcurementSearch = useDebounce(procurementSearch, 250);
 
   const { showToast } = useToast();
 
@@ -93,36 +99,38 @@ export function InventoryIntelligenceSection() {
   };
 
   // Stock Risk filtering
-  const allRiskItems = [
+  const allRiskItems = useMemo(() => [
     ...(stockRiskData?.outOfStockItems || []),
     ...(stockRiskData?.lowStockItems || []),
     ...(stockRiskData?.healthyItems || [])
-  ];
+  ], [stockRiskData?.outOfStockItems, stockRiskData?.lowStockItems, stockRiskData?.healthyItems]);
 
-  const filteredByStatus = riskFilter === 'ALL'
-    ? allRiskItems
-    : riskFilter === 'OUT_OF_STOCK'
-    ? (stockRiskData?.outOfStockItems || [])
-    : riskFilter === 'LOW_STOCK'
-    ? (stockRiskData?.lowStockItems || [])
-    : (stockRiskData?.healthyItems || []);
+  const filteredByStatus = useMemo(() => {
+    return riskFilter === 'ALL'
+      ? allRiskItems
+      : riskFilter === 'OUT_OF_STOCK'
+      ? (stockRiskData?.outOfStockItems || [])
+      : riskFilter === 'LOW_STOCK'
+      ? (stockRiskData?.lowStockItems || [])
+      : (stockRiskData?.healthyItems || []);
+  }, [riskFilter, allRiskItems, stockRiskData]);
 
-  const displayedRiskItems = filteredByStatus.filter(item => {
-    if (!riskSearch.trim()) return true;
-    const query = riskSearch.toLowerCase();
-    return (
+  const displayedRiskItems = useMemo(() => {
+    if (!debouncedRiskSearch.trim()) return filteredByStatus;
+    const query = debouncedRiskSearch.toLowerCase();
+    return filteredByStatus.filter(item => (
       item.productName?.toLowerCase().includes(query) ||
       item.hsnCode?.toLowerCase().includes(query) ||
       item.manufacturer?.toLowerCase().includes(query)
-    );
-  });
+    ));
+  }, [filteredByStatus, debouncedRiskSearch]);
 
   // Velocity filtering
   const displayedVelocityFast = useMemo(() => {
     return (velocityData?.fastMovingTop || [])
       .filter(item => {
-        if (!velocitySearch.trim()) return true;
-        const query = velocitySearch.toLowerCase();
+        if (!debouncedVelocitySearch.trim()) return true;
+        const query = debouncedVelocitySearch.toLowerCase();
         return (
           item.productName?.toLowerCase().includes(query) ||
           item.hsnCode?.toLowerCase().includes(query) ||
@@ -130,7 +138,7 @@ export function InventoryIntelligenceSection() {
         );
       })
       .sort((a, b) => (b.unitsSold - a.unitsSold) || (b.velocityRate - a.velocityRate));
-  }, [velocityData?.fastMovingTop, velocitySearch]);
+  }, [velocityData?.fastMovingTop, debouncedVelocitySearch]);
 
   const displayedVelocitySlow = useMemo(() => {
     return [
@@ -138,8 +146,8 @@ export function InventoryIntelligenceSection() {
       ...(velocityData?.noSalesTop || [])
     ]
       .filter(item => {
-        if (!velocitySearch.trim()) return true;
-        const query = velocitySearch.toLowerCase();
+        if (!debouncedVelocitySearch.trim()) return true;
+        const query = debouncedVelocitySearch.toLowerCase();
         return (
           item.productName?.toLowerCase().includes(query) ||
           item.hsnCode?.toLowerCase().includes(query) ||
@@ -147,18 +155,20 @@ export function InventoryIntelligenceSection() {
         );
       })
       .sort((a, b) => (a.unitsSold - b.unitsSold) || (b.currentStockQty - a.currentStockQty));
-  }, [velocityData?.slowMovingTop, velocityData?.noSalesTop, velocitySearch]);
+  }, [velocityData?.slowMovingTop, velocityData?.noSalesTop, debouncedVelocitySearch]);
 
   // Procurement filtering
-  const displayedSuppliers = (procurementData?.suppliers || []).filter(item => {
-    if (!procurementSearch.trim()) return true;
-    const query = procurementSearch.toLowerCase();
-    return (
-      item.supplierName?.toLowerCase().includes(query) ||
-      item.supplierGstin?.toLowerCase().includes(query) ||
-      item.supplierPhone?.toLowerCase().includes(query)
-    );
-  });
+  const displayedSuppliers = useMemo(() => {
+    return (procurementData?.suppliers || []).filter(item => {
+      if (!debouncedProcurementSearch.trim()) return true;
+      const query = debouncedProcurementSearch.toLowerCase();
+      return (
+        item.supplierName?.toLowerCase().includes(query) ||
+        item.supplierGstin?.toLowerCase().includes(query) ||
+        item.supplierPhone?.toLowerCase().includes(query)
+      );
+    });
+  }, [procurementData?.suppliers, debouncedProcurementSearch]);
 
   if (initialLoading) {
     return <InventoryIntelligenceSkeleton />;
@@ -475,8 +485,18 @@ export function InventoryIntelligenceSection() {
                       placeholder="Search product, HSN, manufacturer..."
                       value={riskSearch}
                       onChange={(e) => setRiskSearch(e.target.value)}
-                      className="input text-xs py-1 pl-8 pr-3 h-8 w-full bg-slate-900/80 border-slate-700/60"
+                      className="input text-xs py-1 pl-8 pr-7 h-8 w-full bg-slate-900/80 border-slate-700/60"
                     />
+                    {riskSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setRiskSearch('')}
+                        className="absolute right-2 top-2 p-0.5 text-slate-400 hover:text-slate-200 transition-colors"
+                        title="Clear search"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                   <button
                     onClick={() => setRiskFilter('ALL')}
@@ -689,6 +709,33 @@ export function InventoryIntelligenceSection() {
               </div>
             </div>
 
+            {/* Velocity Search Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                Velocity Breakdown
+              </div>
+              <div className="relative w-full sm:w-64">
+                <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-500" />
+                <input
+                  type="text"
+                  placeholder="Filter movers by name, HSN..."
+                  value={velocitySearch}
+                  onChange={(e) => setVelocitySearch(e.target.value)}
+                  className="input text-xs py-1 pl-8 pr-7 h-8 w-full bg-slate-900/80 border-slate-700/60"
+                />
+                {velocitySearch && (
+                  <button
+                    type="button"
+                    onClick={() => setVelocitySearch('')}
+                    className="absolute right-2 top-2 p-0.5 text-slate-400 hover:text-slate-200 transition-colors"
+                    title="Clear search"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+
             {/* Split Tables: Fast Movers vs Slow/Zero Movers */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* Fast Movers */}
@@ -806,8 +853,18 @@ export function InventoryIntelligenceSection() {
                     placeholder="Search supplier or GSTIN..."
                     value={procurementSearch}
                     onChange={(e) => setProcurementSearch(e.target.value)}
-                    className="input text-xs py-1 pl-8 pr-3 h-8 w-full bg-slate-900/80 border-slate-700/60"
+                    className="input text-xs py-1 pl-8 pr-7 h-8 w-full bg-slate-900/80 border-slate-700/60"
                   />
+                  {procurementSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setProcurementSearch('')}
+                      className="absolute right-2 top-2 p-0.5 text-slate-400 hover:text-slate-200 transition-colors"
+                      title="Clear search"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
 

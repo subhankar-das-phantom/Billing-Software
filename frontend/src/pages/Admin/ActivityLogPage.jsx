@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -19,7 +19,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { employeeService } from '../../services/employees/employeeService';
-import { useMotionConfig, useFirstVisit } from '../../hooks';
+import { useMotionConfig, useFirstVisit, useDebounce } from '../../hooks';
 import { ActivityLogPageSkeleton } from './ActivityLogPageSkeleton';
 import { VirtualizedList } from '../../components/Common/VirtualizedList';
 
@@ -497,6 +497,7 @@ export default function ActivityLogPage() {
   const [serverStats, setServerStats] = useState(null);
   const [timeRange, setTimeRange] = useState('today');
   const [employeeSearch, setEmployeeSearch] = useState('');
+  const [debouncedEmployeeSearch] = useDebounce(employeeSearch, 250);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -544,10 +545,14 @@ export default function ActivityLogPage() {
   }, [fetchActivityLog]);
 
   // Filter employees based on search (frontend filtering of employee list for dropdown)
-  const filteredEmployees = employees.filter(emp => 
-    emp.name.toLowerCase().includes(employeeSearch.toLowerCase()) ||
-    emp.email.toLowerCase().includes(employeeSearch.toLowerCase())
-  );
+  const filteredEmployees = useMemo(() => {
+    const q = debouncedEmployeeSearch.trim().toLowerCase();
+    if (!q) return employees;
+    return employees.filter(emp => 
+      emp.name?.toLowerCase().includes(q) ||
+      emp.email?.toLowerCase().includes(q)
+    );
+  }, [employees, debouncedEmployeeSearch]);
 
   // Calculate totals independently from serverStats or log entries
   const totals = serverStats ? {

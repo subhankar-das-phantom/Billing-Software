@@ -41,23 +41,27 @@ exports.getEmployees = async (req, res, next) => {
 
     const total = await Employee.countDocuments(query);
 
-    // Get employee data with metrics and online status
-    const employeesWithStats = await Promise.all(
-      employees.map(async (emp) => {
-        const profile = emp.getFullProfile();
-        // Check if employee has an active session with recent activity (within 5 minutes)
-        const activeSession = await Session.findOne({
-          user: emp._id,
-          userModel: 'Employee',
-          isActive: true,
-          lastActivityAt: { $gte: new Date(Date.now() - 5 * 60 * 1000) } // 5 minutes
-        });
-        return {
-          ...profile,
-          isOnline: !!activeSession
-        };
-      })
-    );
+    // Batch active session query to eliminate N+1 database queries
+    const employeeIds = employees.map(e => e._id);
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+
+    const activeSessions = await Session.find({
+      user: { $in: employeeIds },
+      userModel: 'Employee',
+      isActive: true,
+      lastActivityAt: { $gte: fiveMinutesAgo }
+    }).select('user').lean();
+
+    const activeUserSet = new Set(activeSessions.map(s => s.user.toString()));
+
+    // Get employee data with metrics and online status in a single pass
+    const employeesWithStats = employees.map((emp) => {
+      const profile = emp.getFullProfile();
+      return {
+        ...profile,
+        isOnline: activeUserSet.has(emp._id.toString())
+      };
+    });
 
     res.status(200).json({
       success: true,

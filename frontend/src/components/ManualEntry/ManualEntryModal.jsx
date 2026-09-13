@@ -262,7 +262,7 @@ export default function ManualEntryModal({
                     
                     {/* Customer dropdown */}
                     {showCustomerDropdown && customers.length > 0 && !preSelectedCustomer && (
-                      <div className="absolute z-20 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                      <div className="absolute z-20 w-full mt-1 bg-slate-900 border border-slate-800 rounded-lg shadow-xl max-h-48 overflow-y-auto">
                         {customers.map((customer) => (
                           <button
                             key={customer._id}
@@ -270,8 +270,8 @@ export default function ManualEntryModal({
                             onClick={() => handleSelectCustomer(customer)}
                             className="search-dropdown-item py-2.5 flex justify-between items-center"
                           >
-                            <span className="text-slate-900 dark:text-slate-100 font-medium">{customer.customerName}</span>
-                            <span className="text-slate-500 dark:text-slate-400 text-sm">{customer.phone}</span>
+                            <span className="text-slate-100 font-medium">{customer.customerName}</span>
+                            <span className="text-slate-400 text-sm">{customer.phone}</span>
                           </button>
                         ))}
                       </div>

@@ -23,10 +23,10 @@ router.post('/employee/login', employeeLogin);
 router.get('/me', protect, getMe);
 router.post('/logout', protect, logout);
 router.post('/heartbeat', protect, heartbeat);
+router.put('/preferences', protect, updatePreferences);
 
 // Admin-only routes
 router.put('/change-password', protect, adminOnly, changePassword);
-router.put('/preferences', protect, adminOnly, updatePreferences);
 router.put('/profile', protect, adminOnly, updateProfileValidator, updateProfile);
 
 module.exports = router;

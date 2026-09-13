@@ -52,16 +52,22 @@ export default function SupplierFormModal({ isOpen, onClose, supplier, onSuccess
 
     setLoading(true);
     try {
+      let savedResult;
       if (supplier && supplier._id) {
         await supplierService.updateSupplier(supplier._id, formData);
         showToast('Supplier updated successfully', 'success');
-        if (onSuccess) onSuccess(supplier);
+        savedResult = supplier;
       } else {
         const res = await supplierService.createSupplier(formData);
         showToast('Supplier created successfully', 'success');
-        if (onSuccess) onSuccess(res?.supplier || res);
+        savedResult = res?.supplier || res;
       }
       onClose();
+      if (onSuccess) {
+        requestAnimationFrame(() => {
+          onSuccess(savedResult);
+        });
+      }
     } catch (error) {
       console.error('Error saving supplier:', error);
       showToast(error.response?.data?.message || 'Error saving supplier', 'error');
@@ -71,7 +77,7 @@ export default function SupplierFormModal({ isOpen, onClose, supplier, onSuccess
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={supplier ? 'Edit Supplier' : 'Add Supplier'} maxWidth="2xl">
+    <Modal isOpen={isOpen} onClose={onClose} title={supplier ? 'Edit Supplier' : 'Add Supplier'} size="lg">
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1">

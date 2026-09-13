@@ -56,6 +56,8 @@ sessionSchema.index({ user: 1, userModel: 1 });
 sessionSchema.index({ loginTime: -1 });
 sessionSchema.index({ isActive: 1 });
 sessionSchema.index({ user: 1, loginTime: -1 });
+// Compound ESR index for batch online activity checks
+sessionSchema.index({ user: 1, userModel: 1, isActive: 1, lastActivityAt: -1 });
 
 // Method to close session and calculate duration
 sessionSchema.methods.closeSession = function() {

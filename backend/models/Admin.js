@@ -43,6 +43,11 @@ const adminSchema = new mongoose.Schema({
     default: true
   },
   preferences: {
+    themeMode: {
+      type: String,
+      enum: ['dark', 'light', 'system'],
+      default: 'dark'
+    },
     showCalculator: {
       type: Boolean,
       default: true

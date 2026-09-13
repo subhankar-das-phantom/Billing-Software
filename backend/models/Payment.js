@@ -81,5 +81,8 @@ paymentSchema.index({ paymentDate: -1 });
 paymentSchema.index({ createdAt: -1 });
 // Ledger optimization index
 paymentSchema.index({ tenantId: 1, customer: 1, paymentDate: -1 });
+// Search acceleration indexes
+paymentSchema.index({ tenantId: 1, referenceNumber: 1 });
+paymentSchema.index({ tenantId: 1, 'invoiceSnapshot.invoiceNumber': 1 });
 
 module.exports = mongoose.model('Payment', paymentSchema);
