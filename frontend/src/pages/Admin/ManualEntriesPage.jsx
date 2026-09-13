@@ -20,7 +20,7 @@ import { formatCurrency, formatDate } from '../../utils/formatters';
 import { ManualEntriesPageSkeleton } from './ManualEntriesPageSkeleton';
 import ManualEntryModal from '../../components/ManualEntry/ManualEntryModal';
 import { useToast } from '../../contexts/ToastContext';
-import { invalidateCachePattern, useFirstVisit } from '../../hooks';
+import { invalidateCachePattern, useFirstVisit, useDebounce } from '../../hooks';
 
 export default function ManualEntriesPage() {
   const [entries, setEntries] = useState([]);
@@ -29,6 +29,7 @@ export default function ManualEntriesPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch] = useDebounce(searchQuery, 300);
   const [filters, setFilters] = useState({
     startDate: '',
     endDate: ''
@@ -40,13 +41,18 @@ export default function ManualEntriesPage() {
   const { addToast } = useToast();
   const isFirstVisit = useFirstVisit('manual-entries');
 
+  // Reset to page 1 on search or filter change
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, filters]);
+
   const loadEntries = useCallback(async () => {
     try {
       setLoading(true);
       const params = {
         page,
         limit: 20,
-        search: searchQuery,
+        search: debouncedSearch,
         ...filters
       };
       
@@ -60,7 +66,7 @@ export default function ManualEntriesPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, filters, searchQuery, addToast]);
+  }, [page, filters, debouncedSearch, addToast]);
 
   useEffect(() => {
     loadEntries();
@@ -181,8 +187,18 @@ export default function ManualEntriesPage() {
               placeholder="Search by customer name or phone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-800/50 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-accent-500 focus:border-transparent"
+              className="w-full pl-10 pr-10 py-2.5 bg-slate-800/50 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-accent-500 focus:border-transparent"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-100 p-1"
+                aria-label="Clear search"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
 
           {/* Filter Toggle */}

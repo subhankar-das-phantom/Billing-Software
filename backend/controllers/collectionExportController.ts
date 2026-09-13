@@ -126,25 +126,34 @@ export const exportCollections = async (req: AuthenticatedRequest, res: Response
     }
 
     const rawSearch = String(search || '').trim().slice(0, 50);
-    if (rawSearch.length >= 2) {
+    if (rawSearch.length >= 1) {
       const escaped = escapeRegex(rawSearch);
       const prefixPattern = new RegExp(`^${escaped}`, 'i');
       const containsPattern = new RegExp(escaped, 'i');
 
       const matchingCustomers = await Customer.find({
         tenantId,
-        $or: [{ customerName: prefixPattern }, { phone: prefixPattern }]
-      }).select('_id').limit(50).lean();
+        $or: [
+          { customerName: containsPattern },
+          { phone: containsPattern },
+          { gstin: prefixPattern }
+        ]
+      }).select('_id').limit(100).lean();
 
       const matchingIds = matchingCustomers.map((c: any) => c._id);
 
       const paymentOr: any[] = [
         { referenceNumber: containsPattern },
         { notes: containsPattern },
-        { 'invoiceSnapshot.invoiceNumber': prefixPattern }
+        { 'invoiceSnapshot.invoiceNumber': containsPattern }
       ];
       if (matchingIds.length > 0) {
         paymentOr.push({ customer: { $in: matchingIds } });
+      }
+
+      const numericAmount = parseFloat(rawSearch);
+      if (!isNaN(numericAmount) && numericAmount > 0) {
+        paymentOr.push({ amount: numericAmount });
       }
 
       const meOr: any[] = [
@@ -154,6 +163,9 @@ export const exportCollections = async (req: AuthenticatedRequest, res: Response
       ];
       if (matchingIds.length > 0) {
         meOr.push({ customer: { $in: matchingIds } });
+      }
+      if (!isNaN(numericAmount) && numericAmount > 0) {
+        meOr.push({ amount: numericAmount });
       }
 
       paymentQuery.$and = paymentQuery.$and || [];

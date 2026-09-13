@@ -145,20 +145,23 @@ exports.getCollections = async (req, res, next) => {
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 50));
     const tenantId = getTenantId(req);
 
-    // Build IST date range
+    // Build IST date range (honoring isAllTime to allow searching all records)
     let startOfDay = null;
     let endOfDay = null;
+    const isAllTime = req.query.isAllTime === 'true' || req.query.datePreset === 'all' || req.query.dateRange === 'all';
 
-    if (req.query.date) {
-      startOfDay = parseISTDateBoundary(req.query.date, false);
-      endOfDay = parseISTDateBoundary(req.query.date, true);
-    } else if (req.query.startDate || req.query.endDate) {
-      if (req.query.startDate) startOfDay = parseISTDateBoundary(req.query.startDate, false);
-      if (req.query.endDate) endOfDay = parseISTDateBoundary(req.query.endDate, true);
-    } else {
-      const istTodayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
-      startOfDay = parseISTDateBoundary(istTodayStr, false);
-      endOfDay = parseISTDateBoundary(istTodayStr, true);
+    if (!isAllTime) {
+      if (req.query.date) {
+        startOfDay = parseISTDateBoundary(req.query.date, false);
+        endOfDay = parseISTDateBoundary(req.query.date, true);
+      } else if (req.query.startDate || req.query.endDate) {
+        if (req.query.startDate) startOfDay = parseISTDateBoundary(req.query.startDate, false);
+        if (req.query.endDate) endOfDay = parseISTDateBoundary(req.query.endDate, true);
+      } else {
+        const istTodayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+        startOfDay = parseISTDateBoundary(istTodayStr, false);
+        endOfDay = parseISTDateBoundary(istTodayStr, true);
+      }
     }
 
     // Shared base scope predicates (tenant + date boundary + customerId)
@@ -206,9 +209,9 @@ exports.getCollections = async (req, res, next) => {
       meQuery.paymentMethod = req.query.paymentMethod;
     }
 
-    // Guarded search: prefix-indexed where possible, max 50 chars, bounded customer lookups
+    // Guarded search: substring matching, max 50 chars, bounded customer lookups & amount search
     const rawSearch = String(req.query.search || '').trim().slice(0, 50);
-    const hasSearchFilter = rawSearch.length >= 2;
+    const hasSearchFilter = rawSearch.length >= 1;
     if (hasSearchFilter) {
       const escaped = escapeRegex(rawSearch);
       const prefixPattern = new RegExp(`^${escaped}`, 'i');
@@ -218,20 +221,27 @@ exports.getCollections = async (req, res, next) => {
       const matchingCustomers = await Customer.find({
         tenantId,
         $or: [
-          { customerName: prefixPattern },
-          { phone: prefixPattern }
+          { customerName: containsPattern },
+          { phone: containsPattern },
+          { gstin: prefixPattern }
         ]
-      }).select('_id').limit(50).lean();
+      }).select('_id').limit(100).lean();
 
       const matchingCustomerIds = matchingCustomers.map(c => c._id);
 
       const paymentOr = [
         { referenceNumber: containsPattern },
         { notes: containsPattern },
-        { 'invoiceSnapshot.invoiceNumber': prefixPattern }
+        { 'invoiceSnapshot.invoiceNumber': containsPattern }
       ];
       if (matchingCustomerIds.length > 0) {
         paymentOr.push({ customer: { $in: matchingCustomerIds } });
+      }
+
+      // Check if user searched for a numeric amount (e.g. 1500 or 500.50)
+      const numericAmount = parseFloat(rawSearch);
+      if (!isNaN(numericAmount) && numericAmount > 0) {
+        paymentOr.push({ amount: numericAmount });
       }
 
       const meOr = [
@@ -241,6 +251,9 @@ exports.getCollections = async (req, res, next) => {
       ];
       if (matchingCustomerIds.length > 0) {
         meOr.push({ customer: { $in: matchingCustomerIds } });
+      }
+      if (!isNaN(numericAmount) && numericAmount > 0) {
+        meOr.push({ amount: numericAmount });
       }
 
       paymentQuery.$and = paymentQuery.$and || [];

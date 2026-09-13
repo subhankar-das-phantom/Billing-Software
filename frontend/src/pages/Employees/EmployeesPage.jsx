@@ -21,7 +21,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { employeeService } from '../../services/employees/employeeService';
-import { useMotionConfig, useFirstVisit } from '../../hooks';
+import { useMotionConfig, useFirstVisit, useDebounce } from '../../hooks';
 import { EmployeesPageSkeleton } from './EmployeesPageSkeleton';
 
 // Format currency
@@ -647,6 +647,7 @@ export default function EmployeesPage() {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch] = useDebounce(searchTerm, 300);
   const [statusFilter, setStatusFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -664,7 +665,7 @@ export default function EmployeesPage() {
   const fetchEmployees = async (silent = false) => {
     try {
       if (!silent) setLoading(true);
-      const data = await employeeService.getEmployees({ search: searchTerm, status: statusFilter });
+      const data = await employeeService.getEmployees({ search: debouncedSearch, status: statusFilter });
       setEmployees(data.employees || []);
       
       // Calculate stats
@@ -691,7 +692,7 @@ export default function EmployeesPage() {
     }, 30 * 1000); // 30 seconds
 
     return () => clearInterval(refreshInterval);
-  }, [searchTerm, statusFilter]);
+  }, [debouncedSearch, statusFilter]);
 
   const handleEdit = (employee) => {
     setSelectedEmployee(employee);
@@ -776,11 +777,21 @@ export default function EmployeesPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <input
             type="text"
-            placeholder="Search employees..."
+            placeholder="Search employees by name or email..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-colors"
+            className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-colors"
           />
+          {searchTerm && (
+            <button
+              type="button"
+              onClick={() => setSearchTerm('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-100 p-1"
+              aria-label="Clear search"
+            >
+              <X size={16} />
+            </button>
+          )}
         </div>
         <select
           value={statusFilter}

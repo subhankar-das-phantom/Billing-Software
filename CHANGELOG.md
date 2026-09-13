@@ -4,6 +4,42 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.4.2](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.4.2) — 2026-09-13 — Universal Search Debouncing, Zero-CLS Subscription Banner, Collections Search Unification & N+1 Query Elimination
+
+### ⚡ Enterprise Performance, Search Architecture & Layout Stability Milestone
+Version 2.4.2 delivers a critical performance and reliability upgrade across both backend data layers and frontend user experience. It eliminates continuous DOM layout reflow thrashing caused by animated banner springs, eliminates an N+1 database bottleneck in employee session status resolution, standardizes 250–300ms debouncing across all application search inputs to prevent keystroke network spam, and unifies the Collections search engine to transcend single-day boundaries with full multi-field partial matching and zero-decimal numeric amount search.
+
+---
+
+### 🚀 Elimination of Zero-CLS Notification Banner Lag (`SubscriptionBanner.jsx`, `SubscriptionContext.jsx`)
+- **Zero-Reflow GPU Acceleration** — Eliminated continuous DOM layout recalculations caused by Framer Motion's `animate={{ height: 'auto' }}` spring oscillation across the entire page (Recharts SVG graphs, KPI cards, tables). Replaced with GPU-accelerated opacity and subtle Y-translation (`duration: 0.15s, ease: [0.16, 1, 0.3, 1]`) with explicit `will-change: transform, opacity`.
+- **Instant Frame-0 Cache Mounting** — Pre-seeded subscription context from `localStorage.getItem('cached_subscription')`. Accounts in grace period render the notification banner immediately on initial frame mount, eliminating delayed 300ms pop-in layout shifts.
+- **Session Dismissal Persistence** — Preserves temporary user dismissals across navigation within the active session (`sessionStorage`), suppressing redundant re-animation on route changes.
+- **Lightweight Micro-Interactions** — Replaced nested Framer Motion interactive button wrappers with native hardware-accelerated CSS active transforms (`active:scale-95`).
+
+---
+
+### 🔍 Unified Enterprise Search & Universal Debouncing (`CollectionsPage.jsx`, `paymentController.js`, `collectionExportController.ts`, `useDebounce.js`, `EmployeesPage.jsx`, `ManualEntriesPage.jsx`, `ActivityLogPage.jsx`, `InventoryIntelligenceSection.jsx`)
+- **Collections Multi-Field Partial Matching** — Upgraded backend customer search from anchored prefix regex (`^query`) to substring contains matching (`containsPattern`), enabling searches by customer last name or partial phone digits. Added partial matching on `invoiceSnapshot.invoiceNumber` and exact numeric query matching on `amount`.
+- **Date Boundary Override & "All Dates" Preset** — Added `isAllTime=true` support and an "All Dates" preset pill to the Collections view, allowing searches across historical records outside the default single-day boundary. Integrated an empty-state action button (*"Search All Dates"*) when 0 results match the current date.
+- **100% Export-to-UI Parity** — Applied identical multi-field search and date override logic to `collectionExportController.ts`, ensuring exported Excel/PDF reports match screen results precisely.
+- **Universal Search Debouncing** — Tuned default delay in `useDebounce.js` from 500ms to 300ms for instantaneous feel. Debounced keystrokes across:
+  - **Collections Page** (`CollectionsPage.jsx`): 300ms debounce with clear button.
+  - **Employees Directory** (`EmployeesPage.jsx`): 300ms debounce on directory filter with clear button.
+  - **Manual Entries** (`ManualEntriesPage.jsx`): 300ms debounce on customer/note search with clear button.
+  - **Activity Log Filter** (`ActivityLogPage.jsx`): 250ms debounce with memoized employee filter list.
+  - **Inventory Intelligence** (`InventoryIntelligenceSection.jsx`): 250ms debounced filters across Stock Risk, Sales Velocity, and Vendor Procurement with dedicated clear buttons.
+
+---
+
+### 🏛️ Senior Backend Optimization & Zero N+1 Queries (`employeeController.js`, `Session.js`, `Payment.js`)
+- **Batch Session Status Resolution** — Eliminated a 50-iteration `Promise.all(employees.map(async emp => Session.findOne(...)))` loop in `getEmployees()`. Replaced with a single batched `$in` query: `Session.find({ user: { $in: employeeIds }, userModel: 'Employee', isActive: true, lastActivityAt: { $gte: fiveMinutesAgo } }).select('user').lean()`. Added an in-memory `Set` for O(1) online status resolution, slashing database round-trips from 52 down to 3 queries (94% reduction).
+- **Compound B-Tree Indexing (ESR Rule)**:
+  - Added `sessionSchema.index({ user: 1, userModel: 1, isActive: 1, lastActivityAt: -1 })` for high-throughput activity audits.
+  - Added `paymentSchema.index({ tenantId: 1, referenceNumber: 1 })` and `paymentSchema.index({ tenantId: 1, 'invoiceSnapshot.invoiceNumber': 1 })` for sub-millisecond collection lookups.
+
+---
+
 ## [v2.4.1](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.4.1) — 2026-09-12 — Dashboard Card Separation, Universal Elevation, Invoice Web Share & Accessible UI Polish
 
 ### 🎨 Enterprise Card Elevation, Universal Separation & High-Contrast Light Mode

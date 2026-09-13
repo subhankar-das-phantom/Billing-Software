@@ -222,6 +222,10 @@ export default function CollectionsPage() {
       setSelectedDate('');
       setStartDate(monthStart);
       setEndDate(todayStr);
+    } else if (preset === 'all') {
+      setSelectedDate('');
+      setStartDate('');
+      setEndDate('');
     } else if (preset === 'custom') {
       setSelectedDate('');
       if (!startDate) setStartDate(getISTDateStr(7));
@@ -235,11 +239,13 @@ export default function CollectionsPage() {
   }, [datePreset, selectedDate, startDate, endDate, selectedMethod, debouncedSearch]);
 
   // Construct SWR cache key and query parameters
-  const activeSearch = debouncedSearch.trim().length >= 2 ? debouncedSearch.trim() : '';
+  const activeSearch = debouncedSearch.trim();
 
   const queryParams = useMemo(() => {
     const params = { page, limit: 50 };
-    if (datePreset === 'today' || datePreset === 'yesterday') {
+    if (datePreset === 'all') {
+      params.isAllTime = 'true';
+    } else if (datePreset === 'today' || datePreset === 'yesterday') {
       params.date = selectedDate;
     } else if (startDate || endDate) {
       if (startDate) params.startDate = startDate;
@@ -288,6 +294,7 @@ export default function CollectionsPage() {
 
   // Compute readable Date Label
   const dateLabel = useMemo(() => {
+    if (datePreset === 'all') return 'All Dates';
     if (datePreset === 'today') return `Today (${formatDate(getISTDateStr(0))})`;
     if (datePreset === 'yesterday') return `Yesterday (${formatDate(getISTDateStr(1))})`;
     if (datePreset === 'last7Days') return `Last 7 Days (${formatDate(startDate)} - ${formatDate(endDate)})`;
@@ -734,6 +741,7 @@ export default function CollectionsPage() {
                 { id: 'yesterday', label: 'Yesterday' },
                 { id: 'last7Days', label: 'Last 7 Days' },
                 { id: 'thisMonth', label: 'This Month' },
+                { id: 'all', label: 'All Dates' },
                 { id: 'custom', label: 'Custom Range' }
               ].map((preset) => (
                 <button
@@ -760,7 +768,7 @@ export default function CollectionsPage() {
                   type="text"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
-                  placeholder="Search customer, phone, invoice, or UTR... ( / )"
+                  placeholder="Search customer, phone, invoice, UTR, amount... ( / )"
                   className="w-full pl-9 pr-8 py-2 sm:py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-slate-600 transition-colors"
                   id="collections-search-input"
                 />
@@ -884,11 +892,23 @@ export default function CollectionsPage() {
               </div>
               <p className="text-sm font-semibold text-slate-100">No payments found</p>
               <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-                {hasActiveFilters
+                {activeSearch && datePreset !== 'all'
+                  ? `No payments matching "${activeSearch}" in ${dateLabel}. Try searching across all dates.`
+                  : hasActiveFilters
                   ? 'No payments match your current search and filter criteria. Try adjusting filters.'
                   : `No payments recorded for ${dateLabel}. Click below to record a customer payment.`}
               </p>
-              <div className="mt-4 flex items-center justify-center gap-3">
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+                {activeSearch && datePreset !== 'all' && (
+                  <button
+                    type="button"
+                    onClick={() => handlePresetChange('all')}
+                    className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-blue-500/20 transition-all flex items-center gap-1.5 active:scale-95"
+                  >
+                    <Search className="w-3.5 h-3.5" />
+                    Search All Dates
+                  </button>
+                )}
                 {hasActiveFilters && (
                   <button
                     type="button"
