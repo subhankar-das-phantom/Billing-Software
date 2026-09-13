@@ -21,9 +21,13 @@ import {
   Bell,
   ChevronRight,
   CreditCard,
-  Crown
+  Crown,
+  Sun,
+  Moon,
+  Monitor
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { useToast } from '../../contexts/ToastContext';
 import { authService } from '../../services/auth/authService';
 import { useMotionConfig } from '../../hooks';
@@ -31,6 +35,7 @@ import SettingsPageSkeleton from './SettingsPageSkeleton';
 
 export default function SettingsPage() {
   const { user, userRole, updateAdmin, updateUserPreferences } = useAuth();
+  const { themeMode: activeThemeMode, setThemeMode } = useTheme();
   const { success: showSuccess, error: showError } = useToast();
   const { subscription, isExpired, isGrace, isTrial, planName, daysRemaining } = useSubscription();
   const motionConfig = useMotionConfig();
@@ -64,6 +69,7 @@ export default function SettingsPage() {
 
   // Preferences form state
   const [preferences, setPreferences] = useState({
+    themeMode: 'dark',
     showCalculator: true,
     enableBatchTracking: false
   });
@@ -98,11 +104,12 @@ export default function SettingsPage() {
     }
     if (user && user.preferences) {
       setPreferences({
+        themeMode: user.preferences.themeMode || activeThemeMode || 'dark',
         showCalculator: user.preferences.showCalculator !== false,
         enableBatchTracking: user.preferences.enableBatchTracking === true
       });
     }
-  }, [user, userRole]);
+  }, [user, userRole, activeThemeMode]);
 
   // Handlers
   const handleProfileSubmit = async (e) => {
@@ -168,6 +175,28 @@ export default function SettingsPage() {
     } catch (err) {
       setPreferences({ ...preferences, enableBatchTracking: !newEnableBatchTracking });
       showError(err.message || 'Failed to update preferences');
+    } finally {
+      setPreferencesLoading(false);
+    }
+  };
+
+  const handleSelectThemeMode = async (mode) => {
+    if (mode === preferences.themeMode && mode === activeThemeMode) return;
+    const prevMode = preferences.themeMode;
+    setPreferences(prev => ({ ...prev, themeMode: mode }));
+    setThemeMode(mode);
+    setPreferencesLoading(true);
+
+    try {
+      const result = await authService.updatePreferences({ themeMode: mode });
+      if (result.success) {
+        updateUserPreferences({ themeMode: mode });
+        showSuccess(`Theme preference set to ${mode.charAt(0).toUpperCase() + mode.slice(1)} Mode`);
+      }
+    } catch (err) {
+      setPreferences(prev => ({ ...prev, themeMode: prevMode }));
+      setThemeMode(prevMode);
+      showError(err.message || 'Failed to update theme preference');
     } finally {
       setPreferencesLoading(false);
     }
@@ -483,6 +512,54 @@ export default function SettingsPage() {
 
         <div className="space-y-6 relative z-10">
           
+          {/* Appearance / Theme Mode Selector */}
+          <div className="p-5 bg-slate-950/40 rounded-2xl border border-white/5 space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-amber-500/10 rounded-xl shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+                <Palette className="w-6 h-6 text-amber-400" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-100 text-base">Interface Appearance</h3>
+                <p className="text-sm text-slate-400 mt-0.5">Select your preferred visual theme across devices and sessions.</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+              {[
+                { id: 'dark', label: 'Dark Mode', desc: 'Sleek slate contrast', icon: Moon, activeBorder: 'border-blue-500/80 bg-blue-500/10 text-blue-400' },
+                { id: 'light', label: 'Light Mode', desc: 'Crisp daylight canvas', icon: Sun, activeBorder: 'border-amber-500/80 bg-amber-500/10 text-amber-400' },
+                { id: 'system', label: 'System Sync', desc: 'Matches device OS', icon: Monitor, activeBorder: 'border-emerald-500/80 bg-emerald-500/10 text-emerald-400' }
+              ].map((item) => {
+                const IconComponent = item.icon;
+                const isSelected = (preferences.themeMode || activeThemeMode) === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => handleSelectThemeMode(item.id)}
+                    disabled={preferencesLoading}
+                    className={`flex items-center gap-3.5 p-3.5 rounded-xl border text-left transition-all duration-200 cursor-pointer ${
+                      isSelected
+                        ? `${item.activeBorder} shadow-sm`
+                        : 'border-white/5 bg-slate-900/40 text-slate-400 hover:text-slate-200 hover:border-white/10 hover:bg-slate-900/80'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-lg ${isSelected ? 'bg-white/10' : 'bg-slate-800'}`}>
+                      <IconComponent className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold text-slate-100 flex items-center gap-1.5">
+                        {item.label}
+                        {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />}
+                      </div>
+                      <div className="text-xs text-slate-400">{item.desc}</div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Custom Pill Toggle for Calculator */}
           <div className="flex items-start sm:items-center justify-between p-5 bg-slate-950/40 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
             <div className="flex items-center gap-4">

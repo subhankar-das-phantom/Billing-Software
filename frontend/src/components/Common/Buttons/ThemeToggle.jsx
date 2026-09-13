@@ -1,15 +1,29 @@
-import { memo } from 'react';
+import { memo, useCallback } from 'react';
 import { AnimatePresence, motion as Motion } from 'framer-motion';
 import { Sun, Moon } from 'lucide-react';
 import { useTheme } from '../../../contexts/ThemeContext';
+import { useAuth } from '../../../contexts/AuthContext';
+import { authService } from '../../../services/auth/authService';
 
 export const ThemeToggle = memo(function ThemeToggle({ className = '', showLabel = false }) {
   const { toggleTheme, isDark } = useTheme();
+  const { user, updateUserPreferences } = useAuth();
+
+  const handleToggle = useCallback(() => {
+    const nextMode = isDark ? 'light' : 'dark';
+    toggleTheme();
+    if (user) {
+      updateUserPreferences({ themeMode: nextMode });
+      authService.updatePreferences({ themeMode: nextMode }).catch((err) => {
+        console.warn('[ThemeToggle] Failed to background sync theme preference:', err);
+      });
+    }
+  }, [isDark, toggleTheme, user, updateUserPreferences]);
 
   return (
     <button
       type="button"
-      onClick={toggleTheme}
+      onClick={handleToggle}
       className={`relative inline-flex items-center justify-center p-2 rounded-xl text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 ${className}`}
       title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
       aria-label={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}

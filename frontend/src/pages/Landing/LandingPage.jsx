@@ -157,7 +157,7 @@ function FloatingNav({ reduceMotion, isLoggedIn }) {
           {/* Logo */}
           <button onClick={() => scrollToSection('hero')} className="flex items-center gap-3 group bg-transparent border-none cursor-pointer p-0">
             <div
-              className="w-10 h-10 rounded-xl bg-blue-600 dark:bg-blue-500/15 dark:border dark:border-blue-500/30 text-white dark:text-blue-400 flex items-center justify-center font-bold text-xl shadow-xs shrink-0"
+              className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-xl shadow-lg shadow-blue-500/20 shrink-0"
             >
               B
             </div>
@@ -912,8 +912,32 @@ export default function LandingPage() {
     };
   }, []);
 
-  // Scroll to top on mount
-  useEffect(() => { window.scrollTo(0, 0); }, []);
+  // Scroll to top on mount and lock landing showcase to dark mode
+  useEffect(() => { 
+    window.scrollTo(0, 0); 
+
+    const root = document.documentElement;
+    const hadLight = root.classList.contains('light');
+
+    root.classList.remove('light');
+    root.classList.add('dark');
+
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    const prevMeta = metaThemeColor?.getAttribute('content');
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute('content', '#020617');
+    }
+
+    return () => {
+      if (hadLight) {
+        root.classList.remove('dark');
+        root.classList.add('light');
+        if (metaThemeColor && prevMeta) {
+          metaThemeColor.setAttribute('content', prevMeta);
+        }
+      }
+    };
+  }, []);
 
   return (
     <div className="dark min-h-screen bg-slate-950 text-slate-100 overflow-x-hidden relative">

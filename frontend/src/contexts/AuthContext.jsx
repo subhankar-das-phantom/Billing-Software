@@ -13,6 +13,7 @@ import {
 import AppShellSkeleton from '../components/Layout/AppShellSkeleton';
 import { authService } from '../services/auth/authService';
 import { clearCache as clearApiCache } from '../services/api';
+import { useTheme } from './ThemeContext';
 
 const AuthContext = createContext(null);
 
@@ -107,6 +108,8 @@ const AuthLoadingScreen = () => {
 };
 
 export const AuthProvider = ({ children }) => {
+  const { setThemeMode } = useTheme();
+
   // Check if there's a token to verify — if not, skip auth entirely
   const hasToken = !!localStorage.getItem('token');
 
@@ -165,10 +168,16 @@ export const AuthProvider = ({ children }) => {
             setUser(data.admin);
             localStorage.setItem('admin', JSON.stringify(data.admin));
             localStorage.setItem('userRole', 'admin');
+            if (data.admin?.preferences?.themeMode) {
+              setThemeMode(data.admin.preferences.themeMode);
+            }
           } else {
             setUser(data.user);
             localStorage.setItem('user', JSON.stringify(data.user));
             localStorage.setItem('userRole', 'employee');
+            if (data.user?.preferences?.themeMode) {
+              setThemeMode(data.user.preferences.themeMode);
+            }
           }
         }
       } catch (error) {
@@ -225,6 +234,9 @@ export const AuthProvider = ({ children }) => {
           setAdmin(data.admin);
           setUser(data.admin);
           setUserRole('admin');
+          if (data.admin?.preferences?.themeMode) {
+            setThemeMode(data.admin.preferences.themeMode);
+          }
           
           setAuthTransition(null);
           requestAnimationFrame(() => {
@@ -237,6 +249,9 @@ export const AuthProvider = ({ children }) => {
           setUser(data.employee);
           setUserRole('employee');
           setAdmin(null);
+          if (data.employee?.preferences?.themeMode) {
+            setThemeMode(data.employee.preferences.themeMode);
+          }
           
           setAuthTransition(null);
           requestAnimationFrame(() => {
@@ -295,6 +310,10 @@ export const AuthProvider = ({ children }) => {
       ...prev,
       preferences: { ...prev?.preferences, ...newPreferences }
     }));
+
+    if (newPreferences?.themeMode) {
+      setThemeMode(newPreferences.themeMode);
+    }
     
     if (userRole === 'admin') {
       const updatedAdmin = { ...admin, preferences: { ...admin?.preferences, ...newPreferences } };

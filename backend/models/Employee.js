@@ -107,6 +107,11 @@ const employeeSchema = new mongoose.Schema({
   
   // User Preferences
   preferences: {
+    themeMode: {
+      type: String,
+      enum: ['dark', 'light', 'system'],
+      default: 'dark'
+    },
     showCalculator: {
       type: Boolean,
       default: true
