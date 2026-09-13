@@ -3,7 +3,7 @@ name: frontend-architect
 description: >-
   Use this skill when designing, building, or refactoring frontend interfaces, components,
   and user flows. Enforces high-density enterprise aesthetics (anti-vibecoded), mobile-first
-  responsiveness, touch accessibility, and prevents common frontend event/state bugs.
+  responsiveness, touch accessibility, zero-CLS layout stability, and prevents common frontend event/state bugs.
 ---
 
 # Frontend Architect Skill
@@ -32,6 +32,48 @@ This skill ensures that all UI development in the Bharat Enterprise platform adh
 
 ---
 
+## 🚀 Zero-CLS Layout Stability & Anti-Lag Protocol
+
+1. **Forbid `height: 'auto'` Spring Physics on Top-Level Banners**:
+   - Animating `height: 0` to `height: 'auto'` with spring physics causes continuous layout recalculations (CLS thrashing) on every single frame, thrashing SVG graphs (Recharts), data tables, and KPI cards below it.
+   - **Mandatory Pattern**: Animate GPU-accelerated opacity and subtle Y-translation (`duration: 0.15s, ease: [0.16, 1, 0.3, 1]`) with explicit `will-change: transform, opacity`.
+2. **Instant Frame-0 State Pre-Seeding (Eliminate 300ms Pop-In)**:
+   - For global notification banners (subscription grace period, trial status, offline banners), pre-seed React state synchronously from `localStorage` (`localStorage.getItem('cached_subscription')`) on context initialization.
+   - This ensures banners mount on Frame 0 with zero delayed layout shift while background network verification executes seamlessly.
+3. **Session Dismissal Persistence**:
+   - Persist temporary banner dismissals in `sessionStorage` (`sessionStorage.getItem('dismissed_subscription_banner')`). Navigating across routes within the same tab must NOT re-trigger dismissible banner entry animations.
+4. **Modal Opening & Closing Performance**:
+   - Eliminate heavy backdrop filter blurs (`backdrop-blur-md` on full screen) that cause GPU stutter on low-end mobile devices and integrated desktop GPUs.
+   - Keep modal exit transitions snappy (`duration: 0.15s` or `0.2s` ease-out), avoiding complex unmount cascades and heavy nested Framer Motion trees.
+5. **Lightweight Interactive Elements**:
+   - Avoid wrapping simple banner or table buttons in heavy Framer Motion components (`motion.button`). Use native CSS hardware-accelerated transforms (`active:scale-95 transition-transform duration-100`).
+
+---
+
+## 🔍 Universal Search Debouncing & Ergonomic Search UX
+
+1. **Standardized Debounce Requirement**:
+   - Every search input throughout the application (Collections, Customer lookups, Employee directories, Manual Entries, Activity Logs, Inventory Analytics) MUST be debounced:
+     - **Remote Network Search**: Standard 300ms debounce (`useDebounce(searchTerm, 300)`).
+     - **Local In-Memory Filter**: 250ms debounce.
+2. **Ergonomic Clear (`X`) Buttons**:
+   - Every search input must render an instant clear button (`X` icon with `p-0.5 text-slate-400 hover:text-slate-200`) whenever the query is non-empty.
+3. **Contextual Fallback Actions in Empty States**:
+   - When a search produces 0 results inside a bounded scope (e.g. today's date), provide an actionable 1-click fallback button: *"No payments matching '{search}' in {dateLabel}. [Search All Dates]"*.
+
+---
+
+## 🎨 Theme Architecture & Landing Page Integrity
+
+1. **Default Dark Obsidian Tokens**:
+   - `:root, .dark, html.dark` must establish canonical dark tokens by default (`--color-slate-950: #09090b; --color-slate-900: #121215; --color-slate-800: #2a2b32;`).
+2. **Landing Page Dark Showcase Lock**:
+   - The `/landing` showcase route must lock to dark mode (`html.dark` with meta theme-color `#09090b`) to preserve 3D WebGL particle galaxy canvases and glowing glassmorphic elements. Cleanly restore the user's previously configured theme mode upon unmount.
+3. **Backend Preference Synchronization**:
+   - On authentication (`login`, `checkAuth`), synchronize the user's stored MongoDB `themeMode` (`'dark' | 'light' | 'system'`) into `ThemeContext` and update backend preferences on toggle.
+
+---
+
 ## ⚡ Virtualization, Pagination & Query Strategy
 
 1. **Virtualization for Long Lists**:
@@ -53,28 +95,21 @@ This skill ensures that all UI development in the Bharat Enterprise platform adh
    - **Layer 2 (Global Print Stylesheet)**: `index.css` must maintain explicit `@media print` rules hiding `.no-print, .no-print *, .toast-container, .toast, .subscription-banner, [role="alert"], [role="status"], [role="dialog"], [role="listbox"]`.
 2. **Zero-DOM Manipulation**:
    - Never use JavaScript DOM mutations (`element.remove()`, `display: none`) or `beforeprint` hooks right before `window.print()`. Use deterministic CSS so print preview and Save-as-PDF have zero race conditions with React rendering.
-3. **Selector Precision**:
-   - Never use fragile selectors like bare `[class*="pointer-events-none"]` or hide `header` without verifying printable templates. Protect `.invoice-print` and `.invoice-copy` structure.
 
 ---
 
 ## 🛡️ Frontend Bug Prevention Checklist
 
 Before completing any frontend code change, verify that:
+- [ ] **Zero-CLS Banner Layout**: Top banners use GPU opacity/translate animations (`duration: 0.15s`), never `height: 'auto'` spring physics.
+- [ ] **Frame-0 Cached Mounting**: Global alerts/banners pre-seed state from `localStorage` to eliminate pop-in shifts.
+- [ ] **Universal Search Debouncing**: All search inputs use `useDebounce` (250–300ms) and include an `X` clear button.
 - [ ] **No Event Double-Triggers**: Never attach handlers to both `onMouseDown` and `onClick`. Use `onMouseDown` only for `e.preventDefault()` (focus retention) and `onClick` for action execution.
 - [ ] **Atomic Deduplication in Updaters**: Multi-click or fast typing cannot insert duplicate rows. Functional `setItems(prev => ...)` must check `prev.some(...)`.
-- [ ] **Search Debouncing**: Every live search input is wrapped with a 250–400ms debounce hook before triggering filtering or API requests.
 - [ ] **Defensive Memoized Sorting**: Any list displayed to the user is explicitly wrapped in `useMemo` with an explicit sorting comparator (`(b.value - a.value)`).
-- [ ] **Contextual Permission Routing**: Buttons triggering protected flows (e.g. Record Payment) verify permission to at least one entry point and dynamically route or hide cleanly.
+- [ ] **Contextual Permission Routing**: Buttons triggering protected flows verify permission and dynamically route or hide cleanly.
 - [ ] **Virtualization & Scale**: Collections with > 50 elements leverage `VirtualizedList` or `InfiniteVirtualizedList` with paginated query loading.
-- [ ] **Print Isolation Enforced**:
-  - Every screen-only element, toast, banner, spinner, modal, and floating action button carries `.no-print`.
-  - Notifications and transient UI are completely concealed in `@media print` without DOM manipulation.
-  - Printable documents (`.invoice-print`, `.invoice-copy`) remain untouched and render 100% cleanly in print preview / Save as PDF.
-- [ ] **Documentation Path Hygiene**: No machine-specific absolute file URLs (`file:///d:/...`, `C:\...`) in git-tracked markdown documentation. Always use repository-relative paths (`src/index.css`, `frontend/...`).
-- [ ] **Race Condition Immunity**:
-  - Out-of-order network calls aborted via `AbortController` or handled by TanStack Query.
-  - Submissions guarded by synchronous `useRef` locks (`isSubmittingRef`) to prevent rapid double-clicks.
-  - Asynchronous background tasks (FIFO/batch allocation) reference immutable item IDs (`_rowId`) rather than transient array indexes.
+- [ ] **Print Isolation Enforced**: Screen-only UI carries `.no-print` and printable invoices remain 100% clean in print preview.
+- [ ] **Documentation Path Hygiene**: No machine-specific absolute file URLs (`file:///...`) in git-tracked markdown documentation. Always use repository-relative paths (`src/...`).
+- [ ] **Race Condition Immunity**: Out-of-order calls handled by TanStack Query/AbortController, submissions guarded by `useRef` locks, and background jobs keyed by immutable IDs (`_rowId`).
 - [ ] **No Autonomous Browser Launch**: Never open Chrome or invoke browser subagents for frontend testing unless explicitly directed by the user.
-
