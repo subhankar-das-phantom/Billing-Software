@@ -728,48 +728,48 @@ html.dark {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 1rem 1.25rem;
+    padding: 0.875rem 1.125rem;
     border-radius: 0.75rem;
-    background: rgba(30, 41, 59, 0.95);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(71, 85, 105, 0.5);
-    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
+    background: rgba(15, 23, 42, 0.98);
+    border: 1px solid rgba(51, 65, 85, 0.6);
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.4);
     color: white;
     font-size: 0.875rem;
     font-weight: 500;
     pointer-events: auto;
     cursor: pointer;
-    animation: toast-slide-in 0.3s ease-out;
+    will-change: transform, opacity;
+    animation: toast-slide-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .toast:hover {
-    transform: translateX(-4px);
-    transition: transform 0.2s ease;
+    transform: translateY(-2px);
+    transition: transform 0.15s ease;
   }
 
   .toast-success {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.9), rgba(5, 150, 105, 0.9));
-    border-color: rgba(16, 185, 129, 0.5);
+    background: #065f46;
+    border-color: rgba(16, 185, 129, 0.4);
   }
 
   .toast-error {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.9), rgba(220, 38, 38, 0.9));
-    border-color: rgba(239, 68, 68, 0.5);
+    background: #991b1b;
+    border-color: rgba(239, 68, 68, 0.4);
   }
 
   .toast-info {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(37, 99, 235, 0.9));
-    border-color: rgba(59, 130, 246, 0.5);
+    background: #1e40af;
+    border-color: rgba(59, 130, 246, 0.4);
   }
 
   @keyframes toast-slide-in {
     from {
-      transform: translateX(100%);
+      transform: translateY(-12px);
       opacity: 0;
     }
 
     to {
-      transform: translateX(0);
+      transform: translateY(0);
       opacity: 1;
     }
   }

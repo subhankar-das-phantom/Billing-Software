@@ -17,54 +17,49 @@ import { useTheme } from './ThemeContext';
 
 const AuthContext = createContext(null);
 
-// Toast notification component
+// High-performance GPU-accelerated toast notification
 const Toast = ({ message, type = 'success', onClose }) => {
   const config = {
     success: {
       icon: CheckCircle,
-      bgColor: 'bg-emerald-500/90',
-      iconColor: 'text-emerald-100'
+      bgColor: 'bg-emerald-600',
+      iconColor: 'text-emerald-100',
+      borderColor: 'border-emerald-500/30'
     },
     error: {
       icon: AlertCircle,
-      bgColor: 'bg-red-500/90',
-      iconColor: 'text-red-100'
+      bgColor: 'bg-rose-600',
+      iconColor: 'text-rose-100',
+      borderColor: 'border-rose-500/30'
     },
     info: {
       icon: Shield,
-      bgColor: 'bg-blue-500/90',
-      iconColor: 'text-blue-100'
+      bgColor: 'bg-blue-600',
+      iconColor: 'text-blue-100',
+      borderColor: 'border-blue-500/30'
     }
   };
 
-  const { icon: Icon, bgColor, iconColor } = config[type] || config.success;
+  const { icon: Icon, bgColor, iconColor, borderColor } = config[type] || config.success;
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: -50, scale: 0.95 }}
+      initial={{ opacity: 0, y: -16, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -20, scale: 0.95 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-      className={`${bgColor} backdrop-blur-xl text-slate-100 px-4 py-3 rounded-lg shadow-2xl flex items-center gap-3 min-w-[300px] max-w-md border border-white/20`}
+      exit={{ opacity: 0, y: -10, scale: 0.98 }}
+      transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+      className={`pointer-events-auto ${bgColor} ${borderColor} text-slate-100 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 min-w-[280px] max-w-md border will-change-[transform,opacity]`}
     >
-      <motion.div
-        initial={{ scale: 0, rotate: -180 }}
-        animate={{ scale: 1, rotate: 0 }}
-        transition={{ delay: 0.1, type: 'spring', stiffness: 300 }}
-      >
-        <Icon className={`w-5 h-5 ${iconColor}`} />
-      </motion.div>
-      
-      <p className="flex-1 text-sm font-medium">{message}</p>
-      
-      <motion.button
+      <Icon className={`w-5 h-5 flex-shrink-0 ${iconColor}`} />
+      <p className="flex-1 text-sm font-medium leading-snug">{message}</p>
+      <button
+        type="button"
         onClick={onClose}
-        className="p-1 hover:bg-white/20 rounded transition-colors"
-        whileHover={{ scale: 1.1, rotate: 90 }}
-        whileTap={{ scale: 0.9 }}
+        className="p-1 hover:bg-white/20 rounded-lg transition-colors flex-shrink-0 text-slate-200 hover:text-white"
+        aria-label="Dismiss notification"
       >
         <X className="w-4 h-4" />
-      </motion.button>
+      </button>
     </motion.div>
   );
 };
@@ -239,9 +234,9 @@ export const AuthProvider = ({ children }) => {
           }
           
           setAuthTransition(null);
-          requestAnimationFrame(() => {
+          setTimeout(() => {
             showToast(`Welcome back, ${data.admin?.firmName || 'Admin'}!`, 'success');
-          });
+          }, 200);
         } else if (data.role === 'employee') {
           // Employee login
           localStorage.setItem('user', JSON.stringify(data.employee));
@@ -254,9 +249,9 @@ export const AuthProvider = ({ children }) => {
           }
           
           setAuthTransition(null);
-          requestAnimationFrame(() => {
+          setTimeout(() => {
             showToast(`Welcome back, ${data.employee?.name || 'Employee'}!`, 'success');
-          });
+          }, 200);
         }
       } else {
         setAuthTransition(null);
@@ -376,16 +371,14 @@ export const AuthProvider = ({ children }) => {
 
       {/* Toast notifications container */}
       <div className="fixed top-4 right-4 z-[9999] pointer-events-none no-print">
-        <AnimatePresence mode="wait">
+        <AnimatePresence>
           {toast && (
-            <div className="pointer-events-auto">
-              <Toast
-                key={`${toast.message}-${Date.now()}`}
-                message={toast.message}
-                type={toast.type}
-                onClose={() => setToast(null)}
-              />
-            </div>
+            <Toast
+              key={toast.message}
+              message={toast.message}
+              type={toast.type}
+              onClose={() => setToast(null)}
+            />
           )}
         </AnimatePresence>
       </div>
