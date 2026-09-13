@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ═══════════════════════════════════════════
    THEME: Accent Colors
    Change these to retheme the entire app.
@@ -350,6 +352,12 @@ html.dark {
   html.light .select {
     background-color: #ffffff;
     border-color: #cbd5e1;
+    color: #0f172a;
+  }
+
+  html.light select option,
+  html.light .select option {
+    background-color: #ffffff;
     color: #0f172a;
   }
 

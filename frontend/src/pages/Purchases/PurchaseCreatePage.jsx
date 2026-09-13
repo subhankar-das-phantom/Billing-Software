@@ -675,7 +675,7 @@ export default function PurchaseCreatePage() {
             <div className="p-2.5 bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 rounded-xl text-blue-600 dark:text-blue-400">
               <Truck className="w-5 h-5" />
             </div>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Supplier Information</h2>
+            <h2 className="text-lg font-semibold text-slate-100">Supplier Information</h2>
           </div>
 
           <button
@@ -709,10 +709,10 @@ export default function PurchaseCreatePage() {
                 initial="hidden"
                 animate="visible"
                 exit="exit"
-                className="absolute z-30 w-full mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl max-h-60 overflow-y-auto"
+                className="absolute z-30 w-full mt-2 bg-slate-900 border border-slate-800 rounded-xl shadow-xl max-h-60 overflow-y-auto"
               >
                 {isSupplierSearchLoading && (
-                  <div className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300 flex items-center gap-2">
+                  <div className="px-4 py-3 text-sm text-slate-300 flex items-center gap-2">
                     <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
                     Searching suppliers...
                   </div>
@@ -720,7 +720,7 @@ export default function PurchaseCreatePage() {
 
                 {!isSupplierSearchLoading && supplierResults.length === 0 && (
                   <div className="p-4 text-center">
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">No suppliers found matching "{supplierSearch}"</p>
+                    <p className="text-sm text-slate-400 mb-2">No suppliers found matching "{supplierSearch}"</p>
                     <button
                       type="button"
                       onClick={() => {
@@ -750,27 +750,27 @@ export default function PurchaseCreatePage() {
                   >
                     <div className="flex justify-between items-center gap-4">
                       <div>
-                        <p className="font-medium text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                          <Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                        <p className="font-medium text-slate-100 flex items-center gap-2">
+                          <Building2 className="w-4 h-4 text-blue-500 dark:text-blue-400 shrink-0" />
                           {supplier.name}
                         </p>
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400 mt-1">
                           {supplier.phone && (
                             <span className="flex items-center gap-1.5">
-                              <Phone className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
+                              <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                               <span>{supplier.phone}</span>
                             </span>
                           )}
                           {supplier.address && (
                             <span className="flex items-center gap-1.5 truncate max-w-xs">
-                              <MapPin className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
+                              <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                               <span>{supplier.address}</span>
                             </span>
                           )}
                         </div>
                       </div>
                       {supplier.gstin && (
-                        <span className="text-xs bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded font-mono shrink-0">
+                        <span className="text-xs bg-slate-800/80 border border-slate-700 text-slate-300 px-2 py-0.5 rounded font-mono shrink-0">
                           {supplier.gstin}
                         </span>
                       )}
@@ -790,7 +790,7 @@ export default function PurchaseCreatePage() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
-              className="mt-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/60 relative overflow-hidden"
+              className="mt-4 p-4 rounded-xl bg-slate-900/60 border border-slate-800 relative overflow-hidden"
             >
               <div className="relative z-10 flex items-start justify-between">
                 <div className="flex items-start gap-3">
@@ -800,30 +800,30 @@ export default function PurchaseCreatePage() {
                     </span>
                   </div>
                   <div>
-                    <p className="font-semibold text-slate-900 dark:text-slate-100 text-base">
+                    <p className="font-semibold text-slate-100 text-base">
                       {selectedSupplier.name}
                     </p>
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-600 dark:text-slate-300 mt-1">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-300 mt-1">
                       {selectedSupplier.phone && (
                         <span className="flex items-center gap-1.5">
-                          <Phone className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                          <Phone className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400" />
                           <span>{selectedSupplier.phone}</span>
                         </span>
                       )}
                       {selectedSupplier.gstin && (
-                        <span className="flex items-center gap-1 font-mono text-xs bg-white dark:bg-slate-800/80 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
+                        <span className="flex items-center gap-1 font-mono text-xs bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700 text-slate-300">
                           GSTIN: {selectedSupplier.gstin}
                         </span>
                       )}
                       {selectedSupplier.state && (
-                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                        <span className="text-xs text-slate-400">
                           State: {selectedSupplier.state}
                         </span>
                       )}
                     </div>
                     {selectedSupplier.address && (
-                      <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-1">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
+                      <p className="text-xs text-slate-400 flex items-center gap-1 mt-1">
+                        <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                         <span>{selectedSupplier.address}</span>
                       </p>
                     )}
@@ -854,7 +854,7 @@ export default function PurchaseCreatePage() {
           <div className="p-2.5 bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 rounded-xl text-blue-600 dark:text-blue-400">
             <ShoppingCart className="w-5 h-5" />
           </div>
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Add Purchased Items</h2>
+          <h2 className="text-lg font-semibold text-slate-100">Add Purchased Items</h2>
           {items.length > 0 && (
             <>
               <motion.span 
@@ -906,17 +906,17 @@ export default function PurchaseCreatePage() {
                 initial="hidden"
                 animate="visible"
                 exit="exit"
-                className="absolute z-30 w-full mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl max-h-60 overflow-y-auto"
+                className="absolute z-30 w-full mt-2 bg-slate-900 border border-slate-800 rounded-xl shadow-xl max-h-60 overflow-y-auto"
               >
                 {isProductSearchLoading && (
-                  <div className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300 flex items-center gap-2">
+                  <div className="px-4 py-3 text-sm text-slate-300 flex items-center gap-2">
                     <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
                     Searching products...
                   </div>
                 )}
 
                 {!isProductSearchLoading && productResults.length === 0 && (
-                  <div className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">
+                  <div className="px-4 py-3 text-sm text-slate-400">
                     No products found matching "{productSearch}"
                   </div>
                 )}
@@ -938,11 +938,11 @@ export default function PurchaseCreatePage() {
                     >
                       <div className="flex justify-between items-center gap-4">
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-slate-900 dark:text-slate-100 flex items-center gap-2 truncate">
+                          <p className="font-medium text-slate-100 flex items-center gap-2 truncate">
                             <Package className="w-4 h-4 text-blue-500 dark:text-accent-400 shrink-0" />
                             <span className="truncate">{product.productName}</span>
                           </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          <p className="text-xs text-slate-400 mt-1">
                             HSN: {product.hsnCode || 'N/A'} • GST: {product.gstPercentage}%
                           </p>
                         </div>
@@ -1002,7 +1002,7 @@ export default function PurchaseCreatePage() {
                             animate="visible" 
                             exit="exit" 
                             layout
-                            whileHover={{ backgroundColor: "rgba(51, 65, 85, 0.5)" }}
+                            className="hover:bg-slate-800/40 transition-colors"
                           >
                             <td>
                               <div>
@@ -1240,8 +1240,8 @@ export default function PurchaseCreatePage() {
           <div className="glass-card p-6 relative z-0 flex flex-col justify-between">
             <div>
               <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-emerald-500/20 rounded-lg">
-                  <Calculator className="w-5 h-5 text-emerald-400" />
+                <div className="p-2.5 bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/25 dark:border-emerald-500/30 rounded-xl text-emerald-600 dark:text-emerald-400">
+                  <Calculator className="w-5 h-5" />
                 </div>
                 <h2 className="text-lg font-semibold text-slate-100">Purchase Summary</h2>
               </div>
