@@ -4,25 +4,33 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
-## [v2.4.6](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.4.6) — 2026-09-19 — Level-Triggered Infinite Scroll Reactive Synchronization & Virtualization Measurement Invalidation
+## [v2.4.6](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.4.6) — 2026-09-19 — Dual-Trigger Infinite Scroll Resilience, Lightweight CSS Scroll Navigation & 1,000+ Item Scale Stability
 
-### ⚡ Edge-Triggered Drop Elimination & Seamless Pagination Milestone
-Version 2.4.6 resolves a subtle infinite scroll stall where scrolling to the bottom displayed "Loading more...", the loading ended, but no new data rows were rendered until the user scrolled UP and then back DOWN. This release replaces brittle edge-triggered observer aborts with a level-triggered reactive state synchronization hook, gates sentinel loaders strictly on genuine pagination requests, and invalidates virtualization measurement caches upon data item appending.
-
----
-
-### 🏛️ Level-Triggered Sentinel Hook (`scrollUtils.js`, `InvoicesPage.jsx`, `CustomersPage.jsx`, `PurchasesPage.jsx`, `ProductsPage.jsx`, `SuppliersPage.jsx`, `CreditsPage.jsx`)
-- **Level-Triggered State Synchronization (`useInfiniteScrollSentinel`)** — Replaced edge-triggered drops inside `IntersectionObserver` with a level-triggered reactive model. Tracks `isIntersecting` in React state; a dedicated `useEffect` watches `[isIntersecting, hasMore, isFetching, isValidating]`. When background SWR revalidation settles while the sentinel is stationary in the viewport, the effect immediately requests the next page without requiring an artificial scroll-up/scroll-down cycle.
-- **Immediate Scroll Root Resolution** — Uses a stable callback ref (`sentinelRef`) that resolves the genuine vertical scroll parent via `findScrollParent(node)` as soon as the sentinel mounts in the DOM, eliminating skeleton-loading mounting delays.
-- **Post-Layout Geometric Guard** — Evaluates `nodeRect.top <= (rootRect.bottom + marginPx)` upon request completion, preventing duplicate page requests before the browser dispatches an offscreen record when newly appended items push the sentinel downward.
-- **Accurate Sentinel UI Gate** — Gated loader spinners strictly on `isFetching || (isValidating && page > 1)`, preventing false-positive "Loading more..." spinners during Page 1 background revalidation.
+### ⚡ Fast-Scroll Dual-Trigger Pagination & Enterprise Navigation Milestone
+Version 2.4.6 delivers an end-to-end reliability overhaul for high-velocity scrolling and large datasets (1,000+ items). It eliminates the infinite scroll stall caused by destructive geometric state overwrites, adds a passive high-velocity scroll listener on the scroll container so rapid flicks never miss pagination triggers, replaces heavy Framer Motion scroll button physics with lightweight 60fps GPU-composited CSS transitions, removes ghost padding from virtualized table containers, and introduces the **Clamp & Glide** pattern to seamlessly glide to `top: 0` without browser stalls across 50,000px+ datasets.
 
 ---
 
-### ⚡ TanStack Virtual Measurement Invalidation & Layout Stability (`VirtualizedList.jsx`, `InvoicesPage.jsx`, `PurchasesPage.jsx`, `ProductsPage.jsx`)
-- **Measurement Cache Invalidation on Append** — Added `useLayoutEffect` watching `items.length` to invoke `virtualizer.measure()` immediately in `VirtualizedList` and `VirtualizedGrid`, forcing TanStack Virtual to recalculate its measurement cache and range without waiting for browser scroll offset shifts.
-- **Dynamic Element Resize Tracking** — Added `ref.current` observation in `useScrollParentAndMargin` with `ResizeObserver`, ensuring table position adjustments dynamically update `scrollMargin`.
-- **Desktop Row Estimate Alignment** — Calibrated `estimateSize` to 57px on desktop across invoices, purchases, and products (matching actual py-3 row rendered height), eliminating negative scroll delta adjustments (`-19px/row`).
+### 🏛️ Dual-Trigger Infinite Scroll Resilience (`scrollUtils.js`)
+- **Stuck-State Elimination & Destructive Guard Removal** — Removed the manual `setIsIntersecting(false)` override inside the post-layout geometric guard that desynchronized React state from native browser `IntersectionObserver` state and prevented pagination from re-triggering until an artificial scroll-up/scroll-down sequence was performed.
+- **Secondary Fast-Scroll Container Trigger** — Added a passive `scroll` listener on `scrollRoot` (`<main>`) that calculates `scrollHeight - (scrollTop + clientHeight) <= 600px` on high-velocity mousewheel flicks or scrollbar thumb dragging, guaranteeing that fast scrolling never outruns pagination triggers.
+- **Expanded 600px Look-Ahead Root Margin** — Expanded `INFINITE_SCROLL_ROOT_MARGIN` from `250px` to `600px`, preloading subsequent pages well before the user reaches the end of the content.
+- **Post-Fetch Layout Continuation** — When a page completes loading (`isFetching` transitions to `false`), if the user is still within 600px of the bottom (or on tall displays where items don't fill the vertical space), automatically queues the next page after a 60ms layout settlement window.
+
+---
+
+### ⚡ VirtualizedList Ghost Space Elimination & Measurement Stability (`VirtualizedList.jsx`)
+- **Container Height Ghost Space Elimination** — Corrected `style.height` in `VirtualizedList` and `VirtualizedGrid` to `Math.max(0, virtualizer.getTotalSize() - scrollMargin)`, eliminating the 400px–600px dead space at the bottom of virtualized tables caused by `getTotalSize()` factoring in `scrollMargin`.
+- **Item Measurement Cache Preservation** — Removed the redundant `virtualizer.measure()` call on `items.length` changes, preserving TanStack Virtual's cached row dimensions across infinite scroll appends and eliminating layout thrashing when scaling to 1,000+ items.
+- **Buffer Overscan Increase** — Raised `DEFAULT_OVERSCAN` from 10 to 12 items for seamless row pre-rendering during high-velocity scrolling.
+
+---
+
+### 🧭 Lightweight Scroll-to-Top Button & Clamp & Glide Pattern (`DashboardLayout.jsx`)
+- **GPU-Composited CSS Transitions (Anti-Lag)** — Replaced heavy Framer Motion `<AnimatePresence>` and `<motion.button>` scale/translate physics with a persistent semantic `<button>` powered by pure hardware-accelerated CSS transitions (`transition-all duration-150 ease-out will-change-transform`), eliminating main-thread contention while scrolling.
+- **Direction-Aware Scroll-to-Top Gating** — Automatically hides the button when the user scrolls downwards (`currentScrollTop > lastScrollTop + 6`), smoothly revealing it exclusively when scrolling upwards (`currentScrollTop < lastScrollTop - 6`), and hiding it near the top (`currentScrollTop < 250px`).
+- **Clamp & Glide Pattern for 1,000+ Items** — For large lists (`scrollTop > 1200px`, e.g. 1,000+ items / 50,000px+), instantly clamps `scrollTop` to a near-top buffer (350px) before smoothly gliding the remaining distance to `top: 0` in the next animation frame, preventing browser thread freezes and mid-scroll stalling.
+- **Immediate State Dismissal** — Immediately resets `setShowScrollTop(false)` and `lastScrollTopRef.current = 0` upon click, eliminating button flickering during the return animation.
 
 ---
 
@@ -30,13 +38,6 @@ Version 2.4.6 resolves a subtle infinite scroll stall where scrolling to the bot
 - **Implicit Promotion Elimination** — Enforced a global rule in `index.css` (`[data-horizontal-table-scroll="true"] { overflow-y: hidden !important; }`) to neutralize W3C CSS Overflow Module Level 3 (§3.3) behavior, where specifying `overflow-x: auto` implicitly promotes `overflow-y` to `auto` and triggers a secondary vertical scrollbar inside the table.
 - **Scrollbar Box Intrusion & Subpixel Row Isolation** — Prevented the 6px-17px horizontal scrollbar gutter and virtualized row subpixel anti-aliasing offsets from spawning nested double-scrollbars on desktop viewports.
 - **Explicit JSX Class Pairing** — Paired `overflow-x-auto overflow-y-hidden` across desktop table wrappers in `InvoicesPage.jsx`, `PurchasesPage.jsx`, `ProductsPage.jsx`, `CustomerDetailsPage.jsx`, and `SupplierDetailsPage.jsx`.
-
----
-
-### 🧭 Scroll-to-Top Button Ergonomics & Reliability Overhaul (`DashboardLayout.jsx`)
-- **Persistent Return Affordance** — Replaced brittle bidirectional flip logic with a stable `showScrollTop` state (`scrollTop > 300px`). The button now stays reliably visible while exploring downwards, eliminating the defect where scrolling down hid the button and required an awkward upward wheel flick.
-- **Direction Inversion & Flickering Elimination** — Removed the confusing "Scroll to bottom" button state when near the top ($< 250\text{px}$), preventing the button from inverting its icon and direction under the cursor during smooth scroll-up animations.
-- **Hardware-Accelerated Smooth Scroll & Jitter Elimination** — Wrapped the button in `<AnimatePresence>` for zero-CLS scale and opacity transitions, removed the premature 450ms cut-off timer to let the browser's native cubic-bezier smooth scroll glide naturally to `top: 0`, and eliminated self-observing `ResizeObserver` feedback loops in `VirtualizedList.jsx` with a 4px stability threshold on `scrollMargin`.
 
 ---
 
