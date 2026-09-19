@@ -4,6 +4,28 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.4.6](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.4.6) — 2026-09-19 — Level-Triggered Infinite Scroll Reactive Synchronization & Virtualization Measurement Invalidation
+
+### ⚡ Edge-Triggered Drop Elimination & Seamless Pagination Milestone
+Version 2.4.6 resolves a subtle infinite scroll stall where scrolling to the bottom displayed "Loading more...", the loading ended, but no new data rows were rendered until the user scrolled UP and then back DOWN. This release replaces brittle edge-triggered observer aborts with a level-triggered reactive state synchronization hook, gates sentinel loaders strictly on genuine pagination requests, and invalidates virtualization measurement caches upon data item appending.
+
+---
+
+### 🏛️ Level-Triggered Sentinel Hook (`scrollUtils.js`, `InvoicesPage.jsx`, `CustomersPage.jsx`, `PurchasesPage.jsx`, `ProductsPage.jsx`, `SuppliersPage.jsx`, `CreditsPage.jsx`)
+- **Level-Triggered State Synchronization (`useInfiniteScrollSentinel`)** — Replaced edge-triggered drops inside `IntersectionObserver` with a level-triggered reactive model. Tracks `isIntersecting` in React state; a dedicated `useEffect` watches `[isIntersecting, hasMore, isFetching, isValidating]`. When background SWR revalidation settles while the sentinel is stationary in the viewport, the effect immediately requests the next page without requiring an artificial scroll-up/scroll-down cycle.
+- **Immediate Scroll Root Resolution** — Uses a stable callback ref (`sentinelRef`) that resolves the genuine vertical scroll parent via `findScrollParent(node)` as soon as the sentinel mounts in the DOM, eliminating skeleton-loading mounting delays.
+- **Post-Layout Geometric Guard** — Evaluates `nodeRect.top <= (rootRect.bottom + marginPx)` upon request completion, preventing duplicate page requests before the browser dispatches an offscreen record when newly appended items push the sentinel downward.
+- **Accurate Sentinel UI Gate** — Gated loader spinners strictly on `isFetching || (isValidating && page > 1)`, preventing false-positive "Loading more..." spinners during Page 1 background revalidation.
+
+---
+
+### ⚡ TanStack Virtual Measurement Invalidation & Layout Stability (`VirtualizedList.jsx`, `InvoicesPage.jsx`, `PurchasesPage.jsx`, `ProductsPage.jsx`)
+- **Measurement Cache Invalidation on Append** — Added `useLayoutEffect` watching `items.length` to invoke `virtualizer.measure()` immediately in `VirtualizedList` and `VirtualizedGrid`, forcing TanStack Virtual to recalculate its measurement cache and range without waiting for browser scroll offset shifts.
+- **Dynamic Element Resize Tracking** — Added `ref.current` observation in `useScrollParentAndMargin` with `ResizeObserver`, ensuring table position adjustments dynamically update `scrollMargin`.
+- **Desktop Row Estimate Alignment** — Calibrated `estimateSize` to 57px on desktop across invoices, purchases, and products (matching actual py-3 row rendered height), eliminating negative scroll delta adjustments (`-19px/row`).
+
+---
+
 ## [v2.4.5](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.4.5) — 2026-09-19 — Desktop-on-Mobile Viewport Resilience, Infinite Scroll Sentinel Architecture & Bidirectional Navigation
 
 ### 📱 Viewport Stability, Virtualization Parity & GPU Frame Stutter Elimination Milestone
