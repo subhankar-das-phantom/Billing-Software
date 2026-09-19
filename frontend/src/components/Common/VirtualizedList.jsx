@@ -80,7 +80,7 @@ export function VirtualizedList({
     scrollMargin
   });
 
-  const totalContentHeight = Math.max(0, virtualizer.getTotalSize() - scrollMargin);
+  const totalContentHeight = virtualizer.getTotalSize();
 
   return (
     <div
@@ -142,7 +142,7 @@ export function VirtualizedGrid({
   });
 
   const itemWidth = `calc((100% - ${(lanes - 1) * gap}px) / ${lanes})`;
-  const totalContentHeight = Math.max(0, virtualizer.getTotalSize() - scrollMargin);
+  const totalContentHeight = virtualizer.getTotalSize();
 
   return (
     <div
