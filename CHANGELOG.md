@@ -4,6 +4,48 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.4.5](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.4.5) — 2026-09-19 — Desktop-on-Mobile Viewport Resilience, Infinite Scroll Sentinel Architecture & Bidirectional Navigation
+
+### 📱 Viewport Stability, Virtualization Parity & GPU Frame Stutter Elimination Milestone
+Version 2.4.5 addresses critical usability and rendering defects when users toggle mobile browsers into "Desktop site" mode or scroll long administrative collections on mobile devices. It resolves table container width blowout that clipped infinite scroll loaders offscreen, eliminates mobile GPU frame drops caused by composite backdrop blurs and touch hover states, fixes virtualization scroll-parent discovery across nested modals and table wrappers, upgrades infinite scroll sentinels to persistent zero-flicker containers with request lifecycle locks and query provenance stamping, and introduces smart bidirectional scroll navigation.
+
+---
+
+### 🏛️ Semantic Horizontal Table Scroll & Container Isolation (`scrollUtils.js`, `InvoicesPage.jsx`, `PurchasesPage.jsx`, `ProductsPage.jsx`, `SuppliersPage.jsx`, `SupplierDetailsPage.jsx`, `CustomerDetailsPage.jsx`)
+- **Horizontal Table Scroll Marker (`data-horizontal-table-scroll="true"`)** — Introduced a standardized semantic attribute on horizontal scrollable desktop table wrappers (`w-full overflow-x-auto`), isolating them from DOM vertical scroll container resolution.
+- **Table Container Blowout Elimination** — Enforced a strict two-layer architecture (`<div className="glass-card w-full overflow-x-auto" data-horizontal-table-scroll="true"><div className="min-w-[800px]">{/* table */}</div></div>`). Prevents `min-w-[800px]` from expanding outer containers on ~390px mobile viewports and clipping centered loaders off-screen.
+- **External Persistent Sentinels** — Anchored all infinite scroll loader sentinels strictly outside the `min-w-[800px]` horizontal scroll container, guaranteeing full-viewport centering and visibility regardless of horizontal pan position.
+
+---
+
+### 📜 Shared Scroll Parent Resolution & Virtualization Parity (`scrollUtils.js`, `VirtualizedList.jsx`)
+- **Centralized `findScrollParent(node)` Primitive** — Unified scroll container detection across `@tanstack/react-virtual` and all `IntersectionObserver` implementations. Checks for vertical overflow (`scrollHeight > clientHeight + 4`) and vertical scroll intent (`overflow-y: auto | scroll`), skipping elements marked with `data-horizontal-table-scroll="true"`.
+- **Nested Modal Precedence** — Ensures that table and list containers inside dialog modals resolve to their enclosing modal scroll body instead of blindly falling back to the top-level `<main>` container.
+- **Constants Centralization** — Exported `INFINITE_SCROLL_ROOT_MARGIN = '250px'` and `INFINITE_SCROLL_THRESHOLD = 0` to standardize pre-fetching thresholds across all paginated entities.
+
+---
+
+### ⚡ Defensive Infinite Scroll Engine & Lifecycle Concurrency (`InvoicesPage.jsx`, `CustomersPage.jsx`, `PurchasesPage.jsx`, `ProductsPage.jsx`, `SuppliersPage.jsx`, `CreditsPage.jsx`)
+- **Query Key Provenance Stamping** — SWR fetchers inject `_queryKey` and `_page` directly into cached payloads. Inbound responses verify `data._queryKey === activeQueryKeyRef.current`, dropping stale or out-of-order page deliveries from rapid search/filter changes.
+- **Synchronous Request Lock (`isFetchingRef`)** — Replaced asynchronous render-time mutations with an event-time synchronous lock triggered in `loadNextPage()`. Locks release strictly upon page-matching data arrival (`data._page === pendingPageRef.current`) or on SWR fetch error (`swrError`).
+- **Dynamic `scrollRoot` Re-Resolution** — Dynamically recalculates the genuine vertical scroll parent on viewport resize or layout changes, re-binding `IntersectionObserver` without thrashing.
+- **Persistent Sentinel Containers** — Replaced unmounting sentinel wrappers with permanently mounted DOM targets that toggle inner loader visibility smoothly (`hidden pointer-events-none` only when `!hasMore`), eliminating observer disconnect/reconnect loops.
+- **Missing Pagination Observer Target Hookup (`ProductsPage.jsx`)** — Passed `observerTarget={sentinelRef}` to `ProductsTable` and wired persistent loader sentinels, fixing missing "Loading more" indicators on inventory product audits.
+
+---
+
+### 🧭 Smart Bidirectional Scroll Navigation (`DashboardLayout.jsx`)
+- **Context-Aware Direction Toggle** — Upgraded the floating navigation pill to detect user scroll position: displays "Scroll to bottom" with `<ArrowDown />` when near the top (`scrollTop < 120px` and page is sufficiently long), seamlessly switching to "Scroll to top" with `<ArrowUp />` once scrolled down.
+- **Bottom Offset Clearance** — Automatically elevates the floating button when approaching the bottom of the page (`bottom-20` on mobile, `bottom-8` on desktop) to prevent obscuring pagination bars, totals summary strips, or mobile sticky action bars.
+
+---
+
+### 🚀 Mobile GPU Scroll Performance & Hover De-tuning (`index.css`)
+- **Backdrop Blur Elimination** — Replaced GPU-heavy `backdrop-blur-xl` and `backdrop-blur-md` on `.glass-card`, `.stat-card`, and modal backdrops with high-density Enterprise Obsidian styling (`bg-slate-900/90 border border-slate-800/80 shadow-lg`), eliminating mobile rasterization thrashing.
+- **Touch Hover De-tuning** — Added `@media (hover: none) and (pointer: coarse)` to suppress hover transforms (`translateY`, scale) and hover glow effects during touch drag gestures, ensuring silky 60 FPS scrolling on mobile devices running desktop view.
+
+---
+
 ## [v2.4.4](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.4.4) — 2026-09-19 — Single-Scroll Container Architecture, Mobile Header Docking & Hamburger Accessibility
 
 ### 📱 Layout Architecture, Viewport Boundaries & Mobile Navigation Resilience Milestone
