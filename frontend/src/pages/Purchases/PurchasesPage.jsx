@@ -37,6 +37,7 @@ import {
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 import { VirtualizedList } from '../../components/Common/VirtualizedList';
 import PurchasesPageSkeleton from './PurchasesPageSkeleton';
+import { useInfiniteScrollSentinel } from '../../utils/scrollUtils';
 
 // Factory functions for adaptive motion variants
 const createPageVariants = (isMobile, shouldStagger) => ({
@@ -100,10 +101,22 @@ export default function PurchasesPage() {
   const cardVariants = useMemo(() => createCardVariants(motionConfig.isMobile), [motionConfig.isMobile]);
   const tableRowVariants = useMemo(() => createTableRowVariants(motionConfig.isMobile, motionConfig.shouldStagger), [motionConfig.isMobile, motionConfig.shouldStagger]);
 
+  const currentQueryKey = `${search}-${statusFilter}-${startDate}-${endDate}`;
+  const activeQueryKeyRef = useRef(currentQueryKey);
+
+  const [isFetching, setIsFetching] = useState(false);
+  const isFetchingRef = useRef(false);
+  const pendingPageRef = useRef(null);
+
+  // State synchronization refs
+  const hasMoreRef = useRef(false);
+  const isValidatingRef = useRef(false);
+  const loadNextPageRef = useRef(null);
+
   // SWR: Purchase list with server-side filtering and infinite scrolling
-  const { data, isLoading, isValidating, mutate } = useSWR(
-    `purchases-page-${search}-${statusFilter}-${startDate}-${endDate}-${page}`,
-    () => {
+  const { data, isLoading, isValidating, error: swrError, mutate } = useSWR(
+    `purchases-page-${currentQueryKey}-${page}`,
+    async () => {
       const params = {
         page,
         limit: 20
@@ -114,7 +127,8 @@ export default function PurchasesPage() {
       if (startDate) params.startDate = startDate;
       if (endDate) params.endDate = endDate;
 
-      return purchaseService.getPurchases(params);
+      const res = await purchaseService.getPurchases(params);
+      return { ...res, _queryKey: currentQueryKey, _page: page };
     },
     { ttl: 5 * 60 * 1000 }
   );
@@ -130,45 +144,72 @@ export default function PurchasesPage() {
   const totalMatched = data?.total || 0;
   const hasMore = data?.pages ? page < data.pages : false;
 
-  // Reset pagination when filters change
+  // Keep synchronization refs up-to-date
+  hasMoreRef.current = hasMore;
+  isValidatingRef.current = isValidating;
+
+  // Reset pagination and advance active query key when filters change
   useEffect(() => {
     setPage(1);
-  }, [search, statusFilter, startDate, endDate]);
+    pendingPageRef.current = null;
+    isFetchingRef.current = false;
+    setIsFetching(false);
+    activeQueryKeyRef.current = currentQueryKey;
+  }, [currentQueryKey]);
 
-  // Accumulate purchases as pages arrive
+  // Accumulate purchases as pages arrive (guarded by query provenance)
   useEffect(() => {
     if (!data?.purchases) return;
 
-    if (page === 1) {
-      setAccumulatedPurchases(data.purchases);
+    // Provenance Verification: Drop responses belonging to an obsolete filter generation
+    if (data._queryKey && data._queryKey !== activeQueryKeyRef.current) {
       return;
     }
 
-    setAccumulatedPurchases(prev => {
-      const existingIds = new Set(prev.map(p => p._id));
-      const newPurchases = data.purchases.filter(p => !existingIds.has(p._id));
-      return [...prev, ...newPurchases];
-    });
+    if (page === 1) {
+      setAccumulatedPurchases(data.purchases);
+    } else {
+      setAccumulatedPurchases(prev => {
+        const existingIds = new Set(prev.map(p => p._id));
+        const newPurchases = data.purchases.filter(p => !existingIds.has(p._id));
+        return [...prev, ...newPurchases];
+      });
+    }
+
+    // Release lock only after the specific requested page has completed successfully
+    if (pendingPageRef.current !== null && (data._page === pendingPageRef.current || data.page === pendingPageRef.current)) {
+      isFetchingRef.current = false;
+      setIsFetching(false);
+      pendingPageRef.current = null;
+    }
   }, [data, page]);
 
-  // Infinite Scroll Observer
-  const lastElementRef = useCallback((node) => {
-    if (isValidating) return;
-    if (observer.current) observer.current.disconnect();
-
-    if (node) {
-      const scrollParent = node.closest('main') || null;
-      observer.current = new IntersectionObserver(
-        entries => {
-          if (entries[0].isIntersecting && !isValidating && hasMore) {
-            setPage(prev => prev + 1);
-          }
-        },
-        { root: scrollParent, threshold: 0.1 }
-      );
-      observer.current.observe(node);
+  // Failure Path: Release lock on request error so infinite scroll is not permanently disabled
+  useEffect(() => {
+    if (swrError && pendingPageRef.current !== null) {
+      isFetchingRef.current = false;
+      setIsFetching(false);
+      pendingPageRef.current = null;
     }
-  }, [isValidating, hasMore]);
+  }, [swrError]);
+
+  // Dedicated load trigger function controlling pagination and synchronous request lock
+  const loadNextPage = useCallback(() => {
+    if (isFetchingRef.current || isValidatingRef.current || !hasMoreRef.current) return;
+    isFetchingRef.current = true;
+    setIsFetching(true);
+    pendingPageRef.current = page + 1;
+    setPage(p => p + 1);
+  }, [page]);
+  loadNextPageRef.current = loadNextPage;
+
+  // Level-triggered reactive infinite scroll sentinel
+  const { sentinelRef } = useInfiniteScrollSentinel({
+    hasMore,
+    isFetching,
+    isValidating,
+    onLoadMore: loadNextPage
+  });
 
   const stats = {
     total: statsData?.stats?.totalPurchases ?? purchases.length,
@@ -485,9 +526,10 @@ export default function PurchasesPage() {
           <div className="space-y-4">
             {/* Desktop Table View */}
             {isDesktop ? (
-              <div className="glass-card overflow-x-auto min-w-[800px]">
-                {/* Header Row */}
-                <div className="grid grid-cols-[130px_120px_minmax(200px,1.5fr)_90px_130px_120px_120px_140px] items-center px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-700/50 bg-slate-800/50">
+              <div className="glass-card w-full overflow-x-auto overflow-y-hidden" data-horizontal-table-scroll="true">
+                <div className="min-w-[800px]">
+                  {/* Header Row */}
+                  <div className="grid grid-cols-[130px_120px_minmax(200px,1.5fr)_90px_130px_120px_120px_140px] items-center px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-700/50 bg-slate-800/50">
                   <div>Purchase #</div>
                   <div>Date</div>
                   <div>Supplier</div>
@@ -502,9 +544,9 @@ export default function PurchasesPage() {
                 <div>
                   <VirtualizedList
                     items={purchases}
-                    estimateSize={() => 76}
+                    estimateSize={() => 57}
                     getKey={(purchase) => purchase._id}
-                    className="min-h-[76px]"
+                    className="min-h-[57px]"
                     itemClassName="border-b border-slate-700/50"
                     renderItem={(purchase) => {
                       const StatusIcon = statusConfig[purchase.status]?.icon || ShoppingBag;
@@ -633,6 +675,7 @@ export default function PurchasesPage() {
                   />
                 </div>
               </div>
+            </div>
             ) : (
               /* Mobile Card View */
               <VirtualizedList
@@ -731,13 +774,22 @@ export default function PurchasesPage() {
               />
             )}
 
-            {/* Infinite Scroll Loader */}
-            {(hasMore || isValidating) && (
-              <div ref={lastElementRef} className="p-4 glass-card flex items-center justify-center gap-2 text-slate-400">
-                <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
-                <span className="text-sm">Loading more purchases...</span>
-              </div>
-            )}
+            {/* Persistent Sentinel Container (stays mounted in DOM; visibility toggles smoothly) */}
+            <div
+              ref={sentinelRef}
+              className={`w-full flex items-center justify-center p-4 min-h-[48px] my-2 transition-all ${
+                !hasMore ? 'hidden pointer-events-none' : ''
+              }`}
+            >
+              {isFetching || (isValidating && page > 1) ? (
+                <div className="flex items-center gap-2 text-slate-400">
+                  <Loader2 className="w-5 h-5 animate-spin text-emerald-400" />
+                  <span className="text-sm font-medium">Loading more purchases...</span>
+                </div>
+              ) : (
+                <div className="h-6 w-full opacity-0 pointer-events-none" aria-hidden="true" />
+              )}
+            </div>
           </div>
         )}
       </AnimatePresence>

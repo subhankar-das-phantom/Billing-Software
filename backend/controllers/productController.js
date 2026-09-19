@@ -38,7 +38,7 @@ exports.getProducts = async (req, res, next) => {
     const products = await Product.aggregate([
       { $match: query },
       ...buildEffectiveStockAggregation(tenantId, enableBatchTracking),
-      { $sort: { createdAt: -1 } },
+      { $sort: { createdAt: -1, _id: -1 } },
       { $skip: skip },
       { $limit: limit }
     ]);

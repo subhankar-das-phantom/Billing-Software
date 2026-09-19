@@ -39,6 +39,7 @@ import ExportModal from '../../components/Common/Modals/ExportModal';
 import { useToast } from '../../contexts/ToastContext';
 import { useDebounce, useMotionConfig, useFirstVisit, useSWR, invalidateCachePattern, useMediaQuery, useTransitionDelay } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
+import { useInfiniteScrollSentinel } from '../../utils/scrollUtils';
 
 // Helper to create adaptive variants - faster on mobile
 const createPageVariants = (isMobile, shouldStagger) => ({
@@ -206,8 +207,9 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatCurrency, obs
   <div className="space-y-4">
     {/* Desktop/Tablet Table View */}
     {isDesktop ? (
-    <div className="glass-card overflow-x-auto">
-      {/* Header Row */}
+    <div className="glass-card w-full overflow-x-auto overflow-y-hidden" data-horizontal-table-scroll="true">
+      <div className="min-w-[800px]">
+        {/* Header Row */}
       <div className="grid grid-cols-[minmax(260px,2fr)_120px_180px_120px_100px_150px_130px] items-center px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-700/50 bg-slate-800/50">
         <div>Product Name</div>
         <div className="text-center">HSN</div>
@@ -221,9 +223,9 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatCurrency, obs
       <div>
                 <VirtualizedList
                   items={filteredProducts}
-                  estimateSize={() => 72}
+                  estimateSize={() => 57}
                   getKey={(product) => product._id}
-                  className="min-h-[72px]"
+                  className="min-h-[57px]"
                   itemClassName="border-b border-slate-700/50"
                   renderItem={(product) => {
                     const effectiveStock = product.effectiveStockQty ?? product.currentStockQty ?? 0;
@@ -310,6 +312,7 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatCurrency, obs
                     );
                   }}
                 />
+      </div>
       </div>
     </div>
     ) : (
@@ -413,13 +416,22 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatCurrency, obs
     />
     )}
 
-    {/* Infinite Scroll Loading Indicator */}
-    {(hasMore || isLoadingMore) && (
-      <div ref={observerTarget} className="flex justify-center items-center p-4 glass-card my-4">
-        <Loader2 className="w-5 h-5 text-blue-400 animate-spin mr-3" />
-        <span className="text-sm font-medium text-slate-400">Loading more products...</span>
-      </div>
-    )}
+    {/* Persistent Sentinel Container (stays mounted in DOM; visibility toggles smoothly) */}
+    <div
+      ref={observerTarget}
+      className={`w-full flex items-center justify-center p-4 min-h-[48px] my-2 transition-all ${
+        !hasMore ? 'hidden pointer-events-none' : ''
+      }`}
+    >
+      {isLoadingMore ? (
+        <div className="flex items-center gap-2 text-slate-400">
+          <Loader2 className="w-5 h-5 text-emerald-400 animate-spin mr-3" />
+          <span className="text-sm font-medium text-slate-300">Loading more products...</span>
+        </div>
+      ) : (
+        <div className="h-6 w-full opacity-0 pointer-events-none" aria-hidden="true" />
+      )}
+    </div>
   </div>
 );
 
@@ -445,10 +457,25 @@ export default function ProductsPage() {
   const [page, setPage] = useState(1);
   const observer = useRef(null);
 
+  const currentQueryKey = search || '';
+  const activeQueryKeyRef = useRef(currentQueryKey);
+
+  const [isFetching, setIsFetching] = useState(false);
+  const isFetchingRef = useRef(false);
+  const pendingPageRef = useRef(null);
+
+  // State synchronization refs
+  const hasMoreRef = useRef(false);
+  const isValidatingRef = useRef(false);
+  const loadNextPageRef = useRef(null);
+
   // SWR: Instant cached data + background revalidation
-  const { data, isLoading, isValidating, mutate } = useSWR(
-    `products-${search}-${page}`,
-    () => productService.getProducts({ search, page, limit: 25 }),
+  const { data, isLoading, isValidating, error: swrError, mutate } = useSWR(
+    `products-${currentQueryKey}-${page}`,
+    async () => {
+      const res = await productService.getProducts({ search, page, limit: 25 });
+      return { ...res, _queryKey: currentQueryKey, _page: page };
+    },
     { ttl: 5 * 60 * 1000 } // 5 minute cache
   );
 
@@ -466,17 +493,29 @@ export default function ProductsPage() {
 
   const hasMore = data?.pages ? page < data.pages : false;
 
-  // Synchronous product accumulation — eliminates the one-render lag between
-  // SWR's `data` and `accumulatedProducts` that caused the search counter/table desync.
-  // Calling setState during render is an officially supported React pattern (like
-  // getDerivedStateFromProps): React discards the current render and immediately
-  // re-renders with the updated state, so the stale frame is never painted.
-  const accDataTracker = useRef({ dataRef: null, search: '' });
-  if (data?.products && data !== accDataTracker.current.dataRef) {
-    const searchChanged = search !== accDataTracker.current.search;
-    accDataTracker.current = { dataRef: data, search };
+  // Keep synchronization refs up-to-date
+  hasMoreRef.current = hasMore;
+  isValidatingRef.current = isValidating;
 
-    if (page === 1 || searchChanged) {
+  // Reset pagination when debounced search changes
+  useEffect(() => {
+    setPage(1);
+    pendingPageRef.current = null;
+    isFetchingRef.current = false;
+    setIsFetching(false);
+    activeQueryKeyRef.current = currentQueryKey;
+  }, [currentQueryKey]);
+
+  // Accumulate products as new pages arrive (guarded by query provenance)
+  useEffect(() => {
+    if (!data?.products) return;
+
+    // Provenance Verification: Drop responses belonging to an obsolete filter generation
+    if (data._queryKey && data._queryKey !== activeQueryKeyRef.current) {
+      return;
+    }
+
+    if (page === 1) {
       setAccumulatedProducts(data.products);
     } else {
       setAccumulatedProducts(prev => {
@@ -485,31 +524,41 @@ export default function ProductsPage() {
         return [...prev, ...newProducts];
       });
     }
-  }
 
-  // Reset pagination when debounced search changes
-  useEffect(() => {
-    setPage(1);
-  }, [search]);
-
-  // Intersection Observer for Infinite Scroll using Callback Ref
-  const lastElementRef = useCallback(node => {
-    if (isValidating) return;
-    if (observer.current) observer.current.disconnect();
-
-    if (node) {
-      const scrollParent = node.closest('main') || null;
-      observer.current = new IntersectionObserver(
-        entries => {
-          if (entries[0].isIntersecting && !isValidating && hasMore) {
-            setPage(p => p + 1);
-          }
-        },
-        { root: scrollParent, threshold: 0.1 }
-      );
-      observer.current.observe(node);
+    // Release lock only after the specific requested page has completed successfully
+    if (pendingPageRef.current !== null && (data._page === pendingPageRef.current || data.page === pendingPageRef.current)) {
+      isFetchingRef.current = false;
+      setIsFetching(false);
+      pendingPageRef.current = null;
     }
-  }, [isValidating, hasMore]);
+  }, [data, page]);
+
+  // Failure Path: Release lock on request error so infinite scroll is not permanently disabled
+  useEffect(() => {
+    if (swrError && pendingPageRef.current !== null) {
+      isFetchingRef.current = false;
+      setIsFetching(false);
+      pendingPageRef.current = null;
+    }
+  }, [swrError]);
+
+  // Dedicated load trigger function controlling pagination and synchronous request lock
+  const loadNextPage = useCallback(() => {
+    if (isFetchingRef.current || isValidatingRef.current || !hasMoreRef.current) return;
+    isFetchingRef.current = true;
+    setIsFetching(true);
+    pendingPageRef.current = page + 1;
+    setPage(p => p + 1);
+  }, [page]);
+  loadNextPageRef.current = loadNextPage;
+
+  // Level-triggered reactive infinite scroll sentinel
+  const { sentinelRef } = useInfiniteScrollSentinel({
+    hasMore,
+    isFetching,
+    isValidating,
+    onLoadMore: loadNextPage
+  });
 
   // Extract products from accumulated state
   const products = accumulatedProducts;
@@ -879,9 +928,9 @@ export default function ProductsPage() {
             onEdit={openEditModal}
             onDelete={(product) => setDeleteDialog({ open: true, product })}
             formatCurrency={formatCurrency}
-            observerTarget={lastElementRef}
+            observerTarget={sentinelRef}
             hasMore={hasMore}
-            isLoadingMore={isValidating && page > 1}
+            isLoadingMore={isFetching || (isValidating && page > 1)}
             isDesktop={isDesktop}
           />
         )}

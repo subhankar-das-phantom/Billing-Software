@@ -30,6 +30,7 @@ import { VirtualizedGrid } from '../../components/Common/VirtualizedList';
 import { useToast } from '../../contexts/ToastContext';
 import { useDebounce, useMotionConfig, useFirstVisit, useSWR, invalidateCachePattern, useTransitionDelay, useMediaQuery, useCustomerFilters } from '../../hooks';
 import CustomerFilterPanel from './CustomerFilterPanel';
+import { useInfiniteScrollSentinel } from '../../utils/scrollUtils';
 
 const initialCustomerState = {
   customerName: '',
@@ -200,10 +201,6 @@ export default function CustomersPage() {
     setSearchInput(prev => prev !== search ? search : prev);
   }, [search]);
 
-  // Track which SWR key the latest accumulated data belongs to,
-  // so we can discard stale responses from previous search terms.
-  const activeSWRKeyRef = useRef('');
-
   // Adaptive motion configuration
   const motionConfig = useMotionConfig();
   const isFirstVisit = useFirstVisit('customers');
@@ -211,14 +208,26 @@ export default function CustomersPage() {
   const isDesktopGrid = useMediaQuery('(min-width: 1024px)');
   const isTabletGrid = useMediaQuery('(min-width: 768px)');
 
-  // Build the SWR cache key — includes all filter params for correct caching
   const filterKey = JSON.stringify(apiParams);
+  const activeSWRKeyRef = useRef(filterKey);
   const swrKey = `customers-${filterKey}-${page}`;
 
+  const [isFetching, setIsFetching] = useState(false);
+  const isFetchingRef = useRef(false);
+  const pendingPageRef = useRef(null);
+
+  // State synchronization refs for stable observer
+  const hasMoreRef = useRef(false);
+  const isValidatingRef = useRef(false);
+  const loadNextPageRef = useRef(null);
+
   // SWR: Instant cached data + background revalidation
-  const { data, isLoading, isValidating, mutate } = useSWR(
+  const { data, isLoading, isValidating, error: swrError, mutate } = useSWR(
     swrKey,
-    () => customerService.getCustomers({ ...apiParams, page, limit: 25, includeOutstanding: true }),
+    async () => {
+      const res = await customerService.getCustomers({ ...apiParams, page, limit: 25, includeOutstanding: true });
+      return { ...res, _queryKey: filterKey, _page: page };
+    },
     { ttl: 5 * 60 * 1000 } // 5 minute cache
   );
 
@@ -234,15 +243,18 @@ export default function CustomersPage() {
   // Extract customers from SWR response
   const hasMore = data?.pages ? page < data.pages : false;
 
-  // Accumulate customers as new pages are loaded.
-  // Guard: only accept data that matches the CURRENT SWR key to
-  // prevent stale responses from a previous search term leaking in.
+  // Keep synchronization refs up-to-date
+  hasMoreRef.current = hasMore;
+  isValidatingRef.current = isValidating;
+
+  // Accumulate customers as new pages are loaded (guarded by query provenance)
   useEffect(() => {
     if (!data?.customers) return;
 
-    // If the key changed since we last accumulated, this data belongs
-    // to a different (older) request — ignore it.
-    if (activeSWRKeyRef.current !== swrKey) return;
+    // Provenance Verification: Drop responses belonging to an obsolete filter generation
+    if (data._queryKey && data._queryKey !== activeSWRKeyRef.current) {
+      return;
+    }
 
     if (page === 1) {
       setAccumulatedCustomers(data.customers);
@@ -254,43 +266,53 @@ export default function CustomersPage() {
       });
     }
 
+    // Release lock only after the specific requested page has completed successfully
+    if (pendingPageRef.current !== null && (data._page === pendingPageRef.current || data.page === pendingPageRef.current)) {
+      isFetchingRef.current = false;
+      setIsFetching(false);
+      pendingPageRef.current = null;
+    }
+
     // Mark that we've received real data for this search term.
     setDataReady(true);
-  }, [data, page, swrKey]);
+  }, [data, page]);
+
+  // Failure Path: Release lock on request error so infinite scroll is not permanently disabled
+  useEffect(() => {
+    if (swrError && pendingPageRef.current !== null) {
+      isFetchingRef.current = false;
+      setIsFetching(false);
+      pendingPageRef.current = null;
+    }
+  }, [swrError]);
 
   // Reset pagination when filters change.
-  // DON'T clear accumulatedCustomers here — that creates a window where
-  // customers.length === 0 and the empty-state flashes. Instead, let
-  // the data-arrival effect above replace accumulatedCustomers atomically.
   useEffect(() => {
     setPage(1);
     setDataReady(false);
-    activeSWRKeyRef.current = `customers-${filterKey}-1`;
+    pendingPageRef.current = null;
+    isFetchingRef.current = false;
+    setIsFetching(false);
+    activeSWRKeyRef.current = filterKey;
   }, [filterKey]);
 
-  // Also update the active key when page increments (infinite scroll)
-  useEffect(() => {
-    activeSWRKeyRef.current = swrKey;
-  }, [swrKey]);
+  // Dedicated load trigger function controlling pagination and synchronous request lock
+  const loadNextPage = useCallback(() => {
+    if (isFetchingRef.current || isValidatingRef.current || !hasMoreRef.current) return;
+    isFetchingRef.current = true;
+    setIsFetching(true);
+    pendingPageRef.current = page + 1;
+    setPage(prev => prev + 1);
+  }, [page]);
+  loadNextPageRef.current = loadNextPage;
 
-  // Intersection Observer for Infinite Scroll
-  const lastElementRef = useCallback((node) => {
-    if (isValidating) return;
-    if (observer.current) observer.current.disconnect();
-
-    if (node) {
-      const scrollParent = node.closest('main') || null;
-      observer.current = new IntersectionObserver(
-        entries => {
-          if (entries[0].isIntersecting && !isValidating && hasMore) {
-            setPage(prev => prev + 1);
-          }
-        },
-        { root: scrollParent, threshold: 0.1 }
-      );
-      observer.current.observe(node);
-    }
-  }, [isValidating, hasMore]);
+  // Level-triggered reactive infinite scroll sentinel
+  const { sentinelRef } = useInfiniteScrollSentinel({
+    hasMore,
+    isFetching,
+    isValidating,
+    onLoadMore: loadNextPage
+  });
 
   // Extract customers from accumulated state
   const customers = accumulatedCustomers;
@@ -589,17 +611,22 @@ export default function CustomersPage() {
         </div>
       )}
 
-      {/* Infinite Scroll Loading Indicator */}
-      {hasMore && (
-        <div ref={lastElementRef} className="flex justify-center items-center p-4 my-4 h-16">
-          {isValidating && (
-            <div className="flex items-center glass-card px-6 py-3">
-              <Loader2 className="w-5 h-5 text-blue-400 animate-spin mr-3" />
-              <span className="text-sm font-medium text-slate-400">Loading more...</span>
-            </div>
-          )}
-        </div>
-      )}
+      {/* Persistent Sentinel Container (stays mounted in DOM; visibility toggles smoothly) */}
+      <div
+        ref={sentinelRef}
+        className={`w-full flex items-center justify-center p-4 min-h-[48px] my-2 transition-all ${
+          !hasMore ? 'hidden pointer-events-none' : ''
+        }`}
+      >
+        {isFetching || (isValidating && page > 1) ? (
+          <div className="flex items-center glass-card px-6 py-3">
+            <Loader2 className="w-5 h-5 text-emerald-400 animate-spin mr-3" />
+            <span className="text-sm font-medium text-slate-300">Loading more customers...</span>
+          </div>
+        ) : (
+          <div className="h-6 w-full opacity-0 pointer-events-none" aria-hidden="true" />
+        )}
+      </div>
 
       {/* Customer Modal */}
       <Modal

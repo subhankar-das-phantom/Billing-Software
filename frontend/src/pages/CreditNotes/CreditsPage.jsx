@@ -25,9 +25,9 @@ import { formatCurrency, formatDate } from '../../utils/formatters';
 import { OutstandingTabSkeleton, AgeingTabSkeleton, PaymentsTabSkeleton } from './CreditsPageSkeleton';
 import { useSWR, useFirstVisit, useMediaQuery } from '../../hooks';
 import { useAuth } from '../../contexts/AuthContext';
-import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 import { VirtualizedList } from '../../components/Common/VirtualizedList';
 import CollapsibleMobileCard from '../../components/Common/Cards/CollapsibleMobileCard';
+import { useInfiniteScrollSentinel } from '../../utils/scrollUtils';
 
 // Animated counter component
 const AnimatedCounter = ({ value, prefix = '', suffix = '', decimals = 0 }) => {
@@ -79,6 +79,24 @@ export default function CreditsPage() {
   const [ageingHasMore, setAgeingHasMore] = useState(false);
   const ageingObserver = useRef(null);
 
+  const [scrollRoot, setScrollRoot] = useState(null);
+
+  // Outstanding refs & reactive fetching state
+  const [outstandingFetching, setOutstandingFetching] = useState(false);
+  const outstandingFetchingRef = useRef(false);
+  const pendingOutstandingPageRef = useRef(null);
+  const outstandingHasMoreRef = useRef(false);
+  const outstandingValidatingRef = useRef(false);
+  const loadNextOutstandingPageRef = useRef(null);
+
+  // Ageing refs & reactive fetching state
+  const [ageingFetching, setAgeingFetching] = useState(false);
+  const ageingFetchingRef = useRef(false);
+  const pendingAgeingPageRef = useRef(null);
+  const ageingHasMoreRef = useRef(false);
+  const ageingValidatingRef = useRef(false);
+  const loadNextAgeingPageRef = useRef(null);
+
   // SWR: Instant cached data + background revalidation
   const { data: statsData, isLoading: statsLoading, isValidating: statsValidating } = useSWR(
     'credits-stats',
@@ -86,15 +104,21 @@ export default function CreditsPage() {
     { ttl: 2 * 60 * 1000 } // 2 minute cache
   );
 
-  const { data: outstandingData, isLoading: outstandingLoading, isValidating: outstandingValidating } = useSWR(
+  const { data: outstandingData, isLoading: outstandingLoading, isValidating: outstandingValidating, error: outstandingError } = useSWR(
     `credits-outstanding-${outstandingPage}`,
-    () => getOutstandingReport({ page: outstandingPage, limit: 20 }),
+    async () => {
+      const res = await getOutstandingReport({ page: outstandingPage, limit: 20 });
+      return { ...res, _page: outstandingPage };
+    },
     { ttl: 2 * 60 * 1000 }
   );
 
-  const { data: ageingData, isLoading: ageingLoading, isValidating: ageingValidating } = useSWR(
+  const { data: ageingData, isLoading: ageingLoading, isValidating: ageingValidating, error: ageingError } = useSWR(
     `credits-ageing-${ageingPage}`,
-    () => getAgeingReport({ page: ageingPage, limit: 20 }),
+    async () => {
+      const res = await getAgeingReport({ page: ageingPage, limit: 20 });
+      return { ...res, _page: ageingPage };
+    },
     { ttl: 2 * 60 * 1000 }
   );
 
@@ -122,6 +146,12 @@ export default function CreditsPage() {
     ? ageingData.invoices
     : ageingInvoices;
 
+  // Keep sync refs up to date
+  outstandingHasMoreRef.current = outstandingHasMore;
+  outstandingValidatingRef.current = outstandingValidating;
+  ageingHasMoreRef.current = ageingHasMore;
+  ageingValidatingRef.current = ageingValidating;
+
   // Store outstanding summary in stable state + accumulate customers
   useEffect(() => {
     if (!outstandingData) return;
@@ -142,22 +172,23 @@ export default function CreditsPage() {
         return [...prev, ...newCustomers];
       });
     }
+
+    // Release lock only after the specific requested page has completed successfully
+    if (pendingOutstandingPageRef.current !== null && (outstandingData._page === pendingOutstandingPageRef.current || outstandingData.page === pendingOutstandingPageRef.current)) {
+      outstandingFetchingRef.current = false;
+      setOutstandingFetching(false);
+      pendingOutstandingPageRef.current = null;
+    }
   }, [outstandingData, outstandingPage]);
 
-  // Outstanding infinite scroll observer
-  const outstandingLastRef = useCallback((node) => {
-    if (outstandingValidating) return;
-    if (outstandingObserver.current) outstandingObserver.current.disconnect();
-    if (node) {
-      const scrollParent = node.closest('main') || null;
-      outstandingObserver.current = new IntersectionObserver(entries => {
-        if (entries[0].isIntersecting && !outstandingValidating && outstandingHasMore) {
-          setOutstandingPage(prev => prev + 1);
-        }
-      }, { root: scrollParent, threshold: 0.1 });
-      outstandingObserver.current.observe(node);
+  // Failure Path: Release outstanding lock on request error
+  useEffect(() => {
+    if (outstandingError && pendingOutstandingPageRef.current !== null) {
+      outstandingFetchingRef.current = false;
+      setOutstandingFetching(false);
+      pendingOutstandingPageRef.current = null;
     }
-  }, [outstandingValidating, outstandingHasMore]);
+  }, [outstandingError]);
 
   // Store bucket summaries in stable state + accumulate invoices (like InvoicesPage)
   useEffect(() => {
@@ -179,22 +210,59 @@ export default function CreditsPage() {
         return [...prev, ...newInvoices];
       });
     }
+
+    // Release lock only after the specific requested page has completed successfully
+    if (pendingAgeingPageRef.current !== null && (ageingData._page === pendingAgeingPageRef.current || ageingData.page === pendingAgeingPageRef.current)) {
+      ageingFetchingRef.current = false;
+      setAgeingFetching(false);
+      pendingAgeingPageRef.current = null;
+    }
   }, [ageingData, ageingPage]);
 
-  // Ageing infinite scroll observer
-  const ageingLastRef = useCallback((node) => {
-    if (ageingValidating) return;
-    if (ageingObserver.current) ageingObserver.current.disconnect();
-    if (node) {
-      const scrollParent = node.closest('main') || null;
-      ageingObserver.current = new IntersectionObserver(entries => {
-        if (entries[0].isIntersecting && !ageingValidating && ageingHasMore) {
-          setAgeingPage(prev => prev + 1);
-        }
-      }, { root: scrollParent, threshold: 0.1 });
-      ageingObserver.current.observe(node);
+  // Failure Path: Release ageing lock on request error
+  useEffect(() => {
+    if (ageingError && pendingAgeingPageRef.current !== null) {
+      ageingFetchingRef.current = false;
+      setAgeingFetching(false);
+      pendingAgeingPageRef.current = null;
     }
-  }, [ageingValidating, ageingHasMore]);
+  }, [ageingError]);
+
+  // Dedicated load triggers
+  const loadNextOutstandingPage = useCallback(() => {
+    if (outstandingFetchingRef.current || outstandingValidatingRef.current || !outstandingHasMoreRef.current) return;
+    outstandingFetchingRef.current = true;
+    setOutstandingFetching(true);
+    pendingOutstandingPageRef.current = outstandingPage + 1;
+    setOutstandingPage(prev => prev + 1);
+  }, [outstandingPage]);
+  loadNextOutstandingPageRef.current = loadNextOutstandingPage;
+
+  const loadNextAgeingPage = useCallback(() => {
+    if (ageingFetchingRef.current || ageingValidatingRef.current || !ageingHasMoreRef.current) return;
+    ageingFetchingRef.current = true;
+    setAgeingFetching(true);
+    pendingAgeingPageRef.current = ageingPage + 1;
+    setAgeingPage(prev => prev + 1);
+  }, [ageingPage]);
+  loadNextAgeingPageRef.current = loadNextAgeingPage;
+
+  // Level-triggered reactive infinite scroll sentinels for both tabs
+  const { sentinelRef: outstandingSentinelRef } = useInfiniteScrollSentinel({
+    hasMore: outstandingHasMore,
+    isFetching: outstandingFetching,
+    isValidating: outstandingValidating,
+    onLoadMore: loadNextOutstandingPage,
+    enabled: activeTab === 'outstanding'
+  });
+
+  const { sentinelRef: ageingSentinelRef } = useInfiniteScrollSentinel({
+    hasMore: ageingHasMore,
+    isFetching: ageingFetching,
+    isValidating: ageingValidating,
+    onLoadMore: loadNextAgeingPage,
+    enabled: activeTab === 'ageing'
+  });
 
   // Loading states
   const loading = (statsLoading || outstandingLoading || ageingLoading || paymentsLoading) && !stats;
@@ -393,17 +461,22 @@ export default function CreditsPage() {
                         </Link>
                       )}
                     />
-                    {/* Infinite scroll sentinel */}
-                    {outstandingHasMore && (
-                      <div ref={outstandingLastRef} className="p-3 flex items-center justify-center h-12">
-                        {outstandingValidating && (
-                          <div className="flex items-center gap-2 text-slate-400">
-                            <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
-                            <span className="text-sm">Loading more customers...</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    {/* Persistent Sentinel Container (stays mounted in DOM; visibility toggles smoothly) */}
+                    <div
+                      ref={outstandingSentinelRef}
+                      className={`w-full flex items-center justify-center p-3 min-h-[48px] my-2 transition-all ${
+                        !outstandingHasMore ? 'hidden pointer-events-none' : ''
+                      }`}
+                    >
+                      {outstandingFetching || (outstandingValidating && outstandingPage > 1) ? (
+                        <div className="flex items-center gap-2 text-slate-400">
+                          <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                          <span className="text-sm font-medium text-slate-300">Loading more customers...</span>
+                        </div>
+                      ) : (
+                        <div className="h-6 w-full opacity-0 pointer-events-none" aria-hidden="true" />
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -484,17 +557,22 @@ export default function CreditsPage() {
                           </Link>
                         )}
                       />
-                      {/* Infinite scroll sentinel */}
-                      {ageingHasMore && (
-                        <div ref={ageingLastRef} className="p-3 flex items-center justify-center h-12">
-                          {ageingValidating && (
-                            <div className="flex items-center gap-2 text-slate-400">
-                              <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
-                              <span className="text-sm">Loading more invoices...</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                      {/* Persistent Sentinel Container (stays mounted in DOM; visibility toggles smoothly) */}
+                      <div
+                        ref={ageingSentinelRef}
+                        className={`w-full flex items-center justify-center p-3 min-h-[48px] my-2 transition-all ${
+                          !ageingHasMore ? 'hidden pointer-events-none' : ''
+                        }`}
+                      >
+                        {ageingFetching || (ageingValidating && ageingPage > 1) ? (
+                          <div className="flex items-center gap-2 text-slate-400">
+                            <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                            <span className="text-sm font-medium text-slate-300">Loading more invoices...</span>
+                          </div>
+                        ) : (
+                          <div className="h-6 w-full opacity-0 pointer-events-none" aria-hidden="true" />
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}

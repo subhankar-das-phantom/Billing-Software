@@ -1,25 +1,8 @@
 import { useLayoutEffect, useRef, useState, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import { findScrollParent } from '../../utils/scrollUtils';
 
-const DEFAULT_OVERSCAN = 10;
-
-/**
- * Finds the nearest scrollable ancestor container (e.g. <main>),
- * or falls back to document.querySelector('main') / window / documentElement.
- */
-function findScrollParent(node) {
-  if (!node || typeof window === 'undefined') return null;
-  let parent = node.parentElement;
-  while (parent && parent !== document.body && parent !== document.documentElement) {
-    const style = window.getComputedStyle(parent);
-    const overflowY = style.overflowY;
-    if (overflowY === 'auto' || overflowY === 'scroll') {
-      return parent;
-    }
-    parent = parent.parentElement;
-  }
-  return document.querySelector('main') || (typeof document !== 'undefined' ? document.documentElement : null);
-}
+const DEFAULT_OVERSCAN = 12;
 
 function useScrollParentAndMargin() {
   const ref = useRef(null);
@@ -43,14 +26,16 @@ function useScrollParentAndMargin() {
     const updateScrollMargin = () => {
       if (!ref.current) return;
       const scrollEl = scrollParentRef.current || document.querySelector('main') || document.documentElement;
+      let newMargin = 0;
       if (scrollEl && scrollEl !== document.documentElement && scrollEl !== document.body && scrollEl !== window) {
         const parentRect = scrollEl.getBoundingClientRect();
         const elemRect = ref.current.getBoundingClientRect();
-        const margin = elemRect.top - parentRect.top + scrollEl.scrollTop;
-        setScrollMargin(margin >= 0 ? margin : 0);
+        const margin = Math.round(elemRect.top - parentRect.top + scrollEl.scrollTop);
+        newMargin = margin >= 0 ? margin : 0;
       } else {
-        setScrollMargin(ref.current.getBoundingClientRect().top + window.scrollY);
+        newMargin = Math.round(ref.current.getBoundingClientRect().top + window.scrollY);
       }
+      setScrollMargin(prev => (Math.abs(prev - newMargin) >= 4 ? newMargin : prev));
     };
 
     updateScrollMargin();
@@ -95,11 +80,13 @@ export function VirtualizedList({
     scrollMargin
   });
 
+  const totalContentHeight = virtualizer.getTotalSize();
+
   return (
     <div
       ref={ref}
       className={className}
-      style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}
+      style={{ height: totalContentHeight, position: 'relative', width: '100%' }}
     >
       {virtualizer.getVirtualItems().map((virtualItem) => {
         const item = items[virtualItem.index];
@@ -155,12 +142,13 @@ export function VirtualizedGrid({
   });
 
   const itemWidth = `calc((100% - ${(lanes - 1) * gap}px) / ${lanes})`;
+  const totalContentHeight = virtualizer.getTotalSize();
 
   return (
     <div
       ref={ref}
       className={className}
-      style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}
+      style={{ height: totalContentHeight, position: 'relative', width: '100%' }}
     >
       {virtualizer.getVirtualItems().map((virtualItem) => {
         const item = items[virtualItem.index];

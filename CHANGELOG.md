@@ -4,6 +4,91 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.5.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.5.0) — 2026-09-19 — Infinite Scroll Resilience, Deterministic Pagination, Lightweight CSS Navigation & 1,000+ Item Scale Stability
+
+### ⚡ Enterprise-Scale Infinite Scroll, Deterministic Pagination & GPU-Optimized Navigation Milestone
+Version 2.5.0 delivers a comprehensive reliability and performance overhaul for high-velocity scrolling, large datasets (1,000+ items), and multi-tenant pagination correctness. It resolves critical backend pagination non-determinism caused by missing sort tiebreakers on batch-seeded data, eliminates infinite scroll stalls from destructive geometric state overwrites, adds a passive high-velocity scroll listener so rapid flicks never miss pagination triggers, replaces heavy Framer Motion scroll button physics with lightweight 60fps GPU-composited CSS transitions, removes ghost padding from virtualized containers, introduces the **Clamp & Glide** pattern for seamless scroll-to-top across 50,000px+ datasets, resolves desktop-on-mobile viewport blowout, and increases API rate-limit headroom to support high-throughput SPA navigation patterns.
+
+---
+
+### 🏛️ Dual-Trigger Infinite Scroll Resilience (`scrollUtils.js`)
+- **Stuck-State Elimination & Destructive Guard Removal** — Removed the manual `setIsIntersecting(false)` override inside the post-layout geometric guard that desynchronized React state from native browser `IntersectionObserver` state and prevented pagination from re-triggering until an artificial scroll-up/scroll-down sequence was performed.
+- **Secondary Fast-Scroll Container Trigger** — Added a passive `scroll` listener on `scrollRoot` (`<main>`) that calculates `scrollHeight - (scrollTop + clientHeight) <= 600px` on high-velocity mousewheel flicks or scrollbar thumb dragging, guaranteeing that fast scrolling never outruns pagination triggers.
+- **Expanded 600px Look-Ahead Root Margin** — Expanded `INFINITE_SCROLL_ROOT_MARGIN` from `250px` to `600px`, preloading subsequent pages well before the user reaches the end of the content.
+- **Post-Fetch Layout Continuation** — When a page completes loading (`isFetching` transitions to `false`), if the user is still within 600px of the bottom (or on tall displays where items don't fill the vertical space), automatically queues the next page after a 60ms layout settlement window.
+
+---
+
+### ⚡ VirtualizedList Container Height Stabilization & Small-Dataset Fix (`VirtualizedList.jsx`)
+- **Container Height Stabilization & Small-Dataset Fix** — Set container `style.height` in `VirtualizedList` and `VirtualizedGrid` to `virtualizer.getTotalSize()` directly. Previously, subtracting `scrollMargin` collapsed container height to 0px whenever cumulative item height was smaller than the scroll offset from `<main>` (e.g., small datasets of 8 items), hiding rows under `overflow-y: hidden`. TanStack Virtual's `getTotalSize()` represents exact cumulative item dimensions without `scrollMargin`.
+- **Item Measurement Cache Preservation** — Removed the redundant `virtualizer.measure()` call on `items.length` changes, preserving TanStack Virtual's cached row dimensions across infinite scroll appends and eliminating layout thrashing when scaling to 1,000+ items.
+- **Buffer Overscan Increase** — Raised `DEFAULT_OVERSCAN` from 10 to 12 items for seamless row pre-rendering during high-velocity scrolling.
+
+---
+
+### 🧭 Lightweight Scroll-to-Top Button & Clamp & Glide Pattern (`DashboardLayout.jsx`)
+- **GPU-Composited CSS Transitions (Anti-Lag)** — Replaced heavy Framer Motion `<AnimatePresence>` and `<motion.button>` scale/translate physics with a persistent semantic `<button>` powered by pure hardware-accelerated CSS transitions (`transition-all duration-150 ease-out will-change-transform`), eliminating main-thread contention while scrolling.
+- **Direction-Aware Scroll-to-Top Gating** — Automatically hides the button when the user scrolls downwards (`currentScrollTop > lastScrollTop + 6`), smoothly revealing it exclusively when scrolling upwards (`currentScrollTop < lastScrollTop - 6`), and hiding it near the top (`currentScrollTop < 250px`).
+- **Clamp & Glide Pattern for 1,000+ Items** — For large lists (`scrollTop > 1200px`, e.g. 1,000+ items / 50,000px+), instantly clamps `scrollTop` to a near-top buffer (350px) before smoothly gliding the remaining distance to `top: 0` in the next animation frame, preventing browser thread freezes and mid-scroll stalling.
+- **Immediate State Dismissal** — Immediately resets `setShowScrollTop(false)` and `lastScrollTopRef.current = 0` upon click, eliminating button flickering during the return animation.
+
+---
+
+### 🛡️ Spurious Table Vertical Scrollbar Suppression (`index.css`, `InvoicesPage.jsx`, `PurchasesPage.jsx`, `ProductsPage.jsx`, `CustomerDetailsPage.jsx`, `SupplierDetailsPage.jsx`)
+- **Implicit Promotion Elimination** — Enforced a global rule in `index.css` (`[data-horizontal-table-scroll="true"] { overflow-y: hidden !important; }`) to neutralize W3C CSS Overflow Module Level 3 (§3.3) behavior, where specifying `overflow-x: auto` implicitly promotes `overflow-y` to `auto` and triggers a secondary vertical scrollbar inside the table.
+- **Scrollbar Box Intrusion & Subpixel Row Isolation** — Prevented the 6px-17px horizontal scrollbar gutter and virtualized row subpixel anti-aliasing offsets from spawning nested double-scrollbars on desktop viewports.
+- **Explicit JSX Class Pairing** — Paired `overflow-x-auto overflow-y-hidden` across desktop table wrappers in `InvoicesPage.jsx`, `PurchasesPage.jsx`, `ProductsPage.jsx`, `CustomerDetailsPage.jsx`, and `SupplierDetailsPage.jsx`.
+
+---
+
+
+### 🛡️ Deterministic Pagination & Sort Tiebreakers (`productController.js`, `productExportController.ts`, `buildCustomerFilter.ts`, `Product.js`)
+- **`_id` Sort Tiebreaker for Skip/Limit Correctness** — Added `{ createdAt: -1, _id: -1 }` compound sort to product pagination aggregation pipelines and product export queries. Without a unique tiebreaker, batch-seeded products sharing identical `createdAt` timestamps produced non-deterministic MongoDB sort order, causing `skip(N)` to re-visit or skip documents across pages — manifesting as the 886/1,000 product cutoff on infinite scroll.
+- **Compound B-Tree Index (ESR Rule)** — Added `{ tenantId: 1, isActive: 1, createdAt: -1, _id: -1 }` compound index to the `Product` model, following Equality → Sort → Range ordering for optimal index utilization during sorted pagination with tenant isolation.
+- **Customer Sort Consistency** — Extended `buildCustomerFilter.ts` sort builder with `_id: -1` tiebreaker to prevent identical issues on customer collections.
+
+---
+
+### 🚦 API Rate-Limit Headroom (`server.js`)
+- **General Limiter Increase** — Raised `generalLimiter` from 500 to 3,000 requests per 15 minutes (5,000 in development) to accommodate high-throughput SPA navigation patterns: infinite scroll pagination, dashboard polling, and rapid filter/search cycles that collectively exhaust low rate-limit budgets and trigger HTTP 429 errors.
+
+---
+
+### 🏛️ Semantic Horizontal Table Scroll & Container Isolation (`scrollUtils.js`, `InvoicesPage.jsx`, `PurchasesPage.jsx`, `ProductsPage.jsx`, `SuppliersPage.jsx`, `SupplierDetailsPage.jsx`, `CustomerDetailsPage.jsx`)
+- **Horizontal Table Scroll Marker (`data-horizontal-table-scroll="true"`)** — Introduced a standardized semantic attribute on horizontal scrollable desktop table wrappers (`w-full overflow-x-auto`), isolating them from DOM vertical scroll container resolution.
+- **Table Container Blowout Elimination** — Enforced a strict two-layer architecture (`<div className="glass-card w-full overflow-x-auto" data-horizontal-table-scroll="true"><div className="min-w-[800px]">{/* table */}</div></div>`). Prevents `min-w-[800px]` from expanding outer containers on ~390px mobile viewports and clipping centered loaders off-screen.
+- **External Persistent Sentinels** — Anchored all infinite scroll loader sentinels strictly outside the `min-w-[800px]` horizontal scroll container, guaranteeing full-viewport centering and visibility regardless of horizontal pan position.
+
+---
+
+### 📜 Shared Scroll Parent Resolution & Virtualization Parity (`scrollUtils.js`, `VirtualizedList.jsx`)
+- **Centralized `findScrollParent(node)` Primitive** — Unified scroll container detection across `@tanstack/react-virtual` and all `IntersectionObserver` implementations. Checks for vertical overflow (`scrollHeight > clientHeight + 4`) and vertical scroll intent (`overflow-y: auto | scroll`), skipping elements marked with `data-horizontal-table-scroll="true"`.
+- **Nested Modal Precedence** — Ensures that table and list containers inside dialog modals resolve to their enclosing modal scroll body instead of blindly falling back to the top-level `<main>` container.
+- **Constants Centralization** — Exported `INFINITE_SCROLL_ROOT_MARGIN = '250px'` and `INFINITE_SCROLL_THRESHOLD = 0` to standardize pre-fetching thresholds across all paginated entities.
+
+---
+
+### ⚡ Defensive Infinite Scroll Engine & Lifecycle Concurrency (`InvoicesPage.jsx`, `CustomersPage.jsx`, `PurchasesPage.jsx`, `ProductsPage.jsx`, `SuppliersPage.jsx`, `CreditsPage.jsx`)
+- **Query Key Provenance Stamping** — SWR fetchers inject `_queryKey` and `_page` directly into cached payloads. Inbound responses verify `data._queryKey === activeQueryKeyRef.current`, dropping stale or out-of-order page deliveries from rapid search/filter changes.
+- **Synchronous Request Lock (`isFetchingRef`)** — Replaced asynchronous render-time mutations with an event-time synchronous lock triggered in `loadNextPage()`. Locks release strictly upon page-matching data arrival (`data._page === pendingPageRef.current`) or on SWR fetch error (`swrError`).
+- **Dynamic `scrollRoot` Re-Resolution** — Dynamically recalculates the genuine vertical scroll parent on viewport resize or layout changes, re-binding `IntersectionObserver` without thrashing.
+- **Persistent Sentinel Containers** — Replaced unmounting sentinel wrappers with permanently mounted DOM targets that toggle inner loader visibility smoothly (`hidden pointer-events-none` only when `!hasMore`), eliminating observer disconnect/reconnect loops.
+- **Missing Pagination Observer Target Hookup (`ProductsPage.jsx`)** — Passed `observerTarget={sentinelRef}` to `ProductsTable` and wired persistent loader sentinels, fixing missing "Loading more" indicators on inventory product audits.
+
+---
+
+### 🧭 Smart Bidirectional Scroll Navigation (`DashboardLayout.jsx`)
+- **Context-Aware Direction Toggle** — Upgraded the floating navigation pill to detect user scroll position: displays "Scroll to bottom" with `<ArrowDown />` when near the top (`scrollTop < 120px` and page is sufficiently long), seamlessly switching to "Scroll to top" with `<ArrowUp />` once scrolled down.
+- **Bottom Offset Clearance** — Automatically elevates the floating button when approaching the bottom of the page (`bottom-20` on mobile, `bottom-8` on desktop) to prevent obscuring pagination bars, totals summary strips, or mobile sticky action bars.
+
+---
+
+### 🚀 Mobile GPU Scroll Performance & Hover De-tuning (`index.css`)
+- **Backdrop Blur Elimination** — Replaced GPU-heavy `backdrop-blur-xl` and `backdrop-blur-md` on `.glass-card`, `.stat-card`, and modal backdrops with high-density Enterprise Obsidian styling (`bg-slate-900/90 border border-slate-800/80 shadow-lg`), eliminating mobile rasterization thrashing.
+- **Touch Hover De-tuning** — Added `@media (hover: none) and (pointer: coarse)` to suppress hover transforms (`translateY`, scale) and hover glow effects during touch drag gestures, ensuring silky 60 FPS scrolling on mobile devices running desktop view.
+
+---
+
 ## [v2.4.4](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.4.4) — 2026-09-19 — Single-Scroll Container Architecture, Mobile Header Docking & Hamburger Accessibility
 
 ### 📱 Layout Architecture, Viewport Boundaries & Mobile Navigation Resilience Milestone

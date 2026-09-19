@@ -39,6 +39,7 @@ import {
   invalidateCachePattern, 
   useMediaQuery 
 } from '../../hooks';
+import { useInfiniteScrollSentinel } from '../../utils/scrollUtils';
 
 const LARGE_SUPPLIER_LIST_THRESHOLD = 24;
 
@@ -184,10 +185,25 @@ export default function SuppliersPage() {
   const isFirstVisit = useFirstVisit('suppliers');
   const isMobile = useMediaQuery('(max-width: 640px)');
 
+  const currentQueryKey = `${search}-${statusFilter}`;
+  const activeQueryKeyRef = useRef(currentQueryKey);
+
+  const [isFetching, setIsFetching] = useState(false);
+  const isFetchingRef = useRef(false);
+  const pendingPageRef = useRef(null);
+
+  // State synchronization refs
+  const hasMoreRef = useRef(false);
+  const isValidatingRef = useRef(false);
+  const loadNextPageRef = useRef(null);
+
   // SWR: Suppliers List with search & caching
-  const { data, isLoading, isValidating, mutate } = useSWR(
-    `suppliers-page-${search}-${page}`,
-    () => supplierService.getSuppliers({ search, page, limit: 30 }),
+  const { data, isLoading, isValidating, error: swrError, mutate } = useSWR(
+    `suppliers-page-${currentQueryKey}-${page}`,
+    async () => {
+      const res = await supplierService.getSuppliers({ search, page, limit: 30 });
+      return { ...res, _queryKey: currentQueryKey, _page: page };
+    },
     { ttl: 5 * 60 * 1000 }
   );
 
@@ -195,45 +211,72 @@ export default function SuppliersPage() {
   const totalCount = data?.total || suppliers.length;
   const hasMore = data?.pages ? page < data.pages : false;
 
-  // Reset page when search changes
+  // Keep synchronization refs up-to-date
+  hasMoreRef.current = hasMore;
+  isValidatingRef.current = isValidating;
+
+  // Reset page and advance active query key when search/filter changes
   useEffect(() => {
     setPage(1);
-  }, [search]);
+    pendingPageRef.current = null;
+    isFetchingRef.current = false;
+    setIsFetching(false);
+    activeQueryKeyRef.current = currentQueryKey;
+  }, [currentQueryKey]);
 
-  // Accumulate suppliers as pages arrive
+  // Accumulate suppliers as pages arrive (guarded by query provenance)
   useEffect(() => {
     if (!data?.suppliers) return;
 
-    if (page === 1) {
-      setAccumulatedSuppliers(data.suppliers);
+    // Provenance Verification: Drop responses belonging to an obsolete filter generation
+    if (data._queryKey && data._queryKey !== activeQueryKeyRef.current) {
       return;
     }
 
-    setAccumulatedSuppliers(prev => {
-      const existingIds = new Set(prev.map(s => s._id));
-      const newSuppliers = data.suppliers.filter(s => !existingIds.has(s._id));
-      return [...prev, ...newSuppliers];
-    });
+    if (page === 1) {
+      setAccumulatedSuppliers(data.suppliers);
+    } else {
+      setAccumulatedSuppliers(prev => {
+        const existingIds = new Set(prev.map(s => s._id));
+        const newSuppliers = data.suppliers.filter(s => !existingIds.has(s._id));
+        return [...prev, ...newSuppliers];
+      });
+    }
+
+    // Release lock only after the specific requested page has completed successfully
+    if (pendingPageRef.current !== null && (data._page === pendingPageRef.current || data.page === pendingPageRef.current)) {
+      isFetchingRef.current = false;
+      setIsFetching(false);
+      pendingPageRef.current = null;
+    }
   }, [data, page]);
 
-  // Infinite Scroll Observer
-  const lastElementRef = useCallback((node) => {
-    if (isValidating) return;
-    if (observer.current) observer.current.disconnect();
-
-    if (node) {
-      const scrollParent = node.closest('main') || null;
-      observer.current = new IntersectionObserver(
-        entries => {
-          if (entries[0].isIntersecting && !isValidating && hasMore) {
-            setPage(prev => prev + 1);
-          }
-        },
-        { root: scrollParent, threshold: 0.1 }
-      );
-      observer.current.observe(node);
+  // Failure Path: Release lock on request error so infinite scroll is not permanently disabled
+  useEffect(() => {
+    if (swrError && pendingPageRef.current !== null) {
+      isFetchingRef.current = false;
+      setIsFetching(false);
+      pendingPageRef.current = null;
     }
-  }, [isValidating, hasMore]);
+  }, [swrError]);
+
+  // Dedicated load trigger function controlling pagination and synchronous request lock
+  const loadNextPage = useCallback(() => {
+    if (isFetchingRef.current || isValidatingRef.current || !hasMoreRef.current) return;
+    isFetchingRef.current = true;
+    setIsFetching(true);
+    pendingPageRef.current = page + 1;
+    setPage(prev => prev + 1);
+  }, [page]);
+  loadNextPageRef.current = loadNextPage;
+
+  // Level-triggered reactive infinite scroll sentinel
+  const { sentinelRef } = useInfiniteScrollSentinel({
+    hasMore,
+    isFetching,
+    isValidating,
+    onLoadMore: loadNextPage
+  });
 
   const filteredSuppliers = useMemo(() => {
     return suppliers.filter(s => {
@@ -488,13 +531,22 @@ export default function SuppliersPage() {
         </div>
       )}
 
-      {/* Infinite Scroll Loader */}
-      {(hasMore || isValidating) && (
-        <div ref={lastElementRef} className="p-4 glass-card flex items-center justify-center gap-2 text-slate-400">
-          <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
-          <span className="text-sm">Loading more suppliers...</span>
-        </div>
-      )}
+      {/* Persistent Sentinel Container (stays mounted in DOM; visibility toggles smoothly) */}
+      <div
+        ref={sentinelRef}
+        className={`w-full flex items-center justify-center p-4 min-h-[48px] my-2 transition-all ${
+          !hasMore ? 'hidden pointer-events-none' : ''
+        }`}
+      >
+        {isFetching || (isValidating && page > 1) ? (
+          <div className="flex items-center gap-2 text-slate-400">
+            <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
+            <span className="text-sm font-medium text-slate-300">Loading more suppliers...</span>
+          </div>
+        ) : (
+          <div className="h-6 w-full opacity-0 pointer-events-none" aria-hidden="true" />
+        )}
+      </div>
 
       {/* Supplier Modal */}
       <SupplierFormModal

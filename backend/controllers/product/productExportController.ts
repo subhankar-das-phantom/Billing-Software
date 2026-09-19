@@ -61,7 +61,7 @@ export const exportProducts = async (req: any, res: Response, next: NextFunction
       aggregationPipeline.push({ $match: { effectiveStockQty: 0 } });
     }
 
-    aggregationPipeline.push({ $sort: { createdAt: -1 } });
+    aggregationPipeline.push({ $sort: { createdAt: -1, _id: -1 } });
 
     // 2. Fetch Data
     const products = await Product.aggregate(aggregationPipeline);
