@@ -29,6 +29,7 @@ import { invalidateCachePattern, useDebounce, useFirstVisit, useMediaQuery, useM
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 import { VirtualizedList } from '../../components/Common/VirtualizedList';
 import CollapsibleMobileCard from '../../components/Common/Cards/CollapsibleMobileCard';
+import { findScrollParent, INFINITE_SCROLL_THRESHOLD, INFINITE_SCROLL_ROOT_MARGIN } from '../../utils/scrollUtils';
 
 // Factory functions for adaptive variants
 const createPageVariants = (isMobile, shouldStagger) => ({
@@ -97,10 +98,23 @@ export default function InvoicesPage() {
   const cardVariants = useMemo(() => createCardVariants(motionConfig.isMobile), [motionConfig.isMobile]);
   const tableRowVariants = useMemo(() => createTableRowVariants(motionConfig.isMobile, motionConfig.shouldStagger), [motionConfig.isMobile, motionConfig.shouldStagger]);
 
+  const currentQueryKey = `${search}-${statusFilter}-${startDate}-${endDate}`;
+  const activeQueryKeyRef = useRef(currentQueryKey);
+
+  const isFetchingRef = useRef(false);
+  const pendingPageRef = useRef(null);
+
+  // State synchronization refs for stable observer
+  const hasMoreRef = useRef(false);
+  const isValidatingRef = useRef(false);
+  const loadNextPageRef = useRef(null);
+  const sentinelRef = useRef(null);
+  const [scrollRoot, setScrollRoot] = useState(null);
+
   // SWR: Invoice list (server-side filters + infinite scroll)
-  const { data, isLoading, isValidating } = useSWR(
-    `invoices-page-${search}-${statusFilter}-${startDate}-${endDate}-${page}`,
-    () => {
+  const { data, isLoading, isValidating, error: swrError } = useSWR(
+    `invoices-page-${currentQueryKey}-${page}`,
+    async () => {
       const params = {
         page,
         limit: 20,
@@ -113,7 +127,8 @@ export default function InvoicesPage() {
       if (startDate) params.startDate = startDate;
       if (endDate) params.endDate = endDate;
 
-      return invoiceService.getInvoices(params);
+      const res = await invoiceService.getInvoices(params);
+      return { ...res, _queryKey: currentQueryKey, _page: page };
     },
     { ttl: 5 * 60 * 1000 } // 5 minute cache
   );
@@ -131,51 +146,93 @@ export default function InvoicesPage() {
   const totalMatched = data?.total || 0;
   const hasMore = data?.hasMore ?? (data?.pages ? page < data.pages : false);
 
-  // Reset page when filters/search change.
-  // We intentionally do NOT clear accumulatedInvoices here — clearing it
-  // causes invoices.length===0 which flashes the PageLoader even when
-  // SWR has cached data. Instead, the accumulation effect below replaces
-  // the list when page===1 data arrives.
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPage(1);
-  }, [search, statusFilter, startDate, endDate]);
+  // Keep synchronization refs up-to-date
+  hasMoreRef.current = hasMore;
+  isValidatingRef.current = isValidating;
 
-  // Accumulate invoices as pages arrive
+  // Reset page and advance active query key when filters/search change.
+  useEffect(() => {
+    setPage(1);
+    pendingPageRef.current = null;
+    isFetchingRef.current = false;
+    activeQueryKeyRef.current = currentQueryKey;
+  }, [currentQueryKey]);
+
+  // Accumulate invoices as pages arrive (guarded by query provenance)
   useEffect(() => {
     if (!data?.invoices) return;
 
-    if (page === 1) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setAccumulatedInvoices(data.invoices);
+    // Provenance Verification: Drop responses belonging to an obsolete filter generation
+    if (data._queryKey && data._queryKey !== activeQueryKeyRef.current) {
       return;
     }
 
-    setAccumulatedInvoices(prev => {
-      const existingIds = new Set(prev.map(inv => inv._id));
-      const newInvoices = data.invoices.filter(inv => !existingIds.has(inv._id));
-      return [...prev, ...newInvoices];
-    });
+    if (page === 1) {
+      setAccumulatedInvoices(data.invoices);
+    } else {
+      setAccumulatedInvoices(prev => {
+        const existingIds = new Set(prev.map(inv => inv._id));
+        const newInvoices = data.invoices.filter(inv => !existingIds.has(inv._id));
+        return [...prev, ...newInvoices];
+      });
+    }
+
+    // Release lock only after the specific requested page has completed successfully
+    if (pendingPageRef.current !== null && (data._page === pendingPageRef.current || data.page === pendingPageRef.current)) {
+      isFetchingRef.current = false;
+      pendingPageRef.current = null;
+    }
   }, [data, page]);
 
-  // Infinite Scroll Observer
-  const lastElementRef = useCallback((node) => {
-    if (isValidating) return;
-    if (observer.current) observer.current.disconnect();
-
-    if (node) {
-      const scrollParent = node.closest('main') || null;
-      observer.current = new IntersectionObserver(
-        entries => {
-          if (entries[0].isIntersecting && !isValidating && hasMore) {
-            setPage(prev => prev + 1);
-          }
-        },
-        { root: scrollParent, threshold: 0.1 }
-      );
-      observer.current.observe(node);
+  // Failure Path: Release lock on request error so infinite scroll is not permanently disabled
+  useEffect(() => {
+    if (swrError && pendingPageRef.current !== null) {
+      isFetchingRef.current = false;
+      pendingPageRef.current = null;
     }
-  }, [isValidating, hasMore]);
+  }, [swrError]);
+
+  // Dedicated load trigger function controlling pagination and synchronous request lock
+  const loadNextPage = useCallback(() => {
+    if (isFetchingRef.current || isValidatingRef.current || !hasMoreRef.current) return;
+    isFetchingRef.current = true;
+    pendingPageRef.current = page + 1;
+    setPage(p => p + 1);
+  }, [page]);
+  loadNextPageRef.current = loadNextPage;
+
+  // Dynamic Scroll Root State: Re-resolves ONLY on viewport resize or layout changes
+  useEffect(() => {
+    const node = sentinelRef.current;
+    if (!node) return;
+
+    const updateRoot = () => {
+      const resolvedRoot = findScrollParent(node);
+      setScrollRoot(prev => (prev !== resolvedRoot ? resolvedRoot : prev));
+    };
+
+    updateRoot();
+    window.addEventListener('resize', updateRoot);
+    return () => window.removeEventListener('resize', updateRoot);
+  }, [isDesktop]);
+
+  // Truly Stable IntersectionObserver: Only recreates if the genuine scroll root element changes
+  useEffect(() => {
+    const node = sentinelRef.current;
+    if (!node || !scrollRoot) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && hasMoreRef.current && !isValidatingRef.current && !isFetchingRef.current) {
+          loadNextPageRef.current?.();
+        }
+      },
+      { root: scrollRoot, threshold: INFINITE_SCROLL_THRESHOLD, rootMargin: INFINITE_SCROLL_ROOT_MARGIN }
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [scrollRoot]);
 
   const stats = {
     total: invoiceStatsData?.stats?.totalInvoices || 0,
@@ -470,9 +527,10 @@ export default function InvoicesPage() {
           <div className="space-y-4">
             {/* Desktop Table View */}
             {isDesktop ? (
-            <div className="glass-card overflow-x-auto min-w-[800px]">
-              {/* Header Row */}
-              <div className="grid grid-cols-[120px_125px_minmax(210px,1.5fr)_100px_120px_115px_120px_90px_100px] items-center px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-700/50 bg-slate-800/50">
+            <div className="glass-card w-full overflow-x-auto" data-horizontal-table-scroll="true">
+              <div className="min-w-[800px]">
+                {/* Header Row */}
+                <div className="grid grid-cols-[120px_125px_minmax(210px,1.5fr)_100px_120px_115px_120px_90px_100px] items-center px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-700/50 bg-slate-800/50">
                 <div>Invoice #</div>
                 <div>Date</div>
                 <div>Customer</div>
@@ -579,6 +637,7 @@ export default function InvoicesPage() {
                           );
                         }}
                       />
+                </div>
               </div>
             </div>
             ) : (
@@ -718,13 +777,22 @@ export default function InvoicesPage() {
             />
             )}
 
-            {/* Infinite Scroll Loader */}
-            {(hasMore || isValidating) && (
-              <div ref={lastElementRef} className="p-4 glass-card flex items-center justify-center gap-2 text-slate-400">
-                <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
-                <span className="text-sm">Loading more invoices...</span>
-              </div>
-            )}
+            {/* Persistent Sentinel Container (stays mounted in DOM; visibility toggles smoothly) */}
+            <div
+              ref={sentinelRef}
+              className={`w-full flex items-center justify-center p-4 min-h-[48px] my-2 transition-all ${
+                !hasMore ? 'hidden pointer-events-none' : ''
+              }`}
+            >
+              {isValidating ? (
+                <div className="flex items-center gap-2 text-slate-400">
+                  <Loader2 className="w-5 h-5 animate-spin text-emerald-400" />
+                  <span className="text-sm font-medium">Loading more invoices...</span>
+                </div>
+              ) : (
+                <div className="h-6 w-full opacity-0 pointer-events-none" aria-hidden="true" />
+              )}
+            </div>
           </div>
         )}
       </AnimatePresence>

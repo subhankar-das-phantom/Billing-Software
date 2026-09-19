@@ -1,25 +1,8 @@
 import { useLayoutEffect, useRef, useState, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import { findScrollParent } from '../../utils/scrollUtils';
 
 const DEFAULT_OVERSCAN = 10;
-
-/**
- * Finds the nearest scrollable ancestor container (e.g. <main>),
- * or falls back to document.querySelector('main') / window / documentElement.
- */
-function findScrollParent(node) {
-  if (!node || typeof window === 'undefined') return null;
-  let parent = node.parentElement;
-  while (parent && parent !== document.body && parent !== document.documentElement) {
-    const style = window.getComputedStyle(parent);
-    const overflowY = style.overflowY;
-    if (overflowY === 'auto' || overflowY === 'scroll') {
-      return parent;
-    }
-    parent = parent.parentElement;
-  }
-  return document.querySelector('main') || (typeof document !== 'undefined' ? document.documentElement : null);
-}
 
 function useScrollParentAndMargin() {
   const ref = useRef(null);

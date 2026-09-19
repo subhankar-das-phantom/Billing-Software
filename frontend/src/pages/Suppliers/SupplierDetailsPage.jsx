@@ -628,68 +628,80 @@ export default function SupplierDetailsPage() {
                 </div>
               ) : isDesktop ? (
                 /* Desktop Table */
-                <div className="glass-card overflow-x-auto min-w-[750px]">
-                  <div className="grid grid-cols-[130px_110px_130px_90px_130px_120px_110px_100px] items-center px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-700/50 bg-slate-800/50">
-                    <div>Purchase #</div>
-                    <div>Date</div>
-                    <div>Bill / Ref #</div>
-                    <div>Items</div>
-                    <div>Amount</div>
-                    <div>Payment</div>
-                    <div>Status</div>
-                    <div className="text-right">Action</div>
-                  </div>
-                  <div>
-                    <VirtualizedList
-                      items={filteredPurchases}
-                      estimateSize={() => 64}
-                      getKey={(p) => p._id}
-                      itemClassName="border-b border-slate-700/50 hover:bg-slate-800/40"
-                      renderItem={(p) => {
-                        const isCancelled = p.status === 'CANCELLED';
-                        const StatusIcon = statusConfig[p.status]?.icon || ShoppingBag;
-                        const PaymentIcon = paymentConfig[p.paymentType]?.icon || CreditCard;
+                <div className="glass-card w-full overflow-x-auto" data-horizontal-table-scroll="true">
+                  <div className="min-w-[750px]">
+                    <div className="grid grid-cols-[130px_110px_130px_90px_130px_120px_110px_100px] items-center px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-700/50 bg-slate-800/50">
+                      <div>Purchase #</div>
+                      <div>Date</div>
+                      <div>Bill / Ref #</div>
+                      <div>Items</div>
+                      <div>Amount</div>
+                      <div>Payment</div>
+                      <div>Status</div>
+                      <div className="text-right">Action</div>
+                    </div>
+                    <div>
+                      <VirtualizedList
+                        items={filteredPurchases}
+                        estimateSize={() => 64}
+                        getKey={(p) => p._id}
+                        itemClassName="border-b border-slate-700/50 hover:bg-slate-800/40"
+                        renderItem={(p) => {
+                          const isCancelled = p.status === 'CANCELLED';
+                          const StatusIcon = statusConfig[p.status]?.icon || ShoppingBag;
+                          const PaymentIcon = paymentConfig[p.paymentType]?.icon || CreditCard;
 
-                        return (
-                          <div className={`grid grid-cols-[130px_110px_130px_90px_130px_120px_110px_100px] items-center px-4 py-3 text-sm transition-colors ${
-                            isCancelled ? 'bg-rose-500/10 text-rose-400' : ''
-                          }`}>
-                            <div 
-                              onClick={() => navigate(`/purchases/${p._id}`)} 
-                              className="font-medium text-blue-400 hover:text-blue-300 cursor-pointer flex items-center gap-1.5"
-                            >
-                              <ShoppingBag className="w-4 h-4" />
-                              {p.purchaseNumber}
-                            </div>
-                            <div className="text-slate-300">{formatDate(p.purchaseDate)}</div>
-                            <div className="text-slate-400 text-xs font-mono">{p.supplierInvoiceNumber || '-'}</div>
-                            <div className="text-slate-300">{p.items?.length || 0} items</div>
-                            <div className="font-bold text-emerald-400">{formatCurrency(p.totals?.grandTotal)}</div>
-                            <div>
-                              <span className={`badge ${paymentConfig[p.paymentType]?.class || 'badge-info'} text-xs inline-flex items-center gap-1`}>
-                                <PaymentIcon className="w-3 h-3" />
-                                {p.paymentType || 'Credit'}
-                              </span>
-                            </div>
-                            <div>
-                              <span className={`badge ${statusConfig[p.status]?.class || 'badge-info'} text-xs inline-flex items-center gap-1`}>
-                                <StatusIcon className="w-3 h-3" />
-                                {p.status}
-                              </span>
-                            </div>
-                            <div className="text-right">
-                              <button
-                                onClick={() => navigate(`/purchases/${p._id}`)}
-                                className="btn btn-secondary py-1 px-2.5 text-xs inline-flex items-center gap-1"
+                          return (
+                            <div className={`grid grid-cols-[130px_110px_130px_90px_130px_120px_110px_100px] items-center px-4 py-3 text-sm transition-colors ${
+                              isCancelled ? 'bg-rose-500/10 text-rose-400' : ''
+                            }`}>
+                              <div 
+                                onClick={() => navigate(`/purchases/${p._id}`)} 
+                                className="font-medium text-blue-400 hover:text-blue-300 cursor-pointer flex items-center gap-1.5"
                               >
-                                <Eye className="w-3.5 h-3.5" />
-                                View
-                              </button>
+                                <ShoppingBag className="w-4 h-4 text-slate-400" />
+                                {p.purchaseNumber}
+                              </div>
+                              <div className="text-slate-400 text-xs">
+                                {formatDate(p.purchaseDate)}
+                              </div>
+                              <div className="text-slate-300 font-mono text-xs">
+                                {p.supplierInvoiceNumber || '-'}
+                              </div>
+                              <div className="text-slate-400 text-xs">
+                                {p.items?.length || 0} items
+                              </div>
+                              <div className="font-bold text-emerald-400">
+                                {formatCurrency(p.totals?.grandTotal)}
+                              </div>
+                              <div>
+                                <span className={`badge ${paymentConfig[p.paymentType]?.class || 'badge-info'} text-[11px]`}>
+                                  <PaymentIcon className="w-3 h-3 mr-1" />
+                                  {p.paymentType || 'Credit'}
+                                </span>
+                              </div>
+                              <div>
+                                <span className={`badge ${statusConfig[p.status]?.class || 'badge-info'} text-[11px]`}>
+                                  <StatusIcon className="w-3 h-3 mr-1" />
+                                  {p.status}
+                                </span>
+                              </div>
+                              <div className="text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => navigate(`/purchases/${p._id}`)}
+                                  className="btn btn-secondary py-1 px-2.5 text-xs inline-flex items-center gap-1 group"
+                                  title="View purchase details"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                  View
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                        );
-                      }}
-                    />
+                          );
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
               ) : (

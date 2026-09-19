@@ -943,7 +943,7 @@ export default function CustomerDetailsPage() {
                     </motion.div>
                   </div>
                 ) : (
-                  <div className={isDesktop ? "glass-card overflow-x-auto" : ""}>
+                  <div className={isDesktop ? "glass-card w-full overflow-x-auto" : ""} data-horizontal-table-scroll={isDesktop ? "true" : undefined}>
                     {isDesktop && (
                       <div className="grid grid-cols-[130px_130px_100px_minmax(120px,1.5fr)_130px_130px_140px] min-w-[880px] items-center px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-700/50 bg-slate-800/50">
                         <div>Invoice #</div>
@@ -1153,7 +1153,7 @@ export default function CustomerDetailsPage() {
                     )}
                   </div>
                 ) : (
-                  <div className={isDesktop ? "glass-card overflow-x-auto" : ""}>
+                  <div className={isDesktop ? "glass-card w-full overflow-x-auto" : ""} data-horizontal-table-scroll={isDesktop ? "true" : undefined}>
                     {isDesktop && (
                       <div className={`grid ${isAdmin ? 'grid-cols-[minmax(180px,2fr)_125px_120px_130px_150px_100px]' : 'grid-cols-[minmax(180px,2fr)_125px_120px_130px_150px]'} min-w-[800px] items-center px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-700/50 bg-slate-800/50`}>
                         <div>Reference / Invoice</div>
