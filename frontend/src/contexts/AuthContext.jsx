@@ -166,12 +166,18 @@ export const AuthProvider = ({ children }) => {
             if (data.admin?.preferences?.themeMode) {
               setThemeMode(data.admin.preferences.themeMode);
             }
+            if (data.admin?.preferences?.mobileCardDensity) {
+              localStorage.setItem('bharat_mobile_card_density', data.admin.preferences.mobileCardDensity);
+            }
           } else {
             setUser(data.user);
             localStorage.setItem('user', JSON.stringify(data.user));
             localStorage.setItem('userRole', 'employee');
             if (data.user?.preferences?.themeMode) {
               setThemeMode(data.user.preferences.themeMode);
+            }
+            if (data.user?.preferences?.mobileCardDensity) {
+              localStorage.setItem('bharat_mobile_card_density', data.user.preferences.mobileCardDensity);
             }
           }
         }
@@ -232,6 +238,9 @@ export const AuthProvider = ({ children }) => {
           if (data.admin?.preferences?.themeMode) {
             setThemeMode(data.admin.preferences.themeMode);
           }
+          if (data.admin?.preferences?.mobileCardDensity) {
+            localStorage.setItem('bharat_mobile_card_density', data.admin.preferences.mobileCardDensity);
+          }
           
           setAuthTransition(null);
           setTimeout(() => {
@@ -246,6 +255,9 @@ export const AuthProvider = ({ children }) => {
           setAdmin(null);
           if (data.employee?.preferences?.themeMode) {
             setThemeMode(data.employee.preferences.themeMode);
+          }
+          if (data.employee?.preferences?.mobileCardDensity) {
+            localStorage.setItem('bharat_mobile_card_density', data.employee.preferences.mobileCardDensity);
           }
           
           setAuthTransition(null);
@@ -276,6 +288,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('admin');
       localStorage.removeItem('user');
       localStorage.removeItem('userRole');
+      localStorage.removeItem('bharat_mobile_card_density');
       setAdmin(null);
       setUser(null);
       setUserRole(null);
@@ -308,6 +321,10 @@ export const AuthProvider = ({ children }) => {
 
     if (newPreferences?.themeMode) {
       setThemeMode(newPreferences.themeMode);
+    }
+    
+    if (newPreferences?.mobileCardDensity) {
+      localStorage.setItem('bharat_mobile_card_density', newPreferences.mobileCardDensity);
     }
     
     if (userRole === 'admin') {

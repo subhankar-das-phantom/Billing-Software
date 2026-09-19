@@ -90,6 +90,7 @@ function buildCustomerFilter(tenantId: unknown, query: CustomerQuery = {}): Cust
       { customerName: { $regex: pattern, $options: 'i' } },
       { phone: { $regex: pattern, $options: 'i' } },
       { gstin: { $regex: pattern, $options: 'i' } },
+      { address: { $regex: pattern, $options: 'i' } },
     ];
 
     if (useFuzzy && rawSearch.length >= 2) {
@@ -98,7 +99,8 @@ function buildCustomerFilter(tenantId: unknown, query: CustomerQuery = {}): Cust
         conditions.push(
           { customerName: { $regex: fuzzyPattern, $options: 'i' } },
           { phone: { $regex: fuzzyPattern, $options: 'i' } },
-          { gstin: { $regex: fuzzyPattern, $options: 'i' } }
+          { gstin: { $regex: fuzzyPattern, $options: 'i' } },
+          { address: { $regex: fuzzyPattern, $options: 'i' } }
         );
       }
     }

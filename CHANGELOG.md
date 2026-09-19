@@ -4,6 +4,51 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.4.3](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.4.3) — 2026-09-19 — Progressive Disclosure Mobile Cards, User Card View Preferences, Navigation Scroll Anchoring & Modal Address Search
+
+### 📱 Mobile Information Architecture, Dynamic Density & Ergonomic Navigation Milestone
+Version 2.4.3 introduces a major mobile user experience overhaul by eliminating visual maximalism across small displays (< 768px). Financial records (Invoices, Collections, Customer Ledgers, and Payments) now render in a high-density, compact summary view by default with an accessible expand arrow to reveal secondary details on demand. This behavior is dynamically configurable per user in Settings with instant Frame-0 client caching. Additionally, this release fixes cross-page scroll retention, streamlines the scroll-to-top button with zero animation overhead, and surfaces customer addresses directly in payment collection workflows.
+
+---
+
+### 🗂️ Reusable Progressive Disclosure Card Primitive (`CollapsibleMobileCard.jsx`)
+- **Compact Default Target (~78px)** — Eliminates excessive mobile vertical scrolling by rendering clean, condensed summary cards displaying primary identifiers (Entity ID, Customer, Date, Net Amount, and Status Badge).
+- **Dedicated Accessible Toggle Button** — Features an un-nested, accessible chevron button (`min-w-[44px] min-h-[44px]`) equipped with `aria-expanded`, `aria-controls`, and `aria-label`.
+- **Zero-Nesting Conflict Guard** — Clickable links (e.g. `<Link to="/invoices/:id">`) and interactive action buttons sit outside the toggle trigger. Neutral header clicks toggle expansion while clicks on links and action buttons execute independently without event interference.
+- **Zero-Jitter Instant DOM Disclosure** — Avoids heavy layout/transform animations during expansion to ensure `@tanstack/react-virtual` measures element heights naturally on Frame 0 with zero coordinate drift or subpixel jitter.
+
+---
+
+### 🌐 Universal Mobile Progressive Disclosure Rollout (`InvoicesPage.jsx`, `CollectionsPage.jsx`, `CustomerDetailsPage.jsx`, `CreditsPage.jsx`)
+- **Invoices Page** — Compact summary with dynamic virtualization sizing (`estimateSize: 78px` compact vs `220px` expanded); reveals customer phone, item count, payment method, and "View Details" button on expansion.
+- **Collections Page** — Compact summary (~78px) with customer name, amount, method pill, and time; reveals phone, invoice link / manual entry badge, UTR copy button, cashier attribution, and receipt slip modal action on expansion.
+- **Customer Details Page**:
+  - **Invoices Tab**: Compact card (~78px) revealing item counts, partial due amounts, and direct payment recording.
+  - **Payments Tab**: Compact card (~76px) revealing payment type, UTR reference, and administrator Edit/Delete controls.
+  - **Customer Ledger Tab**: Compact card (~78px) displaying transaction ref and running balance (Dr/Cr); reveals payment mode, notes, and 3-column Debit / Credit / Balance financial breakdown on expansion.
+- **Credit Notes Page** — Responsive desktop horizontal row vs mobile compact card with collapsible details for recent payments.
+
+---
+
+### ⚙️ User Preferences & Frame-0 Client Cache (`Admin.js`, `Employee.js`, `authController.js`, `AuthContext.jsx`, `SettingsPage.jsx`)
+- **Backend Schema & Validation** — Added `mobileCardDensity: { type: String, enum: ['compact', 'expanded'], default: 'compact' }` to `preferences` on both `Admin` and `Employee` models, with strict HTTP 400 Bad Request validation in `updatePreferences`.
+- **Instant Frame-0 Client Pre-seeding** — Synchronizes authenticated density preference with `localStorage.getItem('bharat_mobile_card_density')` on auth check and login, eliminating delayed layout pop-in shifts on page load.
+- **Settings UI & Optimistic Updates** — Added a friendly "Mobile Card View" selector in Settings Preferences with optimistic client updates, non-technical explanations, and strict rollback on API error.
+
+---
+
+### 🧭 Navigation Scroll Anchoring & Direction-Aware Controls (`DashboardLayout.jsx`)
+- **Route-Change Scroll Reset** — Fixed an issue where navigating between pages (e.g., from Invoices to Settings) preserved the scrollbar position of the previous page. Automatically resets `mainRef.current.scrollTop = 0` on every `location.pathname` change and anchors to the top via `requestAnimationFrame`.
+- **Zero-Overhead Scroll-To-Top Button** — Streamlined the scroll button to hide on downward scroll and appear on upward scroll, lifting near the bottom to keep pagination bars unobstructed. Removed heavy Framer Motion animations and backdrop filters to eliminate scroll stutter and frame drops.
+
+---
+
+### 📍 Customer Address Display & Search in Collections (`RecordPaymentModal.jsx`, `customerController.js`, `buildCustomerFilter.ts`)
+- **Address in Payment Modal** — Displays customer billing addresses with a `<MapPin />` icon in customer search results and selected customer cards for quick physical verification during payment collection.
+- **Backend Address Search** — Added substring contains regex matching over `address` in `customerController.js` and `buildCustomerFilter.ts`.
+
+---
+
 ## [v2.4.2](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.4.2) — 2026-09-13 — Universal Search Debouncing, Zero-CLS Subscription Banner, Collections Search Unification & N+1 Query Elimination
 
 ### ⚡ Enterprise Performance, Search Architecture & Layout Stability Milestone

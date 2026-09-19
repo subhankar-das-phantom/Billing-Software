@@ -23,9 +23,11 @@ import {
 } from '../../services/credits/creditService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { OutstandingTabSkeleton, AgeingTabSkeleton, PaymentsTabSkeleton } from './CreditsPageSkeleton';
-import { useSWR, useFirstVisit } from '../../hooks';
+import { useSWR, useFirstVisit, useMediaQuery } from '../../hooks';
+import { useAuth } from '../../contexts/AuthContext';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 import { VirtualizedList } from '../../components/Common/VirtualizedList';
+import CollapsibleMobileCard from '../../components/Common/Cards/CollapsibleMobileCard';
 
 // Animated counter component
 const AnimatedCounter = ({ value, prefix = '', suffix = '', decimals = 0 }) => {
@@ -55,6 +57,13 @@ const AnimatedCounter = ({ value, prefix = '', suffix = '', decimals = 0 }) => {
 export default function CreditsPage() {
   const [activeTab, setActiveTab] = useState('outstanding');
   const isFirstVisit = useFirstVisit('credits');
+  const isDesktop = useMediaQuery('(min-width: 768px)');
+  const { user, admin } = useAuth();
+
+  // Mobile card density preference with Frame-0 cache pre-seeding
+  const storedDensity = typeof window !== 'undefined' ? localStorage.getItem('bharat_mobile_card_density') : null;
+  const initialDensity = storedDensity === 'expanded' || storedDensity === 'compact' ? storedDensity : 'compact';
+  const mobileCardDensity = user?.preferences?.mobileCardDensity || admin?.preferences?.mobileCardDensity || initialDensity;
 
   // Outstanding infinite scroll state
   const [outstandingPage, setOutstandingPage] = useState(1);
@@ -508,45 +517,95 @@ export default function CreditsPage() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {recentPayments.map((payment, index) => (
-                      <div
-                        key={payment._id}
-                        className="p-3 sm:p-4 bg-slate-800/50 rounded-xl border border-slate-700/50"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2.5 sm:gap-4 min-w-0">
-                            <div className="p-2 sm:p-2.5 bg-emerald-500/20 rounded-lg shrink-0">
-                              <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-sm sm:text-base font-medium text-slate-100 truncate">
-                                {payment.customer?.customerName || 'Unknown Customer'}
-                              </p>
-                              <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs sm:text-sm text-slate-400">
-                                <span>{payment.invoiceSnapshot?.invoiceNumber}</span>
-                                <span>•</span>
-                                <span>{payment.paymentMethod}</span>
-                                {payment.referenceNumber && (
-                                  <>
+                    {recentPayments.map((payment, index) => {
+                      if (isDesktop) {
+                        return (
+                          <div
+                            key={payment._id}
+                            className="p-3 sm:p-4 bg-slate-800/50 rounded-xl border border-slate-700/50"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2.5 sm:gap-4 min-w-0">
+                                <div className="p-2 sm:p-2.5 bg-emerald-500/20 rounded-lg shrink-0">
+                                  <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-sm sm:text-base font-medium text-slate-100 truncate">
+                                    {payment.customer?.customerName || 'Unknown Customer'}
+                                  </p>
+                                  <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs sm:text-sm text-slate-400">
+                                    <span>{payment.invoiceSnapshot?.invoiceNumber}</span>
                                     <span>•</span>
-                                    <span className="text-slate-500">Ref: {payment.referenceNumber}</span>
-                                  </>
-                                )}
+                                    <span>{payment.paymentMethod}</span>
+                                    {payment.referenceNumber && (
+                                      <>
+                                        <span>•</span>
+                                        <span className="text-slate-500">Ref: {payment.referenceNumber}</span>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm sm:text-lg font-semibold text-emerald-400">
+                                  +{formatCurrency(payment.amount)}
+                                </p>
+                                <p className="text-xs text-slate-500 flex items-center gap-1 justify-end">
+                                  <Calendar className="w-3 h-3" />
+                                  {formatDate(payment.paymentDate)}
+                                </p>
                               </div>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-sm sm:text-lg font-semibold text-emerald-400">
-                              +{formatCurrency(payment.amount)}
-                            </p>
-                            <p className="text-xs text-slate-500 flex items-center gap-1 justify-end">
-                              <Calendar className="w-3 h-3" />
-                              {formatDate(payment.paymentDate)}
-                            </p>
+                        );
+                      }
+
+                      return (
+                        <CollapsibleMobileCard
+                          key={payment._id}
+                          id={payment._id}
+                          entityType="payment"
+                          defaultExpanded={mobileCardDensity === 'expanded'}
+                          summary={
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="text-sm font-semibold text-slate-100 truncate">
+                                  {payment.customer?.customerName || 'Unknown Customer'}
+                                </p>
+                                <p className="text-sm font-bold font-mono text-emerald-400 shrink-0">
+                                  +{formatCurrency(payment.amount)}
+                                </p>
+                              </div>
+                              <div className="flex items-center justify-between text-xs text-slate-400">
+                                <span className="font-mono text-[11px] text-slate-400 flex items-center gap-1">
+                                  <Calendar className="w-3 h-3 text-slate-500" />
+                                  {formatDate(payment.paymentDate)}
+                                </span>
+                                <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border border-slate-700 bg-slate-800 text-slate-300">
+                                  <CreditCard className="w-3 h-3 text-emerald-400" />
+                                  {payment.paymentMethod}
+                                </span>
+                              </div>
+                            </div>
+                          }
+                        >
+                          <div className="space-y-2 text-xs text-slate-400">
+                            {payment.invoiceSnapshot?.invoiceNumber && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-slate-500">Invoice:</span>
+                                <span className="font-mono text-slate-300">{payment.invoiceSnapshot.invoiceNumber}</span>
+                              </div>
+                            )}
+                            {payment.referenceNumber && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-slate-500">Reference:</span>
+                                <span className="font-mono text-slate-300">Ref: {payment.referenceNumber}</span>
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      </div>
-                    ))}
+                        </CollapsibleMobileCard>
+                      );
+                    })}
                   </div>
                 )}
               </div>

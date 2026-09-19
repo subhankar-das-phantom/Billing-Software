@@ -24,7 +24,10 @@ import {
   Crown,
   Sun,
   Moon,
-  Monitor
+  Monitor,
+  Smartphone,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -71,7 +74,8 @@ export default function SettingsPage() {
   const [preferences, setPreferences] = useState({
     themeMode: 'dark',
     showCalculator: true,
-    enableBatchTracking: false
+    enableBatchTracking: false,
+    mobileCardDensity: typeof window !== 'undefined' ? (localStorage.getItem('bharat_mobile_card_density') || 'compact') : 'compact'
   });
   const [preferencesLoading, setPreferencesLoading] = useState(false);
 
@@ -106,7 +110,8 @@ export default function SettingsPage() {
       setPreferences({
         themeMode: user.preferences.themeMode || activeThemeMode || 'dark',
         showCalculator: user.preferences.showCalculator !== false,
-        enableBatchTracking: user.preferences.enableBatchTracking === true
+        enableBatchTracking: user.preferences.enableBatchTracking === true,
+        mobileCardDensity: user.preferences.mobileCardDensity || 'compact'
       });
     }
   }, [user, userRole, activeThemeMode]);
@@ -197,6 +202,34 @@ export default function SettingsPage() {
       setPreferences(prev => ({ ...prev, themeMode: prevMode }));
       setThemeMode(prevMode);
       showError(err.message || 'Failed to update theme preference');
+    } finally {
+      setPreferencesLoading(false);
+    }
+  };
+
+  const handleSelectMobileCardDensity = async (density) => {
+    if (density === preferences.mobileCardDensity) return;
+    const prevDensity = preferences.mobileCardDensity || 'compact';
+
+    // 1. Optimistic UI update + instant Frame-0 cache write
+    setPreferences(prev => ({ ...prev, mobileCardDensity: density }));
+    updateUserPreferences({ mobileCardDensity: density });
+    localStorage.setItem('bharat_mobile_card_density', density);
+    setPreferencesLoading(true);
+
+    try {
+      // 2. Persist to MongoDB through authService
+      const result = await authService.updatePreferences({ mobileCardDensity: density });
+      if (!result?.success) {
+        throw new Error(result?.message || 'Failed to update card density preference');
+      }
+      showSuccess(`Mobile card view set to ${density === 'compact' ? 'Compact' : 'Expanded'}`);
+    } catch (err) {
+      // 3. Strict rollback on error
+      setPreferences(prev => ({ ...prev, mobileCardDensity: prevDensity }));
+      updateUserPreferences({ mobileCardDensity: prevDensity });
+      localStorage.setItem('bharat_mobile_card_density', prevDensity);
+      showError(err.message || 'Failed to update card density preference');
     } finally {
       setPreferencesLoading(false);
     }
@@ -551,6 +584,65 @@ export default function SettingsPage() {
                       <div className="text-sm font-semibold text-slate-100 flex items-center gap-1.5">
                         {item.label}
                         {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />}
+                      </div>
+                      <div className="text-xs text-slate-400">{item.desc}</div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Mobile Card Density Selector */}
+          <div className="p-5 bg-slate-950/40 rounded-2xl border border-white/5 space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-emerald-500/10 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+                <Smartphone className="w-6 h-6 text-emerald-400" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-100 text-base">Mobile Card View</h3>
+                <p className="text-sm text-slate-400 mt-0.5">Choose how bills and transactions appear on your mobile screen.</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              {[
+                { 
+                  id: 'compact', 
+                  label: 'Compact (Recommended)', 
+                  desc: 'Clean summary cards. Tap the arrow to see more details.', 
+                  icon: Minimize2, 
+                  activeBorder: 'border-emerald-500/80 bg-emerald-500/10 text-emerald-400' 
+                },
+                { 
+                  id: 'expanded', 
+                  label: 'Expanded', 
+                  desc: 'Shows all information on every card at once.', 
+                  icon: Maximize2, 
+                  activeBorder: 'border-blue-500/80 bg-blue-500/10 text-blue-400' 
+                }
+              ].map((item) => {
+                const IconComponent = item.icon;
+                const isSelected = (preferences.mobileCardDensity || 'compact') === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => handleSelectMobileCardDensity(item.id)}
+                    disabled={preferencesLoading}
+                    className={`flex items-center gap-3.5 p-3.5 rounded-xl border text-left transition-all duration-200 cursor-pointer ${
+                      isSelected
+                        ? `${item.activeBorder} shadow-sm`
+                        : 'border-white/5 bg-slate-900/40 text-slate-400 hover:text-slate-200 hover:border-white/10 hover:bg-slate-900/80'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-lg ${isSelected ? 'bg-white/10' : 'bg-slate-800'}`}>
+                      <IconComponent className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold text-slate-100 flex items-center gap-1.5">
+                        {item.label}
+                        {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
                       </div>
                       <div className="text-xs text-slate-400">{item.desc}</div>
                     </div>

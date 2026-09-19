@@ -502,7 +502,8 @@ exports.searchCustomers = async (req, res, next) => {
     const conditions = [
       { customerName: { $regex: pattern, $options: 'i' } },
       { phone: { $regex: pattern, $options: 'i' } },
-      { gstin: { $regex: pattern, $options: 'i' } }
+      { gstin: { $regex: pattern, $options: 'i' } },
+      { address: { $regex: pattern, $options: 'i' } }
     ];
 
     if (useFuzzy && q.trim().length >= 2) {
@@ -511,7 +512,8 @@ exports.searchCustomers = async (req, res, next) => {
         conditions.push(
           { customerName: { $regex: fuzzyPattern, $options: 'i' } },
           { phone: { $regex: fuzzyPattern, $options: 'i' } },
-          { gstin: { $regex: fuzzyPattern, $options: 'i' } }
+          { gstin: { $regex: fuzzyPattern, $options: 'i' } },
+          { address: { $regex: fuzzyPattern, $options: 'i' } }
         );
       }
     }

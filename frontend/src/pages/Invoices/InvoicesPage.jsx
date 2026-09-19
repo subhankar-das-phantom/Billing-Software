@@ -24,9 +24,11 @@ import { formatCurrency, formatDate } from '../../utils/formatters';
 import { InvoicesTableSkeleton } from './InvoicesPageSkeleton';
 import ExportModal from '../../components/Common/Modals/ExportModal';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { invalidateCachePattern, useDebounce, useFirstVisit, useMediaQuery, useMotionConfig, useSWR } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 import { VirtualizedList } from '../../components/Common/VirtualizedList';
+import CollapsibleMobileCard from '../../components/Common/Cards/CollapsibleMobileCard';
 
 // Factory functions for adaptive variants
 const createPageVariants = (isMobile, shouldStagger) => ({
@@ -81,6 +83,12 @@ export default function InvoicesPage() {
   const { success, error } = useToast();
   const navigate = useNavigate();
   const isDesktop = useMediaQuery('(min-width: 768px)');
+  const { user } = useAuth();
+
+  // Mobile card density preference with Frame-0 cache pre-seeding
+  const storedDensity = typeof window !== 'undefined' ? localStorage.getItem('bharat_mobile_card_density') : null;
+  const initialDensity = storedDensity === 'expanded' || storedDensity === 'compact' ? storedDensity : 'compact';
+  const mobileCardDensity = user?.preferences?.mobileCardDensity || initialDensity;
 
   // Adaptive motion configuration
   const motionConfig = useMotionConfig();
@@ -577,9 +585,9 @@ export default function InvoicesPage() {
             /* Mobile Card View */
             <VirtualizedList
               items={invoices}
-              estimateSize={() => 220}
+              estimateSize={() => (mobileCardDensity === 'compact' ? 78 : 220)}
               getKey={(invoice) => invoice._id}
-              gap={16}
+              gap={12}
               className="min-h-[220px]"
               renderItem={(invoice) => {
                 const StatusIcon = statusConfig[invoice.status]?.icon || FileText;
@@ -587,86 +595,124 @@ export default function InvoicesPage() {
                 const isCancelled = invoice.status === 'Cancelled';
 
                 return (
-                  <div className={`glass-card p-4 flex flex-col gap-4 relative overflow-hidden transition-colors ${isCancelled ? 'bg-red-500/10 border-red-500/20' : ''}`}>
-                    {/* Header: Invoice # + Date — clickable */}
-                    <div onClick={() => navigate(`/invoices/${invoice._id}`)} className="flex justify-between items-start gap-3 cursor-pointer rounded-lg -m-1 p-1 hover:bg-slate-700/30 transition-colors">
-                      <div className="flex gap-3 flex-1">
-                        <div className={`p-2.5 rounded-xl shrink-0 h-fit ${isCancelled ? 'bg-red-500/20' : 'bg-blue-500/20'}`}>
-                          <FileText className={`w-5 h-5 ${isCancelled ? 'text-red-400' : 'text-blue-400'}`} />
-                        </div>
-                        <div className="min-w-0">
-                          <h3 className={`font-semibold text-base mb-1 ${isCancelled ? 'text-red-400' : 'text-slate-100'}`}>
+                  <CollapsibleMobileCard
+                    id={invoice._id}
+                    entityType="invoice"
+                    isCancelled={isCancelled}
+                    defaultExpanded={mobileCardDensity === 'expanded'}
+                    summary={
+                      <div className="space-y-1">
+                        {/* Line 1: Primary ID + Net Amount */}
+                        <div className="flex items-center justify-between gap-2">
+                          <Link
+                            to={`/invoices/${invoice._id}`}
+                            className={`font-semibold text-sm truncate hover:underline ${
+                              isCancelled ? 'text-red-400' : 'text-slate-100 hover:text-blue-400'
+                            }`}
+                          >
                             {invoice.invoiceNumber}
-                          </h3>
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
-                            <span className={`flex items-center gap-1.5 shrink-0 ${isCancelled ? 'text-red-400' : ''}`}>
-                              <Calendar className="w-3.5 h-3.5" />
+                          </Link>
+                          <span
+                            className={`font-mono font-bold text-sm shrink-0 ${
+                              isCancelled ? 'text-red-400' : 'text-emerald-400'
+                            }`}
+                          >
+                            {formatCurrency(invoice.totals?.netTotal)}
+                          </span>
+                        </div>
+
+                        {/* Line 2: Customer Name + Date + Status Badge */}
+                        <div className="flex items-center justify-between gap-2 text-xs text-slate-400">
+                          <span className="truncate max-w-[150px] sm:max-w-[200px]" title={invoice.customer?.customerName}>
+                            {invoice.customer?.customerName || 'Walk-in Customer'}
+                          </span>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="font-mono text-[11px] text-slate-400">
                               {formatDate(invoice.invoiceDate)}
                             </span>
-                            <span className={`flex items-center gap-1.5 shrink-0 ${isCancelled ? 'text-red-400' : ''}`}>
-                              <Package className="w-3.5 h-3.5" />
-                              {invoice.items?.length || 0} items
+                            <span
+                              className={`badge ${
+                                statusConfig[invoice.status]?.class || 'badge-info'
+                              } inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5`}
+                            >
+                              <StatusIcon className="w-2.5 h-2.5" />
+                              {invoice.status}
                             </span>
                           </div>
                         </div>
                       </div>
-                      {/* Status Badge */}
-                      <span className={`badge ${statusConfig[invoice.status]?.class || 'badge-info'} inline-flex items-center gap-1.5 shrink-0`}>
-                        <StatusIcon className="w-3 h-3" />
-                        {invoice.status}
-                      </span>
-                    </div>
-
-                    {/* Customer + Amount Grid */}
-                    <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-700/50 bg-slate-800/30 -mx-4 px-4 pb-1">
-                      <div className="space-y-1.5">
-                        <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Customer</p>
-                        <div className="flex items-center gap-2">
-                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold border ${isCancelled ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'}`}>
-                            {invoice.customer?.customerName?.charAt(0)}
-                          </div>
-                          <div className="min-w-0">
-                            <p className={`font-medium text-sm truncate ${isCancelled ? 'text-red-400' : 'text-slate-100'}`}>
-                              {invoice.customer?.customerName}
-                            </p>
-                            <p className={`text-[10px] flex items-center gap-1 ${isCancelled ? 'text-red-400 opacity-80' : 'text-slate-400'}`}>
-                              <User className="w-2.5 h-2.5" />
-                              {invoice.customer?.phone}
-                            </p>
-                          </div>
-                        </div>
+                    }
+                  >
+                    {/* Expanded Details */}
+                    <div className="space-y-3 text-xs">
+                      {/* Customer Phone & Items Count */}
+                      <div className="flex items-center justify-between text-slate-300">
+                        {invoice.customer?.phone ? (
+                          <span className="flex items-center gap-1 font-mono text-slate-400">
+                            <User className="w-3.5 h-3.5 text-slate-500" />
+                            {invoice.customer.phone}
+                          </span>
+                        ) : (
+                          <span className="text-slate-500">No phone</span>
+                        )}
+                        <span className="flex items-center gap-1 text-slate-400">
+                          <Package className="w-3.5 h-3.5 text-slate-500" />
+                          {invoice.items?.length || 0} items
+                        </span>
                       </div>
 
-                      <div className="space-y-1.5 flex flex-col items-end">
-                        <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Amount</p>
-                        <p className={`font-semibold text-sm ${isCancelled ? 'text-red-400' : 'text-emerald-400'}`}>
-                          {formatCurrency(invoice.totals?.netTotal)}
-                        </p>
-                        <span className={`badge ${paymentConfig[invoice.paymentType]?.class || 'badge-info'} inline-flex items-center gap-1.5 px-2 py-0.5 text-xs`}>
+                      {/* Payment Method Badge & View Action */}
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-700/50">
+                        <span
+                          className={`badge ${
+                            paymentConfig[invoice.paymentType]?.class || 'badge-info'
+                          } inline-flex items-center gap-1 px-2 py-0.5 text-xs`}
+                        >
                           <PaymentIcon className="w-3 h-3" />
                           {invoice.paymentType}
                         </span>
+                        <Link
+                          to={`/invoices/${invoice._id}`}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/30 text-xs font-medium transition-colors"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          View Details
+                        </Link>
+                      </div>
+
+                      {/* Printed Toggle Row */}
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-700/50">
+                        <span className="text-slate-400 font-medium">Mark as Printed</span>
+                        <label
+                          className={`inline-flex items-center ${
+                            isCancelled || statusUpdating[invoice._id]
+                              ? 'cursor-not-allowed opacity-50'
+                              : 'cursor-pointer'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            aria-label={`Mark invoice ${invoice.invoiceNumber} as printed`}
+                            className="sr-only"
+                            checked={invoice.status === 'Printed'}
+                            disabled={isCancelled || statusUpdating[invoice._id]}
+                            onChange={(e) => handlePrintedToggle(invoice._id, e.target.checked)}
+                          />
+                          <div
+                            className={`relative w-9 h-5 rounded-full transition-colors shadow-inner ${
+                              invoice.status === 'Printed' ? 'bg-emerald-500' : 'bg-slate-700'
+                            }`}
+                          >
+                            <span
+                              className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
+                                invoice.status === 'Printed' ? 'translate-x-4' : 'translate-x-0'
+                              }`}
+                            />
+                          </div>
+                        </label>
                       </div>
                     </div>
-
-                    {/* Printed Toggle Row */}
-                    <div className="flex items-center justify-between pt-1 border-t border-slate-700/50 mt-1">
-                      <span className="text-xs text-slate-400 font-medium">Mark as Printed</span>
-                      <label className={`inline-flex items-center ${isCancelled || statusUpdating[invoice._id] ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
-                        <input
-                          type="checkbox"
-                          aria-label={`Mark invoice ${invoice.invoiceNumber} as printed`}
-                          className="sr-only"
-                          checked={invoice.status === 'Printed'}
-                          disabled={isCancelled || statusUpdating[invoice._id]}
-                          onChange={(e) => handlePrintedToggle(invoice._id, e.target.checked)}
-                        />
-                        <div className={`relative w-10 h-5 rounded-full transition-colors shadow-inner ${invoice.status === 'Printed' ? 'bg-emerald-500' : 'bg-slate-700'}`}>
-                          <span className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${invoice.status === 'Printed' ? 'translate-x-5' : 'translate-x-0'}`} />
-                        </div>
-                      </label>
-                    </div>
-                  </div>
+                  </CollapsibleMobileCard>
                 );
               }}
             />

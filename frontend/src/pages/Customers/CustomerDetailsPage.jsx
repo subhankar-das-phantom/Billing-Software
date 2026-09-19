@@ -42,6 +42,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { invalidateCachePattern, useMotionConfig, useFirstVisit, useMediaQuery } from '../../hooks';
 import { VirtualizedList } from '../../components/Common/VirtualizedList';
 import { InfiniteVirtualizedList } from '../../components/Common/InfiniteVirtualizedList';
+import CollapsibleMobileCard from '../../components/Common/Cards/CollapsibleMobileCard';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 const LARGE_ROW_THRESHOLD = 20;
 const round2 = (n) => Math.round((Number(n || 0) + Number.EPSILON) * 100) / 100;
@@ -268,9 +269,15 @@ function MobilePrintPreview({ admin, customer, ledgerData, formatDate }) {
 
 export default function CustomerDetailsPage() {
   const { id } = useParams();
-  const { isAdmin, admin } = useAuth();
+  const { isAdmin, admin, user } = useAuth();
   const { success, error } = useToast();
   const ledgerPrintRef = useRef();
+
+  // Mobile card density preference with Frame-0 cache pre-seeding
+  const storedDensity = typeof window !== 'undefined' ? localStorage.getItem('bharat_mobile_card_density') : null;
+  const initialDensity = storedDensity === 'expanded' || storedDensity === 'compact' ? storedDensity : 'compact';
+  const mobileCardDensity = user?.preferences?.mobileCardDensity || admin?.preferences?.mobileCardDensity || initialDensity;
+  const defaultCardExpanded = mobileCardDensity === 'expanded';
 
   const handlePrintLedger = () => {
     document.title = `Ledger_${customer?.customerName?.replace(/\s+/g, '_') || 'Customer'}`;
@@ -953,7 +960,7 @@ export default function CustomerDetailsPage() {
                       <InfiniteVirtualizedList
                         queryKey={['customer-invoices', id]}
                         queryFn={({ pageParam = 1 }) => customerService.getCustomerInvoices(id, { page: pageParam, limit: 20 })}
-                        estimateSize={() => isDesktop ? 65 : 160}
+                        estimateSize={() => isDesktop ? 65 : (defaultCardExpanded ? 160 : 78)}
                         getKey={(invoice) => invoice._id}
                         className={isDesktop ? "min-h-[65px]" : "min-h-[160px]"}
                         itemClassName={isDesktop ? "" : "mb-3"}
@@ -1027,45 +1034,47 @@ export default function CustomerDetailsPage() {
                             );
                           }
                           
-                          // Mobile Card View
+                          // Mobile Card View with Progressive Disclosure
                           return (
-                            <div className={`p-4 rounded-xl border ${
-                                isCancelled 
-                                  ? 'bg-red-500/5 border-red-500/20' 
-                                  : 'bg-slate-800/50 border-slate-700/50 hover:border-blue-500/50'
-                              } flex flex-col gap-3 relative overflow-hidden transition-colors`}
+                            <CollapsibleMobileCard
+                              id={invoice._id}
+                              entityType="invoice"
+                              isCancelled={isCancelled}
+                              defaultExpanded={defaultCardExpanded}
+                              summary={
+                                <div className="space-y-1">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <Link 
+                                      to={`/invoices/${invoice._id}`}
+                                      className={`font-semibold text-sm flex items-center gap-1.5 truncate hover:underline ${
+                                        isCancelled ? 'text-red-400' : 'text-slate-100 hover:text-blue-400'
+                                      }`}
+                                    >
+                                      <FileText className={`w-3.5 h-3.5 shrink-0 ${isCancelled ? 'text-red-400' : 'text-blue-400'}`} />
+                                      {invoice.invoiceNumber}
+                                    </Link>
+                                    <span className={`font-mono font-bold text-sm shrink-0 ${isCancelled ? 'text-red-400' : 'text-emerald-400'}`}>
+                                      {formatCurrency(invoice.totals?.netTotal)}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center justify-between gap-2 text-xs text-slate-400">
+                                    <span className="font-mono text-[11px] text-slate-400">
+                                      {formatDate(invoice.invoiceDate)}
+                                    </span>
+                                    <span className={`badge ${statusConfig[invoice.status]?.class || 'badge-info'} inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5`}>
+                                      <StatusIcon className="w-2.5 h-2.5" />
+                                      {invoice.status}
+                                    </span>
+                                  </div>
+                                </div>
+                              }
                             >
-                              <div className="flex items-center justify-between">
-                                <Link 
-                                  to={`/invoices/${invoice._id}`}
-                                  className={`font-medium flex items-center gap-2 ${isCancelled ? 'text-red-400' : 'text-slate-100 hover:text-blue-400'}`}
-                                >
-                                  <FileText className={`w-4 h-4 ${isCancelled ? 'text-red-400' : 'text-blue-400'}`} />
-                                  {invoice.invoiceNumber}
-                                </Link>
-                                <span className={`font-medium ${isCancelled ? 'text-red-400' : 'text-emerald-400'}`}>
-                                  {formatCurrency(invoice.totals?.netTotal)}
-                                </span>
-                              </div>
-                              
-                              <div className="flex items-center justify-between text-sm">
-                                <div className={`flex items-center gap-1.5 ${isCancelled ? 'text-red-400' : 'text-slate-400'}`}>
-                                  <Calendar className="w-3.5 h-3.5" />
-                                  {formatDate(invoice.invoiceDate)}
-                                </div>
-                                <div className={`flex items-center gap-1.5 ${isCancelled ? 'text-red-400' : 'text-slate-400'}`}>
-                                  <Package className="w-3.5 h-3.5" />
-                                  {invoice.items?.length || 0} items
-                                </div>
-                              </div>
-                              
-                              <div className="flex flex-wrap items-center justify-between gap-2 mt-1">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <span className={`badge ${statusConfig[invoice.status]?.class || 'badge-info'} inline-flex items-center gap-1 text-xs`}>
-                                    <StatusIcon className="w-3 h-3" />
-                                    {invoice.status}
+                              <div className="space-y-3 text-xs">
+                                <div className="flex items-center justify-between text-slate-300">
+                                  <span className="flex items-center gap-1.5 text-slate-400">
+                                    <Package className="w-3.5 h-3.5 text-slate-500" />
+                                    {invoice.items?.length || 0} items
                                   </span>
-                                  
                                   {invoice.status !== 'Cancelled' && (
                                     <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${paymentStatusConfig[paymentStatus]?.class}`}>
                                       <PaymentIcon className="w-3 h-3" />
@@ -1074,25 +1083,26 @@ export default function CustomerDetailsPage() {
                                     </span>
                                   )}
                                 </div>
-                                
-                                <div className="flex items-center gap-2">
+
+                                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-700/50">
                                   <Link
                                     to={`/invoices/${invoice._id}`}
-                                    className="p-1.5 text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 rounded-lg transition-colors"
+                                    className="px-2.5 py-1 text-xs font-medium text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-lg transition-colors"
                                   >
-                                    View
+                                    View Details
                                   </Link>
                                   {canRecordPayment && (
                                     <button
+                                      type="button"
                                       onClick={() => handleRecordPayment(invoice)}
-                                      className="p-1.5 text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-lg transition-colors"
+                                      className="px-2.5 py-1 text-xs font-medium text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-lg transition-colors"
                                     >
-                                      Pay
+                                      Record Payment
                                     </button>
                                   )}
                                 </div>
                               </div>
-                            </div>
+                            </CollapsibleMobileCard>
                           );
                         }}
                       />
@@ -1159,7 +1169,7 @@ export default function CustomerDetailsPage() {
                       <InfiniteVirtualizedList
                         queryKey={['customer-payments', id]}
                         queryFn={({ pageParam = 1 }) => getPaymentsByCustomer(id, { page: pageParam, limit: 20 })}
-                        estimateSize={() => isDesktop ? 65 : 160}
+                        estimateSize={() => isDesktop ? 65 : (defaultCardExpanded ? 150 : 76)}
                         getKey={(payment) => payment._id}
                         className={isDesktop ? "min-h-[65px]" : "min-h-[160px]"}
                         itemClassName={isDesktop ? "" : "mb-3"}
@@ -1255,50 +1265,73 @@ export default function CustomerDetailsPage() {
                             );
                           }
                           
-                          // Mobile view for payment
+                          // Mobile view with Progressive Disclosure
                           return (
-                            <div className="p-4 rounded-xl border bg-slate-800/50 border-slate-700/50 flex flex-col gap-3 relative overflow-hidden transition-colors">
-                              <div className="flex items-center justify-between">
-                                {payment.isManualEntry ? (
-                                  <span className="font-medium flex items-center gap-2 text-slate-100">
-                                    <FileText className="w-4 h-4 text-amber-400" />
-                                    {payment.description || 'Manual Entry'}
+                            <CollapsibleMobileCard
+                              id={payment._id}
+                              entityType="payment"
+                              defaultExpanded={defaultCardExpanded}
+                              summary={
+                                <div className="space-y-1">
+                                  <div className="flex items-center justify-between gap-2">
+                                    {payment.isManualEntry ? (
+                                      <span className="font-semibold text-sm flex items-center gap-1.5 text-slate-100 truncate">
+                                        <FileText className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                                        {payment.description || 'Manual Entry'}
+                                      </span>
+                                    ) : (
+                                      <Link 
+                                        to={`/invoices/${payment.invoice?._id || payment.invoiceId}`}
+                                        className="font-semibold text-sm flex items-center gap-1.5 text-slate-100 hover:text-blue-400 truncate hover:underline"
+                                      >
+                                        <FileText className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                                        {payment.invoice?.invoiceNumber || payment.invoiceNumber}
+                                      </Link>
+                                    )}
+                                    <span className="font-mono font-bold text-sm text-emerald-400 shrink-0">
+                                      {formatCurrency(payment.amount)}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center justify-between text-xs text-slate-400">
+                                    <span className="font-mono text-[11px] text-slate-400">
+                                      {formatDate(payment.paymentDate || payment.date)}
+                                    </span>
+                                    <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border border-slate-600 bg-slate-700/50 text-slate-300">
+                                      <CreditCard className="w-3 h-3" />
+                                      {payment.paymentMethod || payment.method}
+                                    </span>
+                                  </div>
+                                </div>
+                              }
+                            >
+                              <div className="space-y-3 text-xs">
+                                <div className="flex items-center justify-between text-slate-300">
+                                  <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${payment.isManualEntry ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'}`}>
+                                    <FileText className="w-3 h-3" />
+                                    {payment.isManualEntry ? 'Manual Entry' : 'Invoice Payment'}
                                   </span>
-                                ) : (
-                                  <Link 
-                                    to={`/invoices/${payment.invoice?._id || payment.invoiceId}`}
-                                    className="font-medium flex items-center gap-2 text-slate-100 hover:text-blue-400"
-                                  >
-                                    <FileText className="w-4 h-4 text-blue-400" />
-                                    {payment.invoice?.invoiceNumber || payment.invoiceNumber}
-                                  </Link>
-                                )}
-                                <span className="font-medium text-emerald-400">
-                                  {formatCurrency(payment.amount)}
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between text-sm text-slate-400">
-                                <div className="flex items-center gap-1.5">
-                                  <Calendar className="w-3.5 h-3.5" />
-                                  {formatDate(payment.paymentDate || payment.date)}
+                                  {(payment.reference || payment.referenceNumber) && (
+                                    <span className="text-xs text-slate-400 font-mono">
+                                      Ref: {payment.reference || payment.referenceNumber}
+                                    </span>
+                                  )}
                                 </div>
-                                <div className="flex items-center gap-1.5">
-                                  <CreditCard className="w-3.5 h-3.5" />
-                                  {payment.paymentMethod || payment.method}
-                                </div>
-                              </div>
-                              {isAdmin && (
-                                <div className="flex items-center gap-2 mt-2 pt-3 border-t border-slate-700/50 justify-end">
+
+                                {isAdmin && (
+                                  <div className="flex items-center gap-2 pt-2 border-t border-slate-700/50 justify-end">
                                     <button
+                                      type="button"
                                       onClick={() => {
                                         setEditingPayment(payment);
                                         setShowEditPaymentModal(true);
                                       }}
-                                      className="p-1.5 text-slate-400 hover:text-blue-400 bg-slate-700/30 hover:bg-blue-500/10 rounded-lg transition-colors"
+                                      className="px-2.5 py-1 text-xs text-slate-300 hover:text-blue-400 bg-slate-700/40 hover:bg-blue-500/10 border border-slate-600 rounded-lg transition-colors flex items-center gap-1"
                                     >
-                                      <Edit3 className="w-4 h-4" />
+                                      <Edit3 className="w-3 h-3" />
+                                      Edit
                                     </button>
                                     <button
+                                      type="button"
                                       onClick={async () => {
                                         if (payment.isManualEntry) {
                                           if (!window.confirm(`Delete manual entry of ${formatCurrency(payment.amount)}?`)) return;
@@ -1327,13 +1360,17 @@ export default function CustomerDetailsPage() {
                                         }
                                       }}
                                       disabled={deletingPaymentId === payment._id}
-                                      className="p-1.5 text-slate-400 hover:text-red-400 bg-slate-700/30 hover:bg-red-500/10 rounded-lg transition-colors"
+                                      className={`px-2.5 py-1 text-xs text-slate-300 hover:text-red-400 bg-slate-700/40 hover:bg-red-500/10 border border-slate-600 rounded-lg transition-colors flex items-center gap-1 ${
+                                        deletingPaymentId === payment._id ? 'opacity-50 cursor-wait' : ''
+                                      }`}
                                     >
-                                      <Trash2 className="w-4 h-4" />
+                                      <Trash2 className="w-3 h-3" />
+                                      Delete
                                     </button>
-                                </div>
-                              )}
-                            </div>
+                                  </div>
+                                )}
+                              </div>
+                            </CollapsibleMobileCard>
                           );
                         }}
                       />
@@ -1514,68 +1551,83 @@ export default function CustomerDetailsPage() {
                         else if (entry.linkType === 'creditNote') refLink = `/credit-notes/${entry.linkId}`;
 
                         return (
-                          <motion.div
+                          <CollapsibleMobileCard
                             key={`m-${entry.linkType}-${entry.linkId}-${index}`}
-                            custom={index}
-                            variants={tableRowVariants}
-                            initial="hidden"
-                            animate="visible"
-                            className="bg-slate-800/60 rounded-xl p-3 border border-slate-700/50"
+                            id={`${entry.linkType}-${entry.linkId}-${index}`}
+                            entityType="ledger entry"
+                            defaultExpanded={defaultCardExpanded}
+                            summary={
+                              <div className="space-y-1">
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="font-semibold text-sm truncate">
+                                    {refLink ? (
+                                      <Link to={refLink} className="text-blue-400 hover:underline">{entry.ref}</Link>
+                                    ) : (
+                                      <span className="text-slate-200">{entry.ref}</span>
+                                    )}
+                                  </div>
+                                  <span className={`font-mono font-bold text-sm shrink-0 ${entry.balance > 0 ? 'text-red-400' : entry.balance < 0 ? 'text-emerald-400' : 'text-slate-300'}`}>
+                                    {formatCurrency(Math.abs(entry.balance))}
+                                    {entry.balance > 0 && <span className="text-[10px] ml-0.5 font-normal">(Dr)</span>}
+                                    {entry.balance < 0 && <span className="text-[10px] ml-0.5 font-normal">(Cr)</span>}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between text-xs text-slate-400">
+                                  <div className="flex items-center gap-1.5 font-mono text-[11px] text-slate-400">
+                                    <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                                    {formatDate(entry.date)}
+                                  </div>
+                                  <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full border ${config.color}`}>
+                                    <TypeIcon className="w-2.5 h-2.5" />
+                                    {entry.type}
+                                  </span>
+                                </div>
+                              </div>
+                            }
                           >
-                            {/* Row 1: date + type badge + balance */}
-                            <div className="flex items-start justify-between gap-2 mb-2">
-                              <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                                <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                                {formatDate(entry.date)}
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${config.color}`}>
-                                  <TypeIcon className="w-3 h-3" />
-                                  {entry.type}
-                                </span>
-                              </div>
-                            </div>
-                            {/* Row 2: ref + mode */}
-                            <div className="flex items-center justify-between gap-2 mb-2">
-                              <div className="font-medium text-sm">
-                                {refLink ? (
-                                  <Link to={refLink} className="text-blue-400 hover:underline">{entry.ref}</Link>
+                            <div className="space-y-2.5 text-xs">
+                              {/* Ref details & mode */}
+                              <div className="flex items-center justify-between text-slate-300">
+                                <span className="text-slate-400">Mode:</span>
+                                {entry.mode && entry.mode !== '-' ? (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-700/50 text-slate-300 border border-slate-600">{entry.mode}</span>
                                 ) : (
-                                  <span className="text-slate-300">{entry.ref}</span>
+                                  <span className="text-slate-600">—</span>
                                 )}
                               </div>
-                              {entry.mode && entry.mode !== '-' && (
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-700/50 text-slate-300 border border-slate-600">{entry.mode}</span>
+
+                              {/* Description */}
+                              {entry.description && (
+                                <p className="text-xs text-slate-400 bg-slate-900/50 p-2 rounded-lg border border-slate-800" title={entry.description}>
+                                  {entry.description}
+                                </p>
                               )}
-                            </div>
-                            {/* Row 3: description */}
-                            {entry.description && (
-                              <p className="text-xs text-slate-500 mb-2 truncate" title={entry.description}>{entry.description}</p>
-                            )}
-                            {/* Row 4: debit / credit / balance */}
-                            <div className="grid grid-cols-3 gap-1 text-center pt-2 border-t border-slate-700/50">
-                              <div>
-                                <p className="text-[10px] text-slate-500 uppercase mb-0.5">Debit</p>
-                                <p className="text-xs font-semibold">
-                                  {entry.debit > 0 ? <span className="text-amber-400">{formatCurrency(entry.debit)}</span> : <span className="text-slate-600">—</span>}
-                                </p>
-                              </div>
-                              <div>
-                                <p className="text-[10px] text-slate-500 uppercase mb-0.5">Credit</p>
-                                <p className="text-xs font-semibold">
-                                  {entry.credit > 0 ? <span className="text-emerald-400">{formatCurrency(entry.credit)}</span> : <span className="text-slate-600">—</span>}
-                                </p>
-                              </div>
-                              <div>
-                                <p className="text-[10px] text-slate-500 uppercase mb-0.5">Balance</p>
-                                <p className={`text-xs font-bold ${entry.balance > 0 ? 'text-red-400' : entry.balance < 0 ? 'text-emerald-400' : 'text-slate-300'}`}>
-                                  {formatCurrency(Math.abs(entry.balance))}
-                                  {entry.balance > 0 && <span className="text-[9px] ml-0.5">(Dr)</span>}
-                                  {entry.balance < 0 && <span className="text-[9px] ml-0.5">(Cr)</span>}
-                                </p>
+
+                              {/* Debit / Credit / Balance breakdown */}
+                              <div className="grid grid-cols-3 gap-1 text-center pt-2 border-t border-slate-700/50">
+                                <div>
+                                  <p className="text-[10px] text-slate-500 uppercase mb-0.5">Debit</p>
+                                  <p className="text-xs font-semibold">
+                                    {entry.debit > 0 ? <span className="text-amber-400">{formatCurrency(entry.debit)}</span> : <span className="text-slate-600">—</span>}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] text-slate-500 uppercase mb-0.5">Credit</p>
+                                  <p className="text-xs font-semibold">
+                                    {entry.credit > 0 ? <span className="text-emerald-400">{formatCurrency(entry.credit)}</span> : <span className="text-slate-600">—</span>}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] text-slate-500 uppercase mb-0.5">Balance</p>
+                                  <p className={`text-xs font-bold ${entry.balance > 0 ? 'text-red-400' : entry.balance < 0 ? 'text-emerald-400' : 'text-slate-300'}`}>
+                                    {formatCurrency(Math.abs(entry.balance))}
+                                    {entry.balance > 0 && <span className="text-[9px] ml-0.5">(Dr)</span>}
+                                    {entry.balance < 0 && <span className="text-[9px] ml-0.5">(Cr)</span>}
+                                  </p>
+                                </div>
                               </div>
                             </div>
-                          </motion.div>
+                          </CollapsibleMobileCard>
                         );
                       })}
                       {/* Closing Balance card – mobile */}
