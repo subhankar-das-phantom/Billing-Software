@@ -19,8 +19,8 @@ Version 2.5.0 delivers a comprehensive reliability and performance overhaul for 
 
 ---
 
-### ⚡ VirtualizedList Ghost Space Elimination & Measurement Stability (`VirtualizedList.jsx`)
-- **Container Height Ghost Space Elimination** — Corrected `style.height` in `VirtualizedList` and `VirtualizedGrid` to `Math.max(0, virtualizer.getTotalSize() - scrollMargin)`, eliminating the 400px–600px dead space at the bottom of virtualized tables caused by `getTotalSize()` factoring in `scrollMargin`.
+### ⚡ VirtualizedList Container Height Stabilization & Small-Dataset Fix (`VirtualizedList.jsx`)
+- **Container Height Stabilization & Small-Dataset Fix** — Set container `style.height` in `VirtualizedList` and `VirtualizedGrid` to `virtualizer.getTotalSize()` directly. Previously, subtracting `scrollMargin` collapsed container height to 0px whenever cumulative item height was smaller than the scroll offset from `<main>` (e.g., small datasets of 8 items), hiding rows under `overflow-y: hidden`. TanStack Virtual's `getTotalSize()` represents exact cumulative item dimensions without `scrollMargin`.
 - **Item Measurement Cache Preservation** — Removed the redundant `virtualizer.measure()` call on `items.length` changes, preserving TanStack Virtual's cached row dimensions across infinite scroll appends and eliminating layout thrashing when scaling to 1,000+ items.
 - **Buffer Overscan Increase** — Raised `DEFAULT_OVERSCAN` from 10 to 12 items for seamless row pre-rendering during high-velocity scrolling.
 
