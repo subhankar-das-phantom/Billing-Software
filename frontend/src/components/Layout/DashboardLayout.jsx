@@ -347,7 +347,7 @@ export default function DashboardLayout() {
     : { type: 'spring', stiffness: 350, damping: 32 };
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-slate-950 text-slate-100 antialiased">
+    <div className="flex h-screen h-[100dvh] w-full overflow-hidden bg-slate-950 text-slate-100 antialiased">
       {/* ─── 1. Desktop & Tablet Persistent Sidebar Rail ──────────────── */}
       {!isMobile && (
         <div className="shrink-0 z-40 h-full flex flex-col no-print">
@@ -400,9 +400,9 @@ export default function DashboardLayout() {
       </AnimatePresence>
 
       {/* ─── 3. Main Application Column ───────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden relative">
-        {/* Top Header */}
-        <div className="no-print">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 h-full overflow-hidden relative">
+        {/* Top Header (Non-scrolling flex item, strictly outside main) */}
+        <div className="no-print shrink-0 w-full z-30">
           <Header
             onToggleSidebar={handleToggleSidebar}
             onOpenCommandPalette={() => setCommandPaletteOpen(true)}
@@ -411,10 +411,10 @@ export default function DashboardLayout() {
           />
         </div>
 
-        {/* Main Content Area */}
+        {/* Main Content Area (Sole vertical scroll container) */}
         <main
           ref={mainRef}
-          className="flex-1 p-4 sm:p-6 lg:p-8 xl:p-10 overflow-y-auto overflow-x-hidden bg-slate-950 min-w-0"
+          className="flex-1 min-h-0 min-w-0 p-4 sm:p-6 lg:p-8 xl:p-10 overflow-y-auto overflow-x-hidden overscroll-y-contain bg-slate-950"
         >
           <div className="max-w-[1600px] mx-auto w-full">
             <div className="no-print">
