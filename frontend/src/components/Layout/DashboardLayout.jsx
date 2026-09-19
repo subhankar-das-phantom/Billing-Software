@@ -244,7 +244,7 @@ export default function DashboardLayout() {
     setMobileDrawerOpen(false);
     setTabletDrawerOpen(false);
     setCommandPaletteOpen(false);
-    setShowScrollTop(false);
+    setScrollButtonDirection(null);
     setIsNearBottom(false);
     lastScrollTopRef.current = 0;
 
