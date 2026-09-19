@@ -289,27 +289,7 @@ export default function DashboardLayout() {
   }, [location.pathname]);
 
   const handleScrollToTop = useCallback(() => {
-    const el = mainRef.current;
-    if (!el) return;
-
-    // 1. Primary smooth scroll on main content container
-    el.scrollTo({ top: 0, behavior: 'smooth' });
-
-    // 2. Secondary window smooth scroll fallback
-    if (typeof window !== 'undefined') {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    // 3. Virtualization layout-shift safeguard:
-    // If browser aborted smooth scroll midway due to dynamic row unmounting,
-    // ensure it cleanly completes to 0 after smooth scroll window (450ms)
-    const timer = setTimeout(() => {
-      if (el && el.scrollTop > 10) {
-        el.scrollTo({ top: 0, behavior: 'auto' });
-      }
-    }, 450);
-
-    return () => clearTimeout(timer);
+    mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
   // Lock body scroll when mobile or tablet drawer is open

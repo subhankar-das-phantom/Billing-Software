@@ -30,12 +30,12 @@ function useScrollParentAndMargin() {
       if (scrollEl && scrollEl !== document.documentElement && scrollEl !== document.body && scrollEl !== window) {
         const parentRect = scrollEl.getBoundingClientRect();
         const elemRect = ref.current.getBoundingClientRect();
-        const margin = elemRect.top - parentRect.top + scrollEl.scrollTop;
+        const margin = Math.round(elemRect.top - parentRect.top + scrollEl.scrollTop);
         newMargin = margin >= 0 ? margin : 0;
       } else {
-        newMargin = ref.current.getBoundingClientRect().top + window.scrollY;
+        newMargin = Math.round(ref.current.getBoundingClientRect().top + window.scrollY);
       }
-      setScrollMargin(prev => (Math.abs(prev - newMargin) > 1 ? newMargin : prev));
+      setScrollMargin(prev => (Math.abs(prev - newMargin) >= 4 ? newMargin : prev));
     };
 
     updateScrollMargin();
@@ -46,9 +46,6 @@ function useScrollParentAndMargin() {
       resizeObserver.observe(parent);
     } else if (document.body) {
       resizeObserver.observe(document.body);
-    }
-    if (ref.current) {
-      resizeObserver.observe(ref.current);
     }
 
     return () => {
