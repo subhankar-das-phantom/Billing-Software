@@ -115,6 +115,11 @@ const employeeSchema = new mongoose.Schema({
     showCalculator: {
       type: Boolean,
       default: true
+    },
+    mobileCardDensity: {
+      type: String,
+      enum: ['compact', 'expanded'],
+      default: 'compact'
     }
   },
 

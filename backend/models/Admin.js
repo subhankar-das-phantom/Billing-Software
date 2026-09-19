@@ -56,6 +56,11 @@ const adminSchema = new mongoose.Schema({
       type: Boolean,
       default: false
     },
+    mobileCardDensity: {
+      type: String,
+      enum: ['compact', 'expanded'],
+      default: 'compact'
+    },
     invoiceColumns: {
       type: [String],
       default: ['qty', 'free', 'productName', 'hsn', 'batchNo', 'expiry', 'mrp', 'rate', 'net', 'disc', 'gst', 'amount']

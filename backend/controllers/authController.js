@@ -538,7 +538,7 @@ const VALID_INVOICE_COLUMNS = new Set([
 
 exports.updatePreferences = async (req, res, next) => {
   try {
-    const { showCalculator, invoiceColumns, enableBatchTracking, themeMode } = req.body;
+    const { showCalculator, invoiceColumns, enableBatchTracking, themeMode, mobileCardDensity } = req.body;
     
     let user;
     if (req.userRole === 'employee') {
@@ -563,6 +563,16 @@ exports.updatePreferences = async (req, res, next) => {
         });
       }
       user.set('preferences.themeMode', themeMode);
+    }
+
+    if (mobileCardDensity !== undefined) {
+      if (!['compact', 'expanded'].includes(mobileCardDensity)) {
+        return res.status(400).json({
+          success: false,
+          message: 'mobileCardDensity must be "compact" or "expanded"'
+        });
+      }
+      user.set('preferences.mobileCardDensity', mobileCardDensity);
     }
 
     if (showCalculator !== undefined) {
