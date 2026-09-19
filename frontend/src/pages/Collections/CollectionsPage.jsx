@@ -38,6 +38,7 @@ import RecordPaymentModal from '../../components/Common/Modals/RecordPaymentModa
 import PaymentReceiptModal from '../../components/Common/Modals/PaymentReceiptModal';
 import DailyCloseoutPrintModal from './DailyCloseoutPrintModal';
 import ExportModal from '../../components/Common/Modals/ExportModal';
+import CollapsibleMobileCard from '../../components/Common/Cards/CollapsibleMobileCard';
 
 const CANONICAL_METHODS = ['Cash', 'UPI', 'Bank Transfer', 'Cheque', 'NEFT/RTGS'];
 
@@ -163,9 +164,14 @@ function ScrollAffordanceContainer({ children, className = '' }) {
 export default function CollectionsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { success, error } = useToast();
-  const { admin } = useAuth();
+  const { admin, user } = useAuth();
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const searchInputRef = useRef(null);
+
+  // Mobile card density preference with Frame-0 cache pre-seeding
+  const storedDensity = typeof window !== 'undefined' ? localStorage.getItem('bharat_mobile_card_density') : null;
+  const initialDensity = storedDensity === 'expanded' || storedDensity === 'compact' ? storedDensity : 'compact';
+  const mobileCardDensity = user?.preferences?.mobileCardDensity || admin?.preferences?.mobileCardDensity || initialDensity;
 
   // Filter States
   const [datePreset, setDatePreset] = useState('today'); // 'today' | 'yesterday' | 'last7Days' | 'thisMonth' | 'custom'
@@ -1098,89 +1104,111 @@ export default function CollectionsPage() {
               </table>
             </div>
           ) : (
-            /* Mobile Card View */
-            <div className="divide-y divide-slate-800/80">
-              {data.payments.map((payment) => {
-                const MethodIcon = METHOD_ICONS[payment.paymentMethod] || CreditCard;
-                const methodPill = METHOD_PILL_STYLES[payment.paymentMethod] || 'bg-slate-800 text-slate-300 border-slate-700';
+            /* Mobile Card View with Progressive Disclosure */
+            <>
+              <div className="p-3 space-y-2.5">
+                {data.payments.map((payment) => {
+                  const MethodIcon = METHOD_ICONS[payment.paymentMethod] || CreditCard;
+                  const methodPill = METHOD_PILL_STYLES[payment.paymentMethod] || 'bg-slate-800 text-slate-300 border-slate-700';
 
-                return (
-                  <div key={payment.id} className="p-4 space-y-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="font-semibold text-slate-100 text-sm">
-                          {payment.customer?.name || 'Walk-in Customer'}
+                  return (
+                    <CollapsibleMobileCard
+                      key={payment.id}
+                      id={payment.id}
+                      entityType="payment"
+                      defaultExpanded={mobileCardDensity === 'expanded'}
+                      summary={
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-semibold text-slate-100 text-sm truncate">
+                              {payment.customer?.name || 'Walk-in Customer'}
+                            </span>
+                            <span className="text-base font-bold text-emerald-400 font-mono shrink-0">
+                              {formatCurrency(payment.amount)}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs text-slate-400">
+                            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg border text-[11px] ${methodPill}`}>
+                              <MethodIcon className="w-3 h-3" />
+                              {payment.paymentMethod}
+                            </span>
+                            <span className="font-mono text-[11px] text-slate-400">
+                              {formatPaymentTime(payment)}
+                            </span>
+                          </div>
                         </div>
-                        {payment.customer?.phone && (
-                          <div className="text-xs text-slate-400 font-mono mt-0.5">
-                            {formatPhone(payment.customer.phone, { countryCode: false })}
+                      }
+                    >
+                      {/* Expanded Details */}
+                      <div className="space-y-3 text-xs">
+                        <div className="flex items-center justify-between text-slate-300">
+                          {payment.customer?.phone ? (
+                            <div className="text-xs text-slate-400 font-mono flex items-center gap-1">
+                              <Phone className="w-3 h-3 text-slate-500" />
+                              {formatPhone(payment.customer.phone, { countryCode: false })}
+                            </div>
+                          ) : (
+                            <span className="text-slate-500">No phone</span>
+                          )}
+
+                          {payment.invoice ? (
+                            <Link
+                              to={`/invoices/${payment.invoice.id}`}
+                              className="text-blue-400 hover:underline font-mono text-xs flex items-center gap-1"
+                            >
+                              <FileText className="w-3 h-3" />
+                              {payment.invoice.invoiceNumber}
+                            </Link>
+                          ) : (
+                            <span className="text-slate-500">Manual Entry</span>
+                          )}
+                        </div>
+
+                        {payment.referenceNumber && (
+                          <div className="text-xs text-slate-300 font-mono flex items-center justify-between bg-slate-950 px-2.5 py-1 rounded border border-slate-800">
+                            <span className="truncate max-w-[200px]" title={payment.referenceNumber}>
+                              Ref: {payment.referenceNumber}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleCopyUtr(payment.referenceNumber, payment.id)}
+                              className="text-slate-400 hover:text-slate-100 shrink-0 ml-2 p-1"
+                              aria-label="Copy reference number"
+                            >
+                              {copiedUtrId === payment.id ? (
+                                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                              ) : (
+                                <Copy className="w-3.5 h-3.5" />
+                              )}
+                            </button>
                           </div>
                         )}
+
+                        <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-400 font-mono text-[11px]">
+                              {payment.paymentDate ? formatDate(payment.paymentDate) : ''}
+                            </span>
+                            <span className="text-slate-600">·</span>
+                            {renderRecordedBy(payment.recordedBy)}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedReceiptPayment(payment);
+                              setShowReceiptModal(true);
+                            }}
+                            className="px-2.5 py-1 bg-slate-800 hover:bg-slate-750 text-slate-200 rounded-lg text-xs font-medium border border-slate-700 flex items-center gap-1"
+                          >
+                            <Eye className="w-3 h-3" />
+                            Receipt
+                          </button>
+                        </div>
                       </div>
-                      <span className="text-lg font-bold text-emerald-400 font-mono">
-                        {formatCurrency(payment.amount)}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between text-xs text-slate-400 pt-1">
-                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg border text-[11px] ${methodPill}`}>
-                        <MethodIcon className="w-3 h-3" />
-                        {payment.paymentMethod}
-                      </span>
-
-                      {payment.invoice ? (
-                        <Link
-                          to={`/invoices/${payment.invoice.id}`}
-                          className="text-blue-400 hover:underline font-mono"
-                        >
-                          {payment.invoice.invoiceNumber}
-                        </Link>
-                      ) : (
-                        <span className="text-slate-500">Manual Entry</span>
-                      )}
-                    </div>
-
-                    {payment.referenceNumber && (
-                      <div className="text-xs text-slate-300 font-mono flex items-center justify-between bg-slate-950 px-2.5 py-1 rounded border border-slate-800">
-                        <span className="truncate max-w-[200px]" title={payment.referenceNumber}>
-                          Ref: {payment.referenceNumber}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleCopyUtr(payment.referenceNumber, payment.id)}
-                          className="text-slate-400 hover:text-slate-100 shrink-0 ml-2"
-                        >
-                          {copiedUtrId === payment.id ? (
-                            <Check className="w-3 h-3 text-emerald-400" />
-                          ) : (
-                            <Copy className="w-3 h-3" />
-                          )}
-                        </button>
-                      </div>
-                    )}
-
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs">
-                      <div className="flex items-center gap-2">
-                        <span className="text-slate-400 font-mono text-[11px]">
-                          {formatPaymentTime(payment)} · {payment.paymentDate ? formatDate(payment.paymentDate) : ''}
-                        </span>
-                        <span className="text-slate-600">·</span>
-                        {renderRecordedBy(payment.recordedBy)}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedReceiptPayment(payment);
-                          setShowReceiptModal(true);
-                        }}
-                        className="px-2.5 py-1 bg-slate-800 hover:bg-slate-750 text-slate-200 rounded-lg text-xs font-medium border border-slate-700"
-                      >
-                        Receipt
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+                    </CollapsibleMobileCard>
+                  );
+                })}
+              </div>
 
               {/* Mobile Totals Summary Bar */}
               <div className="p-3 bg-slate-950/80 border-t border-slate-800 flex items-center justify-between text-xs">
@@ -1197,7 +1225,7 @@ export default function CollectionsPage() {
                   </div>
                 </div>
               </div>
-            </div>
+            </>
           )}
 
           {/* Numbered Pagination */}
