@@ -191,6 +191,9 @@ function buildCustomerFilter(tenantId: unknown, query: CustomerQuery = {}): Cust
   // ── Sorting ─────────────────────────────────────────────────
   const sortField = SORT_FIELDS[query.sortBy ?? ''] || SORT_FIELDS.createdAt;
   sort[sortField] = query.sortOrder === 'asc' ? 1 : -1;
+  if (sortField !== '_id') {
+    sort._id = -1;
+  }
 
   return { filter, sort };
 }

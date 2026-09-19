@@ -8,10 +8,11 @@ const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/database');
 const errorHandler = require('./middleware/errorHandler');
 
-// Rate limiting configuration (generous limits)
+// Rate limiting configuration (generous limits for high-throughput enterprise SPA)
+const isDev = process.env.NODE_ENV === 'development';
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500, // 500 requests per 15 minutes
+  max: isDev ? 5000 : 3000, // 3000 requests per 15 mins (5000 in dev) to support rapid infinite scroll catalog audits
   message: {
     success: false,
     message: 'Too many requests, please try again later'

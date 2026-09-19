@@ -144,6 +144,7 @@ const productSchema = new mongoose.Schema({
 productSchema.index({ productName: 'text', hsnCode: 'text', manufacturer: 'text' });
 productSchema.index({ tenantId: 1, productName: 1 });
 productSchema.index({ tenantId: 1, isActive: 1 });
+productSchema.index({ tenantId: 1, isActive: 1, createdAt: -1, _id: -1 });
 productSchema.index({ isActive: 1 });
 productSchema.index({ currentStockQty: 1 });
 productSchema.index({ tenantId: 1, expiryDate: 1 });
