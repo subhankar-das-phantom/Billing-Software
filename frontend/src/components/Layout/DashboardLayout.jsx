@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState, useEffect, useCallback, useRef } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight } from 'lucide-react';
+import { ArrowUp } from 'lucide-react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import SubscriptionBanner from '../Subscription/SubscriptionBanner';
@@ -43,6 +43,11 @@ export default function DashboardLayout() {
 
   // Command Palette open state
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+
+  // Dynamic Scroll-to-Top state
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [isNearBottom, setIsNearBottom] = useState(false);
+  const lastScrollTopRef = useRef(0);
 
   // Save desktop collapsed state to localStorage
   const handleToggleDesktopCollapse = useCallback(() => {
@@ -234,12 +239,79 @@ export default function DashboardLayout() {
     };
   }, [mobileDrawerOpen, tabletDrawerOpen, isDesktop, isTablet, sidebarCollapsed]);
 
-  // Close overlays on route change
+  // Close overlays and reset scroll position on route change
   useEffect(() => {
     setMobileDrawerOpen(false);
     setTabletDrawerOpen(false);
     setCommandPaletteOpen(false);
+    setShowScrollTop(false);
+    setIsNearBottom(false);
+    lastScrollTopRef.current = 0;
+
+    // Reset scroll position to top of main content container on page navigation
+    if (mainRef.current) {
+      mainRef.current.scrollTop = 0;
+    }
+    if (typeof window !== 'undefined') {
+      window.scrollTo(0, 0);
+    }
+
+    // Anchor to top after any pending frame/render or route transition completes
+    const rafId = window.requestAnimationFrame(() => {
+      if (mainRef.current) {
+        mainRef.current.scrollTop = 0;
+      }
+    });
+
+    return () => window.cancelAnimationFrame(rafId);
   }, [location.pathname]);
+
+  // Track scroll direction & bottom proximity in main content area
+  useEffect(() => {
+    const mainEl = mainRef.current;
+    if (!mainEl) return;
+
+    let ticking = false;
+
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          if (!mainEl) return;
+          const currentScrollTop = mainEl.scrollTop;
+          const scrollHeight = mainEl.scrollHeight;
+          const clientHeight = mainEl.clientHeight;
+          const lastScrollTop = lastScrollTopRef.current;
+
+          // Check if user is near the bottom (within 90px of bottom edge)
+          const nearBottom = scrollHeight - currentScrollTop - clientHeight < 90;
+          setIsNearBottom(nearBottom);
+
+          // Direction & threshold logic:
+          // If scrolled less than 250px from the top, always hide.
+          if (currentScrollTop < 250) {
+            setShowScrollTop(false);
+          } else if (currentScrollTop < lastScrollTop - 6) {
+            // Scrolling UP: user is moving back upwards, reveal the button
+            setShowScrollTop(true);
+          } else if (currentScrollTop > lastScrollTop + 6) {
+            // Scrolling DOWN: user is exploring or heading to bottom actions, hide the button
+            setShowScrollTop(false);
+          }
+
+          lastScrollTopRef.current = currentScrollTop;
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    mainEl.addEventListener('scroll', handleScroll, { passive: true });
+    return () => mainEl.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const handleScrollToTop = useCallback(() => {
+    mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
 
   // Lock body scroll when mobile or tablet drawer is open
   const isDrawerOpen = mobileDrawerOpen || tabletDrawerOpen;
@@ -368,19 +440,20 @@ export default function DashboardLayout() {
         onClose={() => setCommandPaletteOpen(false)}
       />
 
-      {/* Scroll to top button */}
-      <motion.button
-        className="fixed bottom-6 right-6 p-3 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-lg shadow-blue-600/30 z-30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 no-print"
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        whileHover={motionConfig.shouldHover ? { scale: 1.1 } : undefined}
-        whileTap={{ scale: 0.9 }}
-        transition={motionConfig.spring.normal}
-        onClick={() => mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
-        aria-label="Scroll to top"
-      >
-        <ChevronRight className="w-5 h-5 -rotate-90" />
-      </motion.button>
+      {/* Dynamic Scroll to top button (instant, zero animation overhead) */}
+      {showScrollTop && (
+        <button
+          type="button"
+          onClick={handleScrollToTop}
+          aria-label="Scroll to top"
+          title="Scroll to top"
+          className={`fixed right-6 p-2.5 sm:p-3 rounded-full z-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 no-print bg-slate-900/95 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/80 hover:border-slate-600 shadow-xl shadow-slate-950/60 flex items-center justify-center cursor-pointer ${
+            isNearBottom ? 'bottom-20 sm:bottom-24' : 'bottom-6 sm:bottom-8'
+          }`}
+        >
+          <ArrowUp className="w-5 h-5 text-emerald-400" />
+        </button>
+      )}
 
       {/* Calculator Widget */}
       <Suspense fallback={null}>
