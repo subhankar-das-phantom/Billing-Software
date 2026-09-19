@@ -4,6 +4,22 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.4.4](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.4.4) — 2026-09-19 — Single-Scroll Container Architecture, Mobile Header Docking & Hamburger Accessibility
+
+### 📱 Layout Architecture, Viewport Boundaries & Mobile Navigation Resilience Milestone
+Version 2.4.4 establishes an unambiguous single-scroll-container architecture across the entire application shell. It resolves a critical mobile accessibility defect where scrolling down long collection views (such as the Invoices page) caused the top header and its hamburger navigation button (`☰`) to scroll out of view, trapping operators and forcing them to scroll all the way back to the top of the screen to access navigation.
+
+---
+
+### 🏛️ Single-Scroll Container Architecture (`DashboardLayout.jsx`, `Header.jsx`, `index.html`)
+- **Sole Scroll Container (`<main>`)** — Enforced `flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden overscroll-y-contain` on `<main>`, declaring it as the single vertical scroll owner throughout the application.
+- **Dynamic Viewport App Shell (`100dvh`)** — Anchored the application shell to `h-screen h-[100dvh] overflow-hidden` and added `min-h-0` to the flex column (`min-w-0 min-h-0 h-full overflow-hidden`), eliminating `min-height: auto` flexbox expansion and document-level window scroll bleed.
+- **Document Root Available Height (`index.html`)** — Specified `height: 100%` alongside `min-height: 100%` and `margin: 0` on `html, body, #root` to establish a bounded canvas.
+- **Non-Scrolling `shrink-0` Top Header (`Header.jsx`)** — Eliminated ambiguous and redundant `sticky top-0` positioning from both the header wrapper and `<header>`. Because the header sits strictly outside `<main>` as a flex sibling (`shrink-0 w-full z-30`), it naturally remains permanently docked at the top of the screen across all mobile and desktop viewports without participating in content scrolling.
+- **Scroll Chaining Containment** — Added `overscroll-y-contain` to `<main>` to prevent touch momentum swipes from chaining to ancestor scroll containers where supported.
+
+---
+
 ## [v2.4.3](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.4.3) — 2026-09-19 — Progressive Disclosure Mobile Cards, User Card View Preferences, Navigation Scroll Anchoring & Modal Address Search
 
 ### 📱 Mobile Information Architecture, Dynamic Density & Ergonomic Navigation Milestone
