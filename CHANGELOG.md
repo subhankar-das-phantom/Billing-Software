@@ -36,8 +36,7 @@ Version 2.4.6 resolves a subtle infinite scroll stall where scrolling to the bot
 ### 🧭 Scroll-to-Top Button Ergonomics & Reliability Overhaul (`DashboardLayout.jsx`)
 - **Persistent Return Affordance** — Replaced brittle bidirectional flip logic with a stable `showScrollTop` state (`scrollTop > 300px`). The button now stays reliably visible while exploring downwards, eliminating the defect where scrolling down hid the button and required an awkward upward wheel flick.
 - **Direction Inversion & Flickering Elimination** — Removed the confusing "Scroll to bottom" button state when near the top ($< 250\text{px}$), preventing the button from inverting its icon and direction under the cursor during smooth scroll-up animations.
-- **Stable Fixed Screen Positioning** — Removed the bottom proximity layout shift (`bottom-6` to `bottom-20`), keeping the button stably anchored at `bottom-6 sm:bottom-8 right-6`.
-- **Framer Motion Micro-Transitions & Settling Safeguard** — Wrapped the button in `<AnimatePresence>` for zero-CLS scale and opacity transitions, and implemented a layout-shift fallback timer in `handleScrollToTop` ensuring smooth scrolls cleanly reach `top: 0` even when virtualized row unmounting causes browser scroll tweens to stall.
+- **Hardware-Accelerated Smooth Scroll & Jitter Elimination** — Wrapped the button in `<AnimatePresence>` for zero-CLS scale and opacity transitions, removed the premature 450ms cut-off timer to let the browser's native cubic-bezier smooth scroll glide naturally to `top: 0`, and eliminated self-observing `ResizeObserver` feedback loops in `VirtualizedList.jsx` with a 4px stability threshold on `scrollMargin`.
 
 ---
 
