@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { findScrollParent } from '../../utils/scrollUtils';
 
-const DEFAULT_OVERSCAN = 10;
+const DEFAULT_OVERSCAN = 12;
 
 function useScrollParentAndMargin() {
   const ref = useRef(null);
@@ -80,15 +80,13 @@ export function VirtualizedList({
     scrollMargin
   });
 
-  useLayoutEffect(() => {
-    virtualizer.measure();
-  }, [items.length]);
+  const totalContentHeight = Math.max(0, virtualizer.getTotalSize() - scrollMargin);
 
   return (
     <div
       ref={ref}
       className={className}
-      style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}
+      style={{ height: totalContentHeight, position: 'relative', width: '100%' }}
     >
       {virtualizer.getVirtualItems().map((virtualItem) => {
         const item = items[virtualItem.index];
@@ -143,17 +141,14 @@ export function VirtualizedGrid({
     scrollMargin
   });
 
-  useLayoutEffect(() => {
-    virtualizer.measure();
-  }, [items.length]);
-
   const itemWidth = `calc((100% - ${(lanes - 1) * gap}px) / ${lanes})`;
+  const totalContentHeight = Math.max(0, virtualizer.getTotalSize() - scrollMargin);
 
   return (
     <div
       ref={ref}
       className={className}
-      style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}
+      style={{ height: totalContentHeight, position: 'relative', width: '100%' }}
     >
       {virtualizer.getVirtualItems().map((virtualItem) => {
         const item = items[virtualItem.index];

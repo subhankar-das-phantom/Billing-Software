@@ -44,8 +44,9 @@ export default function DashboardLayout() {
   // Command Palette open state
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
-  // Dynamic Scroll-to-Top state
+  // Dynamic Scroll-to-Top state & direction tracking
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const lastScrollTopRef = useRef(0);
 
   // Save desktop collapsed state to localStorage
   const handleToggleDesktopCollapse = useCallback(() => {
@@ -243,6 +244,7 @@ export default function DashboardLayout() {
     setTabletDrawerOpen(false);
     setCommandPaletteOpen(false);
     setShowScrollTop(false);
+    lastScrollTopRef.current = 0;
 
     // Reset scroll position to top of main content container on page navigation
     if (mainRef.current) {
@@ -274,9 +276,21 @@ export default function DashboardLayout() {
         window.requestAnimationFrame(() => {
           if (!mainEl) return;
           const currentScrollTop = mainEl.scrollTop;
+          const lastScrollTop = lastScrollTopRef.current;
 
-          // Reveal Scroll to Top button when user has scrolled down past 300px
-          setShowScrollTop(currentScrollTop > 300);
+          // Direction & threshold logic:
+          // If scrolled less than 250px from the top, always hide.
+          if (currentScrollTop < 250) {
+            setShowScrollTop(false);
+          } else if (currentScrollTop < lastScrollTop - 6) {
+            // Scrolling UP: user is moving back upwards, reveal the button
+            setShowScrollTop(true);
+          } else if (currentScrollTop > lastScrollTop + 6) {
+            // Scrolling DOWN: user is exploring or reading downwards, hide the button
+            setShowScrollTop(false);
+          }
+
+          lastScrollTopRef.current = currentScrollTop;
           ticking = false;
         });
         ticking = true;
@@ -289,7 +303,26 @@ export default function DashboardLayout() {
   }, [location.pathname]);
 
   const handleScrollToTop = useCallback(() => {
-    mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    const el = mainRef.current;
+    if (!el) return;
+
+    // Immediately hide button and reset direction tracking to prevent flicker
+    setShowScrollTop(false);
+    lastScrollTopRef.current = 0;
+
+    if (el.scrollTop > 1200) {
+      // For large distances (e.g. 500-1000+ items, scrollTop > 1200px):
+      // Clamp & Glide: Instantly cut to a near-top buffer (350px) so the browser compositor
+      // does not freeze trying to animate across tens of thousands of pixels.
+      el.scrollTop = 350;
+      requestAnimationFrame(() => {
+        el.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    } else {
+      // For small distances (50-100 items, scrollTop <= 1200px):
+      // Direct native smooth scroll
+      el.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }, []);
 
   // Lock body scroll when mobile or tablet drawer is open
@@ -419,24 +452,22 @@ export default function DashboardLayout() {
         onClose={() => setCommandPaletteOpen(false)}
       />
 
-      {/* Dynamic Scroll to top button (persistent affordance when scrolled down) */}
-      <AnimatePresence>
-        {showScrollTop && (
-          <motion.button
-            type="button"
-            onClick={handleScrollToTop}
-            aria-label="Scroll to top"
-            title="Scroll to top"
-            initial={{ opacity: 0, scale: 0.8, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: 10 }}
-            transition={{ duration: 0.15 }}
-            className="fixed right-6 bottom-6 sm:bottom-8 p-2.5 sm:p-3 rounded-full z-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 no-print bg-slate-900/95 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/80 hover:border-slate-600 shadow-xl shadow-slate-950/60 flex items-center justify-center cursor-pointer active:scale-95 transition-colors"
-          >
-            <ArrowUp className="w-5 h-5 text-emerald-400" />
-          </motion.button>
-        )}
-      </AnimatePresence>
+      {/* Dynamic Scroll to top button (lightweight GPU-composited CSS transition) */}
+      <button
+        type="button"
+        onClick={handleScrollToTop}
+        aria-label="Scroll to top"
+        title="Scroll to top"
+        aria-hidden={!showScrollTop}
+        tabIndex={showScrollTop ? 0 : -1}
+        className={`fixed right-6 bottom-6 sm:bottom-8 p-2.5 sm:p-3 rounded-full z-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 no-print bg-slate-900/95 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/80 hover:border-slate-600 shadow-xl shadow-slate-950/60 flex items-center justify-center cursor-pointer active:scale-95 transition-all duration-150 ease-out will-change-transform ${
+          showScrollTop
+            ? 'opacity-100 translate-y-0 pointer-events-auto scale-100'
+            : 'opacity-0 translate-y-3 pointer-events-none scale-90'
+        }`}
+      >
+        <ArrowUp className="w-5 h-5 text-emerald-400" />
+      </button>
 
       {/* Calculator Widget */}
       <Suspense fallback={null}>

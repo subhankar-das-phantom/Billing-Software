@@ -5,7 +5,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
  * Shared utilities for finding scroll parents, infinite scroll thresholds, and root margin constants.
  */
 
-export const INFINITE_SCROLL_ROOT_MARGIN = '250px';
+export const INFINITE_SCROLL_ROOT_MARGIN = '600px';
 export const INFINITE_SCROLL_THRESHOLD = 0;
 
 /**
@@ -56,27 +56,23 @@ export function findScrollParent(node) {
 }
 
 /**
- * Bharat Enterprise Billing System — Reactive Sentinel Hook
+ * Bharat Enterprise Billing System — Dual-Trigger Reactive Sentinel Hook
  *
- * Implements a level-triggered reactive pattern instead of an edge-triggered drop.
- * Solves the infinite-scroll stall where an edge-triggered IntersectionObserver fires while
- * SWR background revalidation is active and drops the event forever because the sentinel
- * remains stationary inside the viewport.
- *
- * Provides:
- * 1. Stable sentinel callback ref that binds immediately when the sentinel node mounts in the DOM.
- * 2. Instant scroll parent resolution immune to initial skeleton mounting delays.
- * 3. Reactive effect monitoring [isIntersecting, hasMore, isFetching, isValidating] that triggers
- *    pagination the exact millisecond revalidation completes without requiring artificial scroll-up gestures.
- * 4. Post-layout geometric guard preventing duplicate page requests when newly appended items push
- *    the sentinel off-screen.
+ * Combines IntersectionObserver with a direct passive scroll listener on scrollRoot (<main>).
+ * Solves:
+ * 1. Fast-scroll bypass: Rapid mousewheel flicks or scrollbar dragging trigger loadMore via
+ *    the passive scroll listener before the user hits the bottom.
+ * 2. Stuck-state elimination: Removes destructive manual state overwrites that caused
+ *    IntersectionObserver to remain dormant until the user scrolled up and down.
+ * 3. Immediate post-fetch continuation: When a fetch completes, if the user remains near
+ *    the bottom, smoothly queues the next page after layout settlement.
  *
  * @param {object} options
  * @param {boolean} options.hasMore - Whether more pages are available on the server.
  * @param {boolean} options.isFetching - Whether a pagination request is actively in-flight.
  * @param {boolean} options.isValidating - Whether SWR background revalidation is in progress.
  * @param {Function} options.onLoadMore - Callback to fetch the next page.
- * @param {boolean} [options.enabled=true] - Optional switch to enable/disable (e.g. For inactive tabs).
+ * @param {boolean} [options.enabled=true] - Optional switch to enable/disable (e.g. for inactive tabs).
  * @returns {{ sentinelRef: Function, isIntersecting: boolean, scrollRoot: HTMLElement|null }}
  */
 export function useInfiniteScrollSentinel({
@@ -92,6 +88,15 @@ export function useInfiniteScrollSentinel({
 
   const onLoadMoreRef = useRef(onLoadMore);
   onLoadMoreRef.current = onLoadMore;
+
+  const hasMoreRef = useRef(hasMore);
+  hasMoreRef.current = hasMore;
+
+  const isFetchingRef = useRef(isFetching);
+  isFetchingRef.current = isFetching;
+
+  const isValidatingRef = useRef(isValidating);
+  isValidatingRef.current = isValidating;
 
   // Stable callback ref: resolves scroll root immediately on mount
   const sentinelRef = useCallback((node) => {
@@ -116,7 +121,7 @@ export function useInfiniteScrollSentinel({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Truly stable IntersectionObserver: updates level-triggered intersection state
+  // Primary Trigger: IntersectionObserver with generous 600px rootMargin
   useEffect(() => {
     const node = sentinelElementRef.current;
     if (!node || !scrollRoot || !enabled) return;
@@ -135,31 +140,66 @@ export function useInfiniteScrollSentinel({
     };
   }, [scrollRoot, enabled]);
 
-  // Level-triggered reactive pagination trigger
+  // Secondary Fast-Scroll Trigger: Direct passive scroll listener on scroll container (<main>)
+  useEffect(() => {
+    if (!scrollRoot || !enabled) return;
+
+    let ticking = false;
+    const handleScrollNearBottom = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          if (!scrollRoot) {
+            ticking = false;
+            return;
+          }
+
+          const scrollHeight = scrollRoot.scrollHeight;
+          const scrollTop = scrollRoot.scrollTop;
+          const clientHeight = scrollRoot.clientHeight;
+          const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
+
+          // If within 600px of the bottom during fast scrolling, trigger loadMore
+          if (distanceFromBottom <= 600) {
+            if (hasMoreRef.current && !isFetchingRef.current && !isValidatingRef.current) {
+              onLoadMoreRef.current?.();
+            }
+          }
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    scrollRoot.addEventListener('scroll', handleScrollNearBottom, { passive: true });
+    return () => scrollRoot.removeEventListener('scroll', handleScrollNearBottom);
+  }, [scrollRoot, enabled]);
+
+  // Reactive Level Trigger: fires when sentinel is intersecting and locks are released
   useEffect(() => {
     if (!enabled) return;
     if (isIntersecting && hasMore && !isFetching && !isValidating) {
-      // Defensive geometric guard: verify the sentinel element is genuinely inside or near the viewport.
-      // Prevents premature double-triggering before the browser dispatches an offscreen event
-      // after newly appended items push the sentinel downwards.
-      const node = sentinelElementRef.current;
-      if (node && scrollRoot) {
-        const rootRect = scrollRoot.getBoundingClientRect
-          ? scrollRoot.getBoundingClientRect()
-          : { top: 0, bottom: window.innerHeight };
-        const nodeRect = node.getBoundingClientRect();
-        const marginPx = 250;
-        const isActuallyNearViewport = nodeRect.top <= (rootRect.bottom + marginPx);
-
-        if (!isActuallyNearViewport) {
-          setIsIntersecting(false);
-          return;
-        }
-      }
-
       onLoadMoreRef.current?.();
     }
-  }, [isIntersecting, hasMore, isFetching, isValidating, enabled, scrollRoot]);
+  }, [isIntersecting, hasMore, isFetching, isValidating, enabled]);
+
+  // Post-Fetch Layout Continuation: if user is still near bottom after items append, queue next page
+  useEffect(() => {
+    if (!enabled || !hasMore || isFetching || isValidating || !scrollRoot) return;
+
+    const timer = setTimeout(() => {
+      if (!scrollRoot) return;
+      const scrollHeight = scrollRoot.scrollHeight;
+      const scrollTop = scrollRoot.scrollTop;
+      const clientHeight = scrollRoot.clientHeight;
+      const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
+
+      if (distanceFromBottom <= 600 && hasMoreRef.current && !isFetchingRef.current && !isValidatingRef.current) {
+        onLoadMoreRef.current?.();
+      }
+    }, 60);
+
+    return () => clearTimeout(timer);
+  }, [isFetching, isValidating, hasMore, enabled, scrollRoot]);
 
   return { sentinelRef, isIntersecting, scrollRoot };
 }
