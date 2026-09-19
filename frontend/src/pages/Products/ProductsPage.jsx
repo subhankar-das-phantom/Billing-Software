@@ -207,7 +207,7 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatCurrency, obs
   <div className="space-y-4">
     {/* Desktop/Tablet Table View */}
     {isDesktop ? (
-    <div className="glass-card w-full overflow-x-auto" data-horizontal-table-scroll="true">
+    <div className="glass-card w-full overflow-x-auto overflow-y-hidden" data-horizontal-table-scroll="true">
       <div className="min-w-[800px]">
         {/* Header Row */}
       <div className="grid grid-cols-[minmax(260px,2fr)_120px_180px_120px_100px_150px_130px] items-center px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-700/50 bg-slate-800/50">

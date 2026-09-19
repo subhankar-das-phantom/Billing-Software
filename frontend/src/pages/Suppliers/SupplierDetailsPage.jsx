@@ -628,7 +628,7 @@ export default function SupplierDetailsPage() {
                 </div>
               ) : isDesktop ? (
                 /* Desktop Table */
-                <div className="glass-card w-full overflow-x-auto" data-horizontal-table-scroll="true">
+                <div className="glass-card w-full overflow-x-auto overflow-y-hidden" data-horizontal-table-scroll="true">
                   <div className="min-w-[750px]">
                     <div className="grid grid-cols-[130px_110px_130px_90px_130px_120px_110px_100px] items-center px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-700/50 bg-slate-800/50">
                       <div>Purchase #</div>

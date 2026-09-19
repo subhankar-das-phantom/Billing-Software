@@ -505,7 +505,7 @@ export default function InvoicesPage() {
           <div className="space-y-4">
             {/* Desktop Table View */}
             {isDesktop ? (
-            <div className="glass-card w-full overflow-x-auto" data-horizontal-table-scroll="true">
+            <div className="glass-card w-full overflow-x-auto overflow-y-hidden" data-horizontal-table-scroll="true">
               <div className="min-w-[800px]">
                 {/* Header Row */}
                 <div className="grid grid-cols-[120px_125px_minmax(210px,1.5fr)_100px_120px_115px_120px_90px_100px] items-center px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-700/50 bg-slate-800/50">

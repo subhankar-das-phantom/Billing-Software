@@ -541,6 +541,11 @@ html.dark {
     @apply min-w-[800px];
   }
 
+  /* Horizontal table scroll wrapper — strictly isolate vertical scrolling to <main> */
+  [data-horizontal-table-scroll="true"] {
+    overflow-y: hidden !important;
+  }
+
   /* Mobile-optimized table */
   @media (max-width: 768px) {
     .table-container {

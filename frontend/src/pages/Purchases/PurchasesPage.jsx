@@ -526,7 +526,7 @@ export default function PurchasesPage() {
           <div className="space-y-4">
             {/* Desktop Table View */}
             {isDesktop ? (
-              <div className="glass-card w-full overflow-x-auto" data-horizontal-table-scroll="true">
+              <div className="glass-card w-full overflow-x-auto overflow-y-hidden" data-horizontal-table-scroll="true">
                 <div className="min-w-[800px]">
                   {/* Header Row */}
                   <div className="grid grid-cols-[130px_120px_minmax(200px,1.5fr)_90px_130px_120px_120px_140px] items-center px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-700/50 bg-slate-800/50">
