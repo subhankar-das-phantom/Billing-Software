@@ -37,7 +37,7 @@ import {
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 import { VirtualizedList } from '../../components/Common/VirtualizedList';
 import PurchasesPageSkeleton from './PurchasesPageSkeleton';
-import { findScrollParent, INFINITE_SCROLL_THRESHOLD, INFINITE_SCROLL_ROOT_MARGIN } from '../../utils/scrollUtils';
+import { useInfiniteScrollSentinel } from '../../utils/scrollUtils';
 
 // Factory functions for adaptive motion variants
 const createPageVariants = (isMobile, shouldStagger) => ({
@@ -104,15 +104,14 @@ export default function PurchasesPage() {
   const currentQueryKey = `${search}-${statusFilter}-${startDate}-${endDate}`;
   const activeQueryKeyRef = useRef(currentQueryKey);
 
+  const [isFetching, setIsFetching] = useState(false);
   const isFetchingRef = useRef(false);
   const pendingPageRef = useRef(null);
 
-  // State synchronization refs for stable observer
+  // State synchronization refs
   const hasMoreRef = useRef(false);
   const isValidatingRef = useRef(false);
   const loadNextPageRef = useRef(null);
-  const sentinelRef = useRef(null);
-  const [scrollRoot, setScrollRoot] = useState(null);
 
   // SWR: Purchase list with server-side filtering and infinite scrolling
   const { data, isLoading, isValidating, error: swrError, mutate } = useSWR(
@@ -154,6 +153,7 @@ export default function PurchasesPage() {
     setPage(1);
     pendingPageRef.current = null;
     isFetchingRef.current = false;
+    setIsFetching(false);
     activeQueryKeyRef.current = currentQueryKey;
   }, [currentQueryKey]);
 
@@ -179,6 +179,7 @@ export default function PurchasesPage() {
     // Release lock only after the specific requested page has completed successfully
     if (pendingPageRef.current !== null && (data._page === pendingPageRef.current || data.page === pendingPageRef.current)) {
       isFetchingRef.current = false;
+      setIsFetching(false);
       pendingPageRef.current = null;
     }
   }, [data, page]);
@@ -187,6 +188,7 @@ export default function PurchasesPage() {
   useEffect(() => {
     if (swrError && pendingPageRef.current !== null) {
       isFetchingRef.current = false;
+      setIsFetching(false);
       pendingPageRef.current = null;
     }
   }, [swrError]);
@@ -195,43 +197,19 @@ export default function PurchasesPage() {
   const loadNextPage = useCallback(() => {
     if (isFetchingRef.current || isValidatingRef.current || !hasMoreRef.current) return;
     isFetchingRef.current = true;
+    setIsFetching(true);
     pendingPageRef.current = page + 1;
     setPage(p => p + 1);
   }, [page]);
   loadNextPageRef.current = loadNextPage;
 
-  // Dynamic Scroll Root State: Re-resolves ONLY on viewport resize or layout changes
-  useEffect(() => {
-    const node = sentinelRef.current;
-    if (!node) return;
-
-    const updateRoot = () => {
-      const resolvedRoot = findScrollParent(node);
-      setScrollRoot(prev => (prev !== resolvedRoot ? resolvedRoot : prev));
-    };
-
-    updateRoot();
-    window.addEventListener('resize', updateRoot);
-    return () => window.removeEventListener('resize', updateRoot);
-  }, [isDesktop]);
-
-  // Truly Stable IntersectionObserver: Only recreates if the genuine scroll root element changes
-  useEffect(() => {
-    const node = sentinelRef.current;
-    if (!node || !scrollRoot) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && hasMoreRef.current && !isValidatingRef.current && !isFetchingRef.current) {
-          loadNextPageRef.current?.();
-        }
-      },
-      { root: scrollRoot, threshold: INFINITE_SCROLL_THRESHOLD, rootMargin: INFINITE_SCROLL_ROOT_MARGIN }
-    );
-
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [scrollRoot]);
+  // Level-triggered reactive infinite scroll sentinel
+  const { sentinelRef } = useInfiniteScrollSentinel({
+    hasMore,
+    isFetching,
+    isValidating,
+    onLoadMore: loadNextPage
+  });
 
   const stats = {
     total: statsData?.stats?.totalPurchases ?? purchases.length,
@@ -566,9 +544,9 @@ export default function PurchasesPage() {
                 <div>
                   <VirtualizedList
                     items={purchases}
-                    estimateSize={() => 76}
+                    estimateSize={() => 57}
                     getKey={(purchase) => purchase._id}
-                    className="min-h-[76px]"
+                    className="min-h-[57px]"
                     itemClassName="border-b border-slate-700/50"
                     renderItem={(purchase) => {
                       const StatusIcon = statusConfig[purchase.status]?.icon || ShoppingBag;
@@ -803,7 +781,7 @@ export default function PurchasesPage() {
                 !hasMore ? 'hidden pointer-events-none' : ''
               }`}
             >
-              {isValidating ? (
+              {isFetching || (isValidating && page > 1) ? (
                 <div className="flex items-center gap-2 text-slate-400">
                   <Loader2 className="w-5 h-5 animate-spin text-emerald-400" />
                   <span className="text-sm font-medium">Loading more purchases...</span>

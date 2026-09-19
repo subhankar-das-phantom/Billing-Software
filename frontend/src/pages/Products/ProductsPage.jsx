@@ -39,7 +39,7 @@ import ExportModal from '../../components/Common/Modals/ExportModal';
 import { useToast } from '../../contexts/ToastContext';
 import { useDebounce, useMotionConfig, useFirstVisit, useSWR, invalidateCachePattern, useMediaQuery, useTransitionDelay } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
-import { findScrollParent, INFINITE_SCROLL_THRESHOLD, INFINITE_SCROLL_ROOT_MARGIN } from '../../utils/scrollUtils';
+import { useInfiniteScrollSentinel } from '../../utils/scrollUtils';
 
 // Helper to create adaptive variants - faster on mobile
 const createPageVariants = (isMobile, shouldStagger) => ({
@@ -223,9 +223,9 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatCurrency, obs
       <div>
                 <VirtualizedList
                   items={filteredProducts}
-                  estimateSize={() => 72}
+                  estimateSize={() => 57}
                   getKey={(product) => product._id}
-                  className="min-h-[72px]"
+                  className="min-h-[57px]"
                   itemClassName="border-b border-slate-700/50"
                   renderItem={(product) => {
                     const effectiveStock = product.effectiveStockQty ?? product.currentStockQty ?? 0;
@@ -460,15 +460,14 @@ export default function ProductsPage() {
   const currentQueryKey = search || '';
   const activeQueryKeyRef = useRef(currentQueryKey);
 
+  const [isFetching, setIsFetching] = useState(false);
   const isFetchingRef = useRef(false);
   const pendingPageRef = useRef(null);
 
-  // State synchronization refs for stable observer
+  // State synchronization refs
   const hasMoreRef = useRef(false);
   const isValidatingRef = useRef(false);
   const loadNextPageRef = useRef(null);
-  const sentinelRef = useRef(null);
-  const [scrollRoot, setScrollRoot] = useState(null);
 
   // SWR: Instant cached data + background revalidation
   const { data, isLoading, isValidating, error: swrError, mutate } = useSWR(
@@ -503,6 +502,7 @@ export default function ProductsPage() {
     setPage(1);
     pendingPageRef.current = null;
     isFetchingRef.current = false;
+    setIsFetching(false);
     activeQueryKeyRef.current = currentQueryKey;
   }, [currentQueryKey]);
 
@@ -528,6 +528,7 @@ export default function ProductsPage() {
     // Release lock only after the specific requested page has completed successfully
     if (pendingPageRef.current !== null && (data._page === pendingPageRef.current || data.page === pendingPageRef.current)) {
       isFetchingRef.current = false;
+      setIsFetching(false);
       pendingPageRef.current = null;
     }
   }, [data, page]);
@@ -536,6 +537,7 @@ export default function ProductsPage() {
   useEffect(() => {
     if (swrError && pendingPageRef.current !== null) {
       isFetchingRef.current = false;
+      setIsFetching(false);
       pendingPageRef.current = null;
     }
   }, [swrError]);
@@ -544,43 +546,19 @@ export default function ProductsPage() {
   const loadNextPage = useCallback(() => {
     if (isFetchingRef.current || isValidatingRef.current || !hasMoreRef.current) return;
     isFetchingRef.current = true;
+    setIsFetching(true);
     pendingPageRef.current = page + 1;
     setPage(p => p + 1);
   }, [page]);
   loadNextPageRef.current = loadNextPage;
 
-  // Dynamic Scroll Root State: Re-resolves ONLY on viewport resize or layout changes
-  useEffect(() => {
-    const node = sentinelRef.current;
-    if (!node) return;
-
-    const updateRoot = () => {
-      const resolvedRoot = findScrollParent(node);
-      setScrollRoot(prev => (prev !== resolvedRoot ? resolvedRoot : prev));
-    };
-
-    updateRoot();
-    window.addEventListener('resize', updateRoot);
-    return () => window.removeEventListener('resize', updateRoot);
-  }, [isDesktop]);
-
-  // Truly Stable IntersectionObserver: Only recreates if the genuine scroll root element changes
-  useEffect(() => {
-    const node = sentinelRef.current;
-    if (!node || !scrollRoot) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && hasMoreRef.current && !isValidatingRef.current && !isFetchingRef.current) {
-          loadNextPageRef.current?.();
-        }
-      },
-      { root: scrollRoot, threshold: INFINITE_SCROLL_THRESHOLD, rootMargin: INFINITE_SCROLL_ROOT_MARGIN }
-    );
-
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [scrollRoot]);
+  // Level-triggered reactive infinite scroll sentinel
+  const { sentinelRef } = useInfiniteScrollSentinel({
+    hasMore,
+    isFetching,
+    isValidating,
+    onLoadMore: loadNextPage
+  });
 
   // Extract products from accumulated state
   const products = accumulatedProducts;
@@ -952,7 +930,7 @@ export default function ProductsPage() {
             formatCurrency={formatCurrency}
             observerTarget={sentinelRef}
             hasMore={hasMore}
-            isLoadingMore={isValidating && page > 1}
+            isLoadingMore={isFetching || (isValidating && page > 1)}
             isDesktop={isDesktop}
           />
         )}

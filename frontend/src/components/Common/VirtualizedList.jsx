@@ -26,14 +26,16 @@ function useScrollParentAndMargin() {
     const updateScrollMargin = () => {
       if (!ref.current) return;
       const scrollEl = scrollParentRef.current || document.querySelector('main') || document.documentElement;
+      let newMargin = 0;
       if (scrollEl && scrollEl !== document.documentElement && scrollEl !== document.body && scrollEl !== window) {
         const parentRect = scrollEl.getBoundingClientRect();
         const elemRect = ref.current.getBoundingClientRect();
         const margin = elemRect.top - parentRect.top + scrollEl.scrollTop;
-        setScrollMargin(margin >= 0 ? margin : 0);
+        newMargin = margin >= 0 ? margin : 0;
       } else {
-        setScrollMargin(ref.current.getBoundingClientRect().top + window.scrollY);
+        newMargin = ref.current.getBoundingClientRect().top + window.scrollY;
       }
+      setScrollMargin(prev => (Math.abs(prev - newMargin) > 1 ? newMargin : prev));
     };
 
     updateScrollMargin();
@@ -44,6 +46,9 @@ function useScrollParentAndMargin() {
       resizeObserver.observe(parent);
     } else if (document.body) {
       resizeObserver.observe(document.body);
+    }
+    if (ref.current) {
+      resizeObserver.observe(ref.current);
     }
 
     return () => {
@@ -77,6 +82,10 @@ export function VirtualizedList({
     gap,
     scrollMargin
   });
+
+  useLayoutEffect(() => {
+    virtualizer.measure();
+  }, [items.length]);
 
   return (
     <div
@@ -136,6 +145,10 @@ export function VirtualizedGrid({
     lanes,
     scrollMargin
   });
+
+  useLayoutEffect(() => {
+    virtualizer.measure();
+  }, [items.length]);
 
   const itemWidth = `calc((100% - ${(lanes - 1) * gap}px) / ${lanes})`;
 

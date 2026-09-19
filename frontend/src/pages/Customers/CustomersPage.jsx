@@ -30,7 +30,7 @@ import { VirtualizedGrid } from '../../components/Common/VirtualizedList';
 import { useToast } from '../../contexts/ToastContext';
 import { useDebounce, useMotionConfig, useFirstVisit, useSWR, invalidateCachePattern, useTransitionDelay, useMediaQuery, useCustomerFilters } from '../../hooks';
 import CustomerFilterPanel from './CustomerFilterPanel';
-import { findScrollParent, INFINITE_SCROLL_THRESHOLD, INFINITE_SCROLL_ROOT_MARGIN } from '../../utils/scrollUtils';
+import { useInfiniteScrollSentinel } from '../../utils/scrollUtils';
 
 const initialCustomerState = {
   customerName: '',
@@ -212,6 +212,7 @@ export default function CustomersPage() {
   const activeSWRKeyRef = useRef(filterKey);
   const swrKey = `customers-${filterKey}-${page}`;
 
+  const [isFetching, setIsFetching] = useState(false);
   const isFetchingRef = useRef(false);
   const pendingPageRef = useRef(null);
 
@@ -219,8 +220,6 @@ export default function CustomersPage() {
   const hasMoreRef = useRef(false);
   const isValidatingRef = useRef(false);
   const loadNextPageRef = useRef(null);
-  const sentinelRef = useRef(null);
-  const [scrollRoot, setScrollRoot] = useState(null);
 
   // SWR: Instant cached data + background revalidation
   const { data, isLoading, isValidating, error: swrError, mutate } = useSWR(
@@ -270,6 +269,7 @@ export default function CustomersPage() {
     // Release lock only after the specific requested page has completed successfully
     if (pendingPageRef.current !== null && (data._page === pendingPageRef.current || data.page === pendingPageRef.current)) {
       isFetchingRef.current = false;
+      setIsFetching(false);
       pendingPageRef.current = null;
     }
 
@@ -281,6 +281,7 @@ export default function CustomersPage() {
   useEffect(() => {
     if (swrError && pendingPageRef.current !== null) {
       isFetchingRef.current = false;
+      setIsFetching(false);
       pendingPageRef.current = null;
     }
   }, [swrError]);
@@ -291,6 +292,7 @@ export default function CustomersPage() {
     setDataReady(false);
     pendingPageRef.current = null;
     isFetchingRef.current = false;
+    setIsFetching(false);
     activeSWRKeyRef.current = filterKey;
   }, [filterKey]);
 
@@ -298,43 +300,19 @@ export default function CustomersPage() {
   const loadNextPage = useCallback(() => {
     if (isFetchingRef.current || isValidatingRef.current || !hasMoreRef.current) return;
     isFetchingRef.current = true;
+    setIsFetching(true);
     pendingPageRef.current = page + 1;
     setPage(prev => prev + 1);
   }, [page]);
   loadNextPageRef.current = loadNextPage;
 
-  // Dynamic Scroll Root State: Re-resolves ONLY on viewport resize or layout changes
-  useEffect(() => {
-    const node = sentinelRef.current;
-    if (!node) return;
-
-    const updateRoot = () => {
-      const resolvedRoot = findScrollParent(node);
-      setScrollRoot(prev => (prev !== resolvedRoot ? resolvedRoot : prev));
-    };
-
-    updateRoot();
-    window.addEventListener('resize', updateRoot);
-    return () => window.removeEventListener('resize', updateRoot);
-  }, [isDesktopGrid, isTabletGrid]);
-
-  // Truly Stable IntersectionObserver: Only recreates if the genuine scroll root element changes
-  useEffect(() => {
-    const node = sentinelRef.current;
-    if (!node || !scrollRoot) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && hasMoreRef.current && !isValidatingRef.current && !isFetchingRef.current) {
-          loadNextPageRef.current?.();
-        }
-      },
-      { root: scrollRoot, threshold: INFINITE_SCROLL_THRESHOLD, rootMargin: INFINITE_SCROLL_ROOT_MARGIN }
-    );
-
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [scrollRoot]);
+  // Level-triggered reactive infinite scroll sentinel
+  const { sentinelRef } = useInfiniteScrollSentinel({
+    hasMore,
+    isFetching,
+    isValidating,
+    onLoadMore: loadNextPage
+  });
 
   // Extract customers from accumulated state
   const customers = accumulatedCustomers;
@@ -640,7 +618,7 @@ export default function CustomersPage() {
           !hasMore ? 'hidden pointer-events-none' : ''
         }`}
       >
-        {isValidating ? (
+        {isFetching || (isValidating && page > 1) ? (
           <div className="flex items-center glass-card px-6 py-3">
             <Loader2 className="w-5 h-5 text-emerald-400 animate-spin mr-3" />
             <span className="text-sm font-medium text-slate-300">Loading more customers...</span>

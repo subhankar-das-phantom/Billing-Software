@@ -25,10 +25,9 @@ import { formatCurrency, formatDate } from '../../utils/formatters';
 import { OutstandingTabSkeleton, AgeingTabSkeleton, PaymentsTabSkeleton } from './CreditsPageSkeleton';
 import { useSWR, useFirstVisit, useMediaQuery } from '../../hooks';
 import { useAuth } from '../../contexts/AuthContext';
-import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 import { VirtualizedList } from '../../components/Common/VirtualizedList';
 import CollapsibleMobileCard from '../../components/Common/Cards/CollapsibleMobileCard';
-import { findScrollParent, INFINITE_SCROLL_THRESHOLD, INFINITE_SCROLL_ROOT_MARGIN } from '../../utils/scrollUtils';
+import { useInfiniteScrollSentinel } from '../../utils/scrollUtils';
 
 // Animated counter component
 const AnimatedCounter = ({ value, prefix = '', suffix = '', decimals = 0 }) => {
@@ -82,21 +81,21 @@ export default function CreditsPage() {
 
   const [scrollRoot, setScrollRoot] = useState(null);
 
-  // Outstanding refs
+  // Outstanding refs & reactive fetching state
+  const [outstandingFetching, setOutstandingFetching] = useState(false);
   const outstandingFetchingRef = useRef(false);
   const pendingOutstandingPageRef = useRef(null);
   const outstandingHasMoreRef = useRef(false);
   const outstandingValidatingRef = useRef(false);
   const loadNextOutstandingPageRef = useRef(null);
-  const outstandingSentinelRef = useRef(null);
 
-  // Ageing refs
+  // Ageing refs & reactive fetching state
+  const [ageingFetching, setAgeingFetching] = useState(false);
   const ageingFetchingRef = useRef(false);
   const pendingAgeingPageRef = useRef(null);
   const ageingHasMoreRef = useRef(false);
   const ageingValidatingRef = useRef(false);
   const loadNextAgeingPageRef = useRef(null);
-  const ageingSentinelRef = useRef(null);
 
   // SWR: Instant cached data + background revalidation
   const { data: statsData, isLoading: statsLoading, isValidating: statsValidating } = useSWR(
@@ -177,6 +176,7 @@ export default function CreditsPage() {
     // Release lock only after the specific requested page has completed successfully
     if (pendingOutstandingPageRef.current !== null && (outstandingData._page === pendingOutstandingPageRef.current || outstandingData.page === pendingOutstandingPageRef.current)) {
       outstandingFetchingRef.current = false;
+      setOutstandingFetching(false);
       pendingOutstandingPageRef.current = null;
     }
   }, [outstandingData, outstandingPage]);
@@ -185,6 +185,7 @@ export default function CreditsPage() {
   useEffect(() => {
     if (outstandingError && pendingOutstandingPageRef.current !== null) {
       outstandingFetchingRef.current = false;
+      setOutstandingFetching(false);
       pendingOutstandingPageRef.current = null;
     }
   }, [outstandingError]);
@@ -213,6 +214,7 @@ export default function CreditsPage() {
     // Release lock only after the specific requested page has completed successfully
     if (pendingAgeingPageRef.current !== null && (ageingData._page === pendingAgeingPageRef.current || ageingData.page === pendingAgeingPageRef.current)) {
       ageingFetchingRef.current = false;
+      setAgeingFetching(false);
       pendingAgeingPageRef.current = null;
     }
   }, [ageingData, ageingPage]);
@@ -221,6 +223,7 @@ export default function CreditsPage() {
   useEffect(() => {
     if (ageingError && pendingAgeingPageRef.current !== null) {
       ageingFetchingRef.current = false;
+      setAgeingFetching(false);
       pendingAgeingPageRef.current = null;
     }
   }, [ageingError]);
@@ -229,6 +232,7 @@ export default function CreditsPage() {
   const loadNextOutstandingPage = useCallback(() => {
     if (outstandingFetchingRef.current || outstandingValidatingRef.current || !outstandingHasMoreRef.current) return;
     outstandingFetchingRef.current = true;
+    setOutstandingFetching(true);
     pendingOutstandingPageRef.current = outstandingPage + 1;
     setOutstandingPage(prev => prev + 1);
   }, [outstandingPage]);
@@ -237,61 +241,28 @@ export default function CreditsPage() {
   const loadNextAgeingPage = useCallback(() => {
     if (ageingFetchingRef.current || ageingValidatingRef.current || !ageingHasMoreRef.current) return;
     ageingFetchingRef.current = true;
+    setAgeingFetching(true);
     pendingAgeingPageRef.current = ageingPage + 1;
     setAgeingPage(prev => prev + 1);
   }, [ageingPage]);
   loadNextAgeingPageRef.current = loadNextAgeingPage;
 
-  // Dynamic Scroll Root State: Re-resolves ONLY on viewport resize or layout changes
-  useEffect(() => {
-    const node = outstandingSentinelRef.current || ageingSentinelRef.current;
-    if (!node) return;
+  // Level-triggered reactive infinite scroll sentinels for both tabs
+  const { sentinelRef: outstandingSentinelRef } = useInfiniteScrollSentinel({
+    hasMore: outstandingHasMore,
+    isFetching: outstandingFetching,
+    isValidating: outstandingValidating,
+    onLoadMore: loadNextOutstandingPage,
+    enabled: activeTab === 'outstanding'
+  });
 
-    const updateRoot = () => {
-      const resolvedRoot = findScrollParent(node);
-      setScrollRoot(prev => (prev !== resolvedRoot ? resolvedRoot : prev));
-    };
-
-    updateRoot();
-    window.addEventListener('resize', updateRoot);
-    return () => window.removeEventListener('resize', updateRoot);
-  }, [isDesktop, activeTab]);
-
-  // Truly Stable Outstanding Observer: Only recreates if the genuine scroll root element changes
-  useEffect(() => {
-    const node = outstandingSentinelRef.current;
-    if (!node || !scrollRoot || activeTab !== 'outstanding') return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && outstandingHasMoreRef.current && !outstandingValidatingRef.current && !outstandingFetchingRef.current) {
-          loadNextOutstandingPageRef.current?.();
-        }
-      },
-      { root: scrollRoot, threshold: INFINITE_SCROLL_THRESHOLD, rootMargin: INFINITE_SCROLL_ROOT_MARGIN }
-    );
-
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [scrollRoot, activeTab]);
-
-  // Truly Stable Ageing Observer: Only recreates if the genuine scroll root element changes
-  useEffect(() => {
-    const node = ageingSentinelRef.current;
-    if (!node || !scrollRoot || activeTab !== 'ageing') return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && ageingHasMoreRef.current && !ageingValidatingRef.current && !ageingFetchingRef.current) {
-          loadNextAgeingPageRef.current?.();
-        }
-      },
-      { root: scrollRoot, threshold: INFINITE_SCROLL_THRESHOLD, rootMargin: INFINITE_SCROLL_ROOT_MARGIN }
-    );
-
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [scrollRoot, activeTab]);
+  const { sentinelRef: ageingSentinelRef } = useInfiniteScrollSentinel({
+    hasMore: ageingHasMore,
+    isFetching: ageingFetching,
+    isValidating: ageingValidating,
+    onLoadMore: loadNextAgeingPage,
+    enabled: activeTab === 'ageing'
+  });
 
   // Loading states
   const loading = (statsLoading || outstandingLoading || ageingLoading || paymentsLoading) && !stats;
@@ -497,7 +468,7 @@ export default function CreditsPage() {
                         !outstandingHasMore ? 'hidden pointer-events-none' : ''
                       }`}
                     >
-                      {outstandingValidating ? (
+                      {outstandingFetching || (outstandingValidating && outstandingPage > 1) ? (
                         <div className="flex items-center gap-2 text-slate-400">
                           <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
                           <span className="text-sm font-medium text-slate-300">Loading more customers...</span>
@@ -593,7 +564,7 @@ export default function CreditsPage() {
                           !ageingHasMore ? 'hidden pointer-events-none' : ''
                         }`}
                       >
-                        {ageingValidating ? (
+                        {ageingFetching || (ageingValidating && ageingPage > 1) ? (
                           <div className="flex items-center gap-2 text-slate-400">
                             <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
                             <span className="text-sm font-medium text-slate-300">Loading more invoices...</span>
