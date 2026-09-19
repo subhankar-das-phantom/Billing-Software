@@ -26,6 +26,21 @@ Version 2.4.6 resolves a subtle infinite scroll stall where scrolling to the bot
 
 ---
 
+### 🛡️ Spurious Table Vertical Scrollbar Suppression (`index.css`, `InvoicesPage.jsx`, `PurchasesPage.jsx`, `ProductsPage.jsx`, `CustomerDetailsPage.jsx`, `SupplierDetailsPage.jsx`)
+- **Implicit Promotion Elimination** — Enforced a global rule in `index.css` (`[data-horizontal-table-scroll="true"] { overflow-y: hidden !important; }`) to neutralize W3C CSS Overflow Module Level 3 (§3.3) behavior, where specifying `overflow-x: auto` implicitly promotes `overflow-y` to `auto` and triggers a secondary vertical scrollbar inside the table.
+- **Scrollbar Box Intrusion & Subpixel Row Isolation** — Prevented the 6px-17px horizontal scrollbar gutter and virtualized row subpixel anti-aliasing offsets from spawning nested double-scrollbars on desktop viewports.
+- **Explicit JSX Class Pairing** — Paired `overflow-x-auto overflow-y-hidden` across desktop table wrappers in `InvoicesPage.jsx`, `PurchasesPage.jsx`, `ProductsPage.jsx`, `CustomerDetailsPage.jsx`, and `SupplierDetailsPage.jsx`.
+
+---
+
+### 🧭 Scroll-to-Top Button Ergonomics & Reliability Overhaul (`DashboardLayout.jsx`)
+- **Persistent Return Affordance** — Replaced brittle bidirectional flip logic with a stable `showScrollTop` state (`scrollTop > 300px`). The button now stays reliably visible while exploring downwards, eliminating the defect where scrolling down hid the button and required an awkward upward wheel flick.
+- **Direction Inversion & Flickering Elimination** — Removed the confusing "Scroll to bottom" button state when near the top ($< 250\text{px}$), preventing the button from inverting its icon and direction under the cursor during smooth scroll-up animations.
+- **Stable Fixed Screen Positioning** — Removed the bottom proximity layout shift (`bottom-6` to `bottom-20`), keeping the button stably anchored at `bottom-6 sm:bottom-8 right-6`.
+- **Framer Motion Micro-Transitions & Settling Safeguard** — Wrapped the button in `<AnimatePresence>` for zero-CLS scale and opacity transitions, and implemented a layout-shift fallback timer in `handleScrollToTop` ensuring smooth scrolls cleanly reach `top: 0` even when virtualized row unmounting causes browser scroll tweens to stall.
+
+---
+
 ## [v2.4.5](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.4.5) — 2026-09-19 — Desktop-on-Mobile Viewport Resilience, Infinite Scroll Sentinel Architecture & Bidirectional Navigation
 
 ### 📱 Viewport Stability, Virtualization Parity & GPU Frame Stutter Elimination Milestone
