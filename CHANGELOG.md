@@ -4,10 +4,10 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
-## [v2.4.6](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.4.6) — 2026-09-19 — Dual-Trigger Infinite Scroll Resilience, Lightweight CSS Scroll Navigation & 1,000+ Item Scale Stability
+## [v2.5.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.5.0) — 2026-09-19 — Infinite Scroll Resilience, Deterministic Pagination, Lightweight CSS Navigation & 1,000+ Item Scale Stability
 
-### ⚡ Fast-Scroll Dual-Trigger Pagination & Enterprise Navigation Milestone
-Version 2.4.6 delivers an end-to-end reliability overhaul for high-velocity scrolling and large datasets (1,000+ items). It eliminates the infinite scroll stall caused by destructive geometric state overwrites, adds a passive high-velocity scroll listener on the scroll container so rapid flicks never miss pagination triggers, replaces heavy Framer Motion scroll button physics with lightweight 60fps GPU-composited CSS transitions, removes ghost padding from virtualized table containers, and introduces the **Clamp & Glide** pattern to seamlessly glide to `top: 0` without browser stalls across 50,000px+ datasets.
+### ⚡ Enterprise-Scale Infinite Scroll, Deterministic Pagination & GPU-Optimized Navigation Milestone
+Version 2.5.0 delivers a comprehensive reliability and performance overhaul for high-velocity scrolling, large datasets (1,000+ items), and multi-tenant pagination correctness. It resolves critical backend pagination non-determinism caused by missing sort tiebreakers on batch-seeded data, eliminates infinite scroll stalls from destructive geometric state overwrites, adds a passive high-velocity scroll listener so rapid flicks never miss pagination triggers, replaces heavy Framer Motion scroll button physics with lightweight 60fps GPU-composited CSS transitions, removes ghost padding from virtualized containers, introduces the **Clamp & Glide** pattern for seamless scroll-to-top across 50,000px+ datasets, resolves desktop-on-mobile viewport blowout, and increases API rate-limit headroom to support high-throughput SPA navigation patterns.
 
 ---
 
@@ -41,10 +41,16 @@ Version 2.4.6 delivers an end-to-end reliability overhaul for high-velocity scro
 
 ---
 
-## [v2.4.5](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.4.5) — 2026-09-19 — Desktop-on-Mobile Viewport Resilience, Infinite Scroll Sentinel Architecture & Bidirectional Navigation
 
-### 📱 Viewport Stability, Virtualization Parity & GPU Frame Stutter Elimination Milestone
-Version 2.4.5 addresses critical usability and rendering defects when users toggle mobile browsers into "Desktop site" mode or scroll long administrative collections on mobile devices. It resolves table container width blowout that clipped infinite scroll loaders offscreen, eliminates mobile GPU frame drops caused by composite backdrop blurs and touch hover states, fixes virtualization scroll-parent discovery across nested modals and table wrappers, upgrades infinite scroll sentinels to persistent zero-flicker containers with request lifecycle locks and query provenance stamping, and introduces smart bidirectional scroll navigation.
+### 🛡️ Deterministic Pagination & Sort Tiebreakers (`productController.js`, `productExportController.ts`, `buildCustomerFilter.ts`, `Product.js`)
+- **`_id` Sort Tiebreaker for Skip/Limit Correctness** — Added `{ createdAt: -1, _id: -1 }` compound sort to product pagination aggregation pipelines and product export queries. Without a unique tiebreaker, batch-seeded products sharing identical `createdAt` timestamps produced non-deterministic MongoDB sort order, causing `skip(N)` to re-visit or skip documents across pages — manifesting as the 886/1,000 product cutoff on infinite scroll.
+- **Compound B-Tree Index (ESR Rule)** — Added `{ tenantId: 1, isActive: 1, createdAt: -1, _id: -1 }` compound index to the `Product` model, following Equality → Sort → Range ordering for optimal index utilization during sorted pagination with tenant isolation.
+- **Customer Sort Consistency** — Extended `buildCustomerFilter.ts` sort builder with `_id: -1` tiebreaker to prevent identical issues on customer collections.
+
+---
+
+### 🚦 API Rate-Limit Headroom (`server.js`)
+- **General Limiter Increase** — Raised `generalLimiter` from 500 to 3,000 requests per 15 minutes (5,000 in development) to accommodate high-throughput SPA navigation patterns: infinite scroll pagination, dashboard polling, and rapid filter/search cycles that collectively exhaust low rate-limit budgets and trigger HTTP 429 errors.
 
 ---
 
