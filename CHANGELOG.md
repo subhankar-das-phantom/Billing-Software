@@ -4,6 +4,49 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.5.2](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.5.2) — 2026-09-20 — Operational Cache Synchronization, Frame-0 SWR Pre-seeding, TanStack Query Inventory Analytics & Runtime Identifier Safety
+
+### ⚡ Operational Cache Synchronization & Zero-Skeleton-Flicker Architecture
+Version 2.5.2 resolves runtime reference errors and eliminates repetitive skeleton flashes across core operational and analytical interfaces by implementing an anti-stale caching architecture. Combining custom `useSWR` with `localStorage` frame-0 pre-seeding and TanStack Query caching, pages now render instantaneous cached views on navigation while continuously synchronizing in the background. Cross-tab cache invalidation via `BroadcastChannel` guarantees operational consistency when records are modified or created.
+
+---
+
+### 🛡️ Runtime Identifier Safety & Codebase AST Audit (`CreditsPage.jsx`, `PageTransition.jsx`, `ManualEntriesPage.jsx`, `InventoryIntelligenceSection.jsx`)
+- **Fix CreditsPage ReferenceError** — Added missing `RefreshIndicator` import in `CreditsPage.jsx` (`import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';`), resolving the uncaught runtime error upon navigating to `/credits`.
+- **Fix PageTransition Identifier Typo** — Corrected undefined `transitionConfigs.smooth` reference in `PageTransition.jsx` line 360 to `desktopConfigs.smooth`.
+- **Fix ManualEntriesPage Duplicate Identifiers** — Removed legacy duplicate `useState` declarations (`entries`, `loading`, `totalPages`, `total`) in `ManualEntriesPage.jsx` that conflicted with `useSWR` data bindings.
+- **Fix InventoryIntelligenceSection Syntax** — Terminated lucide-react import list properly before external formatter imports.
+- **Full Frontend AST Identifier Audit** — Scanned all 181 frontend source files with a custom Babel AST traversal script, confirming 0 undeclared variables, 0 missing JSX components, and 0 unbound references.
+
+---
+
+### 👥 Employee Management Zero-Flicker & Cache Parity (`EmployeesPage.jsx`, `EmployeeDetailPage.jsx`, `EmployeeAnalyticsPage.jsx`, `employeeService.js`)
+- **Frame-0 SWR Pre-seeding** — Migrated `EmployeesPage.jsx` to `useSWR` (`employees-list-${debouncedSearch}-${statusFilter}`) with 30s TTL, rendering instant cached directory entries without blank state flicker.
+- **Header Refresh Indicator** — Integrated `<RefreshIndicator isRefreshing={isValidating} size="sm" showText />` into the employee management header for subtle validation feedback without layout shifts.
+- **Synchronous Computed Stats** — Derived active employee counts and total generated sales directly from SWR state via `useMemo`.
+- **Reactive Mutations & Multi-Tab Broadcast** — Added automatic `invalidateCachePattern('employees')` and `invalidateCachePattern('employee')` to `employeeService.js` on employee creation, updates, status toggles, password resets, and permission changes.
+- **Detail & Analytics SWR Integration** — Updated `EmployeeDetailPage.jsx` and `EmployeeAnalyticsPage.jsx` to leverage SWR caching for instant profile visits, comparison windows, and session logs.
+
+---
+
+### 📦 Inventory Ledger & Manual Entries Synchronization (`InventoryLedgerPage.jsx`, `ManualEntriesPage.jsx`, `manualEntryService.js`)
+- **Instant Ledger Navigation** — Connected `InventoryLedgerPage.jsx` to `useSWR` (`inventory-ledger-movements-...`) with 30s TTL, eliminating recurring skeleton sweeps on stock movement reviews.
+- **Manual Entries Cache Pipeline** — Wired `ManualEntriesPage.jsx` to `useSWR` (`manual-entries-...`) with pagination, debounced query keys, and silent background revalidation.
+- **Cross-Domain Cache Purging** — Instrumented `manualEntryService.js` to purge `manual-entries`, `customers`, `dashboard`, and `inventory-ledger` caches automatically on entry creation, payment recording, and deletions.
+
+---
+
+### 📊 TanStack Query Inventory Intelligence (`useInventoryIntelligenceQueries.js`, `InventoryIntelligenceSection.jsx`)
+- **Domain Architectural Parity** — Created TanStack Query hooks (`useBatchExpiryQuery`, `useProductVelocityQuery`, `useStockRiskQuery`, `useSupplierProcurementQuery`) with `staleTime: 60000` for Reports inventory analytics, matching `features/salesAnalytics`.
+- **Tab Switching Immobility** — Preserved analytics data in memory across tab switches in `ReportsPage.jsx`, ending unseeded skeleton pop-ins while maintaining manual refresh controls.
+
+---
+
+### 🎁 Referral System Caching (`ReferralPage.jsx`)
+- **Dual SWR Pipeline** — Converted `ReferralPage.jsx` referral code generation and analytics statistics to `useSWR` with silent revalidation and header refresh indicators.
+
+---
+
 ## [v2.5.1](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.5.1) — 2026-09-20 — Native Document-Root Scrolling, Sticky Header Docking, Mobile Desktop Zoom Ergonomics & Card Payment Visibility
 
 ### 📱 Layout Architecture, Native Document Scrolling & Mobile Card Financial Ergonomics Milestone
