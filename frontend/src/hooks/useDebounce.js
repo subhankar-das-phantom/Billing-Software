@@ -54,5 +54,15 @@ export function useDebounce(value, delay = 300) {
     setDebouncedValue(latestValue.current);
   }, []);
 
-  return [debouncedValue, flush];
+  // Defensive resilience: If debouncedValue is a string, attach string helpers
+  // directly to the returned tuple so any inadvertent non-destructured assignment
+  // calling .trim(), .toLowerCase(), or .toUpperCase() will not throw a runtime TypeError.
+  const result = [debouncedValue, flush];
+  if (typeof debouncedValue === 'string') {
+    result.trim = () => debouncedValue.trim();
+    result.toLowerCase = () => debouncedValue.toLowerCase();
+    result.toUpperCase = () => debouncedValue.toUpperCase();
+  }
+
+  return result;
 }

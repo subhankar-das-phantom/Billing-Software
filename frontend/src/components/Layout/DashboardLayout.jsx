@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState, useEffect, useCallback, useRef } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate, useNavigationType } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowUp } from 'lucide-react';
 import Sidebar from './Sidebar';
@@ -18,6 +18,7 @@ const SIDEBAR_COLLAPSED_STORAGE_KEY = 'bharat-enterprise-sidebar-collapsed';
 export default function DashboardLayout() {
   const location = useLocation();
   const navigate = useNavigate();
+  const navigationType = useNavigationType();
   const motionConfig = useMotionConfig();
   const { user } = useAuth();
   const mainRef = useRef(null);
@@ -117,6 +118,11 @@ export default function DashboardLayout() {
     let isTracking = false;
     let isVerticalScroll = false;
 
+    const isZoomedIn = () => {
+      if (typeof window === 'undefined') return false;
+      return Boolean(window.visualViewport && window.visualViewport.scale > 1.05);
+    };
+
     const handleTouchStart = (e) => {
       // Only track single touch
       if (!e.touches || e.touches.length !== 1) {
@@ -124,7 +130,14 @@ export default function DashboardLayout() {
         return;
       }
 
-      // Ignore touches starting on interactive elements (inputs, textareas, selects, sliders)
+      // Visual Viewport Zoom Immunity: If user is pinch-zoomed in on mobile (including desktop site view),
+      // all 1-finger gestures belong to native viewport panning and must not be hijacked.
+      if (isZoomedIn()) {
+        isTracking = false;
+        return;
+      }
+
+      // Ignore touches starting on interactive text inputs
       const target = e.target;
       if (
         target?.closest &&
@@ -145,14 +158,20 @@ export default function DashboardLayout() {
     const handleTouchMove = (e) => {
       if (!isTracking || isVerticalScroll || !e.touches || e.touches.length === 0) return;
 
+      // Abort if zoomed in
+      if (isZoomedIn()) {
+        isTracking = false;
+        return;
+      }
+
       const touch = e.touches[0];
       const deltaX = touch.clientX - touchStartX;
       const deltaY = touch.clientY - touchStartY;
       const absX = Math.abs(deltaX);
       const absY = Math.abs(deltaY);
 
-      // If user has moved noticeably vertical before horizontal, it's a page scroll
-      if (absY > 35 && absY > absX * 1.5) {
+      // Only lock as vertical scroll if motion is clearly vertical (protecting natural thumb arcs)
+      if (absY > 50 && absY > absX * 1.8) {
         isVerticalScroll = true;
       }
     };
@@ -164,6 +183,11 @@ export default function DashboardLayout() {
       }
       isTracking = false;
 
+      // Abort if zoomed in
+      if (isZoomedIn()) {
+        return;
+      }
+
       if (!e.changedTouches || e.changedTouches.length === 0) return;
 
       const touch = e.changedTouches[0];
@@ -174,8 +198,8 @@ export default function DashboardLayout() {
       const absX = Math.abs(deltaX);
       const absY = Math.abs(deltaY);
 
-      // Must be primarily horizontal gesture and within 1 second
-      if (absX < 35 || absX < absY * 1.2 || elapsedTime > 1000) {
+      // Ergonomic angle tolerance: accept natural thumb diagonal arcs (up to ~48° off-horizontal) within 1200ms
+      if (absX < 30 || absX < absY * 0.9 || elapsedTime > 1200) {
         return;
       }
 
@@ -183,7 +207,7 @@ export default function DashboardLayout() {
 
       // ─── Case 1: Drawer is OPEN -> Left swipe closes it ───
       if (isDrawerCurrentlyOpen) {
-        if (deltaX < -35) {
+        if (deltaX < -30) {
           setMobileDrawerOpen(false);
           setTabletDrawerOpen(false);
         }
@@ -191,14 +215,18 @@ export default function DashboardLayout() {
       }
 
       // ─── Case 2: Drawer / Sidebar is CLOSED -> Right swipe opens it ───
-      if (deltaX > 35) {
-        // Expanded touch zone: allow swipe right starting anywhere across the left half of the screen or header
-        const isFromLeftZone = touchStartX <= Math.max(180, window.innerWidth * 0.50);
+      // Dual-trigger sweet spot: quick light flick (>= 30px in <= 350ms) OR relaxed glide (>= 45px in <= 1200ms)
+      const isQuickFlick = deltaX >= 30 && elapsedTime <= 350;
+      const isRelaxedGlide = deltaX >= 45 && elapsedTime <= 1200;
+
+      if (isQuickFlick || isRelaxedGlide) {
+        // Natural thumb edge zone: on mobile/tablet ~110px, on desktop site view ~140-280px, or from header
+        const isFromLeftZone = touchStartX <= Math.max(110, window.innerWidth * 0.28);
         const isFromHeader = touchStartY <= 80;
 
         if (isFromLeftZone || isFromHeader) {
           if (isDesktop) {
-            // On desktop touch screen: if collapsed, right swipe expands
+            // On desktop touch screen / mobile desktop site view: if collapsed, right swipe expands
             if (sidebarCollapsed) {
               setSidebarCollapsed(false);
               try {
@@ -211,8 +239,8 @@ export default function DashboardLayout() {
             setMobileDrawerOpen(true);
           }
         }
-      } else if (isDesktop && !sidebarCollapsed && deltaX < -50 && touchStartX <= 280) {
-        // On desktop touch screen: left swipe on expanded sidebar collapses it
+      } else if (isDesktop && !sidebarCollapsed && deltaX < -45 && touchStartX <= 280) {
+        // On desktop touch screen / mobile desktop site view: left swipe on expanded sidebar collapses it
         setSidebarCollapsed(true);
         try {
           localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, JSON.stringify(true));
@@ -246,36 +274,20 @@ export default function DashboardLayout() {
     setShowScrollTop(false);
     lastScrollTopRef.current = 0;
 
-    // Reset scroll position to top of main content container on page navigation
-    if (mainRef.current) {
-      mainRef.current.scrollTop = 0;
-    }
-    if (typeof window !== 'undefined') {
+    // Reset scroll position on fresh/forward navigation; preserve browser scroll restoration on back/forward (POP)
+    if (navigationType !== 'POP' && typeof window !== 'undefined') {
       window.scrollTo(0, 0);
     }
+  }, [location.pathname, navigationType]);
 
-    // Anchor to top after any pending frame/render or route transition completes
-    const rafId = window.requestAnimationFrame(() => {
-      if (mainRef.current) {
-        mainRef.current.scrollTop = 0;
-      }
-    });
-
-    return () => window.cancelAnimationFrame(rafId);
-  }, [location.pathname]);
-
-  // Track scroll position in main content area to display Scroll-to-Top button
+  // Track window scroll position to display Scroll-to-Top button
   useEffect(() => {
-    const mainEl = mainRef.current;
-    if (!mainEl) return;
-
     let ticking = false;
 
     const handleScroll = () => {
       if (!ticking) {
         window.requestAnimationFrame(() => {
-          if (!mainEl) return;
-          const currentScrollTop = mainEl.scrollTop;
+          const currentScrollTop = window.scrollY || document.documentElement.scrollTop || 0;
           const lastScrollTop = lastScrollTopRef.current;
 
           // Direction & threshold logic:
@@ -297,31 +309,26 @@ export default function DashboardLayout() {
       }
     };
 
-    mainEl.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll();
-    return () => mainEl.removeEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, [location.pathname]);
 
   const handleScrollToTop = useCallback(() => {
-    const el = mainRef.current;
-    if (!el) return;
-
     // Immediately hide button and reset direction tracking to prevent flicker
     setShowScrollTop(false);
     lastScrollTopRef.current = 0;
 
-    if (el.scrollTop > 1200) {
-      // For large distances (e.g. 500-1000+ items, scrollTop > 1200px):
-      // Clamp & Glide: Instantly cut to a near-top buffer (350px) so the browser compositor
-      // does not freeze trying to animate across tens of thousands of pixels.
-      el.scrollTop = 350;
+    const currentScrollTop = window.scrollY || document.documentElement.scrollTop || 0;
+    if (currentScrollTop > 1200) {
+      // Clamp & Glide: Instantly cut to a near-top buffer (350px) then glide smoothly to 0
+      window.scrollTo({ top: 350, behavior: 'auto' });
       requestAnimationFrame(() => {
-        el.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       });
     } else {
-      // For small distances (50-100 items, scrollTop <= 1200px):
       // Direct native smooth scroll
-      el.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, []);
 
@@ -359,10 +366,10 @@ export default function DashboardLayout() {
     : { type: 'spring', stiffness: 350, damping: 32 };
 
   return (
-    <div className="flex h-screen h-[100dvh] w-full overflow-hidden bg-slate-950 text-slate-100 antialiased">
+    <div className="flex min-h-screen w-full bg-slate-950 text-slate-100 antialiased">
       {/* ─── 1. Desktop & Tablet Persistent Sidebar Rail ──────────────── */}
       {!isMobile && (
-        <div className="shrink-0 z-40 h-full flex flex-col no-print">
+        <div className="shrink-0 z-20 sticky top-0 h-screen flex flex-col no-print">
           <Sidebar
             isCollapsed={isTablet ? true : sidebarCollapsed}
             onToggleCollapse={isDesktop ? handleToggleDesktopCollapse : () => setTabletDrawerOpen(true)}
@@ -392,6 +399,9 @@ export default function DashboardLayout() {
             {/* Slide-out Panel */}
             <motion.div
               key="drawer-panel"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Navigation Menu"
               className="fixed inset-y-0 left-0 z-50 max-w-[82vw] w-72 shadow-2xl shadow-black no-print"
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
@@ -412,9 +422,9 @@ export default function DashboardLayout() {
       </AnimatePresence>
 
       {/* ─── 3. Main Application Column ───────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-0 h-full overflow-hidden relative">
+      <div className="flex-1 flex flex-col min-w-0 relative">
         {/* Top Header (Non-scrolling flex item, strictly outside main) */}
-        <div className="no-print shrink-0 w-full z-30">
+        <div className="no-print shrink-0 w-full z-30 sticky top-0">
           <Header
             onToggleSidebar={handleToggleSidebar}
             onOpenCommandPalette={() => setCommandPaletteOpen(true)}
@@ -426,7 +436,7 @@ export default function DashboardLayout() {
         {/* Main Content Area (Sole vertical scroll container) */}
         <main
           ref={mainRef}
-          className="flex-1 min-h-0 min-w-0 p-4 sm:p-6 lg:p-8 xl:p-10 overflow-y-auto overflow-x-hidden overscroll-y-contain bg-slate-950"
+          className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 xl:p-10 bg-slate-950"
         >
           <div className="max-w-[1600px] mx-auto w-full">
             <div className="no-print">

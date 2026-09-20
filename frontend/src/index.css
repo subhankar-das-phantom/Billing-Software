@@ -541,9 +541,10 @@ html.dark {
     @apply min-w-[800px];
   }
 
-  /* Horizontal table scroll wrapper — strictly isolate vertical scrolling to <main> */
+  /* Horizontal table scroll wrapper — allow natural vertical touch passage while scrolling horizontally */
   [data-horizontal-table-scroll="true"] {
-    overflow-y: hidden !important;
+    overflow-x: auto;
+    touch-action: auto;
   }
 
   /* Mobile-optimized table */
