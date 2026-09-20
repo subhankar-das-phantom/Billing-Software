@@ -72,14 +72,21 @@ const getInvoicePaymentStatus = (invoice, cnDeduction = 0) => {
   return 'Unpaid';
 };
 
-// Animated counter component
-const AnimatedCounter = ({ value, prefix = '', suffix = '' }) => {
+// Animated counter component with configurable decimal precision
+const AnimatedCounter = ({ value, prefix = '', suffix = '', decimals = 0 }) => {
   const ref = useRef(null);
   const prevValueRef = useRef(0);
 
+  const formatNumber = (num) => {
+    return Number(num || 0).toLocaleString('en-IN', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals
+    });
+  };
+
   useEffect(() => {
     const startValue = prevValueRef.current;
-    const endValue = value;
+    const endValue = Number(value) || 0;
     prevValueRef.current = endValue;
     
     if (startValue === endValue) return;
@@ -96,7 +103,7 @@ const AnimatedCounter = ({ value, prefix = '', suffix = '' }) => {
       const current = startValue + (endValue - startValue) * eased;
       
       if (ref.current) {
-        ref.current.textContent = `${prefix}${Math.round(current).toLocaleString()}${suffix}`;
+        ref.current.textContent = `${prefix}${formatNumber(current)}${suffix}`;
       }
       
       if (progress < 1) {
@@ -105,9 +112,9 @@ const AnimatedCounter = ({ value, prefix = '', suffix = '' }) => {
     };
     
     requestAnimationFrame(tick);
-  }, [value, prefix, suffix]);
+  }, [value, prefix, suffix, decimals]);
 
-  return <span ref={ref}>{prefix}{Math.round(value).toLocaleString()}{suffix}</span>;
+  return <span ref={ref}>{prefix}{formatNumber(value || 0)}{suffix}</span>;
 };
 
 /* ─────────────────────────────────────────────────────────────
@@ -737,7 +744,7 @@ export default function CustomerDetailsPage() {
                 <AnimatedCounter 
                   value={customer.totalPurchases || 0} 
                   prefix="₹"
-                  decimals={0}
+                  decimals={2}
                 />
               </p>
               <p className="text-sm text-slate-400">Total Purchases</p>
@@ -747,20 +754,20 @@ export default function CustomerDetailsPage() {
             <div className="text-center px-6 py-4 rounded-xl bg-slate-800/50 border border-slate-700/60">
               <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-slate-800 border border-slate-700/60 mb-2">
                 <Wallet className={`w-5 h-5 ${
-                  summary.balance > 0 
+                  (summary.calculatedOutstanding ?? summary.balance ?? 0) > 0 
                     ? 'text-amber-400' 
                     : 'text-emerald-400'
                 }`} />
               </div>
               <p className={`text-2xl font-bold mb-1 ${
-                summary.balance > 0 
+                (summary.calculatedOutstanding ?? summary.balance ?? 0) > 0 
                   ? 'text-amber-400' 
                   : 'text-emerald-400'
               }`}>
                 <AnimatedCounter 
-                  value={summary.balance} 
+                  value={summary.calculatedOutstanding ?? summary.balance ?? 0} 
                   prefix="₹"
-                  decimals={0}
+                  decimals={2}
                 />
               </p>
               <p className="text-sm text-slate-400">Outstanding</p>
