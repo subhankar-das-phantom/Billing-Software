@@ -4,6 +4,35 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.5.3](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.5.3) — 2026-09-20 — Purchase Reports TanStack Caching, Activity Log Zero-Flicker & Employee Deep-Link Resolution, and Settings Instant Mount
+
+### ⚡ Analytical Tab Caching & Operational Navigation Polish
+Version 2.5.3 completes the multi-tab reporting and operational audit overhaul by establishing TanStack Query caching for the Purchase Reports suite, resolving the empty activity log state when deep-linking from employee profiles, introducing frame-0 SWR caching with 1-click time range fallbacks for the Activity Log, and removing artificial delay timers on the Settings page.
+
+---
+
+### 📊 Purchase Reports Tab Caching & Mutation Parity (`usePurchaseReportQueries.js`, `PurchaseReportsPage.jsx`, `purchaseService.js`)
+- **TanStack Query Hooks** — Created dedicated query hooks (`usePurchaseSummaryQuery`, `useSupplierWisePurchasesQuery`, `useProductWisePurchasesQuery`) with `staleTime: 60000`, matching `salesAnalytics` and `inventoryAnalytics`.
+- **Zero-Flicker Tab Switching** — Retains purchase report data in memory across tab navigation in the Reports & Intelligence Hub (`/reports`), displaying cached data on Frame 0 with zero skeleton flicker.
+- **Header Refresh Indicator** — Integrated `<RefreshIndicator isRefreshing={isUpdating} size="sm" showText />` alongside a manual refresh button.
+- **Reactive Cache Invalidation** — Configured `purchaseService.js` to automatically invalidate `['reports', 'purchases']`, `'purchases'`, and `'inventory-ledger'` caches across create, update, delete, complete, and cancel operations.
+
+---
+
+### 📋 Activity Log Zero-Flicker & Employee Deep-Link Resolution (`ActivityLogPage.jsx`, `employeeActivityService.ts`)
+- **Eliminate Skeleton Reload on Revisit** — Migrated `ActivityLogPage.jsx` to `useSWR` with 30s TTL and frame-0 `localStorage` pre-seeding, ending repetitive skeleton sweeps on navigation.
+- **Smart Employee Deep-Link Handling** — When navigating from an employee profile (`/activity-log?employee=<id>`), the page automatically targets the employee on the first network request (eliminating the double-fetch) and defaults `timeRange` to `'30d'` instead of strictly `'today'`, resolving the empty activity state when work occurred earlier in the month.
+- **Contextual 1-Click Fallback Actions** — Empty activity states now provide 1-click fallback buttons: *`[Search Last 30 Days]`*, *`[Search All Time]`*, and *`[Clear Employee Filter]`*.
+- **Backend All-Time Range Support** — Expanded `parseActivityTimeRange` in `employeeActivityService.ts` to support `'all'` / `'alltime'` / `'90d'` with a safe 90-day ceiling.
+
+---
+
+### ⚙️ Settings Page Zero-Delay Instant Rendering (`SettingsPage.jsx`)
+- **Eliminate Artificial 400ms Delay** — Removed the legacy `setTimeout` delay in `SettingsPage.jsx` that artificially displayed `<SettingsPageSkeleton />` for 400ms on every mount.
+- **Instant Frame-0 Mount** — Initialized loading state to `!user`, rendering settings immediately in 0ms when authentication state is already resolved in `AuthContext`.
+
+---
+
 ## [v2.5.2](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.5.2) — 2026-09-20 — Operational Cache Synchronization, Frame-0 SWR Pre-seeding, TanStack Query Inventory Analytics & Runtime Identifier Safety
 
 ### ⚡ Operational Cache Synchronization & Zero-Skeleton-Flicker Architecture
