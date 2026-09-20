@@ -110,13 +110,14 @@ export default function DashboardLayout() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isDesktop, mobileDrawerOpen, tabletDrawerOpen, handleToggleDesktopCollapse, navigate]);
 
-  // Touch / Swipe gesture handling for Sidebar (open by right swipe, close by left swipe)
+  // Touch / Swipe gesture handling for Sidebar with velocity & acceleration physics
   useEffect(() => {
     let touchStartX = 0;
     let touchStartY = 0;
     let touchStartTime = 0;
     let isTracking = false;
     let isVerticalScroll = false;
+    let recentSamples = []; // [{ x, y, time }]
 
     const handleTouchStart = (e) => {
       // Only track single touch
@@ -125,11 +126,33 @@ export default function DashboardLayout() {
         return;
       }
 
-      // Ignore touches starting on interactive elements (inputs, textareas, selects, sliders)
+      // Visual Viewport Zoom Immunity: If user is pinch-zoomed in on mobile (including desktop site view),
+      // all 1-finger gestures belong to native viewport panning and must not be hijacked.
+      if (window.visualViewport && window.visualViewport.scale > 1.05) {
+        isTracking = false;
+        return;
+      }
+
+      // If page is already scrolled horizontally, horizontal swipe is for panning content back
+      const isHorizontallyScrolled =
+        window.scrollX > 5 ||
+        document.documentElement.scrollLeft > 5 ||
+        (window.visualViewport && window.visualViewport.pageLeft > 5);
+
+      const isDrawerCurrentlyOpen = mobileDrawerOpen || tabletDrawerOpen;
+
+      if (!isDrawerCurrentlyOpen && isHorizontallyScrolled) {
+        isTracking = false;
+        return;
+      }
+
+      // Ignore touches starting on interactive elements or horizontally scrollable containers
       const target = e.target;
       if (
         target?.closest &&
-        target.closest('input, textarea, select, [contenteditable="true"], [role="slider"], .no-swipe')
+        target.closest(
+          'input, textarea, select, [contenteditable="true"], [role="slider"], .no-swipe, [data-horizontal-table-scroll="true"], [role="tablist"], .overflow-x-auto, table'
+        )
       ) {
         isTracking = false;
         return;
@@ -139,12 +162,19 @@ export default function DashboardLayout() {
       touchStartX = touch.clientX;
       touchStartY = touch.clientY;
       touchStartTime = Date.now();
+      recentSamples = [{ x: touch.clientX, y: touch.clientY, time: touchStartTime }];
       isTracking = true;
       isVerticalScroll = false;
     };
 
     const handleTouchMove = (e) => {
       if (!isTracking || isVerticalScroll || !e.touches || e.touches.length === 0) return;
+
+      // Check zoom during move in case user initiated a pinch gesture
+      if (window.visualViewport && window.visualViewport.scale > 1.05) {
+        isTracking = false;
+        return;
+      }
 
       const touch = e.touches[0];
       const deltaX = touch.clientX - touchStartX;
@@ -153,9 +183,15 @@ export default function DashboardLayout() {
       const absY = Math.abs(deltaY);
 
       // If user has moved noticeably vertical before horizontal, it's a page scroll
-      if (absY > 35 && absY > absX * 1.5) {
+      if (absY > 30 && absY > absX * 1.4) {
         isVerticalScroll = true;
+        return;
       }
+
+      const now = Date.now();
+      recentSamples.push({ x: touch.clientX, y: touch.clientY, time: now });
+      // Retain samples within the last 120ms to measure release velocity & acceleration
+      recentSamples = recentSamples.filter((s) => now - s.time <= 120);
     };
 
     const handleTouchEnd = (e) => {
@@ -165,65 +201,75 @@ export default function DashboardLayout() {
       }
       isTracking = false;
 
+      // Abort if zoomed in
+      if (window.visualViewport && window.visualViewport.scale > 1.05) {
+        return;
+      }
+
       if (!e.changedTouches || e.changedTouches.length === 0) return;
 
       const touch = e.changedTouches[0];
+      const now = Date.now();
       const deltaX = touch.clientX - touchStartX;
       const deltaY = touch.clientY - touchStartY;
-      const elapsedTime = Date.now() - touchStartTime;
+      const totalElapsedTime = Math.max(1, now - touchStartTime);
 
       const absX = Math.abs(deltaX);
       const absY = Math.abs(deltaY);
 
-      // Must be primarily horizontal gesture and within 1 second
-      if (absX < 35 || absX < absY * 1.2 || elapsedTime > 1000) {
+      // Must be primarily horizontal and within 800ms
+      if (absX < 30 || absX < absY * 1.3 || totalElapsedTime > 800) {
         return;
       }
+
+      // Compute release velocity and acceleration using recent samples
+      const firstSample = recentSamples[0] || { x: touchStartX, y: touchStartY, time: touchStartTime };
+      const sampleDt = Math.max(1, now - firstSample.time);
+      const sampleDx = touch.clientX - firstSample.x;
+      const releaseVelocityX = sampleDx / sampleDt; // px/ms
+      const avgVelocityX = deltaX / totalElapsedTime; // px/ms
 
       const isDrawerCurrentlyOpen = mobileDrawerOpen || tabletDrawerOpen;
 
       // ─── Case 1: Drawer is OPEN -> Left swipe closes it ───
       if (isDrawerCurrentlyOpen) {
-        if (deltaX < -35) {
+        // Close on negative velocity flick or sufficient leftward distance
+        if (deltaX < -35 && (releaseVelocityX <= -0.25 || deltaX < -70)) {
           setMobileDrawerOpen(false);
           setTabletDrawerOpen(false);
         }
         return;
       }
 
-      // ─── Case 2: Drawer / Sidebar is CLOSED -> Right swipe opens it ───
-      if (deltaX > 35) {
-        // Expanded touch zone: allow swipe right starting anywhere across the left half of the screen or header
-        const isFromLeftZone = touchStartX <= Math.max(180, window.innerWidth * 0.50);
-        const isFromHeader = touchStartY <= 80;
+      // ─── Case 2: Drawer is CLOSED -> Right swipe opens it ───
+      // Only active on mobile and tablet viewport tiers (not desktop docked rail)
+      if (!isDesktop && deltaX > 0) {
+        // True screen edge (<= 28px) or top header bar near hamburger menu button
+        const isFromLeftEdge = touchStartX <= 28;
+        const isFromHeaderBar = touchStartY <= 64 && touchStartX <= 80;
 
-        if (isFromLeftZone || isFromHeader) {
-          if (isDesktop) {
-            // On desktop touch screen: if collapsed, right swipe expands
-            if (sidebarCollapsed) {
-              setSidebarCollapsed(false);
-              try {
-                localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, JSON.stringify(false));
-              } catch {}
-            }
-          } else if (isTablet) {
+        if (!isFromLeftEdge && !isFromHeaderBar) {
+          return;
+        }
+
+        // Kinematic decision: High-velocity flick (acceleration) OR deliberate sustained drag
+        const isQuickFlick = deltaX >= 40 && releaseVelocityX >= 0.38;
+        const isSustainedDrag = deltaX >= 80 && avgVelocityX >= 0.18;
+
+        if (isQuickFlick || isSustainedDrag) {
+          if (isTablet) {
             setTabletDrawerOpen(true);
           } else {
             setMobileDrawerOpen(true);
           }
         }
-      } else if (isDesktop && !sidebarCollapsed && deltaX < -50 && touchStartX <= 280) {
-        // On desktop touch screen: left swipe on expanded sidebar collapses it
-        setSidebarCollapsed(true);
-        try {
-          localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, JSON.stringify(true));
-        } catch {}
       }
     };
 
     const handleTouchCancel = () => {
       isTracking = false;
       isVerticalScroll = false;
+      recentSamples = [];
     };
 
     window.addEventListener('touchstart', handleTouchStart, { passive: true });
@@ -237,7 +283,7 @@ export default function DashboardLayout() {
       window.removeEventListener('touchend', handleTouchEnd);
       window.removeEventListener('touchcancel', handleTouchCancel);
     };
-  }, [mobileDrawerOpen, tabletDrawerOpen, isDesktop, isTablet, sidebarCollapsed]);
+  }, [mobileDrawerOpen, tabletDrawerOpen, isDesktop, isTablet]);
 
   // Close overlays and reset scroll position on route change
   useEffect(() => {
