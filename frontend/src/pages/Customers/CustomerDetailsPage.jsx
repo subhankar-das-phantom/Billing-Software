@@ -1061,10 +1061,18 @@ export default function CustomerDetailsPage() {
                                     <span className="font-mono text-[11px] text-slate-400">
                                       {formatDate(invoice.invoiceDate)}
                                     </span>
-                                    <span className={`badge ${statusConfig[invoice.status]?.class || 'badge-info'} inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5`}>
-                                      <StatusIcon className="w-2.5 h-2.5" />
-                                      {invoice.status}
-                                    </span>
+                                    {invoice.status === 'Cancelled' ? (
+                                      <span className="badge badge-danger inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5">
+                                        <StatusIcon className="w-2.5 h-2.5" />
+                                        Cancelled
+                                      </span>
+                                    ) : (
+                                      <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full border ${paymentStatusConfig[paymentStatus]?.class}`}>
+                                        <PaymentIcon className="w-2.5 h-2.5" />
+                                        {paymentStatus}
+                                        {paymentStatus === 'Partial' && ` (${formatCurrency(adjustedRemaining)})`}
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
                               }
@@ -1075,13 +1083,10 @@ export default function CustomerDetailsPage() {
                                     <Package className="w-3.5 h-3.5 text-slate-500" />
                                     {invoice.items?.length || 0} items
                                   </span>
-                                  {invoice.status !== 'Cancelled' && (
-                                    <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${paymentStatusConfig[paymentStatus]?.class}`}>
-                                      <PaymentIcon className="w-3 h-3" />
-                                      {paymentStatus}
-                                      {paymentStatus === 'Partial' && ` (${formatCurrency(adjustedRemaining)})`}
-                                    </span>
-                                  )}
+                                  <span className={`badge ${statusConfig[invoice.status]?.class || 'badge-info'} inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5`}>
+                                    <StatusIcon className="w-2.5 h-2.5" />
+                                    {invoice.status}
+                                  </span>
                                 </div>
 
                                 <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-700/50">
