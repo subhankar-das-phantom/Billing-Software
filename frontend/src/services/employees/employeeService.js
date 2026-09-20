@@ -1,4 +1,5 @@
 import api from '../api';
+import { invalidateCachePattern } from '../../hooks/useSWR';
 
 /**
  * Employee Service
@@ -46,6 +47,8 @@ export const employeeService = {
   createEmployee: async (data) => {
     try {
       const response = await api.post('/employees', data);
+      invalidateCachePattern('employees');
+      invalidateCachePattern('employee');
       return response.data;
     } catch (error) {
       throw error;
@@ -61,6 +64,8 @@ export const employeeService = {
   updateEmployee: async (id, data) => {
     try {
       const response = await api.put(`/employees/${id}`, data);
+      invalidateCachePattern('employees');
+      invalidateCachePattern('employee');
       return response.data;
     } catch (error) {
       throw error;
@@ -76,6 +81,8 @@ export const employeeService = {
   updatePermissions: async (id, data) => {
     try {
       const response = await api.put(`/employees/${id}/permissions`, data);
+      invalidateCachePattern('employees');
+      invalidateCachePattern('employee');
       return response.data;
     } catch (error) {
       throw error;
@@ -91,6 +98,8 @@ export const employeeService = {
   resetPassword: async (id, newPassword) => {
     try {
       const response = await api.put(`/employees/${id}/password`, { newPassword });
+      invalidateCachePattern('employees');
+      invalidateCachePattern('employee');
       return response.data;
     } catch (error) {
       throw error;
@@ -106,6 +115,8 @@ export const employeeService = {
   toggleStatus: async (id, isActive) => {
     try {
       const response = await api.put(`/employees/${id}/status`, { isActive });
+      invalidateCachePattern('employees');
+      invalidateCachePattern('employee');
       return response.data;
     } catch (error) {
       throw error;
@@ -120,6 +131,8 @@ export const employeeService = {
   deleteEmployee: async (id) => {
     try {
       const response = await api.delete(`/employees/${id}`);
+      invalidateCachePattern('employees');
+      invalidateCachePattern('employee');
       return response.data;
     } catch (error) {
       throw error;

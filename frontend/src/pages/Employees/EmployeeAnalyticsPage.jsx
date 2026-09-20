@@ -19,7 +19,8 @@ import {
   Award
 } from 'lucide-react';
 import { employeeService } from '../../services/employees/employeeService';
-import { useMotionConfig, useFirstVisit } from '../../hooks';
+import { useMotionConfig, useFirstVisit, useSWR } from '../../hooks';
+import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 import { EmployeeAnalyticsPageSkeleton } from './EmployeesPageSkeleton';
 
 // Format duration in minutes to human readable
@@ -206,11 +207,6 @@ const ComparisonRow = ({ employee, maxSales, isFirstVisit }) => {
 };
 
 export default function EmployeeAnalyticsPage() {
-  const [analytics, setAnalytics] = useState(null);
-  const [comparison, setComparison] = useState(null);
-  const [sessionSummary, setSessionSummary] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [comparisonDays, setComparisonDays] = useState(30);
   
   // Mobile performance optimization
@@ -218,35 +214,40 @@ export default function EmployeeAnalyticsPage() {
   const { isMobile } = motionConfig;
   const isFirstVisit = useFirstVisit('employee-analytics');
 
-  const fetchData = async (refresh = false) => {
-    if (refresh) setIsRefreshing(true);
-    else setLoading(true);
+  const { data: analyticsData, isLoading: aLoading, isValidating: aValidating, mutate: mutateAnalytics } = useSWR(
+    'employee-analytics',
+    () => employeeService.getEmployeeAnalytics(),
+    { ttl: 60 * 1000 }
+  );
 
-    try {
-      const [analyticsData, comparisonData, sessionData] = await Promise.all([
-        employeeService.getEmployeeAnalytics(),
-        employeeService.getEmployeeComparison(comparisonDays),
-        employeeService.getSessionSummary()
-      ]);
-      
-      setAnalytics(analyticsData);
-      setComparison(comparisonData);
-      setSessionSummary(sessionData);
-    } catch (error) {
-      console.error('Failed to fetch analytics:', error);
-    } finally {
-      setLoading(false);
-      setIsRefreshing(false);
-    }
+  const { data: comparisonData, isLoading: cLoading, isValidating: cValidating, mutate: mutateComparison } = useSWR(
+    `employee-comparison-${comparisonDays}`,
+    () => employeeService.getEmployeeComparison(comparisonDays),
+    { ttl: 60 * 1000 }
+  );
+
+  const { data: sessionData, isLoading: sLoading, isValidating: sValidating, mutate: mutateSession } = useSWR(
+    'employee-session-summary',
+    () => employeeService.getSessionSummary(),
+    { ttl: 60 * 1000 }
+  );
+
+  const loading = (aLoading || cLoading || sLoading) && (!analyticsData || !comparisonData);
+  const isValidating = aValidating || cValidating || sValidating;
+
+  const handleRefresh = () => {
+    mutateAnalytics();
+    mutateComparison();
+    mutateSession();
   };
-
-  useEffect(() => {
-    fetchData();
-  }, [comparisonDays]);
 
   if (loading) {
     return <EmployeeAnalyticsPageSkeleton />;
   }
+
+  const analytics = analyticsData || null;
+  const comparison = comparisonData || null;
+  const sessionSummary = sessionData || null;
 
   const employees = analytics?.employees || [];
   const comparisonEmployees = comparison?.employees || [];
@@ -272,6 +273,7 @@ export default function EmployeeAnalyticsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+          <RefreshIndicator isRefreshing={isValidating} size="sm" showText />
           <Link
             to="/employees"
             className="flex-1 sm:flex-initial text-center px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 hover:text-slate-100 hover:bg-slate-700 transition-colors text-xs sm:text-sm font-medium shadow-sm"
@@ -280,13 +282,13 @@ export default function EmployeeAnalyticsPage() {
           </Link>
           <button
             type="button"
-            onClick={() => fetchData(true)}
-            disabled={isRefreshing}
+            onClick={handleRefresh}
+            disabled={isValidating}
             className="p-2 sm:p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 hover:text-slate-100 hover:bg-slate-700 transition-colors disabled:opacity-50"
             title="Refresh analytics data"
             aria-label="Refresh analytics data"
           >
-            <RefreshCw size={18} className={isRefreshing ? 'animate-spin text-accent-400' : ''} />
+            <RefreshCw size={18} className={isValidating ? 'animate-spin text-accent-400' : ''} />
           </button>
         </div>
       </div>

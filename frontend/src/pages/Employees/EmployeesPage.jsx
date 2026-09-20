@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -21,7 +21,8 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { employeeService } from '../../services/employees/employeeService';
-import { useMotionConfig, useFirstVisit, useDebounce } from '../../hooks';
+import { useMotionConfig, useFirstVisit, useDebounce, useSWR, invalidateCachePattern } from '../../hooks';
+import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 import { EmployeesPageSkeleton } from './EmployeesPageSkeleton';
 
 // Format currency
@@ -644,55 +645,43 @@ const EmployeeCard = ({ employee, onEdit, onResetPassword, onToggleStatus, isMob
 
 // Main Page Component
 export default function EmployeesPage() {
-  const [employees, setEmployees] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch] = useDebounce(searchTerm, 300);
   const [statusFilter, setStatusFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
-  const [stats, setStats] = useState({
-    total: 0,
-    active: 0,
-    totalSales: 0
-  });
 
   const motionConfig = useMotionConfig();
   const { isMobile } = motionConfig;
   const isFirstVisit = useFirstVisit('employees');
 
-  const fetchEmployees = async (silent = false) => {
-    try {
-      if (!silent) setLoading(true);
-      const data = await employeeService.getEmployees({ search: debouncedSearch, status: statusFilter });
-      setEmployees(data.employees || []);
-      
-      // Calculate stats
-      const activeCount = (data.employees || []).filter(e => e.isActive).length;
-      const totalSales = (data.employees || []).reduce((sum, e) => sum + (e.metrics?.totalSalesGenerated || 0), 0);
-      setStats({
-        total: data.employees?.length || 0,
-        active: activeCount,
-        totalSales
-      });
-    } catch (err) {
-      console.error('Failed to fetch employees:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data, isLoading, isValidating, mutate } = useSWR(
+    `employees-list-${debouncedSearch}-${statusFilter}`,
+    () => employeeService.getEmployees({ search: debouncedSearch, status: statusFilter }),
+    { ttl: 30 * 1000 }
+  );
 
+  const employees = data?.employees || [];
+
+  const stats = useMemo(() => {
+    const activeCount = employees.filter(e => e.isActive).length;
+    const totalSales = employees.reduce((sum, e) => sum + (e.metrics?.totalSalesGenerated || 0), 0);
+    return {
+      total: employees.length,
+      active: activeCount,
+      totalSales
+    };
+  }, [employees]);
+
+  // Auto-refresh every 30 seconds to update online status silently
   useEffect(() => {
-    fetchEmployees();
-    
-    // Auto-refresh every 30 seconds to update online status silently
     const refreshInterval = setInterval(() => {
-      fetchEmployees(true);
+      mutate();
     }, 30 * 1000); // 30 seconds
 
     return () => clearInterval(refreshInterval);
-  }, [debouncedSearch, statusFilter]);
+  }, [mutate]);
 
   const handleEdit = (employee) => {
     setSelectedEmployee(employee);
@@ -707,7 +696,7 @@ export default function EmployeesPage() {
   const handleToggleStatus = async (id, newStatus) => {
     try {
       await employeeService.toggleStatus(id, newStatus);
-      fetchEmployees();
+      mutate();
     } catch (err) {
       console.error('Failed to toggle status:', err);
     }
@@ -725,7 +714,7 @@ export default function EmployeesPage() {
     { label: 'Total Sales', value: formatCurrency(stats.totalSales), icon: DollarSign, color: 'accent' }
   ];
 
-  if (loading && employees.length === 0 && !searchTerm && statusFilter === 'all') {
+  if (isLoading && employees.length === 0 && !searchTerm && statusFilter === 'all') {
     return <EmployeesPageSkeleton />;
   }
 
@@ -734,7 +723,10 @@ export default function EmployeesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-100">Employee Management</h1>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl font-bold text-slate-100">Employee Management</h1>
+            <RefreshIndicator isRefreshing={isValidating} size="sm" showText />
+          </div>
           <p className="text-slate-400 mt-1">Manage your team members and their access</p>
         </div>
         <motion.button
@@ -805,7 +797,7 @@ export default function EmployeesPage() {
       </div>
 
       {/* Employee Grid */}
-      {loading ? (
+      {isLoading && employees.length === 0 ? (
         <div className="flex items-center justify-center py-12">
           <RefreshCw className="animate-spin text-blue-400" size={32} />
         </div>
@@ -836,13 +828,13 @@ export default function EmployeesPage() {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         employee={selectedEmployee}
-        onSave={fetchEmployees}
+        onSave={() => mutate()}
       />
       <PasswordResetModal
         isOpen={showPasswordModal}
         onClose={() => setShowPasswordModal(false)}
         employee={selectedEmployee}
-        onSave={fetchEmployees}
+        onSave={() => mutate()}
       />
     </div>
   );

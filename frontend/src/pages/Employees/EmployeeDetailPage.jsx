@@ -19,7 +19,8 @@ import {
   ChevronUp
 } from 'lucide-react';
 import { employeeService } from '../../services/employees/employeeService';
-import { useMotionConfig, useFirstVisit } from '../../hooks';
+import { useMotionConfig, useFirstVisit, useSWR, invalidateCachePattern } from '../../hooks';
+import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 import EmployeePermissionsEditor from '../../components/Employees/EmployeePermissionsEditor';
 import { EmployeeDetailPageSkeleton } from './EmployeeDetailPageSkeleton';
 
@@ -68,44 +69,28 @@ export default function EmployeeDetailPage() {
   const { isMobile } = useMotionConfig();
   const isFirstVisit = useFirstVisit('employee-details');
   
-  const [loading, setLoading] = useState(true);
-  const [employee, setEmployee] = useState(null);
-  const [sessionStats, setSessionStats] = useState(null);
-  const [recentActivity, setRecentActivity] = useState({ invoices: [], payments: [] });
-  const [error, setError] = useState('');
   const [showAllInvoices, setShowAllInvoices] = useState(false);
   const [showAllPayments, setShowAllPayments] = useState(false);
   const DISPLAY_LIMIT = 5;
 
-  const fetchEmployeeDetails = async () => {
-    try {
-      setLoading(true);
-      const data = await employeeService.getEmployeeDetails(id);
-      if (data.success) {
-        setEmployee(data.employee);
-        setSessionStats(data.sessionStats);
-        setRecentActivity(data.recentActivity || { invoices: [], payments: [] });
-      }
-    } catch (err) {
-      setError('Failed to load employee details');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: detailData, isLoading, isValidating, error: swrError, mutate } = useSWR(
+    id ? `employee-details-${id}` : null,
+    () => employeeService.getEmployeeDetails(id),
+    { ttl: 30 * 1000 }
+  );
 
-  useEffect(() => {
-    fetchEmployeeDetails();
-  }, [id]);
+  const employee = detailData?.employee || null;
+  const sessionStats = detailData?.sessionStats || null;
+  const recentActivity = detailData?.recentActivity || { invoices: [], payments: [] };
 
-  if (loading) {
+  if (isLoading && !employee) {
     return <EmployeeDetailPageSkeleton />;
   }
 
-  if (error || !employee) {
+  if ((swrError || (!isLoading && !employee)) && !detailData) {
     return (
       <div className="text-center py-12">
-        <p className="text-red-400">{error || 'Employee not found'}</p>
+        <p className="text-red-400">{swrError?.message || 'Employee not found'}</p>
         <button 
           onClick={() => navigate('/employees')}
           className="mt-4 text-blue-400 hover:underline"
@@ -161,16 +146,19 @@ export default function EmployeeDetailPage() {
             {employee.name?.charAt(0)?.toUpperCase() || 'E'}
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-100 flex flex-wrap items-center gap-2">
-              <span className="truncate max-w-full">{employee.name}</span>
-              <span className={`text-xs sm:text-sm px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${
-                employee.isActive 
-                  ? 'bg-emerald-500/20 text-emerald-400' 
-                  : 'bg-slate-500/20 text-slate-400'
-              }`}>
-                {employee.isActive ? 'Active' : 'Inactive'}
-              </span>
-            </h1>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-100 flex flex-wrap items-center gap-2">
+                <span className="truncate max-w-full">{employee.name}</span>
+                <span className={`text-xs sm:text-sm px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${
+                  employee.isActive 
+                    ? 'bg-emerald-500/20 text-emerald-400' 
+                    : 'bg-slate-500/20 text-slate-400'
+                }`}>
+                  {employee.isActive ? 'Active' : 'Inactive'}
+                </span>
+              </h1>
+              <RefreshIndicator isRefreshing={isValidating} size="sm" showText />
+            </div>
             <p className="text-slate-400 truncate">{employee.email}</p>
           </div>
         </div>
@@ -267,7 +255,10 @@ export default function EmployeeDetailPage() {
       {/* Permissions Editor */}
       <EmployeePermissionsEditor 
         employee={employee} 
-        onUpdate={(updatedEmployee) => setEmployee(updatedEmployee)} 
+        onUpdate={() => {
+          mutate();
+          invalidateCachePattern('employees');
+        }} 
       />
 
       {/* Session Stats */}
