@@ -46,6 +46,14 @@ Version 2.5.1 unifies the application's layout architecture by transitioning fro
 
 ---
 
+### 🐛 Resilient Search Debouncing & Runtime TypeError Elimination (`InventoryIntelligenceSection.jsx`, `useDebounce.js`, `GstReportPage.jsx`)
+- **Tuple Destructuring Correction** — Corrected search hook destructuring in `InventoryIntelligenceSection.jsx` (`[debouncedRiskSearch]`, `[debouncedVelocitySearch]`, `[debouncedProcurementSearch]`). Previously, assigning the tuple array `[debouncedValue, flush]` directly caused `Array.prototype.trim` undefined lookups, throwing `Uncaught TypeError: se.trim is not a function` during `useMemo` evaluation.
+- **Hook Self-Healing Resilience** — Enhanced `useDebounce.js` return tuple with defensive string delegates (`.trim()`, `.toLowerCase()`, `.toUpperCase()`) whenever `debouncedValue` is a string, immunizing the application against accidental non-destructured hook assignments.
+- **Filter Query Optimization** — Moved `rawSearch.trim().toLowerCase()` computation outside the item iteration loops in `displayedVelocityFast`, `displayedVelocitySlow`, and `displayedSuppliers`, avoiding $O(N)$ redundant string lowercasing per filter run.
+- **Defensive String Handling** — Hardened `debouncedProductSearch` handling in `GstReportPage.jsx` to safely handle non-string and nullish values.
+
+---
+
 ## [v2.5.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.5.0) — 2026-09-19 — Infinite Scroll Resilience, Deterministic Pagination, Lightweight CSS Navigation & 1,000+ Item Scale Stability
 
 ### ⚡ Enterprise-Scale Infinite Scroll, Deterministic Pagination & GPU-Optimized Navigation Milestone

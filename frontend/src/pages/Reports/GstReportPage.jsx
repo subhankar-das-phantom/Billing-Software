@@ -93,7 +93,8 @@ export default function GstReportPage() {
 
   // ── Product search effect ──
   useEffect(() => {
-    const query = debouncedProductSearch.trim();
+    const raw = typeof debouncedProductSearch === 'string' ? debouncedProductSearch : String(debouncedProductSearch || '');
+    const query = raw.trim();
     if (!query) {
       setSearchResults([]);
       setShowSearchDropdown(false);

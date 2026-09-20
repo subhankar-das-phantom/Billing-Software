@@ -48,9 +48,9 @@ export function InventoryIntelligenceSection() {
   const [velocitySearch, setVelocitySearch] = useState('');
   const [procurementSearch, setProcurementSearch] = useState('');
 
-  const debouncedRiskSearch = useDebounce(riskSearch, 250);
-  const debouncedVelocitySearch = useDebounce(velocitySearch, 250);
-  const debouncedProcurementSearch = useDebounce(procurementSearch, 250);
+  const [debouncedRiskSearch] = useDebounce(riskSearch, 250);
+  const [debouncedVelocitySearch] = useDebounce(velocitySearch, 250);
+  const [debouncedProcurementSearch] = useDebounce(procurementSearch, 250);
 
   const { showToast } = useToast();
 
@@ -116,8 +116,9 @@ export function InventoryIntelligenceSection() {
   }, [riskFilter, allRiskItems, stockRiskData]);
 
   const displayedRiskItems = useMemo(() => {
-    if (!debouncedRiskSearch.trim()) return filteredByStatus;
-    const query = debouncedRiskSearch.toLowerCase();
+    const rawSearch = typeof debouncedRiskSearch === 'string' ? debouncedRiskSearch : String(debouncedRiskSearch || '');
+    const query = rawSearch.trim().toLowerCase();
+    if (!query) return filteredByStatus;
     return filteredByStatus.filter(item => (
       item.productName?.toLowerCase().includes(query) ||
       item.hsnCode?.toLowerCase().includes(query) ||
@@ -127,10 +128,11 @@ export function InventoryIntelligenceSection() {
 
   // Velocity filtering
   const displayedVelocityFast = useMemo(() => {
+    const rawSearch = typeof debouncedVelocitySearch === 'string' ? debouncedVelocitySearch : String(debouncedVelocitySearch || '');
+    const query = rawSearch.trim().toLowerCase();
     return (velocityData?.fastMovingTop || [])
       .filter(item => {
-        if (!debouncedVelocitySearch.trim()) return true;
-        const query = debouncedVelocitySearch.toLowerCase();
+        if (!query) return true;
         return (
           item.productName?.toLowerCase().includes(query) ||
           item.hsnCode?.toLowerCase().includes(query) ||
@@ -141,13 +143,14 @@ export function InventoryIntelligenceSection() {
   }, [velocityData?.fastMovingTop, debouncedVelocitySearch]);
 
   const displayedVelocitySlow = useMemo(() => {
+    const rawSearch = typeof debouncedVelocitySearch === 'string' ? debouncedVelocitySearch : String(debouncedVelocitySearch || '');
+    const query = rawSearch.trim().toLowerCase();
     return [
       ...(velocityData?.slowMovingTop || []),
       ...(velocityData?.noSalesTop || [])
     ]
       .filter(item => {
-        if (!debouncedVelocitySearch.trim()) return true;
-        const query = debouncedVelocitySearch.toLowerCase();
+        if (!query) return true;
         return (
           item.productName?.toLowerCase().includes(query) ||
           item.hsnCode?.toLowerCase().includes(query) ||
@@ -159,9 +162,10 @@ export function InventoryIntelligenceSection() {
 
   // Procurement filtering
   const displayedSuppliers = useMemo(() => {
+    const rawSearch = typeof debouncedProcurementSearch === 'string' ? debouncedProcurementSearch : String(debouncedProcurementSearch || '');
+    const query = rawSearch.trim().toLowerCase();
     return (procurementData?.suppliers || []).filter(item => {
-      if (!debouncedProcurementSearch.trim()) return true;
-      const query = debouncedProcurementSearch.toLowerCase();
+      if (!query) return true;
       return (
         item.supplierName?.toLowerCase().includes(query) ||
         item.supplierGstin?.toLowerCase().includes(query) ||
