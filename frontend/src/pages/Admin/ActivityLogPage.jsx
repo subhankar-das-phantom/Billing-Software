@@ -19,9 +19,10 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { employeeService } from '../../services/employees/employeeService';
-import { useMotionConfig, useFirstVisit, useDebounce } from '../../hooks';
+import { useMotionConfig, useFirstVisit, useDebounce, useSWR } from '../../hooks';
 import { ActivityLogPageSkeleton } from './ActivityLogPageSkeleton';
 import { VirtualizedList } from '../../components/Common/VirtualizedList';
+import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 
 // Format currency
 const formatCurrency = (amount) => {
@@ -491,17 +492,13 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
 // Main Page Component
 export default function ActivityLogPage() {
   const [searchParams] = useSearchParams();
-  const [loading, setLoading] = useState(true);
-  const [activityLog, setActivityLog] = useState([]);
-  const [employees, setEmployees] = useState([]);
-  const [serverStats, setServerStats] = useState(null);
-  const [timeRange, setTimeRange] = useState('today');
+  const urlEmployeeId = searchParams.get('employee');
+
+  const [timeRange, setTimeRange] = useState(() => (urlEmployeeId ? '30d' : 'today'));
   const [employeeSearch, setEmployeeSearch] = useState('');
   const [debouncedEmployeeSearch] = useDebounce(employeeSearch, 250);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [initialEmployeeLoaded, setInitialEmployeeLoaded] = useState(false);
 
   // Mobile optimization
   const { isMobile } = useMotionConfig();
@@ -512,37 +509,31 @@ export default function ActivityLogPage() {
     { value: 'yesterday', label: 'Yesterday' },
     { value: '24h', label: 'Last 24h' },
     { value: '7d', label: 'Last 7 Days' },
-    { value: '30d', label: 'Last 30 Days' }
+    { value: '30d', label: 'Last 30 Days' },
+    { value: 'all', label: 'All Time' }
   ];
 
-  const fetchActivityLog = useCallback(async () => {
-    try {
-      setRefreshing(true);
-      const data = await employeeService.getActivityLog(timeRange, selectedEmployee?.id || null);
-      setActivityLog(data.log || []);
-      setEmployees(data.employees || []);
-      setServerStats(data.stats || null);
-      
-      // If employee ID is in URL and we haven't loaded yet, select that employee
-      const employeeIdFromUrl = searchParams.get('employee');
-      if (employeeIdFromUrl && !initialEmployeeLoaded && data.employees) {
-        const foundEmployee = data.employees.find(e => e.id === employeeIdFromUrl);
-        if (foundEmployee) {
-          setSelectedEmployee(foundEmployee);
-        }
-        setInitialEmployeeLoaded(true);
-      }
-    } catch (err) {
-      console.error('Failed to fetch activity log:', err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [timeRange, selectedEmployee, searchParams, initialEmployeeLoaded]);
+  const targetEmployeeId = selectedEmployee?.id || urlEmployeeId || null;
 
+  const { data, isLoading, isValidating, mutate } = useSWR(
+    `activity-log-${timeRange}-${targetEmployeeId || 'all'}`,
+    () => employeeService.getActivityLog(timeRange, targetEmployeeId),
+    { ttl: 30 * 1000 }
+  );
+
+  const activityLog = data?.log || [];
+  const employees = data?.employees || [];
+  const serverStats = data?.stats || null;
+
+  // Sync selected employee from URL when employees list is fetched
   useEffect(() => {
-    fetchActivityLog();
-  }, [fetchActivityLog]);
+    if (urlEmployeeId && !selectedEmployee && employees.length > 0) {
+      const foundEmployee = employees.find(e => String(e.id) === String(urlEmployeeId));
+      if (foundEmployee) {
+        setSelectedEmployee(foundEmployee);
+      }
+    }
+  }, [urlEmployeeId, selectedEmployee, employees]);
 
   // Filter employees based on search (frontend filtering of employee list for dropdown)
   const filteredEmployees = useMemo(() => {
@@ -572,7 +563,7 @@ export default function ActivityLogPage() {
     setEmployeeSearch('');
   };
 
-  if (loading) {
+  if (isLoading && !data) {
     return <ActivityLogPageSkeleton />;
   }
 
@@ -590,16 +581,19 @@ export default function ActivityLogPage() {
           <p className="text-slate-400 mt-1">Track employee sessions and work</p>
         </div>
 
-        <motion.button
-          whileHover={isMobile ? {} : { scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={fetchActivityLog}
-          disabled={refreshing}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 hover:bg-slate-800 transition-colors disabled:opacity-50"
-        >
-          <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
-          Refresh
-        </motion.button>
+        <div className="flex items-center gap-3">
+          <RefreshIndicator isRefreshing={isValidating} size="sm" showText />
+          <motion.button
+            whileHover={isMobile ? {} : { scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => mutate()}
+            disabled={isValidating}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 hover:bg-slate-800 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw size={18} className={isValidating ? 'animate-spin' : ''} />
+            Refresh
+          </motion.button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -728,6 +722,32 @@ export default function ActivityLogPage() {
               : 'No activities or sessions found in the selected time range'
             }
           </p>
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            {timeRange !== '30d' && (
+              <button
+                onClick={() => setTimeRange('30d')}
+                className="px-3.5 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 text-xs font-semibold transition-colors"
+              >
+                Search Last 30 Days
+              </button>
+            )}
+            {timeRange !== 'all' && (
+              <button
+                onClick={() => setTimeRange('all')}
+                className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold transition-colors"
+              >
+                Search All Time
+              </button>
+            )}
+            {selectedEmployee && (
+              <button
+                onClick={clearEmployeeFilter}
+                className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold transition-colors"
+              >
+                Clear Employee Filter
+              </button>
+            )}
+          </div>
         </div>
       ) : (
         <VirtualizedList

@@ -212,6 +212,18 @@ export function parseActivityTimeRange(
     };
   }
 
+  // 5b. "all" or "90d" (All Time up to 90-day ceiling, starting 90 days ago at 00:00:00 IST up to now)
+  if (normalizedRange === 'all' || normalizedRange === 'alltime' || normalizedRange === '90d') {
+    const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+    const startYMD = getISTDateString(ninetyDaysAgo);
+    const from = new Date(`${startYMD}T00:00:00.000+05:30`);
+    return {
+      range: 'all',
+      from,
+      to: now
+    };
+  }
+
   // 6. Rolling hours (e.g. 6, 12, 24, 48, 72, or parsed from hours query)
   let hours = typeof hoursInput === 'number' ? hoursInput : parseInt(String(hoursInput || ''), 10);
   if (normalizedRange === '24h' || (!hours && !normalizedRange)) {
