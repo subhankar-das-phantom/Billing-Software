@@ -44,15 +44,13 @@ export default function SettingsPage() {
   const motionConfig = useMotionConfig();
 
   const [activeTab, setActiveTab] = useState(userRole === 'admin' ? 'general' : 'preferences');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!user);
 
-  // Smooth entry transition
   useEffect(() => {
-    const timer = setTimeout(() => {
+    if (user) {
       setLoading(false);
-    }, 400); // Brief delay to show the beautiful skeleton transition
-    return () => clearTimeout(timer);
-  }, []);
+    }
+  }, [user]);
 
   // Profile form state (Admin only)
   const [profile, setProfile] = useState({
