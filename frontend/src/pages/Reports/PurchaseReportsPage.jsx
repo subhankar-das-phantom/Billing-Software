@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { 
   ShoppingCart, 
@@ -11,61 +11,71 @@ import {
   DollarSign, 
   Clock, 
   XCircle,
-  FileBarChart
+  FileBarChart,
+  RefreshCw
 } from 'lucide-react';
-import { purchaseReportService } from '../../services/reports/purchaseReportService';
 import { formatCurrency } from '../../utils/formatters';
-import { useToast } from '../../contexts/ToastContext';
 import { useMotionConfig } from '../../hooks';
 import { ShimmerBone } from '../../features/salesAnalytics/components/SkeletonCards';
+import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
+import {
+  usePurchaseSummaryQuery,
+  useSupplierWisePurchasesQuery,
+  useProductWisePurchasesQuery
+} from '../../features/purchaseReports/queries/usePurchaseReportQueries';
 
 export default function PurchaseReportsPage() {
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [summary, setSummary] = useState(null);
-  const [supplierData, setSupplierData] = useState([]);
-  const [productData, setProductData] = useState([]);
-  
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [activeDateFrom, setActiveDateFrom] = useState('');
   const [activeDateTo, setActiveDateTo] = useState('');
 
-  const { showToast } = useToast();
   const motionConfig = useMotionConfig();
 
-  const fetchReports = useCallback(async (from = activeDateFrom, to = activeDateTo) => {
-    try {
-      setIsUpdating(true);
-      const params = {};
-      if (from) params.dateFrom = from;
-      if (to) params.dateTo = to;
-      
-      const [sumData, supData, prodData] = await Promise.all([
-        purchaseReportService.getPurchaseSummary(params),
-        purchaseReportService.getSupplierWisePurchases(params),
-        purchaseReportService.getProductWisePurchases(params)
-      ]);
-      
-      setSummary(sumData.data);
-      setSupplierData(supData.data || []);
-      setProductData(prodData.data || []);
-    } catch (error) {
-      showToast('Failed to load purchase reports', 'error');
-    } finally {
-      setInitialLoading(false);
-      setIsUpdating(false);
-    }
-  }, [activeDateFrom, activeDateTo, showToast]);
+  const queryParams = useMemo(() => {
+    const p = {};
+    if (activeDateFrom) p.dateFrom = activeDateFrom;
+    if (activeDateTo) p.dateTo = activeDateTo;
+    return p;
+  }, [activeDateFrom, activeDateTo]);
 
-  useEffect(() => {
-    fetchReports('', '');
-  }, []);
+  const {
+    data: summaryRes,
+    isLoading: summaryLoading,
+    isFetching: summaryFetching,
+    refetch: refetchSummary
+  } = usePurchaseSummaryQuery(queryParams);
+
+  const {
+    data: supplierRes,
+    isLoading: supplierLoading,
+    isFetching: supplierFetching,
+    refetch: refetchSuppliers
+  } = useSupplierWisePurchasesQuery(queryParams);
+
+  const {
+    data: productRes,
+    isLoading: productLoading,
+    isFetching: productFetching,
+    refetch: refetchProducts
+  } = useProductWisePurchasesQuery(queryParams);
+
+  const summary = summaryRes?.data || null;
+  const supplierData = supplierRes?.data || [];
+  const productData = productRes?.data || [];
+
+  const isUpdating = summaryFetching || supplierFetching || productFetching;
+  const isInitialLoading = (summaryLoading && !summary) || (supplierLoading && supplierData.length === 0) || (productLoading && productData.length === 0);
+
+  const handleRefresh = () => {
+    refetchSummary();
+    refetchSuppliers();
+    refetchProducts();
+  };
 
   const handleApplyFilter = () => {
     setActiveDateFrom(dateFrom);
     setActiveDateTo(dateTo);
-    fetchReports(dateFrom, dateTo);
   };
 
   const handleClearFilter = () => {
@@ -73,7 +83,6 @@ export default function PurchaseReportsPage() {
     setDateTo('');
     setActiveDateFrom('');
     setActiveDateTo('');
-    fetchReports('', '');
   };
 
   return (
@@ -90,12 +99,17 @@ export default function PurchaseReportsPage() {
               <p className="text-xs text-slate-400 mt-0.5">Comprehensive vendor and item purchase breakdown</p>
             </div>
           </div>
-          {isUpdating && (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-300 text-xs font-semibold backdrop-blur-md">
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              Updating reports...
-            </div>
-          )}
+          <div className="flex items-center gap-3">
+            <RefreshIndicator isRefreshing={isUpdating} size="sm" showText />
+            <button
+              onClick={handleRefresh}
+              disabled={isUpdating}
+              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-slate-100 border border-slate-700/80 transition-colors disabled:opacity-50"
+              title="Refresh reports"
+            >
+              <RefreshCw size={15} className={isUpdating ? 'animate-spin' : ''} />
+            </button>
+          </div>
         </div>
 
         {/* Date Filter Bar */}
@@ -142,7 +156,7 @@ export default function PurchaseReportsPage() {
         </div>
       </div>
 
-      {initialLoading ? (
+      {isInitialLoading ? (
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[1, 2, 3, 4].map(i => (
