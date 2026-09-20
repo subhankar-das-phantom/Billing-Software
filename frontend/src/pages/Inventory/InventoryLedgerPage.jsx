@@ -4,7 +4,8 @@ import stockMovementService from '../../services/stockMovementService';
 import { productService } from '../../services/products/productService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { useToast } from '../../contexts/ToastContext';
-import { useDebounce, useFirstVisit, useMotionConfig } from '../../hooks';
+import { useDebounce, useFirstVisit, useMotionConfig, useSWR, invalidateCachePattern } from '../../hooks';
+import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 import ExportModal from '../../components/Common/Modals/ExportModal';
 import {
   History,
@@ -45,12 +46,8 @@ const pageVariants = {
 };
 
 export default function InventoryLedgerPage() {
-  const [movements, setMovements] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const limit = 20;
 
@@ -169,33 +166,23 @@ export default function InventoryLedgerPage() {
     setPage(1);
   };
 
-  const fetchMovements = useCallback(async (isSilent = false) => {
-    try {
-      if (isSilent) setIsRefreshing(true);
-      else setLoading(true);
+  const queryKey = `inventory-ledger-${searchProductId}-${debouncedBatchId}-${movementType}-${dateFrom}-${dateTo}-${page}-${limit}`;
+  const { data: movementData, isLoading: loading, isValidating, mutate } = useSWR(
+    queryKey,
+    () => stockMovementService.getStockMovements({
+      productId: searchProductId,
+      batchId: debouncedBatchId,
+      type: movementType,
+      dateFrom,
+      dateTo,
+      page,
+      limit
+    }),
+    { ttl: 30 * 1000 }
+  );
 
-      const data = await stockMovementService.getStockMovements({
-        productId: searchProductId,
-        batchId: debouncedBatchId,
-        type: movementType,
-        dateFrom,
-        dateTo,
-        page,
-        limit
-      });
-      setMovements(data.data || []);
-      setTotal(data.pagination?.total || 0);
-    } catch (error) {
-      showToast('Failed to load inventory ledger', 'error');
-    } finally {
-      setLoading(false);
-      setIsRefreshing(false);
-    }
-  }, [searchProductId, debouncedBatchId, movementType, dateFrom, dateTo, page, showToast]);
-
-  useEffect(() => {
-    fetchMovements();
-  }, [fetchMovements]);
+  const movements = movementData?.data || [];
+  const total = movementData?.pagination?.total || 0;
 
   // Movement Type Config with Badges, Colors & Icons
   const movementConfig = useMemo(() => ({
@@ -370,13 +357,14 @@ export default function InventoryLedgerPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <RefreshIndicator isRefreshing={isValidating} size="sm" showText />
           <button
-            onClick={() => fetchMovements(true)}
-            disabled={loading || isRefreshing}
+            onClick={() => mutate()}
+            disabled={isValidating}
             className="btn btn-secondary flex items-center gap-2 py-2 px-3.5 text-xs font-medium"
             title="Refresh Ledger"
           >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-blue-400' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${isValidating ? 'animate-spin text-blue-400' : ''}`} />
             <span className="hidden sm:inline">Refresh</span>
           </button>
 
@@ -640,7 +628,7 @@ export default function InventoryLedgerPage() {
 
       {/* ─── Ledger Data Table ────────────────────────────────── */}
       <div className="glass-card overflow-hidden">
-        {loading ? (
+        {loading && movements.length === 0 ? (
           <div className="p-12 text-center space-y-4">
             <Loader2 className="w-8 h-8 animate-spin text-blue-400 mx-auto" />
             <p className="text-sm text-slate-400">Loading inventory movements...</p>

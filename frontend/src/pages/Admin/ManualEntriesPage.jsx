@@ -20,14 +20,11 @@ import { formatCurrency, formatDate } from '../../utils/formatters';
 import { ManualEntriesPageSkeleton } from './ManualEntriesPageSkeleton';
 import ManualEntryModal from '../../components/ManualEntry/ManualEntryModal';
 import { useToast } from '../../contexts/ToastContext';
-import { invalidateCachePattern, useFirstVisit, useDebounce } from '../../hooks';
+import { invalidateCachePattern, useFirstVisit, useDebounce, useSWR } from '../../hooks';
+import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 
 export default function ManualEntriesPage() {
-  const [entries, setEntries] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [total, setTotal] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch] = useDebounce(searchQuery, 300);
   const [filters, setFilters] = useState({
@@ -46,31 +43,21 @@ export default function ManualEntriesPage() {
     setPage(1);
   }, [debouncedSearch, filters]);
 
-  const loadEntries = useCallback(async () => {
-    try {
-      setLoading(true);
-      const params = {
-        page,
-        limit: 20,
-        search: debouncedSearch,
-        ...filters
-      };
-      
-      const data = await manualEntryService.getManualEntries(params);
-      setEntries(data.manualEntries || []);
-      setTotalPages(data.pages || 1);
-      setTotal(data.total || 0);
-    } catch (error) {
-      console.error('Failed to load manual entries:', error);
-      addToast('Failed to load manual entries', 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [page, filters, debouncedSearch, addToast]);
+  const queryKey = `manual-entries-${page}-${debouncedSearch}-${filters.startDate}-${filters.endDate}`;
+  const { data, isLoading: loading, isValidating, mutate } = useSWR(
+    queryKey,
+    () => manualEntryService.getManualEntries({
+      page,
+      limit: 20,
+      search: debouncedSearch,
+      ...filters
+    }),
+    { ttl: 30 * 1000 }
+  );
 
-  useEffect(() => {
-    loadEntries();
-  }, [loadEntries]);
+  const entries = data?.manualEntries || [];
+  const totalPages = data?.pages || 1;
+  const total = data?.total || 0;
 
   const handleDelete = async (entry) => {
     setDeleting(true);
@@ -78,10 +65,7 @@ export default function ManualEntriesPage() {
       await manualEntryService.deleteManualEntry(entry._id);
       addToast('Entry deleted successfully', 'success');
       setDeleteConfirm(null);
-      // Invalidate cache for all tabs
-      invalidateCachePattern('customers');
-      invalidateCachePattern('dashboard');
-      loadEntries();
+      mutate();
     } catch (error) {
       addToast(error.message || 'Failed to delete entry', 'error');
     } finally {
@@ -155,14 +139,15 @@ export default function ManualEntriesPage() {
         </div>
         
         <div className="flex items-center gap-2">
+          <RefreshIndicator isRefreshing={isValidating} size="sm" showText />
           <motion.button
-            onClick={() => loadEntries()}
+            onClick={() => mutate()}
             className="btn btn-secondary"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            disabled={loading}
+            disabled={isValidating}
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${isValidating ? 'animate-spin' : ''}`} />
           </motion.button>
           <motion.button
             onClick={() => setShowCreateModal(true)}
@@ -534,10 +519,7 @@ export default function ManualEntriesPage() {
         onClose={() => setShowCreateModal(false)}
         onSuccess={() => {
           setShowCreateModal(false);
-          // Invalidate cache for all tabs
-          invalidateCachePattern('customers');
-          invalidateCachePattern('dashboard');
-          loadEntries();
+          mutate();
         }}
       />
 

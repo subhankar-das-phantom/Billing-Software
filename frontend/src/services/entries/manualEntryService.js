@@ -1,4 +1,5 @@
 import api from '../api';
+import { invalidateCachePattern } from '../../hooks/useSWR';
 
 // Entry type labels for display
 export const ENTRY_TYPES = [
@@ -14,11 +15,19 @@ export const PAYMENT_TYPES = [
   { value: 'Credit', label: 'Credit' }
 ];
 
+const invalidateManualEntryCaches = () => {
+  invalidateCachePattern('manual-entries');
+  invalidateCachePattern('customers');
+  invalidateCachePattern('dashboard');
+  invalidateCachePattern('inventory-ledger');
+};
+
 /**
  * Create a new manual entry
  */
 export const createManualEntry = async (data) => {
   const response = await api.post('/manual-entries', data);
+  invalidateManualEntryCaches();
   return response.data;
 };
 
@@ -60,6 +69,7 @@ export const getUnpaidOpeningBalances = async (customerId) => {
  */
 export const recordPaymentAgainstEntry = async (entryId, paymentData) => {
   const response = await api.post(`/manual-entries/${entryId}/payment`, paymentData);
+  invalidateManualEntryCaches();
   return response.data;
 };
 
@@ -68,6 +78,7 @@ export const recordPaymentAgainstEntry = async (entryId, paymentData) => {
  */
 export const deleteManualEntry = async (id) => {
   const response = await api.delete(`/manual-entries/${id}`);
+  invalidateManualEntryCaches();
   return response.data;
 };
 
@@ -76,6 +87,7 @@ export const deleteManualEntry = async (id) => {
  */
 export const updateManualEntry = async (id, data) => {
   const response = await api.put(`/manual-entries/${id}`, data);
+  invalidateManualEntryCaches();
   return response.data;
 };
 
