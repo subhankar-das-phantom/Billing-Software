@@ -4,6 +4,41 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.5.4](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.5.4) — 2026-09-21 — Customer Balance Race Condition Elimination, MongoDB ACID Transaction Serialization, Dynamic Parity Self-Healing & Precision Formatting
+
+### ⚡ Concurrency Safety, Parity & Audit Integrity
+Version 2.5.4 eliminates lost-update race conditions on customer outstanding balances by migrating payment mutations to MongoDB multi-document ACID transactions with engine-level atomic decrements. It establishes 100% calculation parity between customer list, details, and ledger views via dynamic real-time aggregation and background self-healing, restores paise currency precision on customer detail cards, and introduces an administrative reconciliation CLI utility.
+
+---
+
+### 🛡️ Payment Mutation Concurrency & ACID Transactions (`paymentController.js`)
+- **ACID Transaction Wrapping (`session.withTransaction`)** — Wrapped `createPayment`, `updatePayment`, and `deletePayment` in native MongoDB transaction sessions. Built-in `session.withTransaction` automatically catches and retries `TransientTransactionError` and `WriteConflict` under high concurrent load.
+- **Database-Level Atomic `$inc` Decrements** — Eliminated the non-atomic in-memory read-modify-write pattern (`outstandingBalance: newBalance`). Balance reductions now execute via engine-level `$inc: { outstandingBalance: -normalizedAmount }` (and `$inc: { outstandingBalance: -delta }` for payment edits).
+- **Atomic Invoice Paid Amount Updates** — Replaced absolute `Invoice.paidAmount` assignments with atomic `$inc: { paidAmount: normalizedAmount }`, preventing lost updates when split payments or multiple settlements hit the same invoice concurrently.
+- **Concurrency Stress Tested** — Validated via a 10-simultaneous-payment simulation stress test on a multi-replica MongoDB cluster, achieving 10/10 successful operations with 0 lost updates.
+
+---
+
+### 🔄 Dynamic Query Parity & Background Self-Healing (`customerController.js`)
+- **Real-Time Live Due Aggregation in `getCustomer`** — Upgraded `getCustomer` to calculate live due balances dynamically across open Credit invoices, manual opening balance entries, and credit notes, bringing the details view into 100% alignment with `getCustomers` and `getCustomerLedger`.
+- **Asynchronous Document Self-Healing** — If `customer.outstandingBalance` stored in MongoDB drifts from real-time open invoices by more than ₹0.01, `getCustomer` triggers a non-blocking background update to heal the document.
+- **Consistent Response Contract** — Standardized `customer.calculatedOutstanding`, `customer.outstandingBalance`, `summary.outstanding`, and `summary.balance` across all endpoints.
+
+---
+
+### 🎨 Financial Precision & Locale Formatting (`CustomerDetailsPage.jsx`)
+- **Configurable Decimal Precision** — Upgraded `<AnimatedCounter />` to accept a `decimals` prop with Indian numbering locale formatting (`en-IN`).
+- **Paise Precision on Stat Cards** — Configured `decimals={2}` on both Outstanding Balance and Total Purchases stat cards, preventing paise truncation (e.g. displaying ₹8,063.03 instead of ₹8,063).
+- **Dynamic Field Fallback** — Bound the Outstanding header card to `summary.calculatedOutstanding ?? summary.balance ?? 0`.
+
+---
+
+### 🔧 Administrative Customer Balance Reconciliation CLI (`recalculateCustomerBalances.js`)
+- **Idempotent Audit & Repair Script** — Created `backend/scripts/recalculateCustomerBalances.js` supporting `--dry-run`, `--fix`, and `--customerId=<id>` flags.
+- **Reconciled Production Balance** — Resolved the historic +₹1,024.65 database drift for **SHRI DURGA MEDICAL** (`69525d923cbe2c10295198ff`), updating stored `outstandingBalance` from ₹7,038.38 to ₹8,063.03 with zero changes to underlying immutable invoices.
+
+---
+
 ## [v2.5.3](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.5.3) — 2026-09-20 — Purchase Reports TanStack Caching, Activity Log Zero-Flicker & Employee Deep-Link Resolution, and Settings Instant Mount
 
 ### ⚡ Analytical Tab Caching & Operational Navigation Polish
