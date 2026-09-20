@@ -54,12 +54,11 @@ Version 2.5.1 unifies the application's layout architecture by transitioning fro
 
 ---
 
-### 👆 Velocity & Acceleration Touch Physics & Mobile Desktop Zoom Isolation (`DashboardLayout.jsx`)
-- **Visual Viewport Zoom Immunity** — Guarded edge gestures with `window.visualViewport.scale > 1.05`. When pinch-zoomed in on mobile devices (including Desktop Site mode), all 1-finger horizontal and vertical drags are reserved 100% for native browser viewport panning, preventing accidental sidebar/drawer pop-ins.
-- **Kinematic Velocity & Acceleration Detection** — Replaced hair-trigger static displacement (`deltaX > 35px`) with a rolling 120ms release-velocity buffer (`releaseVelocityX >= 0.38 px/ms` with `deltaX >= 40px` for quick flicks, or `deltaX >= 80px` with `avgVelocityX >= 0.18 px/ms` for deliberate sustained drags). Low-velocity crawls, hesitation, or decelerating finger movements are discarded.
-- **True Screen Edge Constraint** — Restricted drawer opening gestures strictly to the physical display edge (`touchStartX <= 28px`) or top header bar near the hamburger button (`touchStartY <= 64px, touchStartX <= 80px`), eliminating false triggers originating from the middle or left half of page content.
-- **Desktop Layout Touch Isolation** — Disabled touch-swipe collapse/expansion on desktop viewport tiers (`isDesktop`), preserving uninterrupted horizontal panning across wide desktop tables, multi-column forms, and reports.
-- **Scroll Offset & Scrollable Element Guards** — Excluded touches starting on horizontally scrollable containers (`[data-horizontal-table-scroll]`, `.overflow-x-auto`, `[role="tablist"]`, `table`) or when the document is already scrolled horizontally (`scrollX > 5`).
+### 👆 Unified Touch Gesture Navigation & Mobile Zoom Isolation (`DashboardLayout.jsx`)
+- **Visual Viewport Zoom Immunity** — Guarded edge gestures with `window.visualViewport.scale > 1.05`. When pinch-zoomed in on mobile devices (including Desktop Site mode), all 1-finger horizontal and vertical drags are reserved 100% for native browser viewport panning, completely preventing accidental sidebar/drawer pop-ins while magnified.
+- **Universal Viewport Support (Mobile & Desktop Site)** — Re-enabled intuitive right-swipe across all viewport tiers: on mobile/tablet, expands the drawer navigation; on desktop and mobile Desktop Site viewports, expands the collapsed sidebar rail; left-swipe cleanly collapses or closes overlays.
+- **Ergonomic Natural Thumb Edge Zone** — Calibrated the edge trigger zone to `touchStartX <= Math.max(90, window.innerWidth * 0.25)` or top header bar (`touchStartY <= 80`), avoiding OS-level system back gesture conflicts while providing fluid, reliable thumb activation.
+- **Reliable Gesture Thresholds** — Enforced deliberate horizontal intent ($\Delta X \ge 35\text{px}$, $|\Delta X| \ge 1.2 \times |\Delta Y|$ within 800ms), eliminating accidental deadlocks from finger lift deceleration or false-positive container exclusions.
 
 ---
 
