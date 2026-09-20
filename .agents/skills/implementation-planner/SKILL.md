@@ -23,6 +23,9 @@ This skill guides the agent through requirements analysis, architectural impact 
   - **Check Search Debouncing**: Do search inputs lack debounce protection (keystroke network spam)?
   - **Check Date Boundary Traps**: Do transaction lookups default to today's date boundary without an all-time search override?
   - **Check for Skeleton Flicker & Anti-Stale Caching**: Do pages trigger blank skeleton sweeps on repeat visits instead of frame-0 pre-seeded `useSWR` reads? Do mutations trigger cross-tab cache invalidations?
+  - **Check for Concurrency & Read-Modify-Write**: Are entity balances modified via in-memory math and overwritten, risking lost updates? Are atomic `$inc` operators and `session.withTransaction` auto-retrying write conflicts used?
+  - **Check for Single-vs-List Query Parity**: Does a single entity detail lookup (`getCustomer`) compute balances dynamically from live unpaid invoices/ledgers with zero-overhead background self-healing, matching collection endpoints (`getCustomers`) and ledgers?
+  - **Check for Currency Precision & Decimal Truncation**: Are financial counters and KPI cards using `decimals={2}` with `'en-IN'` locale formatting, or is `Math.round()` / `decimals={0}` truncating paise?
   - **Check for Identifier & Import Integrity**: Are all JSX components (e.g. `RefreshIndicator`) and external helpers explicitly imported with zero duplicate `useState` holdovers?
 - **DO NOT** execute file edits, write code, or execute mutating scripts during this stage.
 
@@ -39,9 +42,13 @@ Draft `implementation_plan.md` in the active artifact directory containing:
 - Allow the user to challenge assumptions, suggest refinements, or request alternative approaches.
 - Update `implementation_plan.md` across iterations until 100% alignment is achieved.
 
-### Step 4: The Execution Gate
+### Step 4: The Execution Gate & Environment Safety
 - **HALT and WAIT**: Do not touch source code while discussing or refining the plan.
 - Only begin executing file modifications when the user explicitly provides the instruction:
   - `"code"`
   - `"proceed"`
   - `"implement the plan"`
+- **Non-Prod Environment Gate for Stress & Mutating Tests**:
+  > [!CAUTION]
+  > When testing concurrency stress scripts, mass recalculations, data migrations, or simulation scripts, **NEVER** run them against a production database.
+  > Always check `backend/.env` / database connection URI. If pointed to production, pause and explicitly instruct the user to switch to a staging or non-prod database before running any mutating test script.

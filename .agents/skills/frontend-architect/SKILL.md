@@ -25,7 +25,12 @@ This skill ensures that all UI development in the Bharat Enterprise platform adh
      - Emerald (`bg-emerald-500/15 text-emerald-400 border border-emerald-500/25`): Active, Healthy, Paid.
      - Amber (`bg-amber-500/15 text-amber-400 border border-amber-500/25`): Low Stock, Approaching Expiry, Grace Period.
      - Rose (`bg-rose-500/15 text-rose-400 border border-rose-500/25`): Out of Stock, Overdue, Cancelled.
-3. **Mobile-First Responsiveness**:
+3. **Financial Counter Precision & Paise Integrity**:
+   - **Zero Truncation on Financial Totals**: Never truncate or round financial metrics (outstanding balances, credit limits, invoice dues, purchase totals) with `Math.round()` or hardcoded `decimals={0}`. Truncating paise creates false discrepancies between KPI cards (e.g. showing `₹7,038`) and underlying ledgers or invoice lists (e.g. showing `₹8,063.03` or `₹7,038.38`).
+   - **Mandatory 2-Decimal Precision**: Always pass `decimals={2}` to animated counters or formatters displaying currency (`<AnimatedCounter target={value} decimals={2} />`).
+   - **Indian Numbering Standard (`en-IN`)**: Format all monetary figures using the Indian numbering system (`Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })`) so thousand/lakh separators render correctly (`₹1,23,456.78`).
+   - **Visual & Query Parity**: Ensure that values rendered in customer/supplier profile headers match the live transactional sum from tables and ledgers down to the exact paisa.
+4. **Mobile-First Responsiveness**:
    - Every banner, card, and modal header must stack cleanly on small viewports: `flex-col sm:flex-row`.
    - Touch targets must be minimum 44px on mobile: buttons should use `w-full sm:w-auto`.
    - Absolute dismiss buttons must have padding buffers to avoid text clipping.
@@ -123,5 +128,7 @@ Before completing any frontend code change, verify that:
 - [ ] **Print Isolation Enforced**: Screen-only UI carries `.no-print` and printable invoices remain 100% clean in print preview.
 - [ ] **Documentation Path Hygiene**: No machine-specific absolute file URLs (`file:///...`) in git-tracked markdown documentation. Always use repository-relative paths (`src/...`).
 - [ ] **Race Condition Immunity**: Out-of-order calls handled by TanStack Query/AbortController, submissions guarded by `useRef` locks, and background jobs keyed by immutable IDs (`_rowId`).
+- [ ] **Financial Precision & Paise Preservation**: Currency counters and KPI summaries use `decimals={2}` with `'en-IN'` locale formatting, never truncating cents/paise via `Math.round()` or `decimals={0}`.
+- [ ] **Visual Parity with Ledger**: Entity balance cards match live table/ledger sums exactly with zero rounding drift.
 - [ ] **Build Validation**: Verified that `npm run build` compiles with 0 errors and all chunks bundle cleanly.
 - [ ] **No Autonomous Browser Launch**: Never open Chrome or invoke browser subagents for frontend testing unless explicitly directed by the user.

@@ -90,9 +90,11 @@ paymentSchema.index({ tenantId: 1, 'invoiceSnapshot.invoiceNumber': 1 });
 
 ### 5. Multi-Tenant Boundary & Concurrency Safety
 - **Mandatory Tenant Check**: Every query and aggregate must include `tenantId`.
-- **Atomic Concurrency**: Use `findOneAndUpdate` with `$inc` and `stockVersion` increments.
+- **Atomic Concurrency & Zero Read-Modify-Write**:
+  - **Strictly Forbid In-Memory Balance Overwrite**: Never fetch an entity balance into memory, subtract in JavaScript, and overwrite via `Customer.findOneAndUpdate({ outstandingBalance: newBalance })`. Concurrent payments or edits will cause lost updates.
+  - **Always Use Atomic Operators**: Use `$inc: { outstandingBalance: -normalizedAmount }` (or delta adjustments) directly on the database engine.
 - **Negative Stock Prevention**: Constrain updates with `{ currentStockQty: { $gte: requiredQty } }`.
-- **Immutable Ledger**: Atomically record all inventory mutations in `StockMovement`.
+- **Immutable Ledger**: Atomically record all inventory mutations in `StockMovement` and all customer credits/debits in transactional collections.
 
 ---
 
@@ -108,13 +110,23 @@ paymentSchema.index({ tenantId: 1, 'invoiceSnapshot.invoiceNumber': 1 });
 
 ### 7. ACID Transactions & Atomic Multi-Document Workflows
 - **Mandatory Multi-Document Transactions**:
-  - When a mutation spans multiple collections or documents (e.g. Invoice creation + Inventory deduction + Batch lot allocation + Stock movement log + Customer ledger balance), wrap the operation in a MongoDB ACID transaction (`mongoose.startSession()` with `session.withTransaction` or explicit commit/abort).
+  - When a mutation spans multiple collections or documents (e.g. Payment creation + Invoice paidAmount increment + Customer balance decrement; or Invoice creation + Inventory deduction + Batch allocation + Customer ledger), wrap the operation in a MongoDB ACID transaction (`mongoose.startSession()`).
+- **Auto-Retrying Write Conflicts via `session.withTransaction`**:
+  - Prefer `session.withTransaction(async () => { ... })` over manual `startTransaction()` / `commitTransaction()`. MongoDB's driver natively intercepts `TransientTransactionError` and `WriteConflict` under concurrent access and automatically retries the transaction until commitment succeeds.
 - **Failure Atomicity**:
-  - Never allow partial database writes. If any step fails (insufficient stock, invalid batch, database glitch), abort the transaction immediately so the entire operation rolls back clean.
+  - Never allow partial database writes. If any step fails (insufficient stock, invalid invoice, customer inactive), abort or throw immediately so the entire operation rolls back clean. Provide a defensive fallback for standalone development MongoDB instances lacking replica sets.
 
 ---
 
-### 8. User Preferences & Theme Mode Persistence
+### 8. Dynamic Query Parity & Asynchronous Self-Healing Loop
+- **Immutable Ledger as Single Source of Truth**:
+  - Cached summary fields (e.g., `customer.outstandingBalance`) are merely read-through performance optimizations. The immutable transactional documents (Invoices, Credit Notes, Manual Entries) are the ground truth.
+- **100% Query Parity**:
+  - Single-entity lookups (`getCustomer`) MUST calculate live balances dynamically from active unpaid invoices, manual entries, and credit notes to guarantee 100% mathematical parity with List cards (`getCustomers`) and the Ledger (`getCustomerLedger`).
+- **Zero-Latency Self-Healing**:
+  - If a single-entity lookup detects that stored summary fields have drifted from the real-time calculated total (`|stored - liveDue| > 0.01`), trigger an asynchronous background update (`Customer.updateOne(...).exec().catch(...)`) to heal the document in MongoDB on access without delaying the HTTP response.
+
+### 9. User Preferences & Theme Mode Persistence
 - Store user preferences directly on user models (`Admin` and `Employee`):
   ```javascript
   preferences: {
