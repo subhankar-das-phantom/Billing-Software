@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState, useEffect, useCallback, useRef } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate, useNavigationType } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowUp } from 'lucide-react';
 import Sidebar from './Sidebar';
@@ -18,6 +18,7 @@ const SIDEBAR_COLLAPSED_STORAGE_KEY = 'bharat-enterprise-sidebar-collapsed';
 export default function DashboardLayout() {
   const location = useLocation();
   const navigate = useNavigate();
+  const navigationType = useNavigationType();
   const motionConfig = useMotionConfig();
   const { user } = useAuth();
   const mainRef = useRef(null);
@@ -246,36 +247,20 @@ export default function DashboardLayout() {
     setShowScrollTop(false);
     lastScrollTopRef.current = 0;
 
-    // Reset scroll position to top of main content container on page navigation
-    if (mainRef.current) {
-      mainRef.current.scrollTop = 0;
-    }
-    if (typeof window !== 'undefined') {
+    // Reset scroll position on fresh/forward navigation; preserve browser scroll restoration on back/forward (POP)
+    if (navigationType !== 'POP' && typeof window !== 'undefined') {
       window.scrollTo(0, 0);
     }
+  }, [location.pathname, navigationType]);
 
-    // Anchor to top after any pending frame/render or route transition completes
-    const rafId = window.requestAnimationFrame(() => {
-      if (mainRef.current) {
-        mainRef.current.scrollTop = 0;
-      }
-    });
-
-    return () => window.cancelAnimationFrame(rafId);
-  }, [location.pathname]);
-
-  // Track scroll position in main content area to display Scroll-to-Top button
+  // Track window scroll position to display Scroll-to-Top button
   useEffect(() => {
-    const mainEl = mainRef.current;
-    if (!mainEl) return;
-
     let ticking = false;
 
     const handleScroll = () => {
       if (!ticking) {
         window.requestAnimationFrame(() => {
-          if (!mainEl) return;
-          const currentScrollTop = mainEl.scrollTop;
+          const currentScrollTop = window.scrollY || document.documentElement.scrollTop || 0;
           const lastScrollTop = lastScrollTopRef.current;
 
           // Direction & threshold logic:
@@ -297,31 +282,26 @@ export default function DashboardLayout() {
       }
     };
 
-    mainEl.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll();
-    return () => mainEl.removeEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, [location.pathname]);
 
   const handleScrollToTop = useCallback(() => {
-    const el = mainRef.current;
-    if (!el) return;
-
     // Immediately hide button and reset direction tracking to prevent flicker
     setShowScrollTop(false);
     lastScrollTopRef.current = 0;
 
-    if (el.scrollTop > 1200) {
-      // For large distances (e.g. 500-1000+ items, scrollTop > 1200px):
-      // Clamp & Glide: Instantly cut to a near-top buffer (350px) so the browser compositor
-      // does not freeze trying to animate across tens of thousands of pixels.
-      el.scrollTop = 350;
+    const currentScrollTop = window.scrollY || document.documentElement.scrollTop || 0;
+    if (currentScrollTop > 1200) {
+      // Clamp & Glide: Instantly cut to a near-top buffer (350px) then glide smoothly to 0
+      window.scrollTo({ top: 350, behavior: 'auto' });
       requestAnimationFrame(() => {
-        el.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       });
     } else {
-      // For small distances (50-100 items, scrollTop <= 1200px):
       // Direct native smooth scroll
-      el.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, []);
 
@@ -359,10 +339,10 @@ export default function DashboardLayout() {
     : { type: 'spring', stiffness: 350, damping: 32 };
 
   return (
-    <div className="flex h-screen h-[100dvh] w-full overflow-hidden bg-slate-950 text-slate-100 antialiased">
+    <div className="flex min-h-screen w-full bg-slate-950 text-slate-100 antialiased">
       {/* ─── 1. Desktop & Tablet Persistent Sidebar Rail ──────────────── */}
       {!isMobile && (
-        <div className="shrink-0 z-40 h-full flex flex-col no-print">
+        <div className="shrink-0 z-20 sticky top-0 h-screen flex flex-col no-print">
           <Sidebar
             isCollapsed={isTablet ? true : sidebarCollapsed}
             onToggleCollapse={isDesktop ? handleToggleDesktopCollapse : () => setTabletDrawerOpen(true)}
@@ -392,6 +372,9 @@ export default function DashboardLayout() {
             {/* Slide-out Panel */}
             <motion.div
               key="drawer-panel"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Navigation Menu"
               className="fixed inset-y-0 left-0 z-50 max-w-[82vw] w-72 shadow-2xl shadow-black no-print"
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
@@ -412,9 +395,9 @@ export default function DashboardLayout() {
       </AnimatePresence>
 
       {/* ─── 3. Main Application Column ───────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-0 h-full overflow-hidden relative">
+      <div className="flex-1 flex flex-col min-w-0 relative">
         {/* Top Header (Non-scrolling flex item, strictly outside main) */}
-        <div className="no-print shrink-0 w-full z-30">
+        <div className="no-print shrink-0 w-full z-30 sticky top-0">
           <Header
             onToggleSidebar={handleToggleSidebar}
             onOpenCommandPalette={() => setCommandPaletteOpen(true)}
@@ -426,7 +409,7 @@ export default function DashboardLayout() {
         {/* Main Content Area (Sole vertical scroll container) */}
         <main
           ref={mainRef}
-          className="flex-1 min-h-0 min-w-0 p-4 sm:p-6 lg:p-8 xl:p-10 overflow-y-auto overflow-x-hidden overscroll-y-contain bg-slate-950"
+          className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 xl:p-10 bg-slate-950"
         >
           <div className="max-w-[1600px] mx-auto w-full">
             <div className="no-print">

@@ -284,7 +284,7 @@ export default function Sidebar({
       )}
 
       {/* ─── Navigation Scroll Area ───────────────────────────────────── */}
-      <nav className="flex-1 p-2.5 overflow-y-auto custom-scrollbar space-y-4">
+      <nav data-scroll-container className="flex-1 p-2.5 overflow-y-auto custom-scrollbar space-y-4">
         {filteredNavigation.map((section, sectionIdx) => (
           <div key={section.id} className="space-y-1">
             {/* Section Header */}

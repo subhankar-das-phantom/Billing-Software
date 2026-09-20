@@ -21,38 +21,21 @@ export function findScrollParent(node) {
 
   let parent = node.parentElement;
   while (parent && parent !== document.body && parent !== document.documentElement) {
-    const style = window.getComputedStyle(parent);
-    const overflowY = style.overflowY;
-
-    // 1. Candidate check: vertical scroll intent ('auto' or 'scroll') AND actual vertical scrollability
-    const hasScrollIntentY = overflowY === 'auto' || overflowY === 'scroll';
-    const hasVerticalOverflow = parent.scrollHeight > parent.clientHeight;
-
-    if (hasScrollIntentY && hasVerticalOverflow) {
-      // 2. Semantic exclusion: Detect explicit horizontal table scroll containers.
-      // Under CSS3 spec 11.1.1, overflow-x: auto forces overflow-y to compute as 'auto'.
-      // Containers marked with [data-horizontal-table-scroll] are purely horizontal wrappers
-      // and must be bypassed so traversal finds genuine vertical containers or <main>.
-      // Genuinely scrollable vertical modals (even if they contain tables or min-w children)
-      // do NOT have this attribute and are immediately returned as the scroll parent!
-      const isHorizontalTableWrapper = parent.hasAttribute('data-horizontal-table-scroll');
-
-      if (!isHorizontalTableWrapper) {
-        // Genuine vertical container (e.g. nested modal, sheet, or custom vertical viewport)
-        return parent;
-      }
+    // 1. Explicit semantic modal/dialog container
+    if (parent.getAttribute('role') === 'dialog' || parent.classList.contains('modal-body')) {
+      return parent;
     }
 
-    // 3. Direct recognition of <main> as the primary scroll container of the dashboard shell
-    if (parent.tagName.toLowerCase() === 'main') {
+    // 2. Explicit intentional nested scroll container (opt-in via data-scroll-container attribute)
+    if (parent.hasAttribute('data-scroll-container')) {
       return parent;
     }
 
     parent = parent.parentElement;
   }
 
-  // Fallback: Dashboard <main> element, or documentElement
-  return document.querySelector('main') || (typeof document !== 'undefined' ? document.documentElement : null);
+  // 3. Primary application / document root
+  return document.scrollingElement || (typeof document !== 'undefined' ? document.documentElement : null);
 }
 
 /**
@@ -126,11 +109,16 @@ export function useInfiniteScrollSentinel({
     const node = sentinelElementRef.current;
     if (!node || !scrollRoot || !enabled) return;
 
+    const isDocRoot = scrollRoot === document.documentElement || scrollRoot === document.body || scrollRoot === document.scrollingElement;
     const observer = new IntersectionObserver(
       ([entry]) => {
         setIsIntersecting(entry.isIntersecting);
       },
-      { root: scrollRoot, threshold: INFINITE_SCROLL_THRESHOLD, rootMargin: INFINITE_SCROLL_ROOT_MARGIN }
+      {
+        root: isDocRoot ? null : scrollRoot,
+        threshold: INFINITE_SCROLL_THRESHOLD,
+        rootMargin: INFINITE_SCROLL_ROOT_MARGIN
+      }
     );
 
     observer.observe(node);
@@ -140,9 +128,12 @@ export function useInfiniteScrollSentinel({
     };
   }, [scrollRoot, enabled]);
 
-  // Secondary Fast-Scroll Trigger: Direct passive scroll listener on scroll container (<main>)
+  // Secondary Fast-Scroll Trigger: Direct passive scroll listener on scroll target
   useEffect(() => {
     if (!scrollRoot || !enabled) return;
+
+    const isDocRoot = scrollRoot === document.documentElement || scrollRoot === document.body || scrollRoot === document.scrollingElement;
+    const scrollTarget = isDocRoot ? window : scrollRoot;
 
     let ticking = false;
     const handleScrollNearBottom = () => {
@@ -153,9 +144,18 @@ export function useInfiniteScrollSentinel({
             return;
           }
 
-          const scrollHeight = scrollRoot.scrollHeight;
-          const scrollTop = scrollRoot.scrollTop;
-          const clientHeight = scrollRoot.clientHeight;
+          let scrollHeight, scrollTop, clientHeight;
+          if (isDocRoot) {
+            const el = document.scrollingElement || document.documentElement;
+            scrollHeight = el.scrollHeight;
+            scrollTop = window.scrollY || el.scrollTop || 0;
+            clientHeight = window.innerHeight || el.clientHeight;
+          } else {
+            scrollHeight = scrollRoot.scrollHeight;
+            scrollTop = scrollRoot.scrollTop;
+            clientHeight = scrollRoot.clientHeight;
+          }
+
           const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
 
           // If within 600px of the bottom during fast scrolling, trigger loadMore
@@ -170,8 +170,8 @@ export function useInfiniteScrollSentinel({
       }
     };
 
-    scrollRoot.addEventListener('scroll', handleScrollNearBottom, { passive: true });
-    return () => scrollRoot.removeEventListener('scroll', handleScrollNearBottom);
+    scrollTarget.addEventListener('scroll', handleScrollNearBottom, { passive: true });
+    return () => scrollTarget.removeEventListener('scroll', handleScrollNearBottom);
   }, [scrollRoot, enabled]);
 
   // Reactive Level Trigger: fires when sentinel is intersecting and locks are released
