@@ -593,8 +593,16 @@ exports.getCustomer = async (req, res, next) => {
       });
     }
 
-    // Always calculate summary metrics for the frontend
-    const [paymentCount, creditNoteCount, manualEntryCount, unpaidInvoicesCount] = await Promise.all([
+    // Always calculate summary metrics for the frontend with real-time outstanding calculation
+    const [
+      paymentCount, 
+      creditNoteCount, 
+      manualEntryCount, 
+      unpaidInvoicesCount,
+      invoiceRemainingAgg,
+      manualRemainingAgg,
+      creditNoteAgg
+    ] = await Promise.all([
       Payment.countDocuments({ tenantId, customer: customer._id }),
       CreditNote.countDocuments({ tenantId, customer: customer._id }),
       ManualEntry.countDocuments({ tenantId, customer: customer._id }),
@@ -603,13 +611,47 @@ exports.getCustomer = async (req, res, next) => {
         'customer._id': customer._id, 
         status: { $ne: 'Cancelled' },
         $expr: { $gt: ["$totals.netTotal", "$paidAmount"] }
-      })
+      }),
+      Invoice.aggregate([
+        { $match: { tenantId, 'customer._id': customer._id, status: { $ne: 'Cancelled' } } },
+        { $project: { remaining: { $subtract: ['$totals.netTotal', { $ifNull: ['$paidAmount', 0] }] } } },
+        { $match: { remaining: { $gt: 0 } } },
+        { $group: { _id: null, total: { $sum: '$remaining' } } }
+      ]),
+      ManualEntry.aggregate([
+        { $match: { tenantId, customer: customer._id, entryType: 'opening_balance', paymentType: 'Credit' } },
+        { $project: { remaining: { $subtract: ['$amount', { $ifNull: ['$paidAmount', 0] }] } } },
+        { $match: { remaining: { $gt: 0 } } },
+        { $group: { _id: null, total: { $sum: '$remaining' } } }
+      ]),
+      CreditNote.aggregate([
+        { $match: { tenantId, 'customer._id': customer._id } },
+        { $group: { _id: null, total: { $sum: '$totals.netTotal' } } }
+      ])
     ]);
 
+    const liveInvoiceDue = invoiceRemainingAgg[0]?.total || 0;
+    const liveManualDue = manualRemainingAgg[0]?.total || 0;
+    const creditNotesTotal = creditNoteAgg[0]?.total || 0;
+    const liveDue = round2(Math.max(0, liveInvoiceDue + liveManualDue - creditNotesTotal));
+
+    // Self-healing: if stored outstandingBalance has drifted from real-time ground truth, heal it in the background
+    if (Math.abs((customer.outstandingBalance || 0) - liveDue) > 0.01) {
+      Customer.updateOne(
+        { _id: customer._id, tenantId },
+        { $set: { outstandingBalance: liveDue } }
+      ).exec().catch(err => console.error('[Self-Heal] Customer balance reconciliation error:', err));
+    }
+
+    const customerObj = customer.toObject();
+    customerObj.calculatedOutstanding = liveDue;
+    customerObj.outstandingBalance = liveDue;
+
     const summary = {
-      outstanding: customer.outstandingBalance || 0,
+      outstanding: liveDue,
+      calculatedOutstanding: liveDue,
       credit: customer.creditBalance || 0,
-      balance: (customer.outstandingBalance || 0) - (customer.creditBalance || 0),
+      balance: round2(liveDue - (customer.creditBalance || 0)),
       totalPurchases: customer.totalPurchases || 0,
       invoiceCount: customer.invoiceCount || 0,
       paymentCount,
@@ -633,7 +675,7 @@ exports.getCustomer = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      customer,
+      customer: customerObj,
       summary,
       invoices: includeInvoices ? invoices : undefined
     });
