@@ -82,9 +82,17 @@ This skill ensures that all UI development in the Bharat Enterprise platform adh
 2. **Scenario-Based Strategy**:
    - **Numbered Pagination**: Administrative tables, financial reports, and audit trails where direct page access and exact print bounds are required.
    - **Infinite Scroll / Lazy Loading**: Interactive lookups, search dropdowns, customer selectors, and mobile list views.
-3. **Declarative State & Caching**:
-   - Use `@tanstack/react-query` (`useQuery`, `useInfiniteQuery`) or SWR.
-   - Use `staleTime` caching for stable master entities (1-5 min) and trigger surgical cache invalidations on mutations.
+3. **Anti-Stale Data & Zero-Skeleton-Flicker Architecture**:
+   - **Operational CRUD Pages (`useSWR`)**:
+     - For operational tables (Employees, Inventory Ledger, Manual Entries, Referral Code/Stats), leverage `useSWR(key, fetcher, { ttl: 30 * 1000 })`.
+     - Data is pre-seeded instantaneously on Frame 0 from `localStorage` without blank screen/skeleton flickering.
+     - Background revalidation (`isValidating = true`) runs silently and updates the UI seamlessly without unmounting components.
+     - **Header Refresh Feedback**: Pair with `<RefreshIndicator isRefreshing={isValidating} size="sm" showText />` in the page header so the user has subtle feedback when fresh data is syncing.
+     - **Synchronous Stat Derivation**: Derive summary metrics, totals, and counts directly from SWR state via `useMemo` (e.g. `const stats = useMemo(() => ..., [employees])`). Never maintain lagging duplicate `useState` mirrors.
+     - **Cross-Tab & Multi-Domain Mutation Invalidation**: Any mutating service method (`create*`, `update*`, `delete*`, `toggleStatus`, `recordPayment*`) must immediately invoke `invalidateCachePattern('domain-prefix')`. This synchronizes in-memory cache, clears `localStorage`, and broadcasts via `BroadcastChannel` across open browser tabs.
+   - **Analytical & Reporting Subsystems (TanStack Query)**:
+     - For multi-tab analytics suites (e.g. `features/salesAnalytics`, `features/inventoryAnalytics`), use `@tanstack/react-query` (`useQuery`, `staleTime: 60000`, cache-first).
+     - Retains aggregated charts and reports in memory across tab switches inside `ReportsPage`, preventing jarring skeleton flashes while allowing manual refetch triggers.
 
 ---
 
@@ -102,7 +110,10 @@ This skill ensures that all UI development in the Bharat Enterprise platform adh
 
 Before completing any frontend code change, verify that:
 - [ ] **Zero-CLS Banner Layout**: Top banners use GPU opacity/translate animations (`duration: 0.15s`), never `height: 'auto'` spring physics.
-- [ ] **Frame-0 Cached Mounting**: Global alerts/banners pre-seed state from `localStorage` to eliminate pop-in shifts.
+- [ ] **Frame-0 Cached Mounting & Anti-Stale Data**: Operational pages use `useSWR` (30s TTL) with `localStorage` pre-seeding to eliminate skeleton flicker while silently revalidating in the background.
+- [ ] **Reactive Mutation Invalidation**: Service mutation methods (`create`, `update`, `delete`) invoke `invalidateCachePattern` to purge memory, `localStorage`, and multi-tab `BroadcastChannel` states.
+- [ ] **Header Refresh Indicator**: Pages utilizing background revalidation include `<RefreshIndicator isRefreshing={isValidating} size="sm" showText />` in their header.
+- [ ] **AST Identifier & Import Integrity**: All referenced JSX tags (e.g. `<RefreshIndicator />`) and identifiers are explicitly imported and declared. No duplicate `useState` declarations left behind from legacy code.
 - [ ] **Universal Search Debouncing**: All search inputs use `useDebounce` (250–300ms) and include an `X` clear button.
 - [ ] **No Event Double-Triggers**: Never attach handlers to both `onMouseDown` and `onClick`. Use `onMouseDown` only for `e.preventDefault()` (focus retention) and `onClick` for action execution.
 - [ ] **Atomic Deduplication in Updaters**: Multi-click or fast typing cannot insert duplicate rows. Functional `setItems(prev => ...)` must check `prev.some(...)`.
@@ -112,4 +123,5 @@ Before completing any frontend code change, verify that:
 - [ ] **Print Isolation Enforced**: Screen-only UI carries `.no-print` and printable invoices remain 100% clean in print preview.
 - [ ] **Documentation Path Hygiene**: No machine-specific absolute file URLs (`file:///...`) in git-tracked markdown documentation. Always use repository-relative paths (`src/...`).
 - [ ] **Race Condition Immunity**: Out-of-order calls handled by TanStack Query/AbortController, submissions guarded by `useRef` locks, and background jobs keyed by immutable IDs (`_rowId`).
+- [ ] **Build Validation**: Verified that `npm run build` compiles with 0 errors and all chunks bundle cleanly.
 - [ ] **No Autonomous Browser Launch**: Never open Chrome or invoke browser subagents for frontend testing unless explicitly directed by the user.

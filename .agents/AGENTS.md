@@ -9,7 +9,7 @@ This document governs all agent operations, architectural decisions, coding patt
 ### 1. Planning First & Iteration Protocol
 - **Never jump straight into coding** for architectural changes, multi-file features, or significant bug fixes.
 - **Produce an Implementation Plan** with problem analysis, root causes, proposed file-by-file changes, and a verification plan.
-- **Architectural Bottleneck Checklist**: In every plan, explicitly audit for N+1 queries, CLS/layout reflow hazards (e.g. spring-animated banner heights), unseeded asynchronous pop-in states, and missing search debouncing.
+- **Architectural Bottleneck Checklist**: In every plan, explicitly audit for N+1 queries, CLS/layout reflow hazards (e.g. spring-animated banner heights), unseeded asynchronous pop-in states, repetitive skeleton loader flashes on returning visits, missing search debouncing, and unimported/duplicate identifiers.
 - **Multiple Review Iterations**: Refine the plan based on feedback, edge cases, and architectural constraints.
 - **Proceed Only on Explicit Command**: Do NOT modify source code or run modifying commands until the user explicitly says **"code"**, **"proceed"**, or gives unambiguous approval.
 
@@ -29,7 +29,11 @@ This document governs all agent operations, architectural decisions, coding patt
 - **Horizontal Scroll Capsule Affordance**: Hidden scrollbars on pill/capsule strips must incorporate `ScrollAffordanceContainer` with visual edge gradient fades, dynamic overflow detection via `ResizeObserver`, and clickable left/right slide chevrons.
 - **Export Period Scope Inheritance**: Export dialogs must inherit active page filters (`defaultPreset`, `initialDateRange`), compute date ranges with timezone-immune UTC arithmetic anchored to IST (`Asia/Kolkata`), and provide live scope feedback.
 - **Defensive Client Engineering & Race Condition Immunity**: Eliminate all race conditions before coding. Abort out-of-order network responses (`AbortController` / TanStack Query), prevent double-trigger event races (`onMouseDown` vs `onClick`), lock rapid double-submits synchronously with `useRef`, and anchor asynchronous background updates (FIFO/batch allocation) to immutable unique IDs (`_rowId`) rather than transient array indexes. Memoize sorted lists with `useMemo`.
-- **Scale, Virtualization & Query State**: Implement DOM virtualization (`@tanstack/react-virtual`, `VirtualizedList`/`InfiniteVirtualizedList`) for long collections (> 50 items). Implement numbered pagination for dense administrative audits and infinite scroll / lazy loading for interactive lookups and mobile views. Manage server cache and deduplication with `@tanstack/react-query` or SWR.
+- **Scale, Virtualization & Anti-Stale Caching**:
+  - Implement DOM virtualization (`@tanstack/react-virtual`, `VirtualizedList`/`InfiniteVirtualizedList`) for long collections (> 50 items).
+  - Implement numbered pagination for dense administrative audits and infinite scroll / lazy loading for interactive lookups and mobile views.
+  - **Operational Table Caching (`useSWR`)**: Tables (Employees, Inventory Ledger, Manual Entries, Referrals) must use `useSWR` with 30s TTL, Frame-0 `localStorage` pre-seeding to eliminate blank skeleton flashes, non-intrusive `<RefreshIndicator isRefreshing={isValidating} size="sm" showText />` in page headers, and automatic multi-tab cache invalidation (`BroadcastChannel`) across all mutation methods.
+  - **Multi-Tab Analytics Caching (TanStack Query)**: Multi-tab analytics suites (Sales Analytics, Inventory Intelligence) must use `@tanstack/react-query` with `staleTime: 60000` to prevent tab-switching skeleton re-renders while allowing manual or filter-driven refetches.
 - **Browser Subagent Restriction**: Never open Chrome or launch browser subagents to test frontend changes unless explicitly requested by the user.
 
 ### 3. Senior Backend Standards & Database Performance

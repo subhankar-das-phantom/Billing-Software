@@ -22,6 +22,8 @@ This skill guides the agent through requirements analysis, architectural impact 
   - **Check for CLS / Layout Reflow Risks**: Do banners or alerts use `height: 'auto'` spring animations or unseeded asynchronous states?
   - **Check Search Debouncing**: Do search inputs lack debounce protection (keystroke network spam)?
   - **Check Date Boundary Traps**: Do transaction lookups default to today's date boundary without an all-time search override?
+  - **Check for Skeleton Flicker & Anti-Stale Caching**: Do pages trigger blank skeleton sweeps on repeat visits instead of frame-0 pre-seeded `useSWR` reads? Do mutations trigger cross-tab cache invalidations?
+  - **Check for Identifier & Import Integrity**: Are all JSX components (e.g. `RefreshIndicator`) and external helpers explicitly imported with zero duplicate `useState` holdovers?
 - **DO NOT** execute file edits, write code, or execute mutating scripts during this stage.
 
 ### Step 2: Formulate the Implementation Plan Artifact
