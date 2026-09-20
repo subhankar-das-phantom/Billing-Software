@@ -15,11 +15,10 @@ import {
 import { subscriptionService } from '../../services/saas/subscriptionService';
 import { useSubscription } from '../../contexts/SubscriptionContext';
 import { useToast } from '../../contexts/ToastContext';
+import { useSWR, invalidateCachePattern } from '../../hooks';
+import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 
 export default function ReferralPage() {
-  const [referralCode, setReferralCode] = useState('');
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [applyCodeStr, setApplyCodeStr] = useState('');
   const [applying, setApplying] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -29,34 +28,27 @@ export default function ReferralPage() {
   const { isTrial, activeDbSub } = useSubscription();
   const { success: showSuccess, error: showError } = useToast();
 
+  const { data: codeData, isLoading: codeLoading, isValidating: codeValidating } = useSWR(
+    'referral-code',
+    () => subscriptionService.getReferralCode(),
+    { ttl: 60 * 1000 }
+  );
+
+  const { data: statsData, isLoading: statsLoading, isValidating: statsValidating, mutate: mutateStats } = useSWR(
+    'referral-stats',
+    () => subscriptionService.getReferralStats(),
+    { ttl: 60 * 1000 }
+  );
+
+  const referralCode = codeData?.referralCode || '';
+  const stats = statsData || null;
+
+  const loading = (codeLoading || statsLoading) && !codeData && !statsData;
+  const isValidating = codeValidating || statsValidating;
+
   // Allow applying referral code if they are on trial, have no subscription (old users), 
   // or if their only subscription was a trial (even if expired).
   const canApplyCode = isTrial || !activeDbSub || activeDbSub.status === 'trial';
-
-  const fetchReferralData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const [codeRes, statsRes] = await Promise.all([
-        subscriptionService.getReferralCode(),
-        subscriptionService.getReferralStats()
-      ]);
-
-      if (codeRes.success) {
-        setReferralCode(codeRes.referralCode);
-      }
-      if (statsRes.success) {
-        setStats(statsRes);
-      }
-    } catch (err) {
-      console.error('Failed to fetch referral data:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchReferralData();
-  }, [fetchReferralData]);
 
   const handleApplyCode = async (e) => {
     e.preventDefault();
@@ -68,6 +60,8 @@ export default function ReferralPage() {
       if (res.success) {
         showSuccess('Referral code applied! You will get 15 extra days on your first purchase.');
         setHideApplyCode(true);
+        mutateStats();
+        invalidateCachePattern('referral');
       }
     } catch (err) {
       showError(err.response?.data?.message || 'Failed to apply code');
@@ -110,10 +104,13 @@ export default function ReferralPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-slate-100 tracking-tight flex items-center gap-3">
-              <Gift className="w-8 h-8 text-emerald-400" />
-              Refer & Earn Free Days
-            </h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl lg:text-3xl font-bold text-slate-100 tracking-tight flex items-center gap-3">
+                <Gift className="w-8 h-8 text-emerald-400" />
+                Refer & Earn Free Days
+              </h1>
+              <RefreshIndicator isRefreshing={isValidating} size="sm" showText />
+            </div>
             <p className="text-slate-400 mt-1 flex items-center gap-2">
               Share your link and earn 30 free days for every shop that subscribes.
             </p>

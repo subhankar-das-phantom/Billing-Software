@@ -20,21 +20,19 @@ import {
   Filter,
   X
 } from 'lucide-react';
-import { inventoryAnalyticsService } from '../../../services/inventoryAnalyticsService';
 import { formatCurrency } from '../../../utils/formatters';
 import { useToast } from '../../../contexts/ToastContext';
 import { InventoryIntelligenceSkeleton } from './InventoryIntelligenceSkeleton';
 import { useDebounce } from '../../../hooks';
+import { 
+  useBatchExpiryQuery, 
+  useProductVelocityQuery, 
+  useStockRiskQuery, 
+  useSupplierProcurementQuery 
+} from '../queries/useInventoryIntelligenceQueries';
 
 export function InventoryIntelligenceSection() {
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [isUpdating, setIsUpdating] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState('stock-risk');
-
-  const [expiryData, setExpiryData] = useState(null);
-  const [velocityData, setVelocityData] = useState(null);
-  const [stockRiskData, setStockRiskData] = useState(null);
-  const [procurementData, setProcurementData] = useState(null);
 
   // Date filters
   const [dateFrom, setDateFrom] = useState('');
@@ -52,42 +50,29 @@ export function InventoryIntelligenceSection() {
   const [debouncedVelocitySearch] = useDebounce(velocitySearch, 250);
   const [debouncedProcurementSearch] = useDebounce(procurementSearch, 250);
 
-  const { showToast } = useToast();
+  const dateParams = useMemo(() => {
+    const p = {};
+    if (activeDateFrom) p.dateFrom = activeDateFrom;
+    if (activeDateTo) p.dateTo = activeDateTo;
+    return p;
+  }, [activeDateFrom, activeDateTo]);
 
-  const fetchIntelligence = useCallback(async (from = activeDateFrom, to = activeDateTo) => {
-    try {
-      setIsUpdating(true);
-      const params = {};
-      if (from) params.dateFrom = from;
-      if (to) params.dateTo = to;
+  const { data: expiryRes, isLoading: expiryLoading, isFetching: expiryFetching } = useBatchExpiryQuery();
+  const { data: velocityRes, isLoading: velocityLoading, isFetching: velocityFetching } = useProductVelocityQuery(dateParams);
+  const { data: riskRes, isLoading: riskLoading, isFetching: riskFetching } = useStockRiskQuery();
+  const { data: procurementRes, isLoading: procurementLoading, isFetching: procurementFetching } = useSupplierProcurementQuery(dateParams);
 
-      const [expiryRes, velocityRes, riskRes, procurementRes] = await Promise.all([
-        inventoryAnalyticsService.getBatchExpiryIntelligence(),
-        inventoryAnalyticsService.getProductVelocity(params),
-        inventoryAnalyticsService.getStockRiskIndicators(),
-        inventoryAnalyticsService.getSupplierProcurementActivity(params)
-      ]);
+  const expiryData = expiryRes?.data || null;
+  const velocityData = velocityRes?.data || null;
+  const stockRiskData = riskRes?.data || null;
+  const procurementData = procurementRes?.data || null;
 
-      setExpiryData(expiryRes.data);
-      setVelocityData(velocityRes.data);
-      setStockRiskData(riskRes.data);
-      setProcurementData(procurementRes.data);
-    } catch (err) {
-      showToast('Failed to load inventory intelligence', 'error');
-    } finally {
-      setInitialLoading(false);
-      setIsUpdating(false);
-    }
-  }, [activeDateFrom, activeDateTo, showToast]);
-
-  useEffect(() => {
-    fetchIntelligence('', '');
-  }, []);
+  const initialLoading = (expiryLoading || velocityLoading || riskLoading || procurementLoading) && (!expiryData && !stockRiskData);
+  const isUpdating = expiryFetching || velocityFetching || riskFetching || procurementFetching;
 
   const handleApplyFilter = () => {
     setActiveDateFrom(dateFrom);
     setActiveDateTo(dateTo);
-    fetchIntelligence(dateFrom, dateTo);
   };
 
   const handleClearFilter = () => {
@@ -95,7 +80,6 @@ export function InventoryIntelligenceSection() {
     setDateTo('');
     setActiveDateFrom('');
     setActiveDateTo('');
-    fetchIntelligence('', '');
   };
 
   // Stock Risk filtering
