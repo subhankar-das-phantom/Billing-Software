@@ -357,7 +357,7 @@ export const DirectionalTransition = ({
       animate="in"
       exit="out"
       variants={variants}
-      transition={transitionConfigs.smooth}
+      transition={desktopConfigs.smooth}
       className={className}
     >
       {children}

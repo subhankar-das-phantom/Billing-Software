@@ -28,6 +28,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { VirtualizedList } from '../../components/Common/VirtualizedList';
 import CollapsibleMobileCard from '../../components/Common/Cards/CollapsibleMobileCard';
 import { useInfiniteScrollSentinel } from '../../utils/scrollUtils';
+import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 
 // Animated counter component
 const AnimatedCounter = ({ value, prefix = '', suffix = '', decimals = 0 }) => {
