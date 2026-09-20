@@ -4,6 +4,48 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.5.1](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.5.1) — 2026-09-20 — Native Document-Root Scrolling, Sticky Header Docking, Mobile Desktop Zoom Ergonomics & Card Payment Visibility
+
+### 📱 Layout Architecture, Native Document Scrolling & Mobile Card Financial Ergonomics Milestone
+Version 2.5.1 unifies the application's layout architecture by transitioning from a nested `<main>` scroll container to native document-root scrolling (`window` / `<html>`) paired with sticky header docking (`sticky top-0 z-30`). It removes the application's nested main vertical scrolling context that was contributing to the mobile Desktop-mode single-finger zoom lock, restores the document scroll extent required for native Chromium Long Screenshots ("Capture more"), reclaims 60–80px of mobile screen estate through native address bar retraction, preserves forward/back scroll position on `POP` navigation, establishes a deterministic 3-tier scroll parent resolution model, and swaps the financial payment status into the collapsed customer invoice card view for instant operational visibility.
+
+---
+
+### 🏛️ Native Document-Root Scrolling & Sticky Docking (`index.html`, `DashboardLayout.jsx`)
+- **Document Root Primary Scroller** — Replaced `height: 100%; overflow: hidden;` on `html, body, #root` and the outer layout shell with `min-height: 100%; height: auto;`, establishing the document root as the primary vertical scrolling context.
+- **Docked Non-Scrolling Top Header** — Positioned `<Header>` with `sticky top-0 z-30 w-full bg-slate-950/95 border-b border-slate-800` in natural document flow. The header and hamburger menu button (`☰`) remain permanently docked at `top: 0` throughout scrolling, guaranteeing navigation is always accessible.
+- **Sticky Desktop Sidebar** — Positioned the desktop sidebar rail with `sticky top-0 h-screen z-20 shrink-0` to remain docked beside the main document column.
+- **Ancestor Scroll Invariant** — Enforced that no layout ancestor of the primary application content may establish an unintended vertical scrolling context (`overflow-y: auto`, `overflow-y: scroll`, or `overflow: hidden`).
+- **Natural Document Flow for `<main>`** — Removed `overflow-y-auto`, `overflow-x-hidden`, and `overscroll-y-contain` from `<main>`, converting it to a natural document flow container (`flex-1 min-w-0 bg-slate-950`).
+- **Mobile Screen Estate Recovery** — Reclaims 60–80px of vertical viewing space on mobile Chrome and Safari as native document scrolling permits the browser URL omnibox to auto-retract on downward scroll.
+- **Direction-Aware Window Scroll-to-Top** — Updated `useScroll` listener and `handleScrollToTop` to track `window.scrollY` and execute `window.scrollTo({ top: 0, behavior: 'smooth' })` with Clamp & Glide for large lists.
+- **Smart Navigation Scroll Restoration (PUSH vs. POP)** — Leveraged React Router's `useNavigationType()` to reset scroll position to `(0, 0)` on fresh forward navigation (`PUSH` / `REPLACE`), while allowing natural browser scroll restoration when navigating back/forward (`POP`).
+
+---
+
+### 📜 Deterministic 3-Tier Scroll Parent Resolution (`scrollUtils.js`, `Sidebar.jsx`, `DashboardLayout.jsx`)
+- **Explicit Container Matching** — Replaced dynamic overflow inspection heuristics in `findScrollParent(node)` with a deterministic 3-tier hierarchy:
+  1. *Explicit Semantic Modals*: Nodes with `role="dialog"` or `.modal-body`.
+  2. *Explicit Intentional Scrollers*: Elements carrying the `data-scroll-container` attribute.
+  3. *Primary Document Fallback*: `document.scrollingElement || document.documentElement`.
+- **Drawer Explicit Participation** — Added `data-scroll-container` to the `<nav>` scroll body in `Sidebar.jsx` and `role="dialog" aria-modal="true"` to the mobile drawer panel in `DashboardLayout.jsx`, ensuring drawer navigation never falls through to the document root.
+- **Viewport Root IntersectionObserver** — When `scrollRoot` resolves to the document element, `useInfiniteScrollSentinel` passes `root: null` to `IntersectionObserver`, anchoring detection directly to the browser viewport.
+- **Window Target Abstraction** — Bound the secondary fast-scroll listener to `window` whenever the root scroller is the document, seamlessly measuring `document.scrollingElement` scroll height and window scroll offsets.
+
+---
+
+### 🛡️ Table Touch & Overflow Refinement (`index.css`)
+- **Vertical Touch Passage** — Replaced `overflow-y: hidden !important;` on `[data-horizontal-table-scroll="true"]` with `overflow-x: auto; touch-action: auto;`. Eliminates touch-action conflict over wide desktop tables so vertical gestures bubble naturally to document scrolling while preserving horizontal table panning.
+
+---
+
+### 💳 Customer Card Financial Status Visibility (`CustomerDetailsPage.jsx`)
+- **Collapsed Header Payment Status** — Swapped document status (`Printed` / `Created`) with financial `paymentStatus` (`Partial (₹354.57)`, `Paid`, `Unpaid`) on collapsed mobile invoice cards. Operators can verify balances at a glance without having to expand every card.
+- **Strict Cancellation Guard** — Preserved cancellation priority: cancelled invoices display the `Cancelled` badge in red regardless of payment calculations.
+- **Expanded Document Details** — Moved document status badge (`statusConfig[invoice.status]`) into the expanded details row alongside item count (`2 items`).
+
+---
+
 ## [v2.5.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.5.0) — 2026-09-19 — Infinite Scroll Resilience, Deterministic Pagination, Lightweight CSS Navigation & 1,000+ Item Scale Stability
 
 ### ⚡ Enterprise-Scale Infinite Scroll, Deterministic Pagination & GPU-Optimized Navigation Milestone
