@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Payment = require('../models/Payment');
 const Invoice = require('../models/Invoice');
 const Customer = require('../models/Customer');
@@ -426,48 +427,17 @@ exports.getCollections = async (req, res, next) => {
 };
 
 // @desc    Record a new payment
+// @desc    Create a payment
 // @route   POST /api/payments
 // @access  Private
 exports.createPayment = async (req, res, next) => {
+  const session = await mongoose.startSession();
+
   try {
     const { invoiceId, amount, paymentDate, paymentMethod, referenceNumber, notes } = req.body;
     const tenantId = getTenantId(req);
 
-    // Validate invoice exists
-    const invoice = await Invoice.findOne({
-      _id: invoiceId,
-      tenantId
-    });
-    if (!invoice) {
-      return res.status(404).json({
-        success: false,
-        message: 'Invoice not found'
-      });
-    }
-
-    // Check if invoice is cancelled
-    if (invoice.status === 'Cancelled') {
-      return res.status(400).json({
-        success: false,
-        message: 'Cannot record payment for cancelled invoice'
-      });
-    }
-
-    const creditNoteTotal = await getInvoiceCreditNoteTotal(invoice._id, tenantId);
-
-    // Calculate effective remaining amount after payments and credit note returns.
-    // Use round2 to avoid floating-point precision drift (e.g. 0.01 vs 0.009999...)
-    const remainingAmount = Math.max(
-      0,
-      round2(
-        getRoundedNumber(invoice.totals.netTotal)
-        - getRoundedNumber(invoice.paidAmount)
-        - creditNoteTotal
-      )
-    );
     const normalizedAmount = getRoundedNumber(amount);
-    
-    // Validate payment amount
     if (normalizedAmount <= 0) {
       return res.status(400).json({
         success: false,
@@ -475,98 +445,199 @@ exports.createPayment = async (req, res, next) => {
       });
     }
 
-    if (remainingAmount <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invoice is already fully paid or settled by credit notes'
-      });
-    }
+    let createdPaymentDoc = null;
+    let newPaidAmount = 0;
+    let newPaymentStatus = 'Unpaid';
+    let creditNoteTotal = 0;
+    let invoiceNetTotal = 0;
 
-    if (normalizedAmount > remainingAmount) {
-      return res.status(400).json({
-        success: false,
-        message: `Payment amount (₹${normalizedAmount}) exceeds remaining balance (₹${remainingAmount})`
-      });
-    }
+    await session.withTransaction(async () => {
+      // Validate invoice exists
+      const invoice = await Invoice.findOne({
+        _id: invoiceId,
+        tenantId
+      }).session(session);
 
-    // Create payment record
-    let customer = null;
-    
-    // Always fetch customer to check active status
-    customer = await Customer.findOne({
-      _id: invoice.customer._id,
-      tenantId
-    });
-    
-    if (!customer) {
-      return res.status(404).json({
-        success: false,
-        message: 'Associated customer not found'
-      });
-    }
+      if (!invoice) {
+        const err = new Error('Invoice not found');
+        err.statusCode = 404;
+        throw err;
+      }
 
-    if (customer.isActive === false) {
-      return res.status(400).json({
-        success: false,
-        message: 'Cannot record payment for an inactive customer'
-      });
-    }
+      if (invoice.status === 'Cancelled') {
+        const err = new Error('Cannot record payment for cancelled invoice');
+        err.statusCode = 400;
+        throw err;
+      }
 
-    const payment = await Payment.create({
-      tenantId,
-      invoice: invoiceId,
-      customer: invoice.customer._id,
-      amount: normalizedAmount,
-      paymentDate: resolvePaymentDate(paymentDate),
-      paymentMethod: paymentMethod || 'Cash',
-      referenceNumber: referenceNumber || '',
-      notes: notes || '',
-      invoiceSnapshot: {
-        invoiceNumber: invoice.invoiceNumber,
-        invoiceDate: invoice.invoiceDate,
-        netTotal: invoice.totals.netTotal
-      },
-      createdBy: getAttribution(req)
-    });
+      creditNoteTotal = await getInvoiceCreditNoteTotal(invoice._id, tenantId);
+      invoiceNetTotal = getRoundedNumber(invoice.totals?.netTotal);
 
-    // Update invoice paid amount and status
-    const newPaidAmount = getRoundedNumber(getRoundedNumber(invoice.paidAmount) + normalizedAmount);
-    const newPaymentStatus = derivePaymentStatus(invoice.totals.netTotal, newPaidAmount);
+      // Calculate effective remaining amount after payments and credit note returns
+      const remainingAmount = Math.max(
+        0,
+        round2(
+          invoiceNetTotal
+          - getRoundedNumber(invoice.paidAmount)
+          - creditNoteTotal
+        )
+      );
 
-    await Invoice.findOneAndUpdate({
-      _id: invoiceId,
-      tenantId
-    }, {
-      paidAmount: newPaidAmount,
-      paymentStatus: newPaymentStatus
-    });
+      if (remainingAmount <= 0) {
+        const err = new Error('Invoice is already fully paid or settled by credit notes');
+        err.statusCode = 400;
+        throw err;
+      }
 
-    // Update customer outstanding balance only for Credit invoices
-    if (invoice.paymentType === 'Credit') {
-      const currentBalance = getRoundedNumber(customer?.outstandingBalance);
-      const newBalance = Math.max(0, round2(currentBalance - normalizedAmount));
-      await Customer.findOneAndUpdate({
+      if (normalizedAmount > remainingAmount) {
+        const err = new Error(`Payment amount (₹${normalizedAmount}) exceeds remaining balance (₹${remainingAmount})`);
+        err.statusCode = 400;
+        throw err;
+      }
+
+      // Always fetch customer to check active status
+      const customer = await Customer.findOne({
         _id: invoice.customer._id,
         tenantId
+      }).session(session);
+
+      if (!customer) {
+        const err = new Error('Associated customer not found');
+        err.statusCode = 404;
+        throw err;
+      }
+
+      if (customer.isActive === false) {
+        const err = new Error('Cannot record payment for an inactive customer');
+        err.statusCode = 400;
+        throw err;
+      }
+
+      const [payment] = await Payment.create([{
+        tenantId,
+        invoice: invoiceId,
+        customer: invoice.customer._id,
+        amount: normalizedAmount,
+        paymentDate: resolvePaymentDate(paymentDate),
+        paymentMethod: paymentMethod || 'Cash',
+        referenceNumber: referenceNumber || '',
+        notes: notes || '',
+        invoiceSnapshot: {
+          invoiceNumber: invoice.invoiceNumber,
+          invoiceDate: invoice.invoiceDate,
+          netTotal: invoice.totals?.netTotal
+        },
+        createdBy: getAttribution(req)
+      }], { session });
+
+      createdPaymentDoc = payment;
+
+      newPaidAmount = getRoundedNumber(getRoundedNumber(invoice.paidAmount) + normalizedAmount);
+      newPaymentStatus = derivePaymentStatus(invoice.totals?.netTotal, newPaidAmount);
+
+      await Invoice.findOneAndUpdate({
+        _id: invoiceId,
+        tenantId
       }, {
-        outstandingBalance: newBalance
-      });
-    }
+        $inc: { paidAmount: normalizedAmount },
+        $set: { paymentStatus: newPaymentStatus }
+      }, { session });
+
+      // Update customer outstanding balance only for Credit invoices via atomic decrement
+      if (invoice.paymentType === 'Credit') {
+        await Customer.findOneAndUpdate(
+          { _id: invoice.customer._id, tenantId },
+          { $inc: { outstandingBalance: -normalizedAmount } },
+          { session }
+        );
+      }
+    });
 
     // Track employee activity
     trackActivity(req, ACTIVITY_TYPES.PAYMENT_RECORDED, normalizedAmount);
 
     res.status(201).json({
       success: true,
-      payment,
+      payment: createdPaymentDoc,
       invoiceUpdate: {
         paidAmount: newPaidAmount,
         paymentStatus: newPaymentStatus,
-        remainingAmount: Math.max(0, round2(getRoundedNumber(invoice.totals.netTotal) - newPaidAmount - creditNoteTotal))
+        remainingAmount: Math.max(0, round2(invoiceNetTotal - newPaidAmount - creditNoteTotal))
       }
     });
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    // Fallback: if transactions aren't supported (standalone MongoDB), execute operations atomically
+    if (error.code === 20 || error.codeName === 'IllegalOperation' || error.message?.includes('Transaction numbers are only allowed')) {
+      try {
+        const { invoiceId, amount, paymentDate, paymentMethod, referenceNumber, notes } = req.body;
+        const tenantId = getTenantId(req);
+        const invoice = await Invoice.findOne({ _id: invoiceId, tenantId });
+        if (!invoice || invoice.status === 'Cancelled') {
+          return res.status(400).json({ success: false, message: 'Invalid or cancelled invoice' });
+        }
+        const creditNoteTotal = await getInvoiceCreditNoteTotal(invoice._id, tenantId);
+        const normalizedAmount = getRoundedNumber(amount);
+        const newPaidAmount = getRoundedNumber(getRoundedNumber(invoice.paidAmount) + normalizedAmount);
+        const newPaymentStatus = derivePaymentStatus(invoice.totals?.netTotal, newPaidAmount);
+
+        const payment = await Payment.create({
+          tenantId,
+          invoice: invoiceId,
+          customer: invoice.customer._id,
+          amount: normalizedAmount,
+          paymentDate: resolvePaymentDate(paymentDate),
+          paymentMethod: paymentMethod || 'Cash',
+          referenceNumber: referenceNumber || '',
+          notes: notes || '',
+          invoiceSnapshot: {
+            invoiceNumber: invoice.invoiceNumber,
+            invoiceDate: invoice.invoiceDate,
+            netTotal: invoice.totals?.netTotal
+          },
+          createdBy: getAttribution(req)
+        });
+
+        await Invoice.findOneAndUpdate({
+          _id: invoiceId,
+          tenantId
+        }, {
+          $inc: { paidAmount: normalizedAmount },
+          $set: { paymentStatus: newPaymentStatus }
+        });
+
+        if (invoice.paymentType === 'Credit') {
+          await Customer.findOneAndUpdate(
+            { _id: invoice.customer._id, tenantId },
+            { $inc: { outstandingBalance: -normalizedAmount } }
+          );
+        }
+
+        trackActivity(req, ACTIVITY_TYPES.PAYMENT_RECORDED, normalizedAmount);
+
+        return res.status(201).json({
+          success: true,
+          payment,
+          invoiceUpdate: {
+            paidAmount: newPaidAmount,
+            paymentStatus: newPaymentStatus,
+            remainingAmount: Math.max(0, round2(getRoundedNumber(invoice.totals?.netTotal) - newPaidAmount - creditNoteTotal))
+          }
+        });
+      } catch (fallbackErr) {
+        return next(fallbackErr);
+      }
+    }
+
     next(error);
+  } finally {
+    session.endSession();
   }
 };
 
@@ -882,121 +953,125 @@ exports.getPaymentsByInvoice = async (req, res, next) => {
 // @route   PUT /api/payments/:id
 // @access  Private
 exports.updatePayment = async (req, res, next) => {
+  const session = await mongoose.startSession();
+
   try {
     const { amount, paymentDate, paymentMethod, referenceNumber, notes } = req.body;
     const tenantId = getTenantId(req);
 
-    const payment = await Payment.findOne({
-      _id: req.params.id,
-      tenantId
-    });
-    if (!payment) {
-      return res.status(404).json({
-        success: false,
-        message: 'Payment not found'
-      });
-    }
+    let updatedPaymentDoc = null;
 
-    const invoice = await Invoice.findOne({
-      _id: payment.invoice,
-      tenantId
-    });
-    if (!invoice) {
-      return res.status(404).json({
-        success: false,
-        message: 'Associated invoice not found'
-      });
-    }
+    await session.withTransaction(async () => {
+      const payment = await Payment.findOne({
+        _id: req.params.id,
+        tenantId
+      }).session(session);
 
-    if (invoice.status === 'Cancelled') {
-      return res.status(400).json({
-        success: false,
-        message: 'Cannot edit payment for a cancelled invoice'
-      });
-    }
-
-    // If amount is being changed, validate it
-    if (amount !== undefined) {
-      const newAmount = round2(amount);
-      if (newAmount <= 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Payment amount must be greater than 0'
-        });
+      if (!payment) {
+        const err = new Error('Payment not found');
+        err.statusCode = 404;
+        throw err;
       }
 
-      // How much room is available?  remaining + old payment amount
-      const currentRemaining = round2(getRoundedNumber(invoice.totals.netTotal) - getRoundedNumber(invoice.paidAmount));
-      const maxAllowed = round2(currentRemaining + getRoundedNumber(payment.amount));
+      const invoice = await Invoice.findOne({
+        _id: payment.invoice,
+        tenantId
+      }).session(session);
 
-      if (newAmount > maxAllowed) {
-        return res.status(400).json({
-          success: false,
-          message: `Payment amount (₹${newAmount}) exceeds maximum allowed (₹${maxAllowed})`
-        });
+      if (!invoice) {
+        const err = new Error('Associated invoice not found');
+        err.statusCode = 404;
+        throw err;
       }
 
-      // Update invoice paidAmount by the delta
-      const delta = round2(newAmount - getRoundedNumber(payment.amount));
-      if (delta !== 0) {
-        let newBalance = null;
-        if (invoice.paymentType === 'Credit') {
-          const customer = await Customer.findOne({
-            _id: payment.customer,
-            tenantId
-          });
-          if (!customer) {
-            return res.status(404).json({
-              success: false,
-              message: 'Associated customer not found'
-            });
-          }
-          const currentBalance = getRoundedNumber(customer?.outstandingBalance);
-          // delta > 0 means more paid → reduce outstanding
-          // delta < 0 means less paid → increase outstanding
-          newBalance = Math.max(0, round2(currentBalance - delta));
+      if (invoice.status === 'Cancelled') {
+        const err = new Error('Cannot edit payment for a cancelled invoice');
+        err.statusCode = 400;
+        throw err;
+      }
+
+      // If amount is being changed, validate it
+      if (amount !== undefined) {
+        const newAmount = round2(amount);
+        if (newAmount <= 0) {
+          const err = new Error('Payment amount must be greater than 0');
+          err.statusCode = 400;
+          throw err;
         }
 
-        const newPaidAmount = round2(getRoundedNumber(invoice.paidAmount) + delta);
-        const newPaymentStatus = derivePaymentStatus(invoice.totals.netTotal, newPaidAmount);
+        // How much room is available?  remaining + old payment amount
+        const currentRemaining = round2(getRoundedNumber(invoice.totals?.netTotal) - getRoundedNumber(invoice.paidAmount));
+        const maxAllowed = round2(currentRemaining + getRoundedNumber(payment.amount));
 
-        await Invoice.findOneAndUpdate({
-          _id: invoice._id,
-          tenantId
-        }, {
-          paidAmount: newPaidAmount,
-          paymentStatus: newPaymentStatus
-        });
+        if (newAmount > maxAllowed) {
+          const err = new Error(`Payment amount (₹${newAmount}) exceeds maximum allowed (₹${maxAllowed})`);
+          err.statusCode = 400;
+          throw err;
+        }
 
-        // Update customer outstanding balance (for Credit invoices)
-        if (invoice.paymentType === 'Credit') {
-          await Customer.findOneAndUpdate({
-            _id: payment.customer,
+        // Update invoice paidAmount by the delta
+        const delta = round2(newAmount - getRoundedNumber(payment.amount));
+        if (delta !== 0) {
+          if (invoice.paymentType === 'Credit') {
+            const customer = await Customer.findOne({
+              _id: payment.customer,
+              tenantId
+            }).session(session);
+
+            if (!customer) {
+              const err = new Error('Associated customer not found');
+              err.statusCode = 404;
+              throw err;
+            }
+
+            // Atomic decrement: delta > 0 reduces balance (-delta), delta < 0 increases balance (-delta)
+            await Customer.findOneAndUpdate(
+              { _id: payment.customer, tenantId },
+              { $inc: { outstandingBalance: -delta } },
+              { session }
+            );
+          }
+
+          const newPaidAmount = round2(getRoundedNumber(invoice.paidAmount) + delta);
+          const newPaymentStatus = derivePaymentStatus(invoice.totals?.netTotal, newPaidAmount);
+
+          await Invoice.findOneAndUpdate({
+            _id: invoice._id,
             tenantId
           }, {
-            outstandingBalance: newBalance
-          });
+            $inc: { paidAmount: delta },
+            $set: { paymentStatus: newPaymentStatus }
+          }, { session });
         }
+
+        payment.amount = newAmount;
       }
 
-      payment.amount = newAmount;
-    }
+      // Update other fields if provided
+      if (paymentDate !== undefined) payment.paymentDate = resolvePaymentDate(paymentDate);
+      if (paymentMethod !== undefined) payment.paymentMethod = paymentMethod;
+      if (referenceNumber !== undefined) payment.referenceNumber = referenceNumber;
+      if (notes !== undefined) payment.notes = notes;
 
-    // Update other fields if provided
-    if (paymentDate !== undefined) payment.paymentDate = resolvePaymentDate(paymentDate);
-    if (paymentMethod !== undefined) payment.paymentMethod = paymentMethod;
-    if (referenceNumber !== undefined) payment.referenceNumber = referenceNumber;
-    if (notes !== undefined) payment.notes = notes;
-
-    await payment.save();
+      await payment.save({ session });
+      updatedPaymentDoc = payment;
+    });
 
     res.status(200).json({
       success: true,
       message: 'Payment updated successfully',
-      payment
+      payment: updatedPaymentDoc
     });
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message
+      });
+    }
     next(error);
+  } finally {
+    session.endSession();
   }
 };
 
@@ -1004,58 +1079,62 @@ exports.updatePayment = async (req, res, next) => {
 // @route   DELETE /api/payments/:id
 // @access  Private
 exports.deletePayment = async (req, res, next) => {
+  const session = await mongoose.startSession();
+
   try {
     const tenantId = getTenantId(req);
-    const payment = await Payment.findOne({
-      _id: req.params.id,
-      tenantId
-    });
 
-    if (!payment) {
-      return res.status(404).json({
-        success: false,
-        message: 'Payment not found'
-      });
-    }
+    await session.withTransaction(async () => {
+      const payment = await Payment.findOne({
+        _id: req.params.id,
+        tenantId
+      }).session(session);
 
-    // Get the invoice
-    const invoice = await Invoice.findOne({
-      _id: payment.invoice,
-      tenantId
-    });
-    if (!invoice) {
-      return res.status(404).json({
-        success: false,
-        message: 'Associated invoice not found'
-      });
-    }
+      if (!payment) {
+        const err = new Error('Payment not found');
+        err.statusCode = 404;
+        throw err;
+      }
 
-    // Reverse the payment on invoice
-    const newPaidAmount = Math.max(0, round2(getRoundedNumber(invoice.paidAmount) - getRoundedNumber(payment.amount)));
-    const newPaymentStatus = derivePaymentStatus(invoice.totals.netTotal, newPaidAmount);
+      // Get the invoice
+      const invoice = await Invoice.findOne({
+        _id: payment.invoice,
+        tenantId
+      }).session(session);
 
-    await Invoice.findOneAndUpdate({
-      _id: payment.invoice,
-      tenantId
-    }, {
-      paidAmount: newPaidAmount,
-      paymentStatus: newPaymentStatus
-    });
+      if (!invoice) {
+        const err = new Error('Associated invoice not found');
+        err.statusCode = 404;
+        throw err;
+      }
 
-    // Increase customer outstanding balance only for Credit invoices
-    if (invoice.paymentType === 'Credit') {
-      await Customer.findOneAndUpdate({
-        _id: payment.customer,
+      // Reverse the payment on invoice
+      const newPaidAmount = Math.max(0, round2(getRoundedNumber(invoice.paidAmount) - getRoundedNumber(payment.amount)));
+      const newPaymentStatus = derivePaymentStatus(invoice.totals?.netTotal, newPaidAmount);
+
+      await Invoice.findOneAndUpdate({
+        _id: payment.invoice,
         tenantId
       }, {
-        $inc: { outstandingBalance: payment.amount }
-      });
-    }
+        $inc: { paidAmount: -payment.amount },
+        $set: { paymentStatus: newPaymentStatus }
+      }, { session });
 
-    // Delete the payment
-    await Payment.findOneAndDelete({
-      _id: req.params.id,
-      tenantId
+      // Increase customer outstanding balance only for Credit invoices atomically
+      if (invoice.paymentType === 'Credit') {
+        await Customer.findOneAndUpdate({
+          _id: payment.customer,
+          tenantId
+        }, {
+          $inc: { outstandingBalance: payment.amount }
+        }, { session });
+      }
+
+      // Delete the payment
+      await Payment.findOneAndDelete({
+        _id: req.params.id,
+        tenantId
+      }, { session });
     });
 
     res.status(200).json({
@@ -1063,7 +1142,15 @@ exports.deletePayment = async (req, res, next) => {
       message: 'Payment deleted and reversed successfully'
     });
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message
+      });
+    }
     next(error);
+  } finally {
+    session.endSession();
   }
 };
 
