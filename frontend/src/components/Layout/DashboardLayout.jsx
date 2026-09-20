@@ -170,8 +170,8 @@ export default function DashboardLayout() {
       const absX = Math.abs(deltaX);
       const absY = Math.abs(deltaY);
 
-      // If user has moved noticeably vertical before horizontal, it's a page scroll
-      if (absY > 35 && absY > absX * 1.3) {
+      // Only lock as vertical scroll if motion is clearly vertical (protecting natural thumb arcs)
+      if (absY > 50 && absY > absX * 1.8) {
         isVerticalScroll = true;
       }
     };
@@ -198,8 +198,8 @@ export default function DashboardLayout() {
       const absX = Math.abs(deltaX);
       const absY = Math.abs(deltaY);
 
-      // Must be primarily horizontal gesture and within 800ms
-      if (absX < 35 || absX < absY * 1.2 || elapsedTime > 800) {
+      // Ergonomic angle tolerance: accept natural thumb diagonal arcs (up to ~48° off-horizontal) within 1200ms
+      if (absX < 30 || absX < absY * 0.9 || elapsedTime > 1200) {
         return;
       }
 
@@ -207,7 +207,7 @@ export default function DashboardLayout() {
 
       // ─── Case 1: Drawer is OPEN -> Left swipe closes it ───
       if (isDrawerCurrentlyOpen) {
-        if (deltaX < -35) {
+        if (deltaX < -30) {
           setMobileDrawerOpen(false);
           setTabletDrawerOpen(false);
         }
@@ -215,9 +215,13 @@ export default function DashboardLayout() {
       }
 
       // ─── Case 2: Drawer / Sidebar is CLOSED -> Right swipe opens it ───
-      if (deltaX > 35) {
-        // Natural thumb edge zone: on mobile/tablet ~90-100px, on desktop site view ~120-250px, or from header
-        const isFromLeftZone = touchStartX <= Math.max(90, window.innerWidth * 0.25);
+      // Dual-trigger sweet spot: quick light flick (>= 30px in <= 350ms) OR relaxed glide (>= 45px in <= 1200ms)
+      const isQuickFlick = deltaX >= 30 && elapsedTime <= 350;
+      const isRelaxedGlide = deltaX >= 45 && elapsedTime <= 1200;
+
+      if (isQuickFlick || isRelaxedGlide) {
+        // Natural thumb edge zone: on mobile/tablet ~110px, on desktop site view ~140-280px, or from header
+        const isFromLeftZone = touchStartX <= Math.max(110, window.innerWidth * 0.28);
         const isFromHeader = touchStartY <= 80;
 
         if (isFromLeftZone || isFromHeader) {
@@ -235,7 +239,7 @@ export default function DashboardLayout() {
             setMobileDrawerOpen(true);
           }
         }
-      } else if (isDesktop && !sidebarCollapsed && deltaX < -50 && touchStartX <= 280) {
+      } else if (isDesktop && !sidebarCollapsed && deltaX < -45 && touchStartX <= 280) {
         // On desktop touch screen / mobile desktop site view: left swipe on expanded sidebar collapses it
         setSidebarCollapsed(true);
         try {

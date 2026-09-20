@@ -57,8 +57,8 @@ Version 2.5.1 unifies the application's layout architecture by transitioning fro
 ### 👆 Unified Touch Gesture Navigation & Mobile Zoom Isolation (`DashboardLayout.jsx`)
 - **Visual Viewport Zoom Immunity** — Guarded edge gestures with `window.visualViewport.scale > 1.05`. When pinch-zoomed in on mobile devices (including Desktop Site mode), all 1-finger horizontal and vertical drags are reserved 100% for native browser viewport panning, completely preventing accidental sidebar/drawer pop-ins while magnified.
 - **Universal Viewport Support (Mobile & Desktop Site)** — Re-enabled intuitive right-swipe across all viewport tiers: on mobile/tablet, expands the drawer navigation; on desktop and mobile Desktop Site viewports, expands the collapsed sidebar rail; left-swipe cleanly collapses or closes overlays.
-- **Ergonomic Natural Thumb Edge Zone** — Calibrated the edge trigger zone to `touchStartX <= Math.max(90, window.innerWidth * 0.25)` or top header bar (`touchStartY <= 80`), avoiding OS-level system back gesture conflicts while providing fluid, reliable thumb activation.
-- **Reliable Gesture Thresholds** — Enforced deliberate horizontal intent ($\Delta X \ge 35\text{px}$, $|\Delta X| \ge 1.2 \times |\Delta Y|$ within 800ms), eliminating accidental deadlocks from finger lift deceleration or false-positive container exclusions.
+- **Ergonomic Natural Thumb Edge Zone** — Calibrated the edge trigger zone to `touchStartX <= Math.max(110, window.innerWidth * 0.28)` or top header bar (`touchStartY <= 80`), avoiding OS-level system back gesture conflicts while providing fluid, reliable thumb activation.
+- **Dual-Trigger Sweet Spot Kinematics** — Calibrated gesture mechanics to a balanced sweet spot with dual triggers: quick light flick ($\Delta X \ge 30\text{px}$ in $\le 350\text{ms}$) or relaxed thumb glide ($\Delta X \ge 45\text{px}$ in $\le 1200\text{ms}$), paired with natural thumb-arc angular tolerance ($|\Delta X| \ge 0.9 \times |\Delta Y|$) and relaxed vertical scroll lockout ($|\Delta Y| > 50\text{px}$ and $|\Delta Y| > 1.8 \times |\Delta X|$). Eliminates forced high-acceleration swipes while preserving 100% zoom immunity.
 
 ---
 
