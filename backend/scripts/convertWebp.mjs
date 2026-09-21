@@ -83,11 +83,35 @@ async function main() {
     const mobileOutPath = path.join(imgDir, `${baseName}-mobile.webp`);
     fs.writeFileSync(mobileOutPath, mobileBuffer);
 
+    // Convert to Small Mobile WebP (540 width for standard mobile viewports, quality 75)
+    const smWebp = await page.evaluate(async (uri) => {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const scale = Math.min(1, 540 / img.naturalWidth);
+          canvas.width = Math.round(img.naturalWidth * scale);
+          canvas.height = Math.round(img.naturalHeight * scale);
+          const ctx = canvas.getContext('2d');
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/webp', 0.75));
+        };
+        img.src = uri;
+      });
+    }, dataUri);
+
+    const smBuffer = Buffer.from(smWebp.split(',')[1], 'base64');
+    const smOutPath = path.join(imgDir, `${baseName}-sm.webp`);
+    fs.writeFileSync(smOutPath, smBuffer);
+
     const origSize = (fs.statSync(filePath).size / 1024).toFixed(1);
     const deskSize = (desktopBuffer.length / 1024).toFixed(1);
     const mobSize = (mobileBuffer.length / 1024).toFixed(1);
+    const smSize = (smBuffer.length / 1024).toFixed(1);
 
-    console.log(`✅ ${file}: ${origSize} KB -> Desktop WebP: ${deskSize} KB (-${(100 - (deskSize/origSize)*100).toFixed(0)}%) | Mobile: ${mobSize} KB (-${(100 - (mobSize/origSize)*100).toFixed(0)}%)`);
+    console.log(`✅ ${file}: ${origSize} KB -> Desktop: ${deskSize} KB | Mobile: ${mobSize} KB | Small Mobile: ${smSize} KB (-${(100 - (smSize/origSize)*100).toFixed(0)}%)`);
   }
 
   await browser.close();
