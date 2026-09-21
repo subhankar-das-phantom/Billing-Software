@@ -6,7 +6,10 @@
   "scripts": {
     "start": "tsx server.js",
     "dev": "tsx watch server.js",
+    "lint": "eslint ",
     "seed:admin": "node scripts/seedAdmin.js",
+    "seed:showcase": "tsx scripts/seedShowcase.ts",
+    "verify:showcase": "tsx scripts/verifyShowcase.ts",
     "migrate:customer-phone-index": "node scripts/migrateCustomerPhoneIndex.js",
     "migrate:credit-note-number-index": "node scripts/migrateCreditNoteNumberIndex.js",
     "migrate:invoice-number-index": "node scripts/migrateInvoiceNumberIndex.js",
@@ -42,6 +45,7 @@
     "@types/node": "^22.19.21",
     "@types/pdfkit": "^0.17.6",
     "axios": "^1.13.2",
+    "puppeteer-core": "^25.11.0",
     "tsx": "^4.19.0",
     "typescript": "^5.8.0"
   }
