@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 
-const THEME_STORAGE_KEY = 'bharat-enterprise-theme';
+const APP_THEME_STORAGE_KEY = 'bharat-enterprise-theme';
+const LANDING_THEME_STORAGE_KEY = 'bharat-enterprise-landing-theme';
 
 const ThemeContext = createContext({
   theme: 'dark',
@@ -19,10 +21,18 @@ const ThemeContext = createContext({
 });
 
 export function ThemeProvider({ children }) {
-  // Theme mode: 'dark' | 'light' | 'system' (defaults to 'dark' per platform architecture)
-  const [themeMode, setThemeModeState] = useState(() => {
+  const location = useLocation();
+
+  // Detect public landing / informational pages
+  const isLandingPage = useMemo(() => {
+    const p = location.pathname;
+    return p === '/landing' || p === '/privacy-policy' || p === '/terms';
+  }, [location.pathname]);
+
+  // Main application theme mode: 'dark' | 'light' | 'system' (defaults to 'dark' per platform architecture)
+  const [appThemeMode, setAppThemeModeState] = useState(() => {
     try {
-      const saved = localStorage.getItem(THEME_STORAGE_KEY);
+      const saved = localStorage.getItem(APP_THEME_STORAGE_KEY);
       if (saved === 'light' || saved === 'dark' || saved === 'system') {
         return saved;
       }
@@ -32,7 +42,21 @@ export function ThemeProvider({ children }) {
     return 'dark';
   });
 
-  // Track system preference for 'system' mode
+  // Landing page theme mode: defaults to 'system' for unauthenticated visitors
+  const [landingThemeMode, setLandingThemeModeState] = useState(() => {
+    try {
+      const saved = localStorage.getItem(LANDING_THEME_STORAGE_KEY);
+      if (saved === 'light' || saved === 'dark' || saved === 'system') {
+        return saved;
+      }
+    } catch {
+      // localStorage unavailable or security blocked
+    }
+    // Landing page defaults to system theme
+    return 'system';
+  });
+
+  // Track OS system preference for 'system' mode
   const [systemIsDark, setSystemIsDark] = useState(() => {
     if (typeof window !== 'undefined' && window.matchMedia) {
       return window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -40,7 +64,7 @@ export function ThemeProvider({ children }) {
     return true;
   });
 
-  // Listen to OS system color scheme changes
+  // Listen to OS system color scheme changes in real-time
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return;
 
@@ -52,6 +76,9 @@ export function ThemeProvider({ children }) {
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
+
+  // Determine active theme mode based on current route context
+  const themeMode = isLandingPage ? landingThemeMode : appThemeMode;
 
   // Compute active effective theme: 'dark' or 'light'
   const theme = useMemo(() => {
@@ -83,28 +110,54 @@ export function ThemeProvider({ children }) {
   }, [theme]);
 
   // Persist preference to localStorage
-  const setThemeMode = useCallback((mode) => {
-    if (mode !== 'dark' && mode !== 'light' && mode !== 'system') return;
-    setThemeModeState(mode);
-    try {
-      localStorage.setItem(THEME_STORAGE_KEY, mode);
-    } catch (err) {
-      console.error('[ThemeContext] Failed to persist theme', err);
-    }
-  }, []);
-
-  // Quick 2-state toggle (Dark <-> Light)
-  const toggleTheme = useCallback(() => {
-    setThemeModeState((prev) => {
-      const next = prev === 'light' ? 'dark' : 'light';
-      try {
-        localStorage.setItem(THEME_STORAGE_KEY, next);
-      } catch (err) {
-        console.warn('[ThemeContext] toggleTheme storage failed', err);
+  const setThemeMode = useCallback(
+    (mode) => {
+      if (mode !== 'dark' && mode !== 'light' && mode !== 'system') return;
+      if (isLandingPage) {
+        setLandingThemeModeState(mode);
+        try {
+          localStorage.setItem(LANDING_THEME_STORAGE_KEY, mode);
+        } catch (err) {
+          console.error('[ThemeContext] Failed to persist landing theme', err);
+        }
+      } else {
+        setAppThemeModeState(mode);
+        try {
+          localStorage.setItem(APP_THEME_STORAGE_KEY, mode);
+        } catch (err) {
+          console.error('[ThemeContext] Failed to persist app theme', err);
+        }
       }
-      return next;
-    });
-  }, []);
+    },
+    [isLandingPage]
+  );
+
+  // Quick 2-state toggle (Dark <-> Light), flipping the currently active theme
+  const toggleTheme = useCallback(() => {
+    if (isLandingPage) {
+      setLandingThemeModeState((prev) => {
+        const currentEffective = prev === 'system' ? (systemIsDark ? 'dark' : 'light') : prev;
+        const next = currentEffective === 'light' ? 'dark' : 'light';
+        try {
+          localStorage.setItem(LANDING_THEME_STORAGE_KEY, next);
+        } catch (err) {
+          console.warn('[ThemeContext] landing toggleTheme storage failed', err);
+        }
+        return next;
+      });
+    } else {
+      setAppThemeModeState((prev) => {
+        const currentEffective = prev === 'system' ? (systemIsDark ? 'dark' : 'light') : prev;
+        const next = currentEffective === 'light' ? 'dark' : 'light';
+        try {
+          localStorage.setItem(APP_THEME_STORAGE_KEY, next);
+        } catch (err) {
+          console.warn('[ThemeContext] toggleTheme storage failed', err);
+        }
+        return next;
+      });
+    }
+  }, [isLandingPage, systemIsDark]);
 
   // Memoized theme-aware chart colors for Recharts & SVG visualizations
   const chartColors = useMemo(() => {

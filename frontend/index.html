@@ -4,19 +4,38 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Bharat Enterprise — Free billing & inventory platform for Indian pharma distributors. GST invoicing, stock tracking & credit management." />
+    <meta name="description" content="Bharat Enterprise — Billing, multi-batch inventory tracking, customer ledger accounting, and Indian GST compliance for distributors and enterprises." />
     <meta name="robots" content="index, follow" />
     <meta name="theme-color" content="#09090b" />
     <script>
       (function () {
         try {
-          var saved = localStorage.getItem('bharat-enterprise-theme');
+          var path = window.location.pathname;
+          var isLanding = path === '/landing' || path === '/privacy-policy' || path === '/terms';
+          var systemDark = !window.matchMedia || window.matchMedia('(prefers-color-scheme: dark)').matches;
           var isDark = true;
-          if (saved === 'light') {
-            isDark = false;
-          } else if (saved === 'system') {
-            isDark = !window.matchMedia || window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+          if (isLanding) {
+            var landingSaved = localStorage.getItem('bharat-enterprise-landing-theme');
+            if (landingSaved === 'light') {
+              isDark = false;
+            } else if (landingSaved === 'dark') {
+              isDark = true;
+            } else {
+              // Unauthenticated landing page defaults to system theme
+              isDark = systemDark;
+            }
+          } else {
+            var appSaved = localStorage.getItem('bharat-enterprise-theme');
+            if (appSaved === 'light') {
+              isDark = false;
+            } else if (appSaved === 'system') {
+              isDark = systemDark;
+            } else {
+              isDark = true;
+            }
           }
+
           var root = document.documentElement;
           if (isDark) {
             root.classList.add('dark');
@@ -27,40 +46,35 @@
           }
           var meta = document.querySelector('meta[name="theme-color"]');
           if (meta) {
-            meta.setAttribute('content', isDark ? '#09090b' : '#f8fafc');
+            meta.setAttribute('content', isDark ? '#09090b' : '#f1f5f9');
           }
         } catch (e) {}
       })();
     </script>
     <link rel="canonical" href="%VITE_FRONTEND_URL%/" />
     <!-- Open Graph -->
-    <meta property="og:title" content="Bharat Enterprise — Free Billing & Inventory Platform" />
-    <meta property="og:description" content="GST-compliant invoicing, real-time inventory, and customer credit tracking — all in one place. Completely free, forever." />
+    <meta property="og:title" content="Bharat Enterprise — Billing, Multi-Batch Inventory & Customer Khata Suite" />
+    <meta property="og:description" content="Enterprise billing, multi-batch inventory tracking, customer ledger accounting, and Indian GST compliance for distributors and enterprises." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="%VITE_FRONTEND_URL%/" />
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Bharat Enterprise — Free Billing & Inventory Platform" />
-    <meta name="twitter:description" content="GST-compliant invoicing, real-time inventory, and customer credit tracking — all in one place." />
-    <title>Bharat Enterprise — Free Billing & Inventory Platform</title>
+    <meta name="twitter:title" content="Bharat Enterprise — Billing, Multi-Batch Inventory & Customer Khata Suite" />
+    <meta name="twitter:description" content="Enterprise billing, multi-batch inventory tracking, customer ledger accounting, and Indian GST compliance for distributors and enterprises." />
+    <title>Bharat Enterprise — Billing, Multi-Batch Inventory & Customer Khata Suite</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <!-- Organization JSON-LD Structured Data -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "Organization",
+      "@type": "SoftwareApplication",
       "name": "Bharat Enterprise",
       "url": "%VITE_FRONTEND_URL%",
-      "description": "Free billing and inventory management platform for Indian pharmaceutical distributors.",
+      "description": "Billing, multi-batch inventory tracking, and customer khata ledger suite for Indian distributors and enterprises.",
       "applicationCategory": "BusinessApplication",
-      "operatingSystem": "Web",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "INR"
-      }
+      "operatingSystem": "Web"
     }
     </script>
     <style>
