@@ -51,7 +51,20 @@
         } catch (e) {}
       })();
     </script>
-    <link rel="canonical" href="%VITE_FRONTEND_URL%/" />
+    <link id="canonical-tag" rel="canonical" href="%VITE_FRONTEND_URL%/" />
+    <script>
+      (function () {
+        try {
+          var canonical = document.getElementById('canonical-tag');
+          if (canonical) {
+            var origin = window.location.origin;
+            var pathname = window.location.pathname;
+            var cleanPath = pathname === '/' ? '' : pathname.replace(/\/+$/, '');
+            canonical.setAttribute('href', origin + cleanPath);
+          }
+        } catch (e) {}
+      })();
+    </script>
     <!-- Open Graph -->
     <meta property="og:title" content="Bharat Enterprise — Billing, Multi-Batch Inventory & Customer Khata Suite" />
     <meta property="og:description" content="Enterprise billing, multi-batch inventory tracking, customer ledger accounting, and Indian GST compliance for distributors and enterprises." />
@@ -62,9 +75,17 @@
     <meta name="twitter:title" content="Bharat Enterprise — Billing, Multi-Batch Inventory & Customer Khata Suite" />
     <meta name="twitter:description" content="Enterprise billing, multi-batch inventory tracking, customer ledger accounting, and Indian GST compliance for distributors and enterprises." />
     <title>Bharat Enterprise — Billing, Multi-Batch Inventory & Customer Khata Suite</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Optimized Preconnects & High-Priority Hero WebP Preloads -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preload" as="image" href="/landing/product/dashboard-mobile.webp" type="image/webp" media="(max-width: 768px)" fetchpriority="high" />
+    <link rel="preload" as="image" href="/landing/product/dashboard.webp" type="image/webp" media="(min-width: 769px)" fetchpriority="high" />
+    <!-- Asynchronous Non-Blocking Google Fonts Loading -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" media="print" onload="this.media='all'" />
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" />
+    </noscript>
     <!-- Organization JSON-LD Structured Data -->
     <script type="application/ld+json">
     {
