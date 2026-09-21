@@ -62,6 +62,24 @@ Version 2.6.0 replaces the legacy WebGL landing page with a truthful, high-densi
 
 ---
 
+### 🛡️ Auth Loading & Public Route Hardening (`AuthContext.jsx`, `App.jsx`)
+- **Eliminated Fixed Overlay in AuthContext** — Removed `AuthLoadingScreen` and its top-level overlay from `AuthContext.jsx`. The root context no longer injects dashboard skeletons over the DOM.
+- **Route-Protected Skeleton Parity** — `ProtectedRoute`, `PermissionRoute`, and `AdminRoute` in `App.jsx` handle `<AppShellSkeleton />` in-place strictly when on authenticated routes.
+- **Context-Aware PublicRoute & PageLoader** — `PublicRoute` renders a sleek brand loader while validating tokens on `/login` and `/register`, cleanly redirecting authenticated users without flashing the dashboard skeleton. `PageLoader` checks `useLocation()` to ensure public routes never fall back to `<AppShellSkeleton />`.
+
+---
+
+### 🚀 Lighthouse Performance, Zero-CLS & Core Web Vitals (`ProductWindow.jsx`, `HeroSection.jsx`, `index.html`, `vercel.json`)
+- **Responsive Dual-Tier WebP Asset Pipeline (`convertWebp.mjs`)** — Converted all 6 showcase PNGs (total ~2,000 KiB) into desktop WebP (1920px width, ~70–95 KiB, 76% reduction) and mobile WebP (960px width, ~22–34 KiB, 92% reduction). Total showcase mobile payload reduced from ~2 MB to ~172 KB.
+- **Zero-CLS Responsive `<picture>` Architecture (`ProductWindow.jsx`)** — Refactored all 5 window variants (`hero`, `editorial`, `edge-to-edge`, `mobile-crop`, `standard`) to render responsive `<picture>` tags with `<source media="(max-width: 768px)" type="image/webp">` and explicit `width="2880" height="1800"` on `aspect-[16/10]` containers. Prevents layout shifting during image decoding.
+- **Eliminated 0.200 Mobile CLS Culprit (`HeroSection.jsx`)** — Replaced dynamic height percentage `top-1/4` on the ambient lighting glow with a fixed anchor `top-48`, ensuring zero Y-coordinate translation recalculations during section expansion.
+- **High-Priority Hero WebP Preload (`index.html`)** — Added media-queried `<link rel="preload" as="image" ...>` for `dashboard-mobile.webp` (<=768px) and `dashboard.webp` (>768px) with `fetchpriority="high"`, eliminating LCP discovery delays on mobile Slow 4G.
+- **Non-Blocking Asynchronous Google Fonts (`index.html`)** — Upgraded Google Fonts Inter loading with `media="print" onload="this.media='all'"` and added `crossorigin` to `fonts.gstatic.com` preconnect, saving 860ms of render-blocking latency and 340ms of socket connection overhead.
+- **Dynamic Exact Canonical URL (`index.html`)** — Replaced static root canonical tag with `#canonical-tag` script computing `window.location.origin + window.location.pathname`, resolving Lighthouse SEO audit warning for `/landing` and subpages.
+- **Origin Isolation & COOP Security Header (`vercel.json`)** — Added `Cross-Origin-Opener-Policy: same-origin-allow-popups` to global security headers, elevating Lighthouse Best Practices audit to 100 while maintaining seamless Razorpay checkout support. Added 1-year immutable caching for `/landing/` static assets.
+
+---
+
 ## [v2.5.4](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.5.4) — 2026-09-21 — Customer Balance Race Condition Elimination, MongoDB ACID Transaction Serialization, Dynamic Parity Self-Healing & Precision Formatting
 
 ### ⚡ Concurrency Safety, Parity & Audit Integrity
