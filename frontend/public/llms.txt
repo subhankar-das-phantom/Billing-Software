@@ -1,0 +1,19 @@
+# Bharat Enterprise Billing System
+
+> The Operating System for Modern Indian Distribution: Itemized GST Billing, Multi-Batch Expiry Tracking, Customer Khata Ledgers, and Operational Business Intelligence.
+
+Bharat Enterprise is a high-performance, multi-tenant cloud operations platform built for Indian distributors, wholesale merchants, pharmaceuticals, FMCG traders, and manufacturers. It replaces disconnected offline spreadsheets with a unified, real-time operating system covering billing, lot inventory, customer accounts, and tax reporting.
+
+## Core Capabilities
+
+- [Statutory GST Billing and Invoicing](https://billing-software-dev.vercel.app/landing#billing): Itemized tax invoices with CGST/SGST/IGST tax splits, HSN/SAC classification, dual-copy prints (Original for Recipient, Duplicate for Transporter), and instant settlement tracking.
+- [Multi-Batch Inventory and Stock Catalog](https://billing-software-dev.vercel.app/landing#inventory): Granular batch tracking with automated First-In-First-Out (FIFO) allocation, manufacturing and expiry date horizons, and low-stock alerts.
+- [Immutable Inventory Ledger](https://billing-software-dev.vercel.app/landing#inventory): Centralized historical movement audit log tracking purchases, sales deductions, customer returns, and manual stock reconciliations with pre/post balance snapshots.
+- [B2B Customer Khata and Credit Ledgers](https://billing-software-dev.vercel.app/landing#customers): Running balance statements, customer credit limits, payment receipts (UPI, Bank Transfer, Cheque, Cash), and aging debt audits.
+- [Operational Intelligence and Telemetry](https://billing-software-dev.vercel.app/landing#analytics): Live sales velocity analytics, cash flow collection ratios, average order value indicators, and procurement spend tracking.
+- [Tiered SaaS Subscription Architecture](https://billing-software-dev.vercel.app/landing#pricing): Flexible subscription tiers (Starter, Business, Professional) with 14-day free trials, multi-duration discounts, and Razorpay integration.
+
+## Compliance, Terms and Privacy
+
+- [Terms of Service](https://billing-software-dev.vercel.app/terms): Contractual terms, operational governance, and usage rights for enterprises.
+- [Privacy Policy](https://billing-software-dev.vercel.app/privacy-policy): Tenant data isolation, security encryption standards, and zero-leakage guarantees.
