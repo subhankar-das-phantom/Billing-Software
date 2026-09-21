@@ -4,6 +4,20 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.6.1] — 2026-09-22 — Eliminate Login/Register Spinner Flash on Refresh
+
+### 🔇 UX Fix: Zero-Frame Auth Route Loading (`AuthContext.jsx`)
+- **Root Cause** — When `localStorage` held a token (valid or stale) and the user refreshed on `/login` or `/register`, `AuthContext`'s `loading` initialized to `true` (because `hasToken === true`). This caused the branded "B" spinner to render for the entire `checkAuth()` network round-trip before resolving — a visible flash on every login-page refresh.
+- **Two-Pronged Synchronous Guard**:
+  - **Frame-0 fix** — Extended the synchronous `useState` lazy initializer to detect `/login`, `/register`, and their path prefixes in `window.location.pathname`. `loading` now initializes to `false` on auth routes, eliminating the spinner before the first React paint.
+  - **Effect guard** — Introduced `isAuthRoute` and `isNonBlockingRoute = isPublicMarketingRoute || isAuthRoute`. Both the `checkAuth` effect and the session heartbeat interval bail out on auth routes, preventing unnecessary `/auth/me` calls on pages that never require auth blocking.
+- **Zero Regression** — Protected routes (`ProtectedRoute`, `AdminRoute`, `PermissionRoute`) continue to render `<AppShellSkeleton />` while `loading` is `true`. The `PublicRoute` redirect-if-logged-in path is handled independently of context blocking.
+
+### 📁 Files Modified
+- `frontend/src/contexts/AuthContext.jsx` — Extended `isNonBlockingRoute` to cover `/login` and `/register` in both the lazy `loading` initializer and the `checkAuth`/heartbeat effect guards.
+
+---
+
 ## [v2.6.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.6.0) — 2026-09-21 — Product-First Enterprise Landing Page, Showcase Infrastructure, 100% Dynamic SaaS Telemetry & System Theme Navigation
 
 ### ⚡ Product-First Enterprise Redesign & Zero Hardcoding

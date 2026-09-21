@@ -76,6 +76,15 @@ export const AuthProvider = ({ children }) => {
     location.pathname === '/privacy-policy' ||
     location.pathname === '/terms';
 
+  // Auth routes also don't need to block — PublicRoute handles redirect after auth resolves
+  const isAuthRoute =
+    location.pathname === '/login' ||
+    location.pathname === '/register' ||
+    location.pathname.startsWith('/login') ||
+    location.pathname.startsWith('/register');
+
+  const isNonBlockingRoute = isPublicMarketingRoute || isAuthRoute;
+
   // Check if there's a token to verify — if not, skip auth entirely
   const hasToken = !!localStorage.getItem('token');
 
@@ -87,7 +96,11 @@ export const AuthProvider = ({ children }) => {
     const isPublic = typeof window !== 'undefined' && (
       window.location.pathname === '/landing' ||
       window.location.pathname === '/privacy-policy' ||
-      window.location.pathname === '/terms'
+      window.location.pathname === '/terms' ||
+      window.location.pathname === '/login' ||
+      window.location.pathname === '/register' ||
+      window.location.pathname.startsWith('/login') ||
+      window.location.pathname.startsWith('/register')
     );
     return isPublic ? false : hasToken;
   });
@@ -123,8 +136,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    // On unauthenticated public marketing routes, never run eager auth checks
-    if (isPublicMarketingRoute) {
+    // On non-blocking routes (marketing + auth pages), never run eager auth checks
+    if (isNonBlockingRoute) {
       setLoading(false);
       return;
     }
@@ -185,14 +198,14 @@ export const AuthProvider = ({ children }) => {
     };
 
     checkAuth();
-  }, [isPublicMarketingRoute, hasToken, user, admin]);
+  }, [isNonBlockingRoute, hasToken, user, admin]);
 
   // Heartbeat to keep session alive (every 2 minutes)
   // When all tabs are closed or internet disconnects, heartbeats stop
   // and the session becomes "offline" after 5 minutes
   useEffect(() => {
-    // Only send heartbeats when user is logged in and not on public marketing pages
-    if ((!user && !admin) || isPublicMarketingRoute) return;
+    // Only send heartbeats when user is logged in and not on public/auth pages
+    if ((!user && !admin) || isNonBlockingRoute) return;
 
     // Send initial heartbeat
     authService.heartbeat();
