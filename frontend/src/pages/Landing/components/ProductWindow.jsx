@@ -54,6 +54,34 @@ export default function ProductWindow({
     </div>
   );
 
+  // Derive desktop & mobile webp variants from src if available
+  const isPng = typeof src === 'string' && src.endsWith('.png');
+  const desktopWebp = isPng
+    ? src.replace(/\.png$/i, '.webp')
+    : typeof src === 'string' && src.endsWith('-mobile.webp')
+    ? src.replace('-mobile.webp', '.webp')
+    : src;
+  const mobileWebp = isPng
+    ? src.replace(/\.png$/i, '-mobile.webp')
+    : src;
+
+  const renderImage = (extraClasses = '') => (
+    <picture className="block w-full h-full">
+      <source media="(max-width: 768px)" type="image/webp" srcSet={mobileWebp} />
+      <source type="image/webp" srcSet={desktopWebp} />
+      <img
+        src={src}
+        alt={alt}
+        width={2880}
+        height={1800}
+        loading={priority ? 'eager' : 'lazy'}
+        fetchPriority={priority ? 'high' : 'auto'}
+        decoding={priority ? 'sync' : 'async'}
+        className={`w-full h-auto block object-cover aspect-[16/10] ${extraClasses} ${imageClassName}`}
+      />
+    </picture>
+  );
+
   // Variant: HERO
   if (variant === 'hero') {
     return (
@@ -68,14 +96,8 @@ export default function ProductWindow({
         <div className="relative rounded-2xl overflow-hidden bg-slate-900 border border-slate-800 shadow-xl transition-colors">
           {renderHeader(false)}
 
-          <div className="relative bg-slate-950 overflow-hidden">
-            <img
-              src={src}
-              alt={alt}
-              loading={priority ? 'eager' : 'lazy'}
-              fetchPriority={priority ? 'high' : 'auto'}
-              className={`w-full h-auto block object-cover transform transition-transform duration-700 will-change-transform ${imageClassName}`}
-            />
+          <div className="relative bg-slate-950 overflow-hidden aspect-[16/10]">
+            {renderImage('transform transition-transform duration-700 will-change-transform')}
           </div>
         </div>
 
@@ -99,13 +121,8 @@ export default function ProductWindow({
       <div className={`relative w-full rounded-xl p-1 bg-slate-900/40 border border-slate-800 shadow-lg transition-colors ${className}`}>
         <div className="rounded-lg overflow-hidden bg-slate-900 border border-slate-800">
           {renderHeader(true)}
-          <div className="relative overflow-hidden bg-slate-950">
-            <img
-              src={src}
-              alt={alt}
-              loading={priority ? 'eager' : 'lazy'}
-              className={`w-full h-auto block object-cover ${imageClassName}`}
-            />
+          <div className="relative overflow-hidden bg-slate-950 aspect-[16/10]">
+            {renderImage()}
           </div>
         </div>
       </div>
@@ -117,13 +134,8 @@ export default function ProductWindow({
     return (
       <div className={`w-full max-w-7xl mx-auto rounded-2xl overflow-hidden bg-slate-900 border border-slate-800 shadow-xl transition-colors ${className}`}>
         {renderHeader(false)}
-        <div className="relative overflow-hidden bg-slate-950">
-          <img
-            src={src}
-            alt={alt}
-            loading={priority ? 'eager' : 'lazy'}
-            className={`w-full h-auto block object-cover ${imageClassName}`}
-          />
+        <div className="relative overflow-hidden bg-slate-950 aspect-[16/10]">
+          {renderImage()}
         </div>
       </div>
     );
@@ -134,13 +146,8 @@ export default function ProductWindow({
     return (
       <div className={`w-full rounded-xl overflow-hidden bg-slate-900 border border-slate-800 shadow-md transition-colors ${className}`}>
         {renderHeader(true)}
-        <div className="relative overflow-hidden bg-slate-950 max-h-[420px]">
-          <img
-            src={src}
-            alt={alt}
-            loading={priority ? 'eager' : 'lazy'}
-            className={`w-full h-auto block object-cover object-top ${imageClassName}`}
-          />
+        <div className="relative overflow-hidden bg-slate-950 max-h-[420px] aspect-[16/10]">
+          {renderImage('object-top')}
         </div>
       </div>
     );
@@ -150,13 +157,8 @@ export default function ProductWindow({
   return (
     <div className={`w-full rounded-xl overflow-hidden bg-slate-900 border border-slate-800 shadow-xl transition-colors ${className}`}>
       {renderHeader(true)}
-      <div className="relative overflow-hidden bg-slate-950">
-        <img
-          src={src}
-          alt={alt}
-          loading={priority ? 'eager' : 'lazy'}
-          className={`w-full h-auto block object-cover ${imageClassName}`}
-        />
+      <div className="relative overflow-hidden bg-slate-950 aspect-[16/10]">
+        {renderImage()}
       </div>
     </div>
   );
