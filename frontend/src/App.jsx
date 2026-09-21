@@ -202,6 +202,7 @@ function AppRoutes() {
           }
         >
           <Route path="/" element={<DashboardPage />} />
+          <Route path="/dashboard" element={<Navigate to="/" replace />} />
           <Route path="/products" element={<PermissionRoute resource="products"><ProductsPage /></PermissionRoute>} />
           <Route path="/products/:id" element={<PermissionRoute resource="products"><ProductDetailsPage /></PermissionRoute>} />
           <Route path="/customers" element={<PermissionRoute resource="customers"><CustomersPage /></PermissionRoute>} />
