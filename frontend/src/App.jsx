@@ -57,6 +57,29 @@ import AppShellSkeleton from './components/Layout/AppShellSkeleton';
 
 // Page loading fallback
 function PageLoader() {
+  const location = useLocation();
+  const isPublicRoute = 
+    location.pathname === '/landing' ||
+    location.pathname === '/privacy-policy' ||
+    location.pathname === '/terms' ||
+    location.pathname === '/login' ||
+    location.pathname === '/register' ||
+    location.pathname.startsWith('/login') ||
+    location.pathname.startsWith('/register');
+
+  if (isPublicRoute) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white font-bold text-xl flex items-center justify-center shadow-lg shadow-blue-500/20 animate-pulse">
+            B
+          </div>
+          <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mt-1" />
+        </div>
+      </div>
+    );
+  }
+
   return <AppShellSkeleton />;
 }
 
@@ -156,7 +179,16 @@ function PublicRoute({ children }) {
   const { user, loading } = useAuth();
   
   if (loading) {
-    return null;
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white font-bold text-xl flex items-center justify-center shadow-lg shadow-blue-500/20 animate-pulse">
+            B
+          </div>
+          <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mt-1" />
+        </div>
+      </div>
+    );
   }
   
   if (user) {

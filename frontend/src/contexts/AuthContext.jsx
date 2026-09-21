@@ -64,43 +64,7 @@ const Toast = ({ message, type = 'success', onClose }) => {
   );
 };
 
-// Premium App Shell skeleton shown during initial load
-const AuthLoadingScreen = () => {
-  const isAuthRoute = typeof window !== 'undefined' && 
-    (window.location.pathname === '/login' || 
-     window.location.pathname === '/register' ||
-     window.location.pathname.startsWith('/login') ||
-     window.location.pathname.startsWith('/register'));
 
-  if (isAuthRoute) {
-    return (
-      <motion.div
-        className="fixed inset-0 z-50 bg-slate-950 flex items-center justify-center"
-        initial={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
-      >
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white font-bold text-xl flex items-center justify-center shadow-lg shadow-blue-500/20 animate-pulse">
-            B
-          </div>
-          <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mt-1" />
-        </div>
-      </motion.div>
-    );
-  }
-
-  return (
-    <motion.div
-      className="fixed inset-0 z-50 bg-slate-950"
-      initial={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.3 }}
-    >
-      <AppShellSkeleton />
-    </motion.div>
-  );
-};
 
 export const AuthProvider = ({ children }) => {
   const { setThemeMode } = useTheme();
@@ -380,11 +344,7 @@ export const AuthProvider = ({ children }) => {
         authTransition
       }}
     >
-      {/* Loading screen - AnimatePresence enables the smooth exit fade
-          that covers dashboard entrance animations during auth resolution */}
-      <AnimatePresence>
-        {loading && <AuthLoadingScreen key="auth-loading" />}
-      </AnimatePresence>
+
 
       {/* Toast notifications container */}
       <div className="fixed top-4 right-4 z-[9999] pointer-events-none no-print">
