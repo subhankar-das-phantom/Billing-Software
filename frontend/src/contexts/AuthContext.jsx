@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Loader2, 
@@ -68,6 +69,12 @@ const Toast = ({ message, type = 'success', onClose }) => {
 
 export const AuthProvider = ({ children }) => {
   const { setThemeMode } = useTheme();
+  const location = useLocation();
+
+  const isPublicMarketingRoute = 
+    location.pathname === '/landing' ||
+    location.pathname === '/privacy-policy' ||
+    location.pathname === '/terms';
 
   // Check if there's a token to verify — if not, skip auth entirely
   const hasToken = !!localStorage.getItem('token');
@@ -76,7 +83,14 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null); // Current user (admin or employee)
   const [userRole, setUserRole] = useState(null); // 'admin' or 'employee'
   const [admin, setAdmin] = useState(null); // For backward compatibility
-  const [loading, setLoading] = useState(hasToken); // Only loading if we have a token to verify
+  const [loading, setLoading] = useState(() => {
+    const isPublic = typeof window !== 'undefined' && (
+      window.location.pathname === '/landing' ||
+      window.location.pathname === '/privacy-policy' ||
+      window.location.pathname === '/terms'
+    );
+    return isPublic ? false : hasToken;
+  });
   const [toast, setToast] = useState(null);
   const [authTransition, setAuthTransition] = useState(null); // 'login' | 'logout'
 
@@ -109,8 +123,20 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
+    // On unauthenticated public marketing routes, never run eager auth checks
+    if (isPublicMarketingRoute) {
+      setLoading(false);
+      return;
+    }
+
     // No token = no session to verify, skip auth check entirely
     if (!hasToken) {
+      setLoading(false);
+      return;
+    }
+
+    // If user is already loaded, no need to re-verify
+    if (user || admin) {
       setLoading(false);
       return;
     }
@@ -154,23 +180,19 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
         setUserRole(null);
       } finally {
-        // Set loading to false immediately so React can batch this
-        // with the setUser() call above into a single render.
-        // The AnimatePresence exit animation on AuthLoadingScreen
-        // provides the visual smoothness instead of an artificial delay.
         setLoading(false);
       }
     };
 
     checkAuth();
-  }, []);
+  }, [isPublicMarketingRoute, hasToken, user, admin]);
 
   // Heartbeat to keep session alive (every 2 minutes)
   // When all tabs are closed or internet disconnects, heartbeats stop
   // and the session becomes "offline" after 5 minutes
   useEffect(() => {
-    // Only send heartbeats when user is logged in
-    if (!user && !admin) return;
+    // Only send heartbeats when user is logged in and not on public marketing pages
+    if ((!user && !admin) || isPublicMarketingRoute) return;
 
     // Send initial heartbeat
     authService.heartbeat();
@@ -182,7 +204,7 @@ export const AuthProvider = ({ children }) => {
 
     // Cleanup on unmount or logout
     return () => clearInterval(heartbeatInterval);
-  }, [user, admin]);
+  }, [user, admin, isPublicMarketingRoute]);
 
   // Unified login - auto-detects Admin or Employee
   const login = async (email, password) => {

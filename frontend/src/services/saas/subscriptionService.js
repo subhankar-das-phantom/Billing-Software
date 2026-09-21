@@ -6,12 +6,12 @@ import api from '../api';
 export const subscriptionService = {
   // ─── Plans ─────────────────────────────────────────────────────
   async getPlans() {
-    const { data } = await api.get('/saas/plans');
+    const { data } = await api.get('/saas/plans', { withCredentials: false });
     return data;
   },
 
   async getPlan(planId) {
-    const { data } = await api.get(`/saas/plans/${planId}`);
+    const { data } = await api.get(`/saas/plans/${planId}`, { withCredentials: false });
     return data;
   },
 

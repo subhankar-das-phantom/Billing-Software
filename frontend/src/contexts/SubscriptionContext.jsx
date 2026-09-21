@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { subscriptionService } from '../services/saas/subscriptionService';
 import { ROUTE_FEATURE_MAP, SubscriptionStatus, getFeatureForRoute } from '../saas/features';
@@ -7,6 +8,13 @@ const SubscriptionContext = createContext(null);
 
 export const SubscriptionProvider = ({ children }) => {
   const { user, userRole } = useAuth();
+  const location = useLocation();
+
+  const isPublicMarketingRoute = 
+    location.pathname === '/landing' ||
+    location.pathname === '/privacy-policy' ||
+    location.pathname === '/terms';
+
   const [subscription, setSubscription] = useState(() => {
     try {
       const saved = localStorage.getItem('cached_subscription');
@@ -19,13 +27,9 @@ export const SubscriptionProvider = ({ children }) => {
   const [loading, setLoading] = useState(!subscription);
   const [error, setError] = useState(null);
 
-  // Fetch subscription info when user is authenticated
+  // Fetch subscription info when user is authenticated and not on public marketing pages
   useEffect(() => {
-    if (!user) {
-      setSubscription(null);
-      try {
-        localStorage.removeItem('cached_subscription');
-      } catch {}
+    if (!user || isPublicMarketingRoute) {
       setLoading(false);
       return;
     }

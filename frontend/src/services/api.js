@@ -71,9 +71,9 @@ api.interceptors.request.use(
       startTime: Date.now() 
     };
 
-    // Add JWT token from localStorage to Authorization header
+    // Add JWT token from localStorage to Authorization header (unless explicitly disabled for public requests)
     const token = localStorage.getItem('token');
-    if (token) {
+    if (token && config.withCredentials !== false) {
       config.headers.Authorization = `Bearer ${token}`;
     }
 
