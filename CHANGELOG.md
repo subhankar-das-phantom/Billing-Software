@@ -4,6 +4,64 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.6.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.6.0) — 2026-09-21 — Product-First Enterprise Landing Page, Showcase Infrastructure, 100% Dynamic SaaS Telemetry & System Theme Navigation
+
+### ⚡ Product-First Enterprise Redesign & Zero Hardcoding
+Version 2.6.0 replaces the legacy WebGL landing page with a truthful, high-density, product-first B2B showcase built on real application screenshots captured from a dedicated showcase database. It establishes 100% dynamic SaaS pricing and platform telemetry, configures system-theme defaults for unauthenticated visitors, eliminates mobile navbar dead-zones, and guarantees zero side-effects across the core application.
+
+---
+
+### 🏛️ Product-First Landing Page Architecture (`LandingPage.jsx`, `components/`)
+- **Real Application Showcase** — Completely removed old WebGL particle canvas and replaced with 6 real application views (`dashboard.png`, `invoice.png`, `inventory.png`, `customer-ledger.png`, `analytics.png`, `purchases.png`) captured from verified showcase data.
+- **15 Modular Components** — Built a comprehensive, high-density landing page suite in `frontend/src/pages/Landing/components/`:
+  - `LandingNav.jsx`: Sticky responsive header with full-height mobile drawer (`100dvh`), icon-guided navigation, smooth anchor scrolling, and system-aware theme toggle.
+  - `HeroSection.jsx`: Grand product showcase (`Executive Command Center`) with dynamic 14-day trial badge, dynamic starting price, and live catalog telemetry.
+  - `CapabilityStrip.jsx`: 7 core operational capability pills for Indian distributors, wholesalers, and retail enterprises.
+  - `BillingShowcase.jsx`: Statutory GST invoicing, itemized HSN codes, and dual-copy printing preview.
+  - `InventoryShowcase.jsx`: Granular multi-batch stock catalog with manufacturing and expiry date horizons.
+  - `CustomerShowcase.jsx`: B2B customer khata and running balance ledger statements.
+  - `BusinessFlow.jsx`: 6-step lifecycle workflow diagram connecting procurement to tax filing.
+  - `GSTShowcase.jsx`: High-fidelity statutory bill layout specification and tax split calculations.
+  - `AnalyticsShowcase.jsx`: Dual-screen interactive telemetry hub for sales velocity and procurement spend.
+  - `FeatureGrid.jsx`: 6-card bento grid for enterprise operational governance.
+  - `PricingSection.jsx`: Fully dynamic tiered plans with backend-calculated pricing rules, duration switcher (Monthly, 3 Mo, 6 Mo, 12 Mo), live savings badges, and dynamic feature mapping via `FEATURE_LABELS`.
+  - `FAQSection.jsx`: Factual operational Q&A with dynamic trial days interpolation.
+  - `FinalCTA.jsx`: Clean conversion card with dynamic pricing and trial badges.
+  - `LandingFooter.jsx`: Comprehensive sitemap footer with legal, compliance, and product links.
+  - `ProductWindow.jsx`: High-density macOS-style editorial window wrapper with 5 display variants.
+
+---
+
+### ⚡ 100% Dynamic SaaS & Telemetry Backend (`planController.ts`, `useSubscriptionPlansQuery.js`)
+- **Backend Dynamic API (`GET /api/saas/plans`)** — Returns `trialDays` (from `settingsService`), `minStartingPrice` (lowest plan price), and cached `telemetry` (live SKUs & active batches count) alongside active plans and duration pricing rules.
+- **Frontend Query Parity** — `useSubscriptionPlansQuery` attaches `trialDays`, `minStartingPrice`, and `telemetry` directly to the `plans` array with 100% backward compatibility for existing callers (`SubscriptionPage.jsx`), and exports `useTrialDaysQuery()`, `useStartingPriceQuery()`, and `useShowcaseTelemetryQuery()`.
+- **Dynamic Pricing Rules & Features** — `PricingSection.jsx` dynamically extracts duration discounts (0%, 5%, 10%, 20%) from `apiPlans[0].pricing` and maps `apiPlan.features` via `FEATURE_LABELS` rather than hardcoding static canonical fallback lists. Higher tiers automatically summarize `"All ${prevPlan.name} capabilities"` + incremental features.
+
+---
+
+### 🌓 System Theme Default for Unauthenticated Visitors (`ThemeContext.jsx`, `index.html`)
+- **Unauthenticated Route Scope** — Configured public landing routes (`/landing`, `/privacy-policy`, `/terms`) to default to `'system'` (`prefers-color-scheme`), automatically matching the visitor's operating system (Light or Dark).
+- **Zero Blast Radius on Core App** — Isolated landing theme overrides to `LANDING_THEME_STORAGE_KEY = 'bharat-enterprise-landing-theme'`, ensuring landing page toggle clicks NEVER mutate the authenticated user's workspace theme (`bharat-enterprise-theme`, defaulting to `'dark'`).
+- **Frame-0 FOUC Prevention** — Updated `index.html` pre-hydration script to evaluate `isLanding` and apply the system theme class (`'dark'` / `'light'`) and `meta[name="theme-color"]` synchronously before React loads.
+- **Reliable Toggle Mechanics** — `toggleTheme` in `'system'` mode immediately flips the currently visible effective theme (`light` -> `dark`, `dark` -> `light`) on the first click.
+
+---
+
+### 📱 Mobile Hamburger Navigation Hardening (`LandingNav.jsx`)
+- **Eliminated Tablet Dead Zone (640px–1024px)** — Aligned navigation breakpoints (`flex lg:hidden` on mobile controls, `hidden lg:flex` on desktop nav), ensuring every screen width has full navigation access.
+- **Dead-Anchor Elimination** — Built `handleNavClick` callback that unlocks `body.style.overflow` immediately, closes the drawer, and uses `requestAnimationFrame` with smooth `window.scrollTo` calculating exact dynamic header offsets.
+- **Full-Height Mobile Drawer (`100dvh`)** — Configured `h-[calc(100dvh-4rem)] sm:h-[calc(100dvh-5rem)]` with pinned bottom action bar so mobile address bars never clip CTA buttons.
+- **Accessible Escape & Resize Handlers** — Drawer closes automatically on `Escape` key press or when resizing window above 1024px.
+
+---
+
+### 🔬 Showcase Infrastructure & Verification Scripts (`backend/scripts/`)
+- **Showcase Seeder (`seedShowcase.ts`)** — Reusable, deterministic seeder generating 50 products, 112 batches, 30 customers, 8 suppliers, 20 purchases, 70 invoices, 50 payments, and 3 credit notes with mathematical balance parity.
+- **Verification Script (`verifyShowcase.ts`)** — Independent audit script validating 0 customer balance drift and schema conformance.
+- **Screenshot Automation (`captureShowcaseScreenshots.mjs`)** — Playwright capture script generating high-resolution production assets for the landing page.
+
+---
+
 ## [v2.5.4](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.5.4) — 2026-09-21 — Customer Balance Race Condition Elimination, MongoDB ACID Transaction Serialization, Dynamic Parity Self-Healing & Precision Formatting
 
 ### ⚡ Concurrency Safety, Parity & Audit Integrity

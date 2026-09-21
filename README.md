@@ -1,6 +1,6 @@
 # Bharat Enterprise - Billing & Business Operations Platform
 
-[![GitHub Tag](https://img.shields.io/badge/version-v2.5.4-emerald.svg)](https://github.com/subhankar-das-phantom/Billing-Software/releases)
+[![GitHub Tag](https://img.shields.io/badge/version-v2.6.0-emerald.svg)](https://github.com/subhankar-das-phantom/Billing-Software/releases)
 [![CI](https://github.com/subhankar-das-phantom/Billing-Software/actions/workflows/ci.yml/badge.svg)](https://github.com/subhankar-das-phantom/Billing-Software/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-ISC-blue.svg)](LICENSE)
 
@@ -23,7 +23,7 @@ Version 2.0.0 marks a major product milestone. The system transitions into a bro
 - **Operational Reports & Inventory Intelligence**  
   Supplier procurement analysis, product inward volume tracking, batch expiry horizons (30/60/90 days), and stock velocity indicators.
 - **Multi-Tenant SaaS Subscription Engine**  
-  Tiered feature gating (Starter, Business, Professional), automated 30-day trials, 7-day grace periods, Razorpay subscription checkout, and a built-in referral viral loop.
+  Tiered feature gating (Starter, Business, Professional), automated 14-day trials, 7-day grace periods, Razorpay subscription checkout, and a built-in referral viral loop.
 - **Mobile-First UX & Performance Mode**  
   Edge swipe gestures (swipe-to-open and swipe-to-close drawer), optimistic invoice row insertion, hardware-aware motion scaling, and hardened top-level toast notifications.
 
