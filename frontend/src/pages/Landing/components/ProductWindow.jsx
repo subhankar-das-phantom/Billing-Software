@@ -54,7 +54,7 @@ export default function ProductWindow({
     </div>
   );
 
-  // Derive desktop, tablet, and small mobile webp variants from src if available
+  // Derive desktop and mobile webp variants from src if available
   const isPng = typeof src === 'string' && src.endsWith('.png');
   const desktopWebp = isPng
     ? src.replace(/\.png$/i, '.webp')
@@ -64,14 +64,10 @@ export default function ProductWindow({
   const mobileWebp = isPng
     ? src.replace(/\.png$/i, '-mobile.webp')
     : src;
-  const smWebp = isPng
-    ? src.replace(/\.png$/i, '-sm.webp')
-    : src;
 
   const renderImage = (extraClasses = '') => (
     <picture className="block w-full h-full">
-      <source media="(max-width: 640px)" type="image/webp" srcSet={smWebp} />
-      <source media="(max-width: 1024px)" type="image/webp" srcSet={mobileWebp} />
+      <source media="(max-width: 768px)" type="image/webp" srcSet={mobileWebp} />
       <source type="image/webp" srcSet={desktopWebp} />
       <img
         src={src}

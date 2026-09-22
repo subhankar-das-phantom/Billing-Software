@@ -36,7 +36,7 @@ async function main() {
     const base64 = fs.readFileSync(filePath).toString('base64');
     const dataUri = `data:image/png;base64,${base64}`;
 
-    // Convert to Desktop WebP (1920 max width, quality 85)
+    // Convert to Desktop WebP (1920 max width, quality 84)
     const baseName = path.basename(file, '.png');
     const desktopWebp = await page.evaluate(async (uri) => {
       return new Promise((resolve) => {
@@ -50,7 +50,7 @@ async function main() {
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          resolve(canvas.toDataURL('image/webp', 0.82));
+          resolve(canvas.toDataURL('image/webp', 0.84));
         };
         img.src = uri;
       });
@@ -60,20 +60,20 @@ async function main() {
     const desktopOutPath = path.join(imgDir, `${baseName}.webp`);
     fs.writeFileSync(desktopOutPath, desktopBuffer);
 
-    // Convert to Mobile WebP (960 width for mobile devices, quality 80)
+    // Convert to Mobile WebP (1080 width for Retina/OLED mobile viewports, quality 84)
     const mobileWebp = await page.evaluate(async (uri) => {
       return new Promise((resolve) => {
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          const scale = Math.min(1, 960 / img.naturalWidth);
+          const scale = Math.min(1, 1080 / img.naturalWidth);
           canvas.width = Math.round(img.naturalWidth * scale);
           canvas.height = Math.round(img.naturalHeight * scale);
           const ctx = canvas.getContext('2d');
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          resolve(canvas.toDataURL('image/webp', 0.78));
+          resolve(canvas.toDataURL('image/webp', 0.84));
         };
         img.src = uri;
       });
@@ -83,20 +83,20 @@ async function main() {
     const mobileOutPath = path.join(imgDir, `${baseName}-mobile.webp`);
     fs.writeFileSync(mobileOutPath, mobileBuffer);
 
-    // Convert to Small Mobile WebP (540 width for standard mobile viewports, quality 75)
+    // Convert to Small Mobile WebP (720 width fallback, quality 82)
     const smWebp = await page.evaluate(async (uri) => {
       return new Promise((resolve) => {
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          const scale = Math.min(1, 540 / img.naturalWidth);
+          const scale = Math.min(1, 720 / img.naturalWidth);
           canvas.width = Math.round(img.naturalWidth * scale);
           canvas.height = Math.round(img.naturalHeight * scale);
           const ctx = canvas.getContext('2d');
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          resolve(canvas.toDataURL('image/webp', 0.75));
+          resolve(canvas.toDataURL('image/webp', 0.82));
         };
         img.src = uri;
       });
@@ -111,7 +111,7 @@ async function main() {
     const mobSize = (mobileBuffer.length / 1024).toFixed(1);
     const smSize = (smBuffer.length / 1024).toFixed(1);
 
-    console.log(`✅ ${file}: ${origSize} KB -> Desktop: ${deskSize} KB | Mobile: ${mobSize} KB | Small Mobile: ${smSize} KB (-${(100 - (smSize/origSize)*100).toFixed(0)}%)`);
+    console.log(`✅ ${file}: ${origSize} KB -> Desktop: ${deskSize} KB | Mobile (1080p): ${mobSize} KB | Fallback (720p): ${smSize} KB (-${(100 - (mobSize/origSize)*100).toFixed(0)}%)`);
   }
 
   await browser.close();
