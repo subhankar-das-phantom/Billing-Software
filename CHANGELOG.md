@@ -52,24 +52,66 @@ For full release notes with implementation details, see [GitHub Releases](https:
 - **Dedicated Theme Toggles** — Added `<ThemeToggle />` buttons and "Back to Home" navigation to `LoginPage.jsx`, `RegisterPage.jsx`, `TermsPage.jsx`, and `PrivacyPolicyPage.jsx`, allowing direct theme toggling across all public screens.
 - **Terms & Privacy Light Mode Overhauls** — Resolved severe contrast failures on `/terms` and `/privacy-policy` where dark-slate typography (`#334155`) rendered over hardcoded dark-obsidian background surfaces (`rgb(2, 6, 23)`). Added comprehensive `html.light .pp-*` styling with pure white cards (`#ffffff`), soft slate borders (`#e2e8f0`), accessible blue/amber callouts (`#1e40af`, `#92400e`), and high-contrast table typography achieving WCAG AAA compliance.
 
+### 📐 5-Grid Layout Card Overflow & Sidebar Expansion Hardening (`DashboardKPIGrid.jsx`, `ProductDetailsPage.jsx`, `InvoicesPage.jsx`, `PurchasesPage.jsx`)
+- **Root Cause of Card Overflow** — When the desktop navigation sidebar (`w-64` = 256px) is expanded, laptop viewports between 1024px and 1440px provide only ~720px–1120px of effective content width. In 5-column grids (`xl:grid-cols-5` or `lg:grid-cols-5`), each card's inner width was constrained to ~108px–148px. Financial metrics (`₹3,90,546.00`), growth indicators (`+93.4% vs last month`), and status badges (`4 due invoices`, `₹45,000 Overdue`, `12 low stock`) lacked wrapping and truncation boundaries, causing text and badges to collide and overflow past card borders.
+- **Responsive 5-Card Dashboard Grid** — In `DashboardKPIGrid.jsx` and `DashboardPageSkeleton.jsx`:
+  - Adjusted grid breakpoint from `xl:grid-cols-5` to `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-3.5`. Renders 3 comfortable columns on 1024px–1535px viewports when the sidebar is open, and smoothly transitions to 5 columns on large monitors (`>= 1536px`).
+  - Added `overflow-hidden min-w-0` to `CardWrapper` to eliminate horizontal overflow escape routes.
+  - Added `font-mono truncate` to value counters and passed `decimals={kpi.isCurrency ? 2 : 0}` to `AnimatedCounter` to guarantee zero paise truncation drift per workspace financial guidelines.
+  - Formatted the footer row as `flex flex-wrap items-center justify-between gap-1.5 min-w-0`.
+  - Configured `hasGrowth` as `flex-1 min-w-0` with bounded truncation on `growthLabel` (`max-w-[80px] 2xl:max-w-[95px] truncate`).
+  - Styled `badgeText` with `shrink-0 max-w-[110px] 2xl:max-w-none truncate`, ensuring status badges stay readable without forcing awkward line breaks or container overflow.
+- **Product Details Stat Cards Hardening** — In `ProductDetailsPage.jsx` and `ProductDetailsPageSkeleton.jsx`:
+  - Shifted stat card grid from `lg:grid-cols-5` to `grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3.5 sm:gap-4`, preventing 5-column cramming on 1024px tablet/laptop widths.
+  - Wrapped each stat card with `min-w-0 overflow-hidden` and added `truncate font-mono` to values (`MRP`, `Rate`, `Stock`).
+- **Operational Filter Grid Hardening** — In `InvoicesPage.jsx`, `InvoicesPageSkeleton.jsx`, `PurchasesPage.jsx`, and `PurchasesPageSkeleton.jsx`:
+  - Changed the 5-element filter input bar from `lg:grid-cols-5` to `lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4`, preventing squashed search and date pickers when the sidebar is open on 1024px screens.
+
+### 🎯 Landing Page Desktop Composition & Defensible Claims Sweep (Phase 14C)
+- **Hero Vertical Rhythm & Natural 2-Line Break** — In `HeroSection.jsx`, tightened section vertical padding (`pt-16 pb-12 sm:pt-20 sm:pb-16 lg:pt-24 lg:pb-20`), widened the header container (`max-w-4xl lg:max-w-5xl`), and calibrated headline typography (`leading-[1.14] font-bold`) so *"The Operating System for Modern Indian Distribution"* breaks naturally into 2 lines on 1080p desktop without 3-line stacking. Reduced gap to primary CTAs (`mt-6`) and product window (`mt-6 sm:mt-8`), bringing the dashboard preview well above the fold.
+- **Expanded Hero Product Window** — In `ProductWindow.jsx`, widened the hero framing container to `max-w-6xl xl:max-w-7xl` with comfortable horizontal margins, and updated the status chip to a quiet, neutral/blue `Showcase data` indicator.
+- **Billing Showcase Visual Balance (4/8 Grid)** — In `BillingShowcase.jsx`, rebalanced the layout on XL viewports from 5/7 to `lg:col-span-5 xl:col-span-4` (feature copy) and `lg:col-span-7 xl:col-span-8` (product window preview) with tightened grid gap (`gap-8 lg:gap-12 xl:gap-14`) and padding (`py-16 sm:py-20 lg:py-24`).
+- **Editorial Capability Strip** — In `CapabilityStrip.jsx`, replaced 7 chunky rounded capsule pills with a clean, low-profile editorial metadata band under `ENGINEERED FOR INDIAN DISTRIBUTION`, using quiet dot separators (`·`) and subdued typography (`text-xs text-slate-500 font-medium`).
+- **Section Padding Harmonization** — Harmonized vertical rhythm across `InventoryShowcase.jsx` and `CustomerShowcase.jsx` to consistent `py-16 sm:py-20 lg:py-24` padding.
+- **Defensible Claims & Regulatory Terminology Sweep** — Conducted a comprehensive sweep across all landing page components, data dictionaries, and HTML metadata to ground claims in verifiable commercial trade capabilities:
+  - `GSTShowcase.jsx`: Updated headline to *"Built for GST-ready invoicing in Indian commercial trade"*, renamed features array to `taxFeatures`, updated tax splits to dynamic CGST/SGST intra/inter-state calculations, and aligned export copy with standard accounting reconciliation registers.
+  - `BusinessFlow.jsx`: Replaced *"synchronously across all modules"* with *"automatically across inventory, invoices, and ledgers"*.
+  - `FAQSection.jsx` & `faqs.js`: Replaced *"regulatory tax compliance"* with *"GST invoicing and tax calculations"*.
+  - `LandingFooter.jsx`: Replaced *"Indian GST compliance"* with *"GST-ready invoicing for distributors, wholesalers, and retail enterprises"*.
+  - `navigation.js`: Grouped under *"Billing & Standards"*, linking to *"GST Invoicing & Tax Slabs"*.
+  - `features.js`: Replaced statutory claims with *"HSN code and GST rate catalog mapping"* and *"GST-ready invoicing"*.
+  - `index.html`: Replaced all ungrounded compliance assertions with stable, capability-focused metadata without hardcoded prices or trial durations.
+
 ### 📁 Files Modified
 - `backend/scripts/captureShowcaseScreenshots.mjs` — Updated Screen 4 to capture `/customers/:id?tab=ledger` with cross-platform browser resolution.
 - `backend/scripts/convertWebp.mjs` — Upgraded mobile output to 1440×900 Retina tier @ 0.88 quality with pre/post SHA-256 checksum verification.
 - `backend/saas/controllers/planController.ts` — Supported `SHOWCASE_TENANT_ID` with fallback to `SHOWCASE_ADMIN_EMAIL`.
 - `frontend/public/landing/product/*.webp` — Generated responsive 16:10 WebP crops (Desktop 1920×1200, Mobile 1440×900, Small 720×450) with customer ledger tab active.
+- `frontend/index.html` — Updated metadata and hero image preloads.
+- `frontend/src/components/Dashboard/DashboardKPIGrid.jsx` — Resolved 5-grid card overflow when sidebar is open with 3-to-5 responsive column flow and bounded truncation.
 - `frontend/src/contexts/AuthContext.jsx` — Fixed toast typography to `text-white` on saturated backgrounds in light mode.
 - `frontend/src/contexts/ToastContext.jsx` — Ensured `text-white` on generic toasts and icons.
 - `frontend/src/pages/Customers/CustomerDetailsPage.jsx` — Added `?tab=ledger` URL parameter deep-link support and tab synchronization.
-- `frontend/src/pages/Landing/components/ProductWindow.jsx` — Removed low-res mobile lock-in and routed `<= 768px` to 1440w mobile Retina tier.
-- `frontend/src/pages/Landing/components/HeroSection.jsx` — Explicit WebP paths, descriptive alt text, steady status chip.
-- `frontend/src/pages/Landing/components/BillingShowcase.jsx` — Applied `editorial` variant, factual GST copy, descriptive alt text.
-- `frontend/src/pages/Landing/components/InventoryShowcase.jsx` — Applied `standard` variant, explicit WebP paths, descriptive alt text.
-- `frontend/src/pages/Landing/components/CustomerShowcase.jsx` — Applied `editorial` variant, automated ledger copy, descriptive alt text.
-- `frontend/src/pages/Landing/components/AnalyticsShowcase.jsx` — Applied `edge-to-edge` variant, explicit WebP paths, descriptive alt text.
-- `frontend/src/pages/Landing/components/GSTShowcase.jsx` — Factual GST-ready invoicing copy and validated bill badge.
+- `frontend/src/pages/Dashboard/DashboardPageSkeleton.jsx` — Updated skeleton grid breakpoint to match `2xl:grid-cols-5`.
+- `frontend/src/pages/Invoices/InvoicesPage.jsx` & `InvoicesPageSkeleton.jsx` — Hardened 5-filter grid against sidebar expansion.
+- `frontend/src/pages/Landing/LandingPage.jsx` — Updated meta description and section comments.
+- `frontend/src/pages/Landing/components/BillingShowcase.jsx` — Applied 4/8 XL grid balance, editorial variant, factual GST copy.
+- `frontend/src/pages/Landing/components/BusinessFlow.jsx` — Grounded data flow assertions.
+- `frontend/src/pages/Landing/components/CapabilityStrip.jsx` — Converted chunky capsule pills to clean editorial metadata strip.
+- `frontend/src/pages/Landing/components/CustomerShowcase.jsx` — Applied `editorial` variant, automated ledger copy.
+- `frontend/src/pages/Landing/components/FAQSection.jsx` — Aligned tax and billing descriptions.
 - `frontend/src/pages/Landing/components/FinalCTA.jsx` — Aligned value points with GST-ready invoicing.
+- `frontend/src/pages/Landing/components/GSTShowcase.jsx` — Factual GST-ready invoicing copy and validated bill badge.
+- `frontend/src/pages/Landing/components/HeroSection.jsx` — Calibrated 2-line headline, tighter vertical rhythm, `Showcase data` indicator.
+- `frontend/src/pages/Landing/components/InventoryShowcase.jsx` — Applied `standard` variant, explicit WebP paths, descriptive alt text.
+- `frontend/src/pages/Landing/components/LandingFooter.jsx` — Factual GST invoicing footer descriptions.
 - `frontend/src/pages/Landing/components/PricingSection.jsx` — Added cache-preserving query handling and production offline state.
+- `frontend/src/pages/Landing/components/ProductWindow.jsx` — Expanded hero window, neutral showcase chip, and mobile Retina routing.
+- `frontend/src/pages/Landing/data/faqs.js` — Grounded FAQ answers in concrete software features.
 - `frontend/src/pages/Landing/data/features.js` — Aligned feature titles and descriptions with product capabilities.
+- `frontend/src/pages/Landing/data/navigation.js` — Renamed navigation item to `GST Invoicing & Tax Slabs`.
+- `frontend/src/pages/Products/ProductDetailsPage.jsx` & `ProductDetailsPageSkeleton.jsx` — Hardened 5-stat card grid against sidebar expansion.
+- `frontend/src/pages/Purchases/PurchasesPage.jsx` & `PurchasesPageSkeleton.jsx` — Hardened 5-filter grid against sidebar expansion.
 
 ---
 
