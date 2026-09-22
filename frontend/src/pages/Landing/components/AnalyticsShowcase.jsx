@@ -53,19 +53,25 @@ export default function AnalyticsShowcase() {
         <div className="transition-all duration-300">
           {activeTab === 'sales' ? (
             <ProductWindow
-              src="/landing/product/analytics.png"
-              alt="Business Reports and Sales Analytics in Bharat Enterprise"
+              src="/landing/product/analytics.webp"
+              mobileSrc="/landing/product/analytics-mobile.webp"
+              mobileSmallSrc="/landing/product/analytics-sm.webp"
+              alt="Bharat Enterprise sales analytics dashboard showing revenue charts, top selling products, and monthly sales trends"
               variant="edge-to-edge"
-              title="Reports & Intelligence Hub (Sales Velocity)"
-              status="Live Period Data"
+              title="Sales Velocity & Period Performance"
+              status="Period Performance"
+              sizes="(max-width: 768px) 100vw, (max-width: 1280px) 95vw, 1280px"
             />
           ) : (
             <ProductWindow
-              src="/landing/product/purchases.png"
-              alt="Procurement and Purchase Order Telemetry in Bharat Enterprise"
+              src="/landing/product/purchases.webp"
+              mobileSrc="/landing/product/purchases-mobile.webp"
+              mobileSmallSrc="/landing/product/purchases-sm.webp"
+              alt="Bharat Enterprise purchase management view showing vendor orders, total procurement spend, and receiving status"
               variant="edge-to-edge"
               title="Procurement & Purchase Orders"
               status="Total Spend: ₹6,44,630.00"
+              sizes="(max-width: 768px) 100vw, (max-width: 1280px) 95vw, 1280px"
             />
           )}
         </div>

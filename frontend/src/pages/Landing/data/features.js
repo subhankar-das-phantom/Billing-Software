@@ -6,12 +6,12 @@
 export const CORE_CAPABILITIES = [
   {
     id: 'gst-billing',
-    title: 'GST-Compliant Invoicing',
+    title: 'GST-Ready Invoicing',
     badge: 'Billing & Sales',
     description:
-      'Generate clear, compliant invoices with automated HSN lookups, CGST/SGST/IGST tax breakdowns, dual-copy printing, and credit/cash bill types.',
+      'Generate clear invoices with itemized HSN details, CGST/SGST/IGST tax breakdowns, dual-copy printing, and credit/cash bill types.',
     highlights: [
-      'Automatic HSN code and GST rate mapping',
+      'Standard HSN code and GST rate mapping',
       'Intra-state and inter-state tax split computation',
       'Dual-copy printing (Customer and Business/Transport copies)',
       'Direct credit note generation and return processing',
@@ -112,8 +112,8 @@ export const WORKFLOW_STEPS = [
   },
   {
     step: '06',
-    title: 'Reports & GST Filing',
-    description: 'Review monthly sales registers, tax breakdowns, and cash flow telemetry for tax compliance.',
+    title: 'Reports & GST Registers',
+    description: 'Review monthly sales registers, tax breakdowns, and cash flow telemetry for accounting.',
   },
 ];
 

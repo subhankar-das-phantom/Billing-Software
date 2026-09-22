@@ -32,7 +32,7 @@ export default function CustomerShowcase() {
             </h2>
 
             <p className="text-base text-slate-400 leading-relaxed">
-              Track outstanding balances per customer account without spreadsheet drift. View complete invoice histories, record collections, and issue official payment receipts.
+              Track outstanding balances per customer account with automated debit and credit recording. View complete invoice histories, record collections, and issue official payment receipts.
             </p>
 
             <div className="space-y-4 pt-2">
@@ -58,13 +58,15 @@ export default function CustomerShowcase() {
             </div>
           </div>
 
-          {/* Right Column: Standard Product Window */}
+          {/* Right Column: Editorial Product Window */}
           <div className="lg:col-span-7">
             <ProductWindow
-              src="/landing/product/customer-ledger.png"
-              alt="Customer Ledger Profile and Outstanding Balance in Bharat Enterprise"
-              variant="standard"
-              title="Customer Profile: Sharma Medicals"
+              src="/landing/product/customer-ledger.webp"
+              mobileSrc="/landing/product/customer-ledger-mobile.webp"
+              mobileSmallSrc="/landing/product/customer-ledger-sm.webp"
+              alt="Bharat Enterprise customer ledger profile showing Sharma Medicals outstanding balance and invoice history"
+              variant="editorial"
+              title="Customer Profile & Ledger Statement"
               status="Outstanding: ₹430.64"
             />
           </div>

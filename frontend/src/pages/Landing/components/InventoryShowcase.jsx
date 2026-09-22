@@ -28,9 +28,11 @@ export default function InventoryShowcase() {
           {/* Left Column: ProductWindow (Inverted column layout for visual rhythm) */}
           <div className="lg:col-span-7 order-2 lg:order-1">
             <ProductWindow
-              src="/landing/product/inventory.png"
-              alt="Multi-Batch Stock Catalog and Inventory Management"
-              variant="editorial"
+              src="/landing/product/inventory.webp"
+              mobileSrc="/landing/product/inventory-mobile.webp"
+              mobileSmallSrc="/landing/product/inventory-sm.webp"
+              alt="Bharat Enterprise product catalog showing multi-batch inventory, stock quantities, and expiry status"
+              variant="standard"
               title="Catalog & Multi-Batch Inventory"
               status="50 SKUs • Healthy"
             />

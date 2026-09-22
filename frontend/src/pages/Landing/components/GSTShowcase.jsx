@@ -11,7 +11,7 @@ export default function GSTShowcase() {
     {
       icon: FileText,
       title: 'Itemized HSN Code Mapping',
-      description: 'Maintains canonical HSN codes across your catalog with standard tax slabs (0%, 5%, 12%, 18%, 28%).',
+      description: 'Maintains standard HSN codes across your catalog with standard tax slabs (0%, 5%, 12%, 18%, 28%).',
     },
     {
       icon: Building,
@@ -36,7 +36,7 @@ export default function GSTShowcase() {
             </h2>
 
             <p className="text-base text-slate-400 leading-relaxed">
-              Eliminate tax calculation errors and compliance headaches. Bharat Enterprise adheres strictly to the statutory invoicing rules prescribed by the Goods and Services Tax Council of India.
+              GST-ready tax invoicing built for commercial trade. Calculate intra-state CGST/SGST and inter-state IGST splits automatically with itemized HSN details.
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
@@ -62,7 +62,7 @@ export default function GSTShowcase() {
                   <h3 className="text-base font-bold text-slate-100 mt-0.5">Statutory Bill Layout</h3>
                 </div>
                 <span className="px-2.5 py-1 rounded text-xs font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                  GST Standard Validated
+                  GST-ready Tax Invoice
                 </span>
               </div>
 

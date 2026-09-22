@@ -26,7 +26,7 @@ export default function FinalCTA() {
           </h2>
 
           <p className="mt-4 text-base sm:text-lg text-slate-400 max-w-xl mx-auto leading-relaxed">
-            Eliminate ledger errors, track batch expiry with precision, and generate compliant GST invoices.
+            Track batch expiry with precision, automate customer ledgers, and generate GST-ready invoices.
           </p>
 
           {/* Action CTAs */}
@@ -55,7 +55,7 @@ export default function FinalCTA() {
             </div>
             <div className="flex items-center space-x-1.5">
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              <span>Full GST Compliance</span>
+              <span>GST-Ready Invoicing</span>
             </div>
             <div className="flex items-center space-x-1.5">
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />

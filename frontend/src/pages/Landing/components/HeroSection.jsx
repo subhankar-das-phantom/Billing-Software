@@ -83,11 +83,13 @@ export default function HeroSection() {
         {/* Hero Visual: Grand Product Showcase */}
         <div className="relative mt-8 sm:mt-12">
           <ProductWindow
-            src="/landing/product/dashboard.png"
-            alt="Bharat Enterprise Real Live Executive Dashboard"
+            src="/landing/product/dashboard.webp"
+            mobileSrc="/landing/product/dashboard-mobile.webp"
+            mobileSmallSrc="/landing/product/dashboard-sm.webp"
+            alt="Bharat Enterprise executive dashboard showing revenue, collections, receivables and inventory metrics"
             variant="hero"
             title="Executive Command Center"
-            status="Live Telemetry"
+            status="Active Catalog"
             priority={true}
             badges={heroBadges}
           />

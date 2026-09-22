@@ -28,11 +28,11 @@ export default function BillingShowcase() {
           {/* Left Column: Descriptive Narrative (No eyebrow kicker) */}
           <div className="lg:col-span-5 flex flex-col space-y-6">
             <h2 className="text-3xl sm:text-4xl font-bold text-slate-50 tracking-tight leading-tight">
-              Compliant Invoicing Built for Indian Commercial Trade
+              GST-Ready Invoicing Built for Indian Commercial Trade
             </h2>
 
             <p className="text-base text-slate-400 leading-relaxed">
-              Every invoice in Bharat Enterprise complies with Indian GST requirements, displaying itemized HSN codes, batch numbers, expiry dates, and tax breakdowns.
+              Generate itemized tax invoices with HSN details, batch numbers, expiry dates, and CGST/SGST/IGST tax breakdowns.
             </p>
 
             {/* Feature Highlights */}
@@ -56,17 +56,19 @@ export default function BillingShowcase() {
             {/* Micro proof pill */}
             <div className="pt-2 flex items-center space-x-2 text-xs text-slate-400">
               <Check className="w-4 h-4 text-emerald-400" />
-              <span>Verified format for pharmaceuticals, chemicals, FMCG, and wholesale distributors</span>
+              <span>Format designed for pharmaceuticals, FMCG, and wholesale distributors</span>
             </div>
           </div>
 
           {/* Right Column: Editorial Framed Screenshot */}
           <div className="lg:col-span-7">
             <ProductWindow
-              src="/landing/product/invoice.png"
-              alt="Tax Invoice Details and Print Preview in Bharat Enterprise"
+              src="/landing/product/invoice.webp"
+              mobileSrc="/landing/product/invoice-mobile.webp"
+              mobileSmallSrc="/landing/product/invoice-sm.webp"
+              alt="Bharat Enterprise tax invoice preview showing customer GSTIN, itemized HSN breakdown, and dual-copy printing"
               variant="editorial"
-              title="Invoice Details & Dual-Copy Print"
+              title="Tax Invoice Details & Dual-Copy Print"
               status="Settled • ₹2,912.00"
             />
           </div>
