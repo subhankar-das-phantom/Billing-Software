@@ -22,11 +22,11 @@ export default function BillingShowcase() {
   ];
 
   return (
-    <section id="billing" className="py-20 lg:py-28 border-t border-slate-800/80 bg-slate-950 transition-colors">
+    <section id="billing" className="py-16 sm:py-20 lg:py-24 border-t border-slate-800/80 bg-slate-950 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 xl:gap-14 items-center">
           {/* Left Column: Descriptive Narrative (No eyebrow kicker) */}
-          <div className="lg:col-span-5 flex flex-col space-y-6">
+          <div className="lg:col-span-5 xl:col-span-4 flex flex-col space-y-6">
             <h2 className="text-3xl sm:text-4xl font-bold text-slate-50 tracking-tight leading-tight">
               GST-Ready Invoicing Built for Indian Commercial Trade
             </h2>
@@ -60,8 +60,8 @@ export default function BillingShowcase() {
             </div>
           </div>
 
-          {/* Right Column: Editorial Framed Screenshot */}
-          <div className="lg:col-span-7">
+          {/* Right Column: Editorial Framed Screenshot (Enlarged visual weight on desktop) */}
+          <div className="lg:col-span-7 xl:col-span-8">
             <ProductWindow
               src="/landing/product/invoice.webp"
               mobileSrc="/landing/product/invoice-mobile.webp"

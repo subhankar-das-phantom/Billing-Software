@@ -24,7 +24,7 @@ export default function LandingFooter() {
             </Link>
 
             <p className="text-slate-400 text-xs max-w-sm leading-relaxed">
-              Professional billing, multi-batch inventory tracking, customer ledger accounting, and Indian GST compliance for distributors, wholesalers, and retail enterprises.
+              Professional billing, multi-batch inventory tracking, customer ledger accounting, and GST-ready invoicing for distributors, wholesalers, and retail enterprises.
             </p>
 
             <div className="pt-2 text-[11px] text-slate-400">

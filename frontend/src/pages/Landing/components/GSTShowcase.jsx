@@ -2,16 +2,16 @@ import React from 'react';
 import { Scale, FileText, Building, CheckCircle } from 'lucide-react';
 
 export default function GSTShowcase() {
-  const complianceFeatures = [
+  const taxFeatures = [
     {
       icon: Scale,
       title: 'Automated Tax Split Engine',
-      description: 'Intelligently applies 50/50 CGST and SGST splits for intra-state billing or 100% IGST for inter-state deliveries.',
+      description: 'Automatically calculates the applicable CGST/SGST split for intra-state billing or IGST for inter-state transactions.',
     },
     {
       icon: FileText,
       title: 'Itemized HSN Code Mapping',
-      description: 'Maintains standard HSN codes across your catalog with standard tax slabs (0%, 5%, 12%, 18%, 28%).',
+      description: 'Store HSN details and applicable tax slabs directly with your product catalog.',
     },
     {
       icon: Building,
@@ -21,18 +21,18 @@ export default function GSTShowcase() {
     {
       icon: CheckCircle,
       title: 'Export-Ready Tax Registers',
-      description: 'Export structured invoice and purchase ledgers for seamless compilation into GSTR-1 and GSTR-3B filings.',
+      description: 'Export structured invoice and purchase ledgers for accounting and reconciliation workflows.',
     },
   ];
 
   return (
-    <section id="gst" className="py-20 lg:py-28 border-t border-slate-800/80 bg-slate-900/40 transition-colors">
+    <section id="gst" className="py-16 sm:py-20 lg:py-24 border-t border-slate-800/80 bg-slate-900/40 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
           {/* Left Column: Narrative (No eyebrow kicker) */}
           <div className="lg:col-span-6 flex flex-col space-y-6">
             <h2 className="text-3xl sm:text-4xl font-bold text-slate-50 tracking-tight leading-tight">
-              Built from the Ground Up for Indian Regulatory Standards
+              Built for GST-ready invoicing in Indian commercial trade
             </h2>
 
             <p className="text-base text-slate-400 leading-relaxed">
@@ -40,7 +40,7 @@ export default function GSTShowcase() {
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-              {complianceFeatures.map((item, idx) => {
+              {taxFeatures.map((item, idx) => {
                 const Icon = item.icon;
                 return (
                   <div key={idx} className="p-4 rounded-xl bg-slate-900 border border-slate-800">
@@ -59,7 +59,7 @@ export default function GSTShowcase() {
               <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
                 <div>
                   <span className="text-xs font-mono font-semibold uppercase text-blue-400">TAX INVOICE SPECIFICATION</span>
-                  <h3 className="text-base font-bold text-slate-100 mt-0.5">Statutory Bill Layout</h3>
+                  <h3 className="text-base font-bold text-slate-100 mt-0.5">GST-ready Tax Invoice</h3>
                 </div>
                 <span className="px-2.5 py-1 rounded text-xs font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
                   GST-ready Tax Invoice

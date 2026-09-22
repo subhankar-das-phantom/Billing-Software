@@ -6,7 +6,7 @@ export default function CustomerShowcase() {
   const ledgerHighlights = [
     {
       icon: BookOpen,
-      title: 'Real-Time Running Account Balances',
+      title: 'Running Account Balances',
       description: 'Every invoice, partial payment, debit entry, or credit note automatically reflects in the customer\'s cumulative balance.',
     },
     {
@@ -22,7 +22,7 @@ export default function CustomerShowcase() {
   ];
 
   return (
-    <section id="ledger" className="py-20 lg:py-28 border-t border-slate-800/80 bg-slate-950 transition-colors">
+    <section id="ledger" className="py-16 sm:py-20 lg:py-24 border-t border-slate-800/80 bg-slate-950 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
           {/* Left Column: Descriptive Narrative (No eyebrow kicker) */}

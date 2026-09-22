@@ -98,7 +98,7 @@ export default function ProductWindow({
   // ─────────────────────────────────────────────────────────────
   if (variant === 'hero') {
     return (
-      <div className={`relative w-full max-w-6xl mx-auto group ${className}`}>
+      <div className={`relative w-full max-w-6xl xl:max-w-7xl mx-auto group ${className}`}>
         {/* Restrained ambient background glow */}
         <div
           className="absolute -inset-1.5 bg-gradient-to-b from-blue-500/10 via-cyan-500/10 to-transparent rounded-2xl blur-xl opacity-60 pointer-events-none"
@@ -124,8 +124,17 @@ export default function ProductWindow({
             {/* Status chip */}
             <div className="flex items-center space-x-2">
               {status ? (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                  {status}
+                <span
+                  className={`inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded text-[11px] font-medium ${
+                    status.includes('Showcase') || status.includes('Sample')
+                      ? 'bg-slate-800/90 text-slate-300 border border-slate-700/80'
+                      : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                  }`}
+                >
+                  {status.includes('Showcase') || status.includes('Sample') ? (
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" aria-hidden="true" />
+                  ) : null}
+                  <span>{status}</span>
                 </span>
               ) : (
                 <div className="w-12" aria-hidden="true" />

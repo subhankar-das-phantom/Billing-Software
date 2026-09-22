@@ -22,7 +22,7 @@ export default function InventoryShowcase() {
   ];
 
   return (
-    <section id="inventory" className="py-20 lg:py-28 border-t border-slate-800/80 bg-slate-900/40 transition-colors">
+    <section id="inventory" className="py-16 sm:py-20 lg:py-24 border-t border-slate-800/80 bg-slate-900/40 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
           {/* Left Column: ProductWindow (Inverted column layout for visual rhythm) */}
@@ -41,7 +41,7 @@ export default function InventoryShowcase() {
           {/* Right Column: Narrative (No eyebrow kicker) */}
           <div className="lg:col-span-5 flex flex-col space-y-6 order-1 lg:order-2">
             <h2 className="text-3xl sm:text-4xl font-bold text-slate-50 tracking-tight leading-tight">
-              Granular Batch Tracking with Real-Time Expiry Horizons
+              Granular Batch & Expiry Tracking
             </h2>
 
             <p className="text-base text-slate-400 leading-relaxed">

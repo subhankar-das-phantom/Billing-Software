@@ -1,6 +1,6 @@
 /**
  * Truthful, verified operational FAQs for Bharat Enterprise.
- * Based directly on actual software capabilities, Indian regulatory compliance, and SaaS setup.
+ * Based directly on actual software capabilities, GST-ready invoicing, and SaaS setup.
  */
 
 export const FAQS = [
@@ -37,6 +37,6 @@ export const FAQS = [
   {
     question: 'Can I export my data for GST filing or accounting records?',
     answer:
-      'Yes. You can export invoice registers, product inventory summaries, and customer ledgers to standard CSV/Excel and PDF formats for tax compliance, reconciliation with your accountant, or internal auditing.',
+      'Yes. You can export invoice registers, product inventory summaries, and customer ledgers to standard CSV/Excel and PDF formats for tax calculation, reconciliation with your accountant, or internal auditing.',
   },
 ];

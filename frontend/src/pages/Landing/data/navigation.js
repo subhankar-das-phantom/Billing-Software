@@ -38,9 +38,9 @@ export const FOOTER_SECTIONS = [
     ],
   },
   {
-    title: 'Compliance & Standards',
+    title: 'Billing & Standards',
     links: [
-      { label: 'Indian GST Compliance', href: '#gst' },
+      { label: 'GST Invoicing & Tax Slabs', href: '#gst' },
       { label: 'HSN Code & Tax Rates', href: '#gst' },
       { label: 'Drug License Tracking', href: '#gst' },
       { label: 'Dual-Copy Invoicing', href: '#billing' },

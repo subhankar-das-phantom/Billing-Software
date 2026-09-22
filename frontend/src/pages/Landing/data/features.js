@@ -11,7 +11,7 @@ export const CORE_CAPABILITIES = [
     description:
       'Generate clear invoices with itemized HSN details, CGST/SGST/IGST tax breakdowns, dual-copy printing, and credit/cash bill types.',
     highlights: [
-      'Standard HSN code and GST rate mapping',
+      'HSN code and GST rate catalog mapping',
       'Intra-state and inter-state tax split computation',
       'Dual-copy printing (Customer and Business/Transport copies)',
       'Direct credit note generation and return processing',
@@ -160,13 +160,13 @@ export const CANONICAL_PLANS = [
     code: 'PROFESSIONAL',
     name: 'Professional',
     baseMonthlyPrice: 699,
-    description: 'Full enterprise suite with team access, GST compliance, and intelligence.',
+    description: 'Full enterprise suite with team access, GST-ready invoicing, and intelligence.',
     features: [
       'All Business capabilities',
       'Employee Management & RBAC',
       'Employee Activity Analytics',
       'Administrative Activity Logs',
-      'GST Reports & Tax Filing Data',
+      'GST Reports & Tax Ledger Data',
       'Advanced Business Reporting',
       'Inventory Intelligence Engine',
     ],

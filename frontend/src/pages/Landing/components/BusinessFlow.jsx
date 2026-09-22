@@ -4,7 +4,7 @@ import { WORKFLOW_STEPS } from '../data/features';
 
 export default function BusinessFlow() {
   return (
-    <section id="workflows" className="py-20 lg:py-28 border-t border-slate-800/80 bg-slate-950 transition-colors">
+    <section id="workflows" className="py-16 sm:py-20 lg:py-24 border-t border-slate-800/80 bg-slate-950 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header (No eyebrow kicker) */}
         <div className="text-center max-w-3xl mx-auto mb-16">
@@ -13,7 +13,7 @@ export default function BusinessFlow() {
           </h2>
 
           <p className="mt-4 text-base text-slate-400 leading-relaxed">
-            Every transaction is interconnected. From supplier procurement to invoice generation and ledger reconciliation, data updates synchronously across all modules.
+            Every transaction is interconnected. From supplier procurement to invoice generation and ledger reconciliation, data updates automatically across inventory, invoices, and ledgers.
           </p>
         </div>
 

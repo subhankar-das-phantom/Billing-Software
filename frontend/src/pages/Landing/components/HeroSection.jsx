@@ -36,7 +36,7 @@ export default function HeroSection() {
   );
 
   return (
-    <section id="product" className="relative pt-24 pb-16 lg:pt-32 lg:pb-24 overflow-hidden">
+    <section id="product" className="relative pt-16 pb-12 sm:pt-20 sm:pb-16 lg:pt-24 lg:pb-20 overflow-hidden">
       {/* Background ambient lighting - fixed anchor to eliminate CLS layout shift */}
       <div
         className="absolute top-48 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-blue-500/10 dark:bg-blue-600/15 blur-[120px] rounded-full pointer-events-none -z-10"
@@ -44,20 +44,20 @@ export default function HeroSection() {
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Editorial Positioning Header (No superfluous eyebrows, headline speaks for itself) */}
-        <div className="text-center max-w-3xl mx-auto mb-10 sm:mb-14">
+        {/* Editorial Positioning Header (Two-line balanced desktop width, restrained rhythm) */}
+        <div className="text-center max-w-4xl lg:max-w-5xl mx-auto mb-6 sm:mb-8">
           {/* Main Headline */}
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-50 tracking-tight leading-[1.12]">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-[54px] xl:text-6xl font-bold text-slate-50 tracking-tight leading-[1.14]">
             The Operating System for Modern Indian Distribution
           </h1>
 
           {/* Subheading (Concise, punchy, truthful) */}
-          <p className="mt-5 text-base sm:text-lg text-slate-400 leading-relaxed max-w-2xl mx-auto">
+          <p className="mt-4 text-base sm:text-lg text-slate-400 leading-relaxed max-w-2xl mx-auto">
             From GST tax invoices and batch-level stock tracking to customer khata ledgers — run your distribution enterprise with complete operational clarity.
           </p>
 
           {/* Action CTAs */}
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+          <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
             <Link
               to={AUTH_ACTIONS.register.href}
               className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 px-6 py-3 text-base font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-lg shadow-blue-600/30 transition-all duration-150 group"
@@ -75,13 +75,13 @@ export default function HeroSection() {
           </div>
 
           {/* Trust reassurance notice */}
-          <p className="mt-3.5 text-xs text-slate-400">
+          <p className="mt-3 text-xs text-slate-400">
             {trialDays}-day full access trial • Tiered plans starting from ₹{minStartingPrice.toLocaleString('en-IN')}/month
           </p>
         </div>
 
         {/* Hero Visual: Grand Product Showcase */}
-        <div className="relative mt-8 sm:mt-12">
+        <div className="relative mt-6 sm:mt-8">
           <ProductWindow
             src="/landing/product/dashboard.webp"
             mobileSrc="/landing/product/dashboard-mobile.webp"
@@ -89,7 +89,7 @@ export default function HeroSection() {
             alt="Bharat Enterprise executive dashboard showing revenue, collections, receivables and inventory metrics"
             variant="hero"
             title="Executive Command Center"
-            status="Active Catalog"
+            status="Showcase data"
             priority={true}
             badges={heroBadges}
           />

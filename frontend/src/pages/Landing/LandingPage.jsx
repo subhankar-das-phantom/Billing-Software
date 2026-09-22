@@ -32,7 +32,7 @@ export default function LandingPage() {
       document.head.appendChild(metaDescription);
     }
     metaDescription.content =
-      'Enterprise billing, multi-batch inventory tracking, customer ledger accounting, and Indian GST compliance for distributors, wholesalers, and retail enterprises.';
+      'Enterprise billing, multi-batch inventory tracking, customer ledger accounting, and GST-ready invoicing for distributors, wholesalers, and retail enterprises.';
   }, []);
 
   return (
@@ -60,7 +60,7 @@ export default function LandingPage() {
         {/* Integrated Business Lifecycle Workflow */}
         <BusinessFlow />
 
-        {/* Indian GST & Regulatory Compliance Section */}
+        {/* GST Invoicing & Tax Slabs Section */}
         <GSTShowcase />
 
         {/* Analytics & Procurement Telemetry Hub (analytics.png & purchases.png) */}

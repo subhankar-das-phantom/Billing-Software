@@ -12,7 +12,7 @@ export default function FAQSection() {
   };
 
   return (
-    <section id="faq" className="py-20 lg:py-28 border-t border-slate-800/80 bg-slate-900/40 transition-colors">
+    <section id="faq" className="py-16 sm:py-20 lg:py-24 border-t border-slate-800/80 bg-slate-900/40 transition-colors">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header (No eyebrow kicker) */}
         <div className="text-center max-w-3xl mx-auto mb-16">
@@ -21,7 +21,7 @@ export default function FAQSection() {
           </h2>
 
           <p className="mt-4 text-base text-slate-400 leading-relaxed">
-            Direct, factual answers about invoicing mechanics, batch tracking, regulatory tax compliance, and subscription accounts.
+            Direct, factual answers about invoicing mechanics, batch tracking, GST invoicing and tax calculations, and subscription accounts.
           </p>
         </div>
 
