@@ -271,6 +271,13 @@ async function main() {
     const smOutPath = path.join(imgDir, `${baseName}-sm.webp`);
     fs.writeFileSync(smOutPath, smBuffer);
 
+    if (baseName === 'dashboard') {
+      fs.copyFileSync(filePath, path.join(imgDir, 'dashboard-v2.png'));
+      fs.writeFileSync(path.join(imgDir, 'dashboard-v2.webp'), desktopBuffer);
+      fs.writeFileSync(path.join(imgDir, 'dashboard-v2-mobile.webp'), mobileBuffer);
+      fs.writeFileSync(path.join(imgDir, 'dashboard-v2-sm.webp'), smBuffer);
+    }
+
     const origKb = (fs.statSync(filePath).size / 1024).toFixed(1);
     const deskKb = (desktopBuffer.length / 1024).toFixed(1);
     const mobKb = (mobileBuffer.length / 1024).toFixed(1);

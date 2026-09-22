@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CheckCircle2, BarChart3, Package } from 'lucide-react';
+import { ArrowRight, BarChart3, Package } from 'lucide-react';
 import ProductWindow from './ProductWindow';
 import { AUTH_ACTIONS } from '../data/navigation';
 import {
@@ -30,7 +30,7 @@ export default function HeroSection() {
               TRUSTED BY INDIAN DISTRIBUTORS, WHOLESALERS & RETAIL ENTERPRISES
             </p>
 
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-[42px] xl:text-[48px] 2xl:text-[52px] font-bold text-slate-50 tracking-tight leading-[1.12]">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-[44px] xl:text-[50px] font-bold text-slate-50 tracking-tight leading-[1.12]">
               The Operating System for Modern Indian Distribution
             </h1>
 
@@ -38,14 +38,14 @@ export default function HeroSection() {
               From GST tax invoices and batch-level stock tracking to customer khata ledgers — run your distribution enterprise with complete operational clarity.
             </p>
 
-            {/* Action CTAs */}
-            <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+            {/* Side-by-side action buttons matching reference mockup */}
+            <div className="mt-6 sm:mt-7 flex flex-wrap items-center gap-3 sm:gap-4">
               <Link
                 to={AUTH_ACTIONS.register.href}
-                className="inline-flex items-center justify-center space-x-2 px-6 py-3.5 text-base font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-lg shadow-blue-600/25 transition-all duration-150 group"
+                className="inline-flex items-center justify-center px-6 py-3.5 text-base font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-sm transition-colors group"
               >
                 <span>{AUTH_ACTIONS.register.label}</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-0.5 transition-transform" />
               </Link>
 
               <a
@@ -62,12 +62,12 @@ export default function HeroSection() {
             </p>
           </div>
 
-          {/* Right Column: Hero Visual with Product Window & 3 Floating Cards */}
+          {/* Right Column: Hero Visual with Product Window & Floating Cards */}
           <div className="lg:col-span-7 relative">
             <ProductWindow
-              src="/landing/product/dashboard.webp"
-              mobileSrc="/landing/product/dashboard-mobile.webp"
-              mobileSmallSrc="/landing/product/dashboard-sm.webp"
+              src="/landing/product/dashboard-v2.webp"
+              mobileSrc="/landing/product/dashboard-v2-mobile.webp"
+              mobileSmallSrc="/landing/product/dashboard-v2-sm.webp"
               alt="Bharat Enterprise executive dashboard showing revenue, collections, receivables and inventory metrics"
               variant="hero"
               title="Executive Command Center"
@@ -76,26 +76,8 @@ export default function HeroSection() {
               badges={[]}
             />
 
-            {/* 3 Floating Notification Cards Stacked on Right Edge (matches user reference mockup) */}
+            {/* Floating Notification Cards Stacked on Right Edge */}
             <div className="hidden xl:flex flex-col gap-3 absolute -right-4 2xl:-right-8 top-1/2 -translate-y-1/2 z-20 w-[240px] select-none">
-              {/* Card 1: Payment Received */}
-              <div className="flex items-start gap-3 bg-slate-900/95 backdrop-blur-md border border-slate-800 rounded-xl p-3 shadow-xl hover:shadow-2xl transition-all">
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-xs font-semibold text-slate-100">
-                    Payment Received
-                  </div>
-                  <div className="text-xs font-bold text-slate-200 truncate">
-                    ₹2,912.00 <span className="font-normal text-slate-400 text-[11px]">(Gupta Medicos)</span>
-                  </div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">
-                    2 minutes ago
-                  </div>
-                </div>
-              </div>
-
               {/* Card 2: Monthly Revenue */}
               <div className="flex items-start gap-3 bg-slate-900/95 backdrop-blur-md border border-slate-800 rounded-xl p-3 shadow-xl hover:shadow-2xl transition-all">
                 <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0 mt-0.5">

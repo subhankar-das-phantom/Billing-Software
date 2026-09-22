@@ -28,28 +28,31 @@ export default function ProductWindow({
   sizes,
   imageClassName = '',
 }) {
-  // Resolve desktop webp, mobile webp, and small mobile webp with explicit preference
-  const isPng = typeof src === 'string' && src.endsWith('.png');
-  const resolvedDesktopWebp = typeof src === 'string' && src.endsWith('.webp')
-    ? src
+  // Resolve desktop webp, mobile webp, and small mobile webp with explicit preference and query string support
+  const [baseSrc = '', queryParam = ''] = typeof src === 'string' ? src.split('?') : [];
+  const qs = queryParam ? `?${queryParam}` : '';
+
+  const isPng = baseSrc.endsWith('.png');
+  const resolvedDesktopWebp = baseSrc.endsWith('.webp')
+    ? `${baseSrc}${qs}`
     : isPng
-    ? src.replace(/\.png$/i, '.webp')
-    : src;
+    ? `${baseSrc.replace(/\.png$/i, '.webp')}${qs}`
+    : `${baseSrc}${qs}`;
 
   const resolvedMobileSrc = mobileSrc || (
-    typeof src === 'string' && src.endsWith('.png')
-      ? src.replace(/\.png$/i, '-mobile.webp')
-      : typeof src === 'string' && src.endsWith('.webp')
-      ? src.replace(/\.webp$/i, '-mobile.webp')
-      : src
+    baseSrc.endsWith('.png')
+      ? `${baseSrc.replace(/\.png$/i, '-mobile.webp')}${qs}`
+      : baseSrc.endsWith('.webp')
+      ? `${baseSrc.replace(/\.webp$/i, '-mobile.webp')}${qs}`
+      : `${baseSrc}${qs}`
   );
 
   const resolvedSmallSrc = mobileSmallSrc || (
-    typeof src === 'string' && src.endsWith('.png')
-      ? src.replace(/\.png$/i, '-sm.webp')
-      : typeof src === 'string' && src.endsWith('.webp')
-      ? src.replace(/\.webp$/i, '-sm.webp')
-      : src
+    baseSrc.endsWith('.png')
+      ? `${baseSrc.replace(/\.png$/i, '-sm.webp')}${qs}`
+      : baseSrc.endsWith('.webp')
+      ? `${baseSrc.replace(/\.webp$/i, '-sm.webp')}${qs}`
+      : `${baseSrc}${qs}`
   );
 
   // Variant-specific responsive sizes attribute derived from actual layout widths
