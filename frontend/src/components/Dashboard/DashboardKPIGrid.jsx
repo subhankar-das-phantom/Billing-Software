@@ -89,7 +89,7 @@ export const DashboardKPIGrid = ({
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-3.5">
       {kpis.map((kpi) => {
         const Icon = kpi.icon;
         const hasGrowth = kpi.growth !== undefined && kpi.growth !== null;
@@ -104,48 +104,48 @@ export const DashboardKPIGrid = ({
           <CardWrapper
             key={kpi.id}
             {...cardProps}
-            className="group bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl p-4.5 transition-colors block relative"
+            className="group bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl p-3.5 sm:p-4 transition-colors block relative overflow-hidden min-w-0"
           >
-            <div className="flex items-start justify-between gap-3">
-              <span className="text-xs font-medium text-slate-400">
+            <div className="flex items-start justify-between gap-2 min-w-0">
+              <span className="text-xs font-medium text-slate-400 truncate">
                 {kpi.label}
               </span>
-              <div className="p-2 rounded-lg bg-slate-800 text-slate-400 group-hover:text-slate-200 transition-colors">
+              <div className="p-2 rounded-lg bg-slate-800 text-slate-400 group-hover:text-slate-200 transition-colors shrink-0">
                 <Icon className={`w-4 h-4 ${kpi.iconColor}`} />
               </div>
             </div>
 
-            <div className="text-xl sm:text-2xl font-bold text-slate-100 tracking-tight mt-2">
+            <div className="text-lg sm:text-xl 2xl:text-2xl font-bold text-slate-100 tracking-tight mt-1.5 font-mono truncate" title={kpi.isCurrency ? `₹${kpi.value}` : String(kpi.value)}>
               {kpi.isCurrency ? '₹' : ''}
-              <AnimatedCounter value={kpi.value} />
+              <AnimatedCounter value={kpi.value} decimals={kpi.isCurrency ? 2 : 0} />
             </div>
 
-            <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between gap-2 text-xs">
+            <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-1.5 text-xs min-w-0">
               {hasGrowth ? (
-                <div className="flex items-center gap-1 font-medium">
-                  <GrowthIcon className={`w-3 h-3 ${growthColor}`} />
-                  <span className={growthColor}>
+                <div className="flex items-center gap-1 font-medium min-w-0 flex-1">
+                  <GrowthIcon className={`w-3.5 h-3.5 ${growthColor} shrink-0`} />
+                  <span className={`${growthColor} font-semibold shrink-0`}>
                     {isPositive ? '+' : ''}{kpi.growth}%
                   </span>
-                  <span className="text-slate-500 text-[11px] hidden sm:inline truncate">
+                  <span className="text-slate-500 text-[11px] truncate max-w-[80px] 2xl:max-w-[95px]" title={kpi.growthLabel}>
                     {kpi.growthLabel}
                   </span>
                 </div>
               ) : (
-                <span className="text-slate-500 text-[11px]">
+                <span className="text-slate-500 text-[11px] shrink-0">
                   Status
                 </span>
               )}
 
               {kpi.badgeText && (
-                <span className={`px-2 py-0.5 rounded text-[11px] font-medium border ${kpi.badgeColor}`}>
+                <span className={`px-1.5 py-0.5 rounded text-[10px] 2xl:text-[11px] font-medium border truncate max-w-[110px] 2xl:max-w-none shrink-0 ${kpi.badgeColor}`} title={kpi.badgeText}>
                   {kpi.badgeText}
                 </span>
               )}
             </div>
 
             {kpi.linkTo && (
-              <ArrowUpRight className="w-3.5 h-3.5 text-slate-600 group-hover:text-slate-300 absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <ArrowUpRight className="w-3.5 h-3.5 text-slate-600 group-hover:text-slate-300 absolute top-3.5 right-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
             )}
           </CardWrapper>
         );

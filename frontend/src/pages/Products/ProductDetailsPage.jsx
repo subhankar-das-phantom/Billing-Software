@@ -374,7 +374,7 @@ export default function ProductDetailsPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3.5 sm:gap-4">
           {[
             { label: 'MRP', value: formatCurrency(product.newMRP), icon: DollarSign, color: 'emerald' },
             { label: 'Rate', value: formatCurrency(product.rate), icon: DollarSign, color: 'violet' },
@@ -382,12 +382,12 @@ export default function ProductDetailsPage() {
             { label: 'Unit', value: product.unit || 'Pieces', icon: Ruler, color: 'accent' },
             { label: isBatchMode ? 'Batch Stock' : 'Current Stock', value: `${effectiveStock}`, icon: Layers, color: effectiveStock > 0 ? 'amber' : 'red' }
           ].map(stat => (
-            <div key={stat.label} className={`p-4 rounded-xl bg-${stat.color}-500/10 border border-${stat.color}-500/20`}>
-              <div className="flex items-center gap-2 mb-2">
-                <stat.icon className={`w-4 h-4 text-${stat.color}-400`} />
-                <span className="text-sm text-slate-400">{stat.label}</span>
+            <div key={stat.label} className={`p-3.5 sm:p-4 rounded-xl bg-${stat.color}-500/10 border border-${stat.color}-500/20 min-w-0 overflow-hidden`}>
+              <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2 min-w-0">
+                <stat.icon className={`w-4 h-4 text-${stat.color}-400 shrink-0`} />
+                <span className="text-xs sm:text-sm text-slate-400 truncate">{stat.label}</span>
               </div>
-              <p className={`text-xl font-bold text-${stat.color}-400`}>{stat.value}</p>
+              <p className={`text-lg sm:text-xl font-bold text-${stat.color}-400 truncate font-mono`} title={String(stat.value)}>{stat.value}</p>
             </div>
           ))}
         </div>

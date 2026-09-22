@@ -44,7 +44,7 @@ export const ProductDetailsPageSkeleton = () => {
         </div>
 
         {/* 5-Column Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3.5 sm:gap-4">
           {[1, 2, 3, 4, 5].map((i) => (
             <div
               key={i}

@@ -40,7 +40,7 @@ export const PurchasesPageSkeleton = () => (
       </div>
 
       {/* Search and Filters */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
         <ShimmerBone className="h-10 lg:col-span-2 rounded-lg" />
         <ShimmerBone className="h-10 rounded-lg" />
         <ShimmerBone className="h-10 rounded-lg" />
