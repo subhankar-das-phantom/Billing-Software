@@ -4,6 +4,56 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.6.3](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.6.3) — 2026-09-22 — Landing Page Final Refinement, Responsive 16:10 Mobile Crops & Defensible Product Copy
+
+### 📱 Mobile Showcase Composition & Focused 16:10 WebP Crops (`convertWebp.mjs`)
+- **Root Cause** — Source screenshots are 2880×1800 desktop views where the left 512px is dedicated to desktop navigation and margins. When scaled down to mobile viewports, high-value data surfaces (invoice tables, ledger entries, metric cards) became illegible.
+- **Centralized Visual Region Crops (`MOBILE_CROPS`)** — Implemented strict 16:10 aspect ratio crops (`1080×675` Retina and `720×450` fallback) that eliminate desktop navigation bars while isolating high-priority content:
+  - `dashboard`: Focuses on top KPI cards, comparative trend curve, and cash flow donut chart.
+  - `invoice`: Tight focus on tax invoice bill layout, customer GSTIN, HSN breakdown, and dual-copy printing preview.
+  - `inventory`: Focuses on catalog status counters and multi-batch stock tables with expiry dates.
+  - `customer-ledger`: Isolates customer profile card, outstanding balance metrics, and running debit/credit entries.
+  - `analytics`: Focuses on intelligence hub header, sales velocity curves, and cash flow ratios.
+  - `purchases`: Captures procurement metrics counters, search filters, and purchase orders table.
+- **Immutable Source PNG Integrity Guard** — Added SHA-256 pre- and post-generation checksum verification in `convertWebp.mjs`. All 6 original 2880×1800 source PNG files are strictly verified immutable with zero bytes altered.
+- **Environment-Safe Portable Browser Discovery** — Implemented robust discovery prioritizing `PUPPETEER_EXECUTABLE_PATH` / `CHROME_BIN`, Puppeteer bundled executable, platform-native discovery (`where.exe` on Windows, `which` on macOS/Linux), and candidate fallbacks.
+
+### 🖼️ ProductWindow Visual Hierarchy & Layout Rhythm (`ProductWindow.jsx`)
+- **Visual De-Monotonization** — Introduced 4 distinct framing variants to eliminate repetitive macOS browser chrome across sections:
+  - `hero`: Flagship framed window with traffic lights, title pill, subtle ambient glow, and data context chips.
+  - `editorial`: Technical breadcrumb frame with section icon and hairline border; zero traffic lights.
+  - `edge-to-edge`: Full-width data canvas with slim metadata bar for analytics and procurement.
+  - `standard`: Balanced framed container with single-line identifier.
+- **Defensive Image Loading & Layout-Derived `sizes`** — Hero imagery remains eager/high-priority, while below-the-fold showcases use native lazy-loading (`loading="lazy"`, `fetchpriority="auto"`). Configured layout-derived `sizes` matching exact container widths across breakpoints (`640px`, `768px`, `1024px`, `1280px`).
+- **Steady Indicators** — Replaced artificial pulsing animations with steady, professional status pills.
+
+### ⚖️ Defensible Marketing Claims & Copy Parity
+- **Factual Invoicing Claims** — Replaced statutory compliance claims in `BillingShowcase.jsx`, `GSTShowcase.jsx`, and `FinalCTA.jsx` with concrete GST-ready capabilities ("GST-ready Tax Invoice", "GST-Ready Invoicing", intra-state CGST/SGST and inter-state IGST automatic calculation).
+- **Customer Ledger Precision** — Replaced spreadsheet drift copy in `CustomerShowcase.jsx` with automated running balance recording across invoices, receipts, and credit notes.
+- **Clean Alt Text** — Updated all showcase images to provide accurate, factual screen content descriptions without promotional buzzwords.
+- **Showcase Tenant Decoupling** — Updated `backend/saas/controllers/planController.ts` to support `SHOWCASE_TENANT_ID` with graceful fallback to `SHOWCASE_ADMIN_EMAIL`.
+
+### 🛡️ SaaS Pricing Resilience & Error Handling (`PricingSection.jsx`)
+- **Cache-Preserving Query Resilience** — Configured `PricingSection` to continue displaying valid cached plan data when background refetches encounter network errors.
+- **Controlled Offline Notice** — When no usable plan data exists and an error occurs in production, renders a clean synchronization notice directing visitors to start their trial or contact support (`support.bharatenterprise@gmail.com`) without hardcoding trial durations.
+
+### 📁 Files Modified
+- `backend/scripts/convertWebp.mjs` — Added cross-platform browser discovery, centralized `MOBILE_CROPS`, and SHA-256 pre/post checksum verification.
+- `backend/saas/controllers/planController.ts` — Supported `SHOWCASE_TENANT_ID` with fallback to `SHOWCASE_ADMIN_EMAIL`.
+- `frontend/public/landing/product/*.webp` — Generated responsive 16:10 WebP crops (Desktop 1920×1200, Mobile 1080×675, Small 720×450).
+- `frontend/src/pages/Landing/components/ProductWindow.jsx` — Added 4 distinct framing variants, layout-derived `sizes`, steady status indicators, and explicit asset props.
+- `frontend/src/pages/Landing/components/HeroSection.jsx` — Explicit WebP paths, descriptive alt text, steady status chip.
+- `frontend/src/pages/Landing/components/BillingShowcase.jsx` — Applied `editorial` variant, factual GST copy, descriptive alt text.
+- `frontend/src/pages/Landing/components/InventoryShowcase.jsx` — Applied `standard` variant, explicit WebP paths, descriptive alt text.
+- `frontend/src/pages/Landing/components/CustomerShowcase.jsx` — Applied `editorial` variant, automated ledger copy, descriptive alt text.
+- `frontend/src/pages/Landing/components/AnalyticsShowcase.jsx` — Applied `edge-to-edge` variant, explicit WebP paths, descriptive alt text.
+- `frontend/src/pages/Landing/components/GSTShowcase.jsx` — Factual GST-ready invoicing copy and validated bill badge.
+- `frontend/src/pages/Landing/components/FinalCTA.jsx` — Aligned value points with GST-ready invoicing.
+- `frontend/src/pages/Landing/components/PricingSection.jsx` — Added cache-preserving query handling and production offline state.
+- `frontend/src/pages/Landing/data/features.js` — Aligned feature titles and descriptions with product capabilities.
+
+---
+
 ## [v2.6.2](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.6.2) — 2026-09-22 — High-DPR Mobile Showcase Image Fidelity & Retina Optimization
 
 ### 📱 Visual Fidelity: 1080p Retina Mobile Image Tier (`convertWebp.mjs`)
