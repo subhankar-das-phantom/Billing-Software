@@ -4,7 +4,7 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
-## [v2.6.2] — 2026-09-22 — High-DPR Mobile Showcase Image Fidelity & Retina Optimization
+## [v2.6.2](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.6.2) — 2026-09-22 — High-DPR Mobile Showcase Image Fidelity & Retina Optimization
 
 ### 📱 Visual Fidelity: 1080p Retina Mobile Image Tier (`convertWebp.mjs`)
 - **Root Cause** — The previous small-mobile optimization generated a 540px tier (`*-sm.webp`) at 0.75 quality (~10-12 KB) for viewports `<= 640px`. On modern mobile devices with 2.625x–3x DPR OLED/Retina screens (e.g. 390px viewport width needing 1,170 physical pixels), this forced browsers to upscale a 540px asset by >2.16x, causing blurry numbers, fuzzy GST invoice rows, and severe chroma subsampling halo artifacts.
@@ -27,7 +27,7 @@ For full release notes with implementation details, see [GitHub Releases](https:
 
 ---
 
-## [v2.6.1] — 2026-09-22 — Eliminate Login/Register Spinner Flash on Refresh
+## [v2.6.1](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.6.1) — 2026-09-22 — Eliminate Login/Register Spinner Flash on Refresh
 
 ### 🔇 UX Fix: Zero-Frame Auth Route Loading (`AuthContext.jsx`)
 - **Root Cause** — When `localStorage` held a token (valid or stale) and the user refreshed on `/login` or `/register`, `AuthContext`'s `loading` initialized to `true` (because `hasToken === true`). This caused the branded "B" spinner to render for the entire `checkAuth()` network round-trip before resolving — a visible flash on every login-page refresh.
