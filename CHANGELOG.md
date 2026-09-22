@@ -6,9 +6,11 @@ For full release notes with implementation details, see [GitHub Releases](https:
 
 ## [v2.6.3](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.6.3) — 2026-09-22 — Landing Page Final Refinement, Responsive 16:10 Mobile Crops & Defensible Product Copy
 
-### 📱 Mobile Showcase Composition & Focused 16:10 WebP Crops (`convertWebp.mjs`)
-- **Root Cause** — Source screenshots are 2880×1800 desktop views where the left 512px is dedicated to desktop navigation and margins. When scaled down to mobile viewports, high-value data surfaces (invoice tables, ledger entries, metric cards) became illegible.
-- **Centralized Visual Region Crops (`MOBILE_CROPS`)** — Implemented strict 16:10 aspect ratio crops (`1080×675` Retina and `720×450` fallback) that eliminate desktop navigation bars while isolating high-priority content:
+### 📱 Mobile Showcase Composition & 1440p Retina WebP Crops (`convertWebp.mjs`, `ProductWindow.jsx`)
+- **Root Cause of Mobile Blurriness** — In `ProductWindow.jsx`, a `<source media="(max-width: 640px)" srcSet={resolvedSmallSrc} />` rule unconditionally intercepted all modern smartphones (typical CSS widths 375px–430px) and forced them onto the 720×450 fallback tier (`*-sm.webp`). On 2x–3x DPR OLED/Retina mobile screens (e.g. 390px needing 1,170 physical pixels), the browser was forced to upscale a 720px image, causing noticeable blurriness and fuzzy text across all product showcases.
+- **1440p Retina Mobile Tier** — Upgraded `convertWebp.mjs` Tier 2 to render mobile crops at **1440×900** resolution (strict 16:10 aspect ratio) with **0.88 quality** (~42–74 KB). Provides 1:1 physical pixel coverage for 3x DPR mobile displays, eliminating blurriness while keeping network payload minimal.
+- **Symmetric Mobile Routing in `<picture>`** — Updated `ProductWindow.jsx` to route `<= 768px` directly to `resolvedMobileSrc` (1440w) with `sizes="(max-width: 768px) 100vw, 768px"`, eliminating the 720p lock-in on smartphones and aligning with `index.html`'s `<link rel="preload">` tag.
+- **Centralized Visual Region Crops (`MOBILE_CROPS`)** — Implemented strict 16:10 aspect ratio crops that eliminate desktop navigation bars while isolating high-priority content:
   - `dashboard`: Focuses on top KPI cards, comparative trend curve, and cash flow donut chart.
   - `invoice`: Tight focus on tax invoice bill layout, customer GSTIN, HSN breakdown, and dual-copy printing preview.
   - `inventory`: Focuses on catalog status counters and multi-batch stock tables with expiry dates.
@@ -17,6 +19,10 @@ For full release notes with implementation details, see [GitHub Releases](https:
   - `purchases`: Captures procurement metrics counters, search filters, and purchase orders table.
 - **Immutable Source PNG Integrity Guard** — Added SHA-256 pre- and post-generation checksum verification in `convertWebp.mjs`. All 6 original 2880×1800 source PNG files are strictly verified immutable with zero bytes altered.
 - **Environment-Safe Portable Browser Discovery** — Implemented robust discovery prioritizing `PUPPETEER_EXECUTABLE_PATH` / `CHROME_BIN`, Puppeteer bundled executable, platform-native discovery (`where.exe` on Windows, `which` on macOS/Linux), and candidate fallbacks.
+
+### 📖 Customer Ledger Showcase Re-Capture & Deep-Link Tab Support (`CustomerDetailsPage.jsx`)
+- **Ledger Tab Deep Linking** — Enhanced `CustomerDetailsPage.jsx` with `useSearchParams` to read and synchronize `?tab=ledger | payments | invoices`. Deep-linking or navigating directly to `/customers/:id?tab=ledger` now opens the customer's financial statement directly.
+- **Authentic Ledger Capture** — Re-captured `customer-ledger.png` (and generated `customer-ledger.webp`, `customer-ledger-mobile.webp`, and `customer-ledger-sm.webp`) with the **Ledger** tab active, displaying the customer's running Debit, Credit, and Balance ledger table along with Total Debit (`₹2,110.64`), Total Credit (`₹1,680.00`), and Closing Balance (`₹430.64 Due`) cards instead of the invoice list.
 
 ### 🖼️ ProductWindow Visual Hierarchy & Layout Rhythm (`ProductWindow.jsx`)
 - **Visual De-Monotonization** — Introduced 4 distinct framing variants to eliminate repetitive macOS browser chrome across sections:
@@ -42,12 +48,14 @@ For full release notes with implementation details, see [GitHub Releases](https:
 - **Pure White Contrast Preservation** — Replaced `text-slate-100`, `text-slate-200`, and accent icon colors with explicit `text-white` on the container, `<p>`, and icon elements across `AuthContext.jsx` and `ToastContext.jsx`. Toast notifications now maintain 100% white, high-contrast typography across both light and dark themes.
 
 ### 📁 Files Modified
-- `backend/scripts/convertWebp.mjs` — Added cross-platform browser discovery, centralized `MOBILE_CROPS`, and SHA-256 pre/post checksum verification.
+- `backend/scripts/captureShowcaseScreenshots.mjs` — Updated Screen 4 to capture `/customers/:id?tab=ledger` with cross-platform browser resolution.
+- `backend/scripts/convertWebp.mjs` — Upgraded mobile output to 1440×900 Retina tier @ 0.88 quality with pre/post SHA-256 checksum verification.
 - `backend/saas/controllers/planController.ts` — Supported `SHOWCASE_TENANT_ID` with fallback to `SHOWCASE_ADMIN_EMAIL`.
-- `frontend/public/landing/product/*.webp` — Generated responsive 16:10 WebP crops (Desktop 1920×1200, Mobile 1080×675, Small 720×450).
+- `frontend/public/landing/product/*.webp` — Generated responsive 16:10 WebP crops (Desktop 1920×1200, Mobile 1440×900, Small 720×450) with customer ledger tab active.
 - `frontend/src/contexts/AuthContext.jsx` — Fixed toast typography to `text-white` on saturated backgrounds in light mode.
 - `frontend/src/contexts/ToastContext.jsx` — Ensured `text-white` on generic toasts and icons.
-- `frontend/src/pages/Landing/components/ProductWindow.jsx` — Added 4 distinct framing variants, layout-derived `sizes`, steady status indicators, and explicit asset props.
+- `frontend/src/pages/Customers/CustomerDetailsPage.jsx` — Added `?tab=ledger` URL parameter deep-link support and tab synchronization.
+- `frontend/src/pages/Landing/components/ProductWindow.jsx` — Removed low-res mobile lock-in and routed `<= 768px` to 1440w mobile Retina tier.
 - `frontend/src/pages/Landing/components/HeroSection.jsx` — Explicit WebP paths, descriptive alt text, steady status chip.
 - `frontend/src/pages/Landing/components/BillingShowcase.jsx` — Applied `editorial` variant, factual GST copy, descriptive alt text.
 - `frontend/src/pages/Landing/components/InventoryShowcase.jsx` — Applied `standard` variant, explicit WebP paths, descriptive alt text.

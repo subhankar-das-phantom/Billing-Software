@@ -62,13 +62,21 @@ export default function ProductWindow({
   );
 
   // Responsive image element with zero-CLS 16:10 aspect ratio
+  // Serves crisp high-DPR mobile WebP for viewports <= 768px (aligned with index.html preload)
+  // and full desktop WebP for wider screens, eliminating smartphone blurriness.
   const renderImage = (extraClasses = '') => (
     <picture className="block w-full h-full">
-      {resolvedSmallSrc && (
-        <source media="(max-width: 640px)" type="image/webp" srcSet={resolvedSmallSrc} />
-      )}
       {resolvedMobileSrc && (
-        <source media="(max-width: 768px)" type="image/webp" srcSet={resolvedMobileSrc} />
+        <source
+          media="(max-width: 768px)"
+          type="image/webp"
+          srcSet={
+            resolvedSmallSrc && resolvedSmallSrc !== resolvedMobileSrc
+              ? `${resolvedSmallSrc} 720w, ${resolvedMobileSrc} 1440w`
+              : resolvedMobileSrc
+          }
+          sizes="(max-width: 768px) 100vw, 768px"
+        />
       )}
       <source type="image/webp" srcSet={resolvedDesktopWebp} />
       <img

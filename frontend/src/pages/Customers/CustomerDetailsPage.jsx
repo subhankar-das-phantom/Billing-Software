@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, 
@@ -295,7 +295,27 @@ export default function CustomerDetailsPage() {
   const motionConfig = useMotionConfig();
   const isFirstVisit = useFirstVisit('customer-details');
   const isDesktop = useMediaQuery('(min-width: 768px)');
-  const [activeTab, setActiveTab] = useState('invoices');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedTab = searchParams.get('tab');
+  const validInitialTab = requestedTab === 'ledger' || requestedTab === 'payments' || requestedTab === 'invoices' ? requestedTab : 'invoices';
+  const [activeTab, setActiveTab] = useState(validInitialTab);
+
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('tab', tabId);
+      return next;
+    }, { replace: true });
+  };
+
+  useEffect(() => {
+    const currentParam = searchParams.get('tab');
+    if (currentParam && (currentParam === 'ledger' || currentParam === 'payments' || currentParam === 'invoices') && currentParam !== activeTab) {
+      setActiveTab(currentParam);
+    }
+  }, [searchParams, activeTab]);
+
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showEditPaymentModal, setShowEditPaymentModal] = useState(false);
   const [showManualEntryModal, setShowManualEntryModal] = useState(false);
@@ -800,7 +820,7 @@ export default function CustomerDetailsPage() {
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() => handleTabChange(tab.id)}
                     className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all text-sm ${
                       activeTab === tab.id
                         ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'

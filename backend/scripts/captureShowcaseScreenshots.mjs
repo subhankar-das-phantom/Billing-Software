@@ -10,6 +10,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import puppeteer from 'puppeteer-core';
 import mongoose from 'mongoose';
@@ -22,21 +23,57 @@ dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 const outputDir = path.resolve(__dirname, '../../frontend/public/landing/product');
 
-// Detect Chrome or Edge executable on Windows
+// Detect Chrome or Edge executable cross-platform
 function findBrowserExecutable() {
-  const candidates = [
-    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-    'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
-    'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
-  ];
+  if (process.env.PUPPETEER_EXECUTABLE_PATH && fs.existsSync(process.env.PUPPETEER_EXECUTABLE_PATH)) {
+    return process.env.PUPPETEER_EXECUTABLE_PATH;
+  }
+  if (process.env.CHROME_BIN && fs.existsSync(process.env.CHROME_BIN)) {
+    return process.env.CHROME_BIN;
+  }
+
+  // Native CLI discovery
+  if (process.platform === 'win32') {
+    for (const cmd of ['where.exe chrome', 'where.exe msedge']) {
+      try {
+        const out = execSync(cmd, { stdio: ['pipe', 'pipe', 'ignore'] }).toString().trim().split(/\r?\n/)[0];
+        if (out && fs.existsSync(out)) return out;
+      } catch {
+        // continue
+      }
+    }
+  } else {
+    for (const cmd of ['which google-chrome', 'which google-chrome-stable', 'which chromium', 'which chromium-browser']) {
+      try {
+        const out = execSync(cmd, { stdio: ['pipe', 'pipe', 'ignore'] }).toString().trim();
+        if (out && fs.existsSync(out)) return out;
+      } catch {
+        // continue
+      }
+    }
+  }
+
+  const candidates = process.platform === 'win32'
+    ? [
+        'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+        'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+        'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+        'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+      ]
+    : [
+        '/usr/bin/google-chrome',
+        '/usr/bin/google-chrome-stable',
+        '/usr/bin/chromium',
+        '/usr/bin/chromium-browser',
+        '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+      ];
 
   for (const p of candidates) {
     if (fs.existsSync(p)) {
       return p;
     }
   }
-  throw new Error('Neither Google Chrome nor Microsoft Edge executable was found on system.');
+  throw new Error('Neither Google Chrome nor Chromium executable was found on system.');
 }
 
 async function run() {
@@ -160,9 +197,9 @@ async function run() {
   // Screen 3: Products / Inventory
   await capture('http://localhost:3000/products', 'inventory.png', 'Products Catalog & Batch Inventory', 2500);
 
-  // Screen 4: Customer Details / Financial Ledger
+  // Screen 4: Customer Details / Financial Ledger (with Ledger tab open)
   if (sampleCustomer) {
-    await capture(`http://localhost:3000/customers/${sampleCustomer._id}`, 'customer-ledger.png', `Customer Ledger & Transactions (${sampleCustomer.customerName})`, 2500);
+    await capture(`http://localhost:3000/customers/${sampleCustomer._id}?tab=ledger`, 'customer-ledger.png', `Customer Ledger & Transactions (${sampleCustomer.customerName})`, 3500);
   }
 
   // Screen 5: Sales Analytics / Reports

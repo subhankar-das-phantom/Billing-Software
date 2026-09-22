@@ -210,26 +210,28 @@ async function main() {
     fs.writeFileSync(desktopOutPath, desktopBuffer);
 
     // ─────────────────────────────────────────────────────────────
-    // Tier 2: Mobile WebP (1080×675 focused crop for high-DPR screens, quality 0.86)
+    // Tier 2: Mobile WebP (1440×900 Retina/SuperAMOLED tier, quality 0.88)
+    // Provides 1:1 physical pixel coverage for 3x DPR mobile displays,
+    // ensuring pin-sharp numbers, tables, and typography without scaling blur.
     // ─────────────────────────────────────────────────────────────
     const mobileWebp = await page.evaluate(async (uri, c) => {
       return new Promise((resolve) => {
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          canvas.width = 1080;
-          canvas.height = 675; // Strict 16:10 ratio
+          canvas.width = 1440;
+          canvas.height = 900; // Strict 16:10 ratio
           const ctx = canvas.getContext('2d');
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
 
           if (c) {
-            ctx.drawImage(img, c.x, c.y, c.width, c.height, 0, 0, 1080, 675);
+            ctx.drawImage(img, c.x, c.y, c.width, c.height, 0, 0, 1440, 900);
           } else {
-            ctx.drawImage(img, 0, 0, 1080, 675);
+            ctx.drawImage(img, 0, 0, 1440, 900);
           }
 
-          resolve(canvas.toDataURL('image/webp', 0.86));
+          resolve(canvas.toDataURL('image/webp', 0.88));
         };
         img.src = uri;
       });
@@ -274,7 +276,7 @@ async function main() {
     const mobKb = (mobileBuffer.length / 1024).toFixed(1);
     const smKb = (smBuffer.length / 1024).toFixed(1);
 
-    console.log(`  ✅ ${baseName}: Desktop (1920×1200): ${deskKb} KB | Mobile (1080×675): ${mobKb} KB | Small (720×450): ${smKb} KB (from ${origKb} KB PNG)`);
+    console.log(`  ✅ ${baseName}: Desktop (1920×1200): ${deskKb} KB | Mobile (1440×900): ${mobKb} KB | Small (720×450): ${smKb} KB (from ${origKb} KB PNG)`);
   }
 
   await browser.close();
