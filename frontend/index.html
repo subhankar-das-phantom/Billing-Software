@@ -11,29 +11,23 @@
       (function () {
         try {
           var path = window.location.pathname;
-          var isLanding = path === '/landing' || path === '/privacy-policy' || path === '/terms';
+          var isPublic = path === '/' || path === '/landing' || path === '/login' || path === '/register' || path === '/privacy-policy' || path === '/terms' || path.indexOf('/forgot-password') === 0 || path.indexOf('/reset-password') === 0;
           var systemDark = !window.matchMedia || window.matchMedia('(prefers-color-scheme: dark)').matches;
           var isDark = true;
 
-          if (isLanding) {
-            var landingSaved = localStorage.getItem('bharat-enterprise-landing-theme');
-            if (landingSaved === 'light') {
-              isDark = false;
-            } else if (landingSaved === 'dark') {
-              isDark = true;
-            } else {
-              // Unauthenticated landing page defaults to system theme
-              isDark = systemDark;
-            }
+          var landingSaved = localStorage.getItem('bharat-enterprise-landing-theme');
+          var appSaved = localStorage.getItem('bharat-enterprise-theme');
+          var activePref = isPublic ? (landingSaved || appSaved) : (appSaved || landingSaved);
+
+          if (activePref === 'light') {
+            isDark = false;
+          } else if (activePref === 'dark') {
+            isDark = true;
+          } else if (activePref === 'system') {
+            isDark = systemDark;
           } else {
-            var appSaved = localStorage.getItem('bharat-enterprise-theme');
-            if (appSaved === 'light') {
-              isDark = false;
-            } else if (appSaved === 'system') {
-              isDark = systemDark;
-            } else {
-              isDark = true;
-            }
+            // Default: unauthenticated public pages default to system preference, workspace defaults to dark
+            isDark = isPublic ? systemDark : true;
           }
 
           var root = document.documentElement;

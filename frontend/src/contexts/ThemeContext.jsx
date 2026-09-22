@@ -23,10 +23,19 @@ const ThemeContext = createContext({
 export function ThemeProvider({ children }) {
   const location = useLocation();
 
-  // Detect public landing / informational pages
-  const isLandingPage = useMemo(() => {
+  // Detect public marketing, onboarding, legal, and authentication pages
+  const isPublicRoute = useMemo(() => {
     const p = location.pathname;
-    return p === '/landing' || p === '/privacy-policy' || p === '/terms';
+    return (
+      p === '/' ||
+      p === '/landing' ||
+      p === '/login' ||
+      p === '/register' ||
+      p === '/privacy-policy' ||
+      p === '/terms' ||
+      p.startsWith('/forgot-password') ||
+      p.startsWith('/reset-password')
+    );
   }, [location.pathname]);
 
   // Main application theme mode: 'dark' | 'light' | 'system' (defaults to 'dark' per platform architecture)
@@ -36,23 +45,30 @@ export function ThemeProvider({ children }) {
       if (saved === 'light' || saved === 'dark' || saved === 'system') {
         return saved;
       }
+      const landingSaved = localStorage.getItem(LANDING_THEME_STORAGE_KEY);
+      if (landingSaved === 'light' || landingSaved === 'dark' || landingSaved === 'system') {
+        return landingSaved;
+      }
     } catch {
       // localStorage unavailable or security blocked
     }
     return 'dark';
   });
 
-  // Landing page theme mode: defaults to 'system' for unauthenticated visitors
+  // Landing / public theme mode: defaults to system or previously saved preference
   const [landingThemeMode, setLandingThemeModeState] = useState(() => {
     try {
-      const saved = localStorage.getItem(LANDING_THEME_STORAGE_KEY);
-      if (saved === 'light' || saved === 'dark' || saved === 'system') {
-        return saved;
+      const landingSaved = localStorage.getItem(LANDING_THEME_STORAGE_KEY);
+      if (landingSaved === 'light' || landingSaved === 'dark' || landingSaved === 'system') {
+        return landingSaved;
+      }
+      const appSaved = localStorage.getItem(APP_THEME_STORAGE_KEY);
+      if (appSaved === 'light' || appSaved === 'dark' || appSaved === 'system') {
+        return appSaved;
       }
     } catch {
       // localStorage unavailable or security blocked
     }
-    // Landing page defaults to system theme
     return 'system';
   });
 
@@ -78,7 +94,7 @@ export function ThemeProvider({ children }) {
   }, []);
 
   // Determine active theme mode based on current route context
-  const themeMode = isLandingPage ? landingThemeMode : appThemeMode;
+  const themeMode = isPublicRoute ? (landingThemeMode || appThemeMode) : appThemeMode;
 
   // Compute active effective theme: 'dark' or 'light'
   const theme = useMemo(() => {
@@ -113,12 +129,14 @@ export function ThemeProvider({ children }) {
   const setThemeMode = useCallback(
     (mode) => {
       if (mode !== 'dark' && mode !== 'light' && mode !== 'system') return;
-      if (isLandingPage) {
+      if (isPublicRoute) {
         setLandingThemeModeState(mode);
+        setAppThemeModeState(mode);
         try {
           localStorage.setItem(LANDING_THEME_STORAGE_KEY, mode);
+          localStorage.setItem(APP_THEME_STORAGE_KEY, mode);
         } catch (err) {
-          console.error('[ThemeContext] Failed to persist landing theme', err);
+          console.error('[ThemeContext] Failed to persist public theme', err);
         }
       } else {
         setAppThemeModeState(mode);
@@ -129,22 +147,22 @@ export function ThemeProvider({ children }) {
         }
       }
     },
-    [isLandingPage]
+    [isPublicRoute]
   );
 
   // Quick 2-state toggle (Dark <-> Light), flipping the currently active theme
   const toggleTheme = useCallback(() => {
-    if (isLandingPage) {
-      setLandingThemeModeState((prev) => {
-        const currentEffective = prev === 'system' ? (systemIsDark ? 'dark' : 'light') : prev;
-        const next = currentEffective === 'light' ? 'dark' : 'light';
-        try {
-          localStorage.setItem(LANDING_THEME_STORAGE_KEY, next);
-        } catch (err) {
-          console.warn('[ThemeContext] landing toggleTheme storage failed', err);
-        }
-        return next;
-      });
+    if (isPublicRoute) {
+      const activeMode = landingThemeMode === 'system' ? (systemIsDark ? 'dark' : 'light') : (landingThemeMode || (systemIsDark ? 'dark' : 'light'));
+      const next = activeMode === 'light' ? 'dark' : 'light';
+      setLandingThemeModeState(next);
+      setAppThemeModeState(next);
+      try {
+        localStorage.setItem(LANDING_THEME_STORAGE_KEY, next);
+        localStorage.setItem(APP_THEME_STORAGE_KEY, next);
+      } catch (err) {
+        console.warn('[ThemeContext] public toggleTheme storage failed', err);
+      }
     } else {
       setAppThemeModeState((prev) => {
         const currentEffective = prev === 'system' ? (systemIsDark ? 'dark' : 'light') : prev;
@@ -157,7 +175,7 @@ export function ThemeProvider({ children }) {
         return next;
       });
     }
-  }, [isLandingPage, systemIsDark]);
+  }, [isPublicRoute, landingThemeMode, systemIsDark]);
 
   // Memoized theme-aware chart colors for Recharts & SVG visualizations
   const chartColors = useMemo(() => {

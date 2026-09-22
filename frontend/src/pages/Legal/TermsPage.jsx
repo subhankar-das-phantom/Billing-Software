@@ -7,6 +7,7 @@ import {
   AlertTriangle, Rocket, Ban, Server, ScrollText, Gift,
   Package, Truck, ShoppingCart, Layers, BarChart3
 } from 'lucide-react';
+import { ThemeToggle } from '../../components/Common/Buttons/ThemeToggle';
 
 const sections = [
   {
@@ -519,10 +520,13 @@ export default function TermsPage() {
       {/* Header */}
       <header className="pp-header">
         <div className="pp-header-inner">
-          <Link to="/landing" className="pp-back-link">
-            <ArrowLeft className="w-4 h-4" />
-            Back to Home
-          </Link>
+          <div className="flex items-center justify-between w-full mb-8">
+            <Link to="/landing" className="pp-back-link !mb-0">
+              <ArrowLeft className="w-4 h-4" />
+              Back to Home
+            </Link>
+            <ThemeToggle className="bg-slate-800/40 border border-slate-700/60 shadow-xs" />
+          </div>
           <div className="pp-header-content">
             <div className="pp-header-badge">
               <Gavel className="w-4 h-4" />

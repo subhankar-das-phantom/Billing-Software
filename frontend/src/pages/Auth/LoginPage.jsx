@@ -5,6 +5,7 @@ import {
   LogIn, 
   Mail, 
   Lock, 
+  ArrowLeft,
   ArrowRight, 
   Loader2, 
   Eye, 
@@ -14,6 +15,7 @@ import {
   Sparkles,
   Shield
 } from 'lucide-react';
+import { ThemeToggle } from '../../components/Common/Buttons/ThemeToggle';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 
@@ -99,6 +101,18 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-slate-950">
+      {/* Top Navigation Bar */}
+      <div className="absolute top-4 left-4 right-4 sm:top-6 sm:left-6 sm:right-6 flex items-center justify-between z-20 pointer-events-auto">
+        <Link
+          to="/landing"
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back to Home</span>
+        </Link>
+        <ThemeToggle className="bg-slate-900/60 border border-slate-800/80 shadow-xs" />
+      </div>
+
       {/* Crisp Subtle Grid Background */}
       <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_75%_50%_at_50%_50%,black,transparent)]" />
 
