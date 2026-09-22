@@ -94,16 +94,19 @@ export default function ProductWindow({
   );
 
   // ─────────────────────────────────────────────────────────────
-  // Variant: HERO (Flagship framed window with macOS traffic lights)
+  // Variant: HERO / WINDOW (Framed window with macOS traffic lights)
   // ─────────────────────────────────────────────────────────────
-  if (variant === 'hero') {
+  if (variant === 'hero' || variant === 'window') {
+    const isHero = variant === 'hero';
     return (
-      <div className={`relative w-full max-w-6xl xl:max-w-7xl mx-auto group ${className}`}>
-        {/* Restrained ambient background glow */}
-        <div
-          className="absolute -inset-1.5 bg-gradient-to-b from-blue-500/10 via-cyan-500/10 to-transparent rounded-2xl blur-xl opacity-60 pointer-events-none"
-          aria-hidden="true"
-        />
+      <div className={`relative w-full ${isHero ? 'max-w-6xl xl:max-w-7xl mx-auto' : ''} group ${className}`}>
+        {/* Restrained ambient background glow (Hero only) */}
+        {isHero && (
+          <div
+            className="absolute -inset-1.5 bg-gradient-to-b from-blue-500/10 via-cyan-500/10 to-transparent rounded-2xl blur-xl opacity-60 pointer-events-none"
+            aria-hidden="true"
+          />
+        )}
 
         {/* Window Container */}
         <div className="relative rounded-2xl overflow-hidden bg-slate-900 border border-slate-800 shadow-xl transition-colors">

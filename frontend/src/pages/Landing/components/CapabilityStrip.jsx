@@ -2,49 +2,77 @@ import React from 'react';
 import {
   FileText,
   Boxes,
-  BookOpen,
-  Printer,
-  ShoppingBag,
-  ShieldCheck,
+  Users,
+  Copy,
+  Truck,
   BarChart3,
+  ShieldCheck,
 } from 'lucide-react';
 
 const CAPABILITIES = [
-  { icon: FileText, label: 'GST Invoicing' },
-  { icon: Boxes, label: 'Batch-Level Inventory' },
-  { icon: BookOpen, label: 'Customer Khata' },
-  { icon: Printer, label: 'Dual-Copy Invoicing' },
-  { icon: ShoppingBag, label: 'Purchase Orders' },
-  { icon: BarChart3, label: 'Financial Telemetry' },
-  { icon: ShieldCheck, label: 'Role-Based Access' },
+  {
+    icon: FileText,
+    title: 'GST Invoicing',
+    subtitle: '(HSN & Tax Splits)',
+  },
+  {
+    icon: Boxes,
+    title: 'Batch-Level',
+    subtitle: 'Inventory & Expiry',
+  },
+  {
+    icon: Users,
+    title: 'B2B Customer',
+    subtitle: 'Khata & Ledgers',
+  },
+  {
+    icon: Copy,
+    title: 'Dual-Copy Invoicing',
+    subtitle: '(Customer & Transport)',
+  },
+  {
+    icon: Truck,
+    title: 'Supplier &',
+    subtitle: 'Purchase Orders',
+  },
+  {
+    icon: BarChart3,
+    title: 'Financial Telemetry',
+    subtitle: '& Cash Flow',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Role-Based Access',
+    subtitle: '(Admin & Staff)',
+  },
 ];
 
 export default function CapabilityStrip() {
   return (
     <section
-      className="relative py-6 border-y border-slate-800/80 bg-slate-900/50 transition-colors select-none"
+      className="relative py-7 sm:py-8 border-y border-slate-800 bg-slate-900/60 transition-colors select-none"
       aria-label="Core Capabilities"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <p className="text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400 mb-3.5">
+        <p className="text-center text-[11px] sm:text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 mb-6">
           Engineered for Indian Distribution
         </p>
 
-        <div className="flex flex-wrap items-center justify-center gap-x-5 sm:gap-x-7 gap-y-2.5 text-xs font-medium text-slate-300">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4 lg:gap-3 xl:gap-5 items-center">
           {CAPABILITIES.map((item, idx) => {
             const Icon = item.icon;
             return (
-              <React.Fragment key={idx}>
-                <div className="inline-flex items-center space-x-2 text-slate-300 hover:text-slate-100 transition-colors">
-                  <Icon className="w-3.5 h-3.5 text-blue-400 shrink-0" aria-hidden="true" />
-                  <span className="tracking-tight">{item.label}</span>
+              <div key={idx} className="flex items-center space-x-2.5 min-w-0">
+                <Icon className="w-5 h-5 text-blue-500 shrink-0" aria-hidden="true" />
+                <div className="text-left min-w-0">
+                  <p className="text-xs sm:text-sm font-semibold text-slate-100 leading-tight truncate">
+                    {item.title}
+                  </p>
+                  <p className="text-[11px] sm:text-xs text-slate-400 leading-tight truncate mt-0.5">
+                    {item.subtitle}
+                  </p>
                 </div>
-                {idx < CAPABILITIES.length - 1 && (
-                  <span className="hidden sm:inline text-slate-600 select-none" aria-hidden="true">
-                    ·
-                  </span>
-                )}
-              </React.Fragment>
+              </div>
             );
           })}
         </div>
