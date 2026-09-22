@@ -30,8 +30,16 @@ async function getShowcaseTelemetry(): Promise<ShowcaseTelemetry> {
     const Product = require('../../models/Product');
     const Batch = require('../../models/Batch').default || require('../../models/Batch');
 
+    const showcaseTenantId = process.env.SHOWCASE_TENANT_ID?.trim();
     const showcaseEmail = (process.env.SHOWCASE_ADMIN_EMAIL || 'admin@sys.com').toLowerCase().trim();
-    const admin = await Admin.findOne({ email: showcaseEmail }).lean();
+
+    let admin = null;
+    if (showcaseTenantId) {
+      admin = await Admin.findById(showcaseTenantId).lean();
+    }
+    if (!admin && showcaseEmail) {
+      admin = await Admin.findOne({ email: showcaseEmail }).lean();
+    }
 
     if (admin) {
       const [productsCount, batchesCount] = await Promise.all([

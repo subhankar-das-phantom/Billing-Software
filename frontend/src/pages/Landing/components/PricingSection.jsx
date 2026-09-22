@@ -1,13 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, ArrowRight } from 'lucide-react';
+import { Check, ArrowRight, AlertCircle } from 'lucide-react';
 import { useSubscriptionPlansQuery } from '../../../features/saas/queries/useSubscriptionPlansQuery';
 import { FEATURE_LABELS } from '../../../saas/features';
 import { CANONICAL_PLANS, DURATION_DISCOUNTS } from '../data/features';
 
 export default function PricingSection() {
   const [selectedDuration, setSelectedDuration] = useState(1);
-  const { data: apiPlans } = useSubscriptionPlansQuery();
+  const { data: apiPlans, isError } = useSubscriptionPlansQuery();
+  const hasValidPlans = Array.isArray(apiPlans) && apiPlans.length > 0;
+  const isProduction = !import.meta.env.DEV;
+
   const trialDays = apiPlans?.trialDays ?? 14;
   const minStartingPrice = apiPlans?.minStartingPrice ?? 299;
 
@@ -124,6 +127,45 @@ export default function PricingSection() {
       };
     });
   }, [apiPlans, selectedDuration, currentDurationRule]);
+
+  // Production error guard: only display when there is no usable plan data (cache is empty)
+  if (!hasValidPlans && isError && isProduction) {
+    return (
+      <section id="pricing" className="py-20 lg:py-28 border-t border-slate-800/80 bg-slate-950 transition-colors">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="rounded-2xl bg-slate-900 border border-slate-800 p-8 sm:p-12 shadow-xl transition-colors">
+            <div className="w-12 h-12 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="w-6 h-6" />
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-100 tracking-tight">
+              Commercial Pricing Synchronizing
+            </h2>
+            <p className="mt-3 text-sm text-slate-400 max-w-lg mx-auto leading-relaxed">
+              Commercial plan pricing is currently synchronizing with our billing system. You may start your trial now or contact support directly for onboarding.
+            </p>
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+              <Link
+                to="/register"
+                className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 px-6 py-3 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-lg shadow-blue-600/30 transition-all duration-150"
+              >
+                <span>Start Free Trial</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+              <a
+                href="mailto:support.bharatenterprise@gmail.com"
+                className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 text-sm font-medium text-slate-200 hover:text-slate-50 bg-slate-850 hover:bg-slate-800 border border-slate-800 rounded-xl transition-colors"
+              >
+                Contact Support (support.bharatenterprise@gmail.com)
+              </a>
+            </div>
+            <p className="mt-4 text-xs text-slate-400">
+              Active subscriptions and existing tenant accounts remain unaffected.
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section id="pricing" className="py-20 lg:py-28 border-t border-slate-800/80 bg-slate-950 transition-colors">
