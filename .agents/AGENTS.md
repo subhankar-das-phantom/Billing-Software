@@ -66,7 +66,7 @@ This document governs all agent operations, architectural decisions, coding patt
 - **Export Engine Formatting & Safeguards**: Format integer count metrics with zero decimals (`format: 'integer'`), auto-detect `Number.isInteger(num)` for `'number'` formats, enforce 404 guards when matching zero records, and bound all-time queries within the 365-day safety ceiling.
 
 ### 4. Strict Release & Versioning Lifecycle
-- **Step 1 — Changelog First**: Document changes under `## [vX.Y.Z]` in `CHANGELOG.md` with release date, categorized highlights, and specific file modifications.
+- **Step 1 — Changelog First & Version Discipline**: Document changes under `## [vX.Y.Z](url)` in `CHANGELOG.md` with release date, categorized highlights, and specific file modifications. During an active development milestone on `dev`, do NOT invent new version headers (`v2.6.1`, `v2.6.2`) for intermediate fixes or sub-tasks before a production merge has occurred; group ongoing work under the milestone version. Maintain a strict **1:1 invariant between changelog headers and git tags** (zero untagged releases).
 - **Step 2 — Update Documentation**: Update the version badge in `README.md`.
 - **Step 3 — Legal & Policy Review**: Audit `PrivacyPolicyPage.jsx`, `TermsPage.jsx`, and SaaS subscription tiers whenever changes touch authentication, telemetry, data storage, or billing.
 - **Step 4 — Build Verification**: Validate that both `npx tsc --noEmit` (backend) and `npm run build` (frontend) pass with 0 errors.
@@ -74,7 +74,9 @@ This document governs all agent operations, architectural decisions, coding patt
   - **Dev Only by Default**: Split into multiple granular commits as needed per purpose (`fix(...)`, `feat(...)`, `docs(...)`, `chore(...)`) on `dev` and push **strictly to `dev`** (`git push origin dev`). In PowerShell, escape `$` or use single quotes `'...'` to avoid variable evaluation issues.
   - **Production Merge Gate (`master` is Production)**: NEVER merge into `master`, NEVER create version tags, and NEVER push `master` unless the user explicitly commands **"merge"** (or gives unambiguous approval to merge to production). Without the explicit "merge" command, stop after pushing to `dev`.
   - **Upon Explicit "merge" Command Only**:
-    - Merge into `master`: `git checkout master && git merge dev -m "..."` (Mandatory rich, multi-line message detailing problem, root cause, changes, new component rationale, and verification; no generic one-liners)
-    - Signed tag: `git tag -s vX.Y.Z -m "Release vX.Y.Z - ..."`
-    - Push production to remote: `git push origin master; git push origin vX.Y.Z`
-- **Step 6 — Post-Versioning Release Notes**: When `master` is merged, tagged, and pushed, generate and present a comprehensive, copy-paste-ready GitHub Release Note immediately. The release note must detail the release version, title, operational problem/motivation, root cause analysis, categorized changes (Frontend, Backend, Compliance, DevOps), modified files, verification status, and direct GitHub release link.
+    - Multi-Version Parity Audit: Check `git tag -l` against all unreleased versions in `CHANGELOG.md`. If multiple versions were added, every single version must be tagged at its corresponding commit.
+    - Merge into `master`: `git checkout master && git pull origin master && git merge dev -m "..."` (Mandatory rich, multi-line message detailing problem, root cause, changes, new component rationale, and verification; no generic one-liners)
+    - Signed tag(s): `git tag -s vX.Y.Z -m "Release vX.Y.Z - ..."` (plus tags for any untagged historical commits)
+    - Push production to remote: `git push origin master; git push origin --tags`
+    - Return to `dev`: `git checkout dev`
+- **Step 6 — In-Chat Copy-Paste-Ready Release Notes**: When `master` is merged, tagged, and pushed, **output the complete, unabridged GitHub Release Notes directly inside a fenced markdown codeblock in the chat response** (never just link to an artifact file). Include the direct pre-filled GitHub release URL above the block. If multiple versions were merged, provide a dedicated link and codeblock for each version so the user can copy and paste with 1 click.
