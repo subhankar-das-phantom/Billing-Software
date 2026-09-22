@@ -24,19 +24,19 @@ const Toast = ({ message, type = 'success', onClose }) => {
     success: {
       icon: CheckCircle,
       bgColor: 'bg-emerald-600',
-      iconColor: 'text-emerald-100',
+      iconColor: 'text-white',
       borderColor: 'border-emerald-500/30'
     },
     error: {
       icon: AlertCircle,
       bgColor: 'bg-rose-600',
-      iconColor: 'text-rose-100',
+      iconColor: 'text-white',
       borderColor: 'border-rose-500/30'
     },
     info: {
       icon: Shield,
       bgColor: 'bg-blue-600',
-      iconColor: 'text-blue-100',
+      iconColor: 'text-white',
       borderColor: 'border-blue-500/30'
     }
   };
@@ -49,14 +49,14 @@ const Toast = ({ message, type = 'success', onClose }) => {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -10, scale: 0.98 }}
       transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-      className={`pointer-events-auto ${bgColor} ${borderColor} text-slate-100 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 min-w-[280px] max-w-md border will-change-[transform,opacity]`}
+      className={`pointer-events-auto ${bgColor} ${borderColor} text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 min-w-[280px] max-w-md border will-change-[transform,opacity]`}
     >
       <Icon className={`w-5 h-5 flex-shrink-0 ${iconColor}`} />
-      <p className="flex-1 text-sm font-medium leading-snug">{message}</p>
+      <p className="flex-1 text-sm font-medium leading-snug text-white">{message}</p>
       <button
         type="button"
         onClick={onClose}
-        className="p-1 hover:bg-white/20 rounded-lg transition-colors flex-shrink-0 text-slate-200 hover:text-white"
+        className="p-1 hover:bg-white/20 rounded-lg transition-colors flex-shrink-0 text-white/80 hover:text-white"
         aria-label="Dismiss notification"
       >
         <X className="w-4 h-4" />

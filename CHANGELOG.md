@@ -37,10 +37,16 @@ For full release notes with implementation details, see [GitHub Releases](https:
 - **Cache-Preserving Query Resilience** — Configured `PricingSection` to continue displaying valid cached plan data when background refetches encounter network errors.
 - **Controlled Offline Notice** — When no usable plan data exists and an error occurs in production, renders a clean synchronization notice directing visitors to start their trial or contact support (`support.bharatenterprise@gmail.com`) without hardcoding trial durations.
 
+### 🎨 Light Mode Toast Typography & Contrast Fix (`AuthContext.jsx`, `ToastContext.jsx`)
+- **Root Cause** — In `AuthContext.jsx`, the notification `Toast` component styled its container with `text-slate-100` and its dismiss icon with `text-slate-200`. Under light mode, CSS variable inversion maps `--color-slate-100` to `#0f172a` (near-black) and global CSS sets `p { @apply text-slate-300; }` (`#334155`). On solid saturated backgrounds (`bg-blue-600`, `bg-emerald-600`, `bg-rose-600`), this caused messages like "Successfully logged out" to render with black text.
+- **Pure White Contrast Preservation** — Replaced `text-slate-100`, `text-slate-200`, and accent icon colors with explicit `text-white` on the container, `<p>`, and icon elements across `AuthContext.jsx` and `ToastContext.jsx`. Toast notifications now maintain 100% white, high-contrast typography across both light and dark themes.
+
 ### 📁 Files Modified
 - `backend/scripts/convertWebp.mjs` — Added cross-platform browser discovery, centralized `MOBILE_CROPS`, and SHA-256 pre/post checksum verification.
 - `backend/saas/controllers/planController.ts` — Supported `SHOWCASE_TENANT_ID` with fallback to `SHOWCASE_ADMIN_EMAIL`.
 - `frontend/public/landing/product/*.webp` — Generated responsive 16:10 WebP crops (Desktop 1920×1200, Mobile 1080×675, Small 720×450).
+- `frontend/src/contexts/AuthContext.jsx` — Fixed toast typography to `text-white` on saturated backgrounds in light mode.
+- `frontend/src/contexts/ToastContext.jsx` — Ensured `text-white` on generic toasts and icons.
 - `frontend/src/pages/Landing/components/ProductWindow.jsx` — Added 4 distinct framing variants, layout-derived `sizes`, steady status indicators, and explicit asset props.
 - `frontend/src/pages/Landing/components/HeroSection.jsx` — Explicit WebP paths, descriptive alt text, steady status chip.
 - `frontend/src/pages/Landing/components/BillingShowcase.jsx` — Applied `editorial` variant, factual GST copy, descriptive alt text.
