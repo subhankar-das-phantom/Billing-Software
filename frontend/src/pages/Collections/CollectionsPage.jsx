@@ -33,7 +33,7 @@ import { formatCurrency, formatDate, formatPaymentTime, formatPhone } from '../.
 import { useSWR, useMediaQuery, useDebounce, invalidateCachePattern } from '../../hooks';
 import { useToast } from '../../contexts/ToastContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { CollectionsTableSkeleton } from './CollectionsPageSkeleton';
+import CollectionsPageSkeleton, { CollectionsTableSkeleton } from './CollectionsPageSkeleton';
 import RecordPaymentModal from '../../components/Common/Modals/RecordPaymentModal';
 import PaymentReceiptModal from '../../components/Common/Modals/PaymentReceiptModal';
 import DailyCloseoutPrintModal from './DailyCloseoutPrintModal';
@@ -509,6 +509,14 @@ export default function CollectionsPage() {
       setIsExporting(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-4 no-print">
+        <CollectionsPageSkeleton />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
