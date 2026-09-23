@@ -17,6 +17,7 @@ import { useSubscription } from '../../contexts/SubscriptionContext';
 import { useToast } from '../../contexts/ToastContext';
 import { useSWR, invalidateCachePattern } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
+import ReferralPageSkeleton from './ReferralPageSkeleton';
 
 export default function ReferralPage() {
   const [applyCodeStr, setApplyCodeStr] = useState('');
@@ -90,11 +91,7 @@ export default function ReferralPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex-1 p-4 lg:p-8 flex items-center justify-center">
-        <div className="w-8 h-8 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
+    return <ReferralPageSkeleton />;
   }
 
   return (
