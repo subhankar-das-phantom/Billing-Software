@@ -72,6 +72,7 @@ export const AuthProvider = ({ children }) => {
   const location = useLocation();
 
   const isPublicMarketingRoute = 
+    location.pathname === '/' ||
     location.pathname === '/landing' ||
     location.pathname === '/privacy-policy' ||
     location.pathname === '/terms';
@@ -94,6 +95,7 @@ export const AuthProvider = ({ children }) => {
   const [admin, setAdmin] = useState(null); // For backward compatibility
   const [loading, setLoading] = useState(() => {
     const isPublic = typeof window !== 'undefined' && (
+      window.location.pathname === '/' ||
       window.location.pathname === '/landing' ||
       window.location.pathname === '/privacy-policy' ||
       window.location.pathname === '/terms' ||

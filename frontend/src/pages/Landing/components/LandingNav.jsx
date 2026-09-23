@@ -111,10 +111,10 @@ export default function LandingNav() {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-colors duration-200 ${
+      className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-md transition-all duration-200 ${
         isScrolled || mobileMenuOpen
-          ? 'bg-slate-900/95 backdrop-blur-md border-b border-slate-800/80 shadow-xs'
-          : 'bg-slate-900/70 backdrop-blur-xs border-b border-slate-800/40'
+          ? 'bg-slate-900/95 border-b border-slate-800/80 shadow-xs'
+          : 'bg-slate-900/70 border-b border-slate-800/40'
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

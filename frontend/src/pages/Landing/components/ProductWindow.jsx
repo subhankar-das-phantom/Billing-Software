@@ -74,9 +74,9 @@ export default function ProductWindow({
           media="(max-width: 768px)"
           type="image/webp"
           srcSet={
-            resolvedSmallSrc && resolvedSmallSrc !== resolvedMobileSrc
-              ? `${resolvedSmallSrc} 720w, ${resolvedMobileSrc} 1440w`
-              : resolvedMobileSrc
+            priority || !resolvedSmallSrc || resolvedSmallSrc === resolvedMobileSrc
+              ? resolvedMobileSrc
+              : `${resolvedSmallSrc} 720w, ${resolvedMobileSrc} 1440w`
           }
           sizes="(max-width: 768px) 100vw, 768px"
         />

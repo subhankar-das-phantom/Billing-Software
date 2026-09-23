@@ -59,6 +59,7 @@ import AppShellSkeleton from './components/Layout/AppShellSkeleton';
 function PageLoader() {
   const location = useLocation();
   const isPublicRoute = 
+    location.pathname === '/' ||
     location.pathname === '/landing' ||
     location.pathname === '/privacy-policy' ||
     location.pathname === '/terms' ||
@@ -85,6 +86,11 @@ function PageLoader() {
 
 // Protected Route Wrapper
 function ProtectedRoute({ children }) {
+  const hasToken = typeof window !== 'undefined' ? !!localStorage.getItem('token') : false;
+  if (!hasToken) {
+    return <Navigate to="/landing" replace />;
+  }
+
   const { user, loading, isAdmin, logout } = useAuth();
   const { canAccess, loading: subLoading } = useSubscription();
   
