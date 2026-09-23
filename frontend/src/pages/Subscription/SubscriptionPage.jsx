@@ -6,7 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { FEATURE_LABELS } from '../../saas/features';
 import { useSubscriptionPlansQuery } from '../../features/saas/queries/useSubscriptionPlansQuery';
-import { ShimmerBone } from '../../features/salesAnalytics/components/SkeletonCards';
+import SubscriptionPageSkeleton from './SubscriptionPageSkeleton';
 
 export default function SubscriptionPage() {
   const { subscription, activeDbSub, isExpired, isGrace, isTrial, planName, daysRemaining } = useSubscription();
@@ -30,41 +30,7 @@ export default function SubscriptionPage() {
   };
 
   if (loading) {
-    return (
-      <div className="max-w-6xl mx-auto pb-12 space-y-8">
-        <div className="text-center space-y-2">
-          <ShimmerBone className="h-8 w-64 mx-auto rounded-lg" />
-          <ShimmerBone className="h-4 w-96 mx-auto rounded" />
-        </div>
-        <div className="glass-card p-6 border border-slate-800">
-          <div className="flex justify-between items-center">
-            <div className="space-y-2">
-              <ShimmerBone className="h-5 w-48 rounded" />
-              <ShimmerBone className="h-4 w-60 rounded" />
-            </div>
-            <ShimmerBone className="h-10 w-32 rounded-lg" />
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="glass-card p-6 space-y-4 border border-slate-800">
-              <ShimmerBone className="h-6 w-32 rounded" />
-              <ShimmerBone className="h-4 w-48 rounded" />
-              <ShimmerBone className="h-10 w-28 rounded-lg" />
-              <div className="space-y-2 pt-4 border-t border-slate-800/60">
-                {[1, 2, 3, 4, 5].map(j => (
-                  <div key={j} className="flex items-center gap-2">
-                    <ShimmerBone className="w-4 h-4 rounded-full" />
-                    <ShimmerBone className="h-3 w-40 rounded" />
-                  </div>
-                ))}
-              </div>
-              <ShimmerBone className="h-10 w-full rounded-xl mt-4" />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+    return <SubscriptionPageSkeleton />;
   }
 
   return (
