@@ -4,6 +4,20 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.6.4](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.6.4) — 2026-09-23 — Enterprise UI Skeletons & Landing Page Mobile Flicker Resolution
+
+### 💎 Enterprise UI Loading Skeletons: Refer & Earn, Collections & Subscription
+- **Refer & Earn Zero-CLS Skeleton (`ReferralPageSkeleton.jsx`, `ReferralPage.jsx`)** — Replaced the centered loading spinner on `/referral` with an enterprise-grade skeleton that mirrors the header, share link card, 3 KPI metric cards (Signups, Pending Rewards, Days Earned), how-it-works timeline, apply code container, and reward progress table.
+- **Backend Referral Qualification Audit** — Formally verified that referral rewards are strictly contingent on a completed paid payment verified through Razorpay (`processReferralReward` in `subscriptionController.ts`). Free trial registrations and code applications remain in `PENDING` state with zero free days granted.
+- **Collections Page Full-Page Skeleton Wiring (`CollectionsPage.jsx`)** — Wired `CollectionsPageSkeleton` into `CollectionsPage.jsx` for initial uncached visits, replacing blank card states and `'...'` placeholders with pixel-perfect shimmers, while preserving `CollectionsTableSkeleton` for in-flight table revalidations.
+- **Responsive Subscription Page Skeleton (`SubscriptionPageSkeleton.jsx`, `SubscriptionPage.jsx`)** — Re-architected the subscription loading state into an all-screen-size responsive skeleton (`SubscriptionPageSkeleton`) with mobile-safe title/subtitle widths (preventing horizontal overflow on < 384px screens), placeholders for Support Contact banner, Current Account status card, Duration Selector switcher, and 3-card plan grid.
+
+### 📱 Landing Page Mobile Flicker Elimination
+- **Root Route Gatekeeper Flash (`App.jsx`, `AuthContext.jsx`, `SubscriptionContext.jsx`)** — Recognized `/` as a non-blocking public route across `PageLoader`, `AuthContext`, and `SubscriptionContext`. Added an instant `hasToken` check in `ProtectedRoute` so unauthenticated visitors hitting `/` on mobile are routed to `/landing` on Frame 0, completely eliminating the dashboard shell skeleton (`AppShellSkeleton`) flash.
+- **Header Backdrop Filter Thrashing (`LandingNav.jsx`)** — Stabilized `<header>` with constant `backdrop-blur-md` across scroll states, eliminating mobile GPU compositor re-rasterization glitches when scrolling past 20px.
+- **Hero Image Preload & srcSet Alignment (`ProductWindow.jsx`)** — Synchronized the hero mobile `srcSet` with `index.html`'s preloaded asset (`dashboard-v2-mobile.webp`), preventing the browser from initiating a secondary fetch and image swap on mobile screens.
+- **Root CSS Transition Jitter (`LandingPage.jsx`)** — Removed `transition-colors duration-200` on the root container to eliminate color transition sweeps during hydration.
+
 ## [v2.6.3](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.6.3) — 2026-09-22 — Landing Page Final Refinement, Responsive 16:10 Mobile Crops & Defensible Product Copy
 
 ### 💎 Mockup Parity: 2-Column Side-by-Side Hero, 7-Column Capabilities & Fresh Showcase Assets
