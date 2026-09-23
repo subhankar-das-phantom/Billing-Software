@@ -274,7 +274,8 @@ export function useSWR(key, fetcher, options = {}) {
   const {
     ttl = DEFAULT_TTL,
     revalidateOnFocus = false,
-    fallbackData = null
+    fallbackData = null,
+    keepPreviousData = false
   } = options;
 
   const userId = user?._id || user?.id;
@@ -350,6 +351,12 @@ export function useSWR(key, fetcher, options = {}) {
       setData(cached.data);
       setIsStale(cached.isExpired);
       setIsLoading(false);
+    } else {
+      setIsLoading(true);
+      if (!keepPreviousData) {
+        setData(fallbackData);
+        setIsStale(true);
+      }
     }
 
     const doFetch = async () => {
@@ -378,7 +385,7 @@ export function useSWR(key, fetcher, options = {}) {
       aborted = true;
       mountedRef.current = false;
     };
-  }, [scopedKey, ttl, fallbackData]);
+  }, [scopedKey, ttl, fallbackData, keepPreviousData]);
 
   useEffect(() => {
     if (!scopedKey) return undefined;

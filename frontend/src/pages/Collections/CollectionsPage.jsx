@@ -34,6 +34,8 @@ import { useSWR, useMediaQuery, useDebounce, invalidateCachePattern } from '../.
 import { useToast } from '../../contexts/ToastContext';
 import { useAuth } from '../../contexts/AuthContext';
 import CollectionsPageSkeleton, { CollectionsTableSkeleton } from './CollectionsPageSkeleton';
+import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
+import { ShimmerBone } from '../../features/salesAnalytics/components/SkeletonCards';
 import RecordPaymentModal from '../../components/Common/Modals/RecordPaymentModal';
 import PaymentReceiptModal from '../../components/Common/Modals/PaymentReceiptModal';
 import DailyCloseoutPrintModal from './DailyCloseoutPrintModal';
@@ -266,14 +268,16 @@ export default function CollectionsPage() {
     return params;
   }, [page, datePreset, selectedDate, startDate, endDate, selectedMethod, activeSearch]);
 
-  // SWR query with AbortController support
-  const { data: swrData, isLoading, isValidating, revalidate } = useSWR(
-    `collections-${JSON.stringify(queryParams)}`,
+  const currentQueryKey = useMemo(() => JSON.stringify(queryParams), [queryParams]);
+
+  // SWR query with AbortController support and query provenance
+  const { data: rawSwrData, isLoading, isValidating, revalidate } = useSWR(
+    `collections-${currentQueryKey}`,
     async () => {
       const res = await api.get('/payments/collections', { params: queryParams });
-      return res.data;
+      return { ...res.data, _queryKey: currentQueryKey };
     },
-    { ttl: 3 * 60 * 1000 }
+    { ttl: 3 * 60 * 1000, keepPreviousData: false }
   );
 
   // Auto-open record modal if ?action=record
@@ -295,8 +299,20 @@ export default function CollectionsPage() {
     success('Payment recorded successfully');
   };
 
+  // Track initial mount load: only show full page skeleton on frame-0 before any collections data has ever loaded
+  const hasInitialLoadedRef = useRef(false);
+  if (rawSwrData && !hasInitialLoadedRef.current) {
+    hasInitialLoadedRef.current = true;
+  }
+
+  // Provenance verification: verify that data matches active query key
+  const isCurrentQuery = Boolean(rawSwrData && rawSwrData._queryKey === currentQueryKey);
+  const swrData = isCurrentQuery ? rawSwrData : null;
+  const isFilterLoading = isLoading || isValidating || !isCurrentQuery;
+  const isInitialLoading = !hasInitialLoadedRef.current && (isLoading || !rawSwrData);
+
   const data = swrData || { summary: null, payments: [], total: 0, pages: 1 };
-  const loading = isLoading && !swrData;
+  const loading = isInitialLoading;
 
   // Compute readable Date Label
   const dateLabel = useMemo(() => {
@@ -510,7 +526,7 @@ export default function CollectionsPage() {
     }
   };
 
-  if (loading) {
+  if (isInitialLoading) {
     return (
       <div className="space-y-4 no-print">
         <CollectionsPageSkeleton />
@@ -530,11 +546,9 @@ export default function CollectionsPage() {
                 <Banknote className="w-5 h-5" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-slate-100 tracking-tight flex items-center gap-2">
+                <h1 className="text-2xl font-bold text-slate-100 tracking-tight flex items-center gap-2.5">
                   Collections
-                  {isValidating && !loading && (
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" title="Updating..." />
-                  )}
+                  <RefreshIndicator isRefreshing={isValidating || isFilterLoading} size="sm" showText />
                 </h1>
                 <p className="text-xs text-slate-400 mt-0.5">
                   Daily cash flow, digital receipts, and cashier register reconciliation
@@ -592,11 +606,19 @@ export default function CollectionsPage() {
                 <TrendingUp className="w-3.5 h-3.5" />
               </div>
             </div>
-            <p className="text-lg sm:text-xl font-bold text-slate-100 font-mono tracking-tight truncate">
-              {loading ? '...' : formatCurrency(totalCollected)}
-            </p>
+            {isFilterLoading ? (
+              <ShimmerBone className="h-6 sm:h-7 w-28 my-0.5 rounded-lg" />
+            ) : (
+              <p className="text-lg sm:text-xl font-bold text-slate-100 font-mono tracking-tight truncate">
+                {formatCurrency(totalCollected)}
+              </p>
+            )}
             <div className="flex items-center justify-between text-[10px] sm:text-[11px] text-slate-400 mt-1.5 pt-1.5 border-t border-slate-800 font-mono">
-              <span>{loading ? '...' : `${paymentCount} receipts`}</span>
+              {isFilterLoading ? (
+                <ShimmerBone className="h-3 w-16 rounded" />
+              ) : (
+                <span>{`${paymentCount} receipts`}</span>
+              )}
               <span className="text-slate-300 font-sans truncate max-w-[80px] sm:max-w-[120px]">{dateLabel}</span>
             </div>
           </div>
@@ -611,12 +633,24 @@ export default function CollectionsPage() {
                 <Banknote className="w-3.5 h-3.5" />
               </div>
             </div>
-            <p className="text-lg sm:text-xl font-bold text-emerald-400 font-mono tracking-tight truncate">
-              {loading ? '...' : formatCurrency(cashCollected)}
-            </p>
+            {isFilterLoading ? (
+              <ShimmerBone className="h-6 sm:h-7 w-24 my-0.5 rounded-lg" />
+            ) : (
+              <p className="text-lg sm:text-xl font-bold text-emerald-400 font-mono tracking-tight truncate">
+                {formatCurrency(cashCollected)}
+              </p>
+            )}
             <div className="flex items-center justify-between text-[10px] sm:text-[11px] text-slate-400 mt-1.5 pt-1.5 border-t border-slate-800 font-mono">
-              <span>{loading ? '...' : `${cashCount} cash`}</span>
-              <span className="text-emerald-400 font-semibold">{loading ? '...' : `${cashShare}%`}</span>
+              {isFilterLoading ? (
+                <ShimmerBone className="h-3 w-14 rounded" />
+              ) : (
+                <span>{`${cashCount} cash`}</span>
+              )}
+              {isFilterLoading ? (
+                <ShimmerBone className="h-3 w-10 rounded" />
+              ) : (
+                <span className="text-emerald-400 font-semibold">{`${cashShare}%`}</span>
+              )}
             </div>
           </div>
 
@@ -630,12 +664,24 @@ export default function CollectionsPage() {
                 <CreditCard className="w-3.5 h-3.5" />
               </div>
             </div>
-            <p className="text-lg sm:text-xl font-bold text-sky-400 font-mono tracking-tight truncate">
-              {loading ? '...' : formatCurrency(nonCashCollected)}
-            </p>
+            {isFilterLoading ? (
+              <ShimmerBone className="h-6 sm:h-7 w-24 my-0.5 rounded-lg" />
+            ) : (
+              <p className="text-lg sm:text-xl font-bold text-sky-400 font-mono tracking-tight truncate">
+                {formatCurrency(nonCashCollected)}
+              </p>
+            )}
             <div className="flex items-center justify-between text-[10px] sm:text-[11px] text-slate-400 mt-1.5 pt-1.5 border-t border-slate-800 font-mono">
-              <span>{loading ? '...' : `${nonCashCount} digital`}</span>
-              <span className="text-sky-400 font-semibold">{loading ? '...' : `${nonCashShare}%`}</span>
+              {isFilterLoading ? (
+                <ShimmerBone className="h-3 w-16 rounded" />
+              ) : (
+                <span>{`${nonCashCount} digital`}</span>
+              )}
+              {isFilterLoading ? (
+                <ShimmerBone className="h-3 w-10 rounded" />
+              ) : (
+                <span className="text-sky-400 font-semibold">{`${nonCashShare}%`}</span>
+              )}
             </div>
           </div>
 
@@ -649,14 +695,22 @@ export default function CollectionsPage() {
                 <Wallet className="w-3.5 h-3.5" />
               </div>
             </div>
-            <p className="text-lg sm:text-xl font-bold text-slate-100 font-mono tracking-tight truncate">
-              {loading ? '...' : formatCurrency(averageTicketSize)}
-            </p>
+            {isFilterLoading ? (
+              <ShimmerBone className="h-6 sm:h-7 w-24 my-0.5 rounded-lg" />
+            ) : (
+              <p className="text-lg sm:text-xl font-bold text-slate-100 font-mono tracking-tight truncate">
+                {formatCurrency(averageTicketSize)}
+              </p>
+            )}
             <div className="flex items-center justify-between text-[10px] sm:text-[11px] text-slate-400 mt-1.5 pt-1.5 border-t border-slate-800">
               <span>Top:</span>
-              <span className="text-slate-100 font-semibold truncate max-w-[80px] sm:max-w-[120px]">
-                {loading ? '...' : (topMethod ? topMethod.method : 'None')}
-              </span>
+              {isFilterLoading ? (
+                <ShimmerBone className="h-3 w-12 rounded" />
+              ) : (
+                <span className="text-slate-100 font-semibold truncate max-w-[80px] sm:max-w-[120px]">
+                  {topMethod ? topMethod.method : 'None'}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -685,7 +739,9 @@ export default function CollectionsPage() {
           <div className="space-y-2.5">
             {/* Segmented Volume Distribution Bar */}
             <div className="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden flex shadow-inner">
-              {totalCollected > 0 ? (
+              {isFilterLoading ? (
+                <div className="w-full h-full bg-slate-700/60 animate-pulse rounded-full" />
+              ) : totalCollected > 0 ? (
                 methodDistribution.map((item) => (
                   <div
                     key={item.method}
@@ -868,15 +924,17 @@ export default function CollectionsPage() {
             <div className="flex items-center gap-2">
               <FileText className="w-4 h-4 text-emerald-400" />
               <h2 className="text-sm font-bold text-slate-100">Collections Ledger</h2>
-              {!loading && (
+              {!isFilterLoading ? (
                 <span className="text-xs text-slate-400 font-mono ml-1.5">
                   ({data.total} {data.total === 1 ? 'record' : 'records'})
                 </span>
+              ) : (
+                <ShimmerBone className="h-4 w-16 ml-1.5 rounded" />
               )}
             </div>
 
             {/* Operational Context Subtitle */}
-            {!loading && (
+            {!isFilterLoading ? (
               <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
                 <span>
                   {data.total} {data.total === 1 ? 'receipt' : 'receipts'} · {datePreset === 'today' ? 'Today' : dateLabel} · {selectedMethod || 'All Channels'}
@@ -894,10 +952,15 @@ export default function CollectionsPage() {
                   </>
                 )}
               </div>
+            ) : (
+              <div className="flex items-center gap-2 text-xs text-slate-400">
+                <RefreshIndicator isRefreshing={true} size="xs" />
+                <span>Loading ledger records...</span>
+              </div>
             )}
           </div>
 
-          {loading ? (
+          {isFilterLoading ? (
             <CollectionsTableSkeleton />
           ) : data.payments.length === 0 ? (
             <div className="text-center py-16 px-4">
@@ -1237,7 +1300,7 @@ export default function CollectionsPage() {
           )}
 
           {/* Numbered Pagination */}
-          {data.pages > 1 && (
+          {!isFilterLoading && data.pages > 1 && (
             <div className="p-3.5 border-t border-slate-800 flex items-center justify-between text-xs">
               <p className="text-slate-400 font-mono">
                 Page <strong className="text-slate-100">{data.page}</strong> of <strong className="text-slate-100">{data.pages}</strong> ({data.total} items)
