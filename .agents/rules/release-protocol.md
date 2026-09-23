@@ -120,6 +120,7 @@ Immediately following branch push and tag creation:
   - **Categorized Change Highlights**: Grouped logically (`🎨 Frontend UI & Accessibility`, `🔧 Backend Services & APIs`, `📋 Legal & Compliance Documents`, `⚙️ Configuration & Tooling`).
   - **Key Files Modified**: Clear bulleted list of modified files and what changed in each.
   - **Verification & QA Status**: Confirmation that `tsc` and `npm run build` passed with 0 errors.
+  - **Zero Local Machine Paths**: Inside the release note markdown, strictly use clean repository-relative paths (`frontend/...`, `backend/...`) or code backticks (`Component.jsx`). Never include local machine filesystem paths or URLs (`file:///...`, `C:\...`, `D:\...`, `d:\...`, `/Users/...`) to protect privacy and ensure clean formatting on public GitHub Releases.
 
 > [!CAUTION]
 > Always verify that SSH or GPG signing is configured so `git tag -s` succeeds cleanly without prompt hangs.

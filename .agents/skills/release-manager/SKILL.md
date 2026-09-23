@@ -123,6 +123,7 @@ git push origin master; git push origin --tags
 > - Never ask the user to open a file or find a document to copy release notes.
 > - **You MUST output the full, unabridged release notes directly inside a fenced markdown codeblock (` ```markdown ... ``` `) in the chat response.**
 > - The content inside the codeblock must be **100% ready for GitHub Releases** — complete with titles, overview, problem/root cause, categorized features, tables of modified files, and QA results. Zero placeholders, zero unresolved variables, zero post-editing needed.
+> - **Zero Local Machine Paths (Privacy & Public Release Sanitation)**: Inside the GitHub release notes codeblock, NEVER include local filesystem paths or URLs (e.g. `file:///...`, `C:\...`, `D:\...`, `d:\...`, `/Users/...`). All file references must strictly use clean, repository-relative paths (`frontend/src/...`, `backend/src/...`) or standard markdown code backticks (`FileName.jsx`). Local paths break on GitHub and leak private PC directory structures.
 > - The user must be able to click the single-click "Copy" button on the codeblock in the chat UI and paste it directly into GitHub's release body textarea.
 > - **Direct Pre-filled Link**: Provide the direct pre-filled GitHub URL immediately above the codeblock:
 >   `https://github.com/subhankar-das-phantom/Billing-Software/releases/new?tag=vX.Y.Z&title=Release+vX.Y.Z+-+<Title>`
