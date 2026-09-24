@@ -14,7 +14,11 @@ export const SubscriptionProvider = ({ children }) => {
     location.pathname === '/' ||
     location.pathname === '/landing' ||
     location.pathname === '/privacy-policy' ||
-    location.pathname === '/terms';
+    location.pathname === '/terms' ||
+    location.pathname === '/login' ||
+    location.pathname === '/register' ||
+    location.pathname.startsWith('/login') ||
+    location.pathname.startsWith('/register');
 
   const [subscription, setSubscription] = useState(() => {
     try {
@@ -31,7 +35,11 @@ export const SubscriptionProvider = ({ children }) => {
       window.location.pathname === '/' ||
       window.location.pathname === '/landing' ||
       window.location.pathname === '/privacy-policy' ||
-      window.location.pathname === '/terms'
+      window.location.pathname === '/terms' ||
+      window.location.pathname === '/login' ||
+      window.location.pathname === '/register' ||
+      window.location.pathname.startsWith('/login') ||
+      window.location.pathname.startsWith('/register')
     );
     if (!hasToken || isPublic) return false;
     return !subscription;

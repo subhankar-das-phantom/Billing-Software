@@ -93,7 +93,7 @@ export default function LoginPage() {
         navigate('/');
       }
     } catch (err) {
-      showError(err.message || err.message || 'Login failed');
+      showError(err.message || 'Login failed');
     } finally {
       setLoading(false);
     }

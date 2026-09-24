@@ -224,7 +224,6 @@ export const AuthProvider = ({ children }) => {
   // Unified login - auto-detects Admin or Employee
   const login = async (email, password) => {
     try {
-      setAuthTransition('login');
       clearClientCaches();
       const data = await authService.login(email, password);
       
@@ -243,7 +242,6 @@ export const AuthProvider = ({ children }) => {
             localStorage.setItem('bharat_mobile_card_density', data.admin.preferences.mobileCardDensity);
           }
           
-          setAuthTransition(null);
           setTimeout(() => {
             showToast(`Welcome back, ${data.admin?.firmName || 'Admin'}!`, 'success');
           }, 200);
@@ -261,19 +259,16 @@ export const AuthProvider = ({ children }) => {
             localStorage.setItem('bharat_mobile_card_density', data.employee.preferences.mobileCardDensity);
           }
           
-          setAuthTransition(null);
           setTimeout(() => {
             showToast(`Welcome back, ${data.employee?.name || 'Employee'}!`, 'success');
           }, 200);
         }
       } else {
-        setAuthTransition(null);
         showToast(data?.message || 'Login failed', 'error');
       }
       
       return data;
     } catch (error) {
-      setAuthTransition(null);
       // Removed showToast here to prevent duplicate error toast in LoginPage
       throw error;
     }
@@ -397,32 +392,8 @@ export const AuthProvider = ({ children }) => {
         </AnimatePresence>
       </div>
 
-      {/* Login transition overlay - simplified for mobile */}
+      {/* Logout transition overlay - simplified for mobile */}
       <AnimatePresence>
-        {authTransition === 'login' && (
-          <motion.div
-            className="fixed inset-0 bg-slate-950/70 z-40 flex items-center justify-center"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-          >
-            <div className="bg-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-700">
-              <div className="flex flex-col items-center gap-4">
-                <div className="w-12 h-12 rounded-full border-3 border-blue-500 border-t-transparent animate-spin"></div>
-                <div className="text-center">
-                  <h3 className="text-xl font-semibold text-slate-100 mb-2">
-                    Signing you in...
-                  </h3>
-                  <p className="text-slate-400 text-sm">
-                    Please wait a moment
-                  </p>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-
         {authTransition === 'logout' && (
           <motion.div
             className="fixed inset-0 bg-slate-950/70 z-40 flex items-center justify-center"

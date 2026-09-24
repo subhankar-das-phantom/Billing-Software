@@ -36,6 +36,12 @@ For full release notes with implementation details, see [GitHub Releases](https:
 - **Frontend IST Locking (`formatters.js`, `InventoryLedgerPage.jsx`)** — Locked `formatDate`, `formatTime`, and `formatDateTime` to `{ timeZone: 'Asia/Kolkata' }` with uppercase meridiem. Replaced inline `toLocaleTimeString` and anchored ledger date presets to IST calendar dates via `en-CA`.
 - **Trial Days Synchronization (`PricingSection.jsx`, DB)** — Aligned MongoDB `defaultTrialDays` to `14` across staging and production databases. Equipped `PricingSection.jsx` with query-error resilient trial copy (`{!isError && trialDays ? ... : 'Full access trial included'}`).
 
+### 🛡️ Login Page Flicker Resolution & Auth Transition Parity (`AuthContext.jsx`, `LoginPage.jsx`, `SubscriptionContext.jsx`)
+- **Root Cause of Login Screen Flicker** — Identified that submitting the login form on `/login` unconditionally triggered `setAuthTransition('login')` before server credential validation. This mounted a fullscreen dark backdrop overlay (`fixed inset-0 bg-slate-950/70 z-40`) with a *"Signing you in..."* modal card. When the server rejected invalid credentials with `401 Unauthorized` in ~150ms, the catch block called `setAuthTransition(null)`, tearing the modal down abruptly and causing the entire screen to flash dark.
+- **Decoupled Pre-Flight Transition from Credential Verification (`AuthContext.jsx`)** — Surgically removed `setAuthTransition('login')` from the pre-flight phase of `login()` and removed the redundant `authTransition === 'login'` modal overlay from the JSX tree. Loading state during credential verification is now exclusively handled by `LoginPage`'s inline submit button spinner (`Loader2`), establishing 100% ergonomic parity with `RegisterPage`. Retained `authTransition === 'logout'` for smooth transition on dashboard sign-out.
+- **Defensive Public Route Scope (`SubscriptionContext.jsx`)** — Extended `isPublicMarketingRoute` and the Frame-0 lazy initializer to cover `/login` and `/register`, ensuring `SubscriptionContext` never triggers eager checks on auth routes.
+- **Form Error Fallback Cleanup (`LoginPage.jsx`)** — Removed duplicate `err.message || err.message` fallback in `handleSubmit`.
+
 ## [v2.6.4](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.6.4) — 2026-09-23 — Enterprise UI Skeletons & Landing Page Mobile Flicker Resolution
 
 ### 💎 Enterprise UI Loading Skeletons: Refer & Earn, Collections & Subscription
