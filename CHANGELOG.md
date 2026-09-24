@@ -4,6 +4,25 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.6.5](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.6.5) — 2026-09-24 — Inventory Ledger Remediation & Sales Movement Audit Synchronization
+
+### 📦 Non-Batch Inventory Sales Movement Logging (`invoiceController.js`)
+- **Root Cause of Missing Invoice Movements** — Identified that when `preferences.enableBatchTracking` was `false` (the default setting), `createInvoice`, `updateInvoice`, and `updateInvoiceStatus` directly deducted/restored `currentStockQty` on `Product` and wrote to `Product.stockHistory`, but bypassed `StockMovement` creation entirely because `recordStockMovement` was previously coupled inside batch-only FIFO allocation helpers.
+- **Atomic Sales Movement Ingestion (`createInvoice`)** — Wired batch `StockMovement.insertMany(stockMovements, { session })` inside the creation transaction when batch tracking is disabled. Automatically records immutable `SALE` audit movements capturing exact product IDs, sold quantities, unit rates, total transactional values, and document references.
+- **Delta-Based Stock Edit Movements (`updateInvoice`)** — Added atomic `StockMovement` logging for non-batch invoice edits: additional unit deductions record as `SALE`, while quantity reductions record as `SALE_RETURN` with zero loss of balance parity.
+- **Cancellation Restorations (`updateInvoiceStatus`)** — Integrated compensating `SALE_REVERSAL` audit records whenever non-batch invoices transition to `'Cancelled'`, guaranteeing 100% visual and transactional parity with batch-managed invoices across standalone and replica-set environments.
+
+### 📊 Inventory Ledger Sign Correction & Flow Classification (`InventoryLedgerPage.jsx`, `stockMovementService.ts`, `stockMovementController.ts`, `purchaseReportService.ts`)
+- **Unsigned Quantity Bug Resolution** — Resolved the discrepancy where all `StockMovement` records (including `MANUAL_ADJUSTMENT_OUT`) rendered with positive signs (`+156`, `+200`, `+7`) and accrued into **Inflow Units** (`+1087`) while **Outflow Units** stayed at `-0`.
+- **Direction & Signed Quantity Projection (`stockMovementService.ts`)** — Enhanced aggregation pipeline `$project` stage to compute `direction` (`'IN'` vs `'OUT'`) and `signedQuantity` natively via MongoDB conditional expressions.
+- **Authoritative Flow Classification (`InventoryLedgerPage.jsx`)** — Defined unified `INFLOW_TYPES` (`PURCHASE`, `OPENING_STOCK`, `MANUAL_ADJUSTMENT_IN`, `SALE_RETURN`, `SALE_REVERSAL`) to strictly partition inflows from outflows. Updated KPI metric cards to accurately accumulate positive additions into **Inflow Units** and negative deductions into **Outflow Units**.
+- **Visual Badge Parity** — Outflows (`SALE`, `MANUAL_ADJUSTMENT_OUT`, `PURCHASE_RETURN`) now distinctly render with negative prefix (`-156`, `-20`) styled in Rose Red (`bg-rose-500/10 text-rose-400`), while Inflows render with positive prefix (`+117`, `+5`) in Emerald Green.
+- **Export Engine Alignment (`stockMovementController.ts`)** — Mirrored movement type classification in `exportStockMovements`, ensuring exported Excel, CSV, and PDF workbooks accurately display signed quantities and matching turnover totals.
+- **Purchase Report Classification Parity (`purchaseReportService.ts`)** — Reclassified `SALE_REVERSAL` as an inward stock movement (restoring stock) rather than an outward flow.
+
+### 🔄 Safe Idempotent Historical Backfill Script (`backfillStockMovements.js`)
+- **Historical Invoice Reconciliation** — Provided a standalone, additive-only migration script (`backend/scripts/backfillStockMovements.js`) with `--dry-run` simulation support. Reconciles pre-existing non-batch invoices into `StockMovement` audit records without modifying `Product.currentStockQty` or disrupting active inventories.
+
 ## [v2.6.4](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.6.4) — 2026-09-23 — Enterprise UI Skeletons & Landing Page Mobile Flicker Resolution
 
 ### 💎 Enterprise UI Loading Skeletons: Refer & Earn, Collections & Subscription
