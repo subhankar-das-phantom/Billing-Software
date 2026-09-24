@@ -43,10 +43,27 @@ async function runBackfill() {
 
     console.log(`Found ${activeInvoices.length} active invoices across all tenants.`);
 
+    // Batch fetch existing Invoice movements for O(1) in-memory lookup (Zero N+1)
+    console.log('Loading existing invoice stock movements for fast index check...');
+    const existingMovements = await StockMovement.find({ referenceType: 'Invoice' })
+      .select('referenceId productId')
+      .lean();
+
+    const existingSet = new Set<string>();
+    for (const em of existingMovements) {
+      if (em.referenceId && em.productId) {
+        existingSet.add(`${String(em.referenceId)}_${String(em.productId)}`);
+      }
+    }
+    console.log(`Loaded ${existingSet.size} pre-existing movement checkpoints.`);
+
     let totalItemsChecked = 0;
     let movementsCreated = 0;
     let movementsSkipped = 0;
     let errorsCount = 0;
+
+    const BATCH_SIZE = 200;
+    let pendingBatch: any[] = [];
 
     for (const inv of activeInvoices) {
       const items = inv.items || [];
@@ -62,49 +79,50 @@ async function runBackfill() {
           continue;
         }
 
-        try {
-          // Check if StockMovement already exists for this invoice line
-          const existing = await StockMovement.findOne({
-            tenantId: inv.tenantId,
-            referenceType: 'Invoice',
-            referenceId: String(inv._id),
-            productId: prodId
-          }).lean();
+        const lookupKey = `${String(inv._id)}_${String(prodId)}`;
+        if (existingSet.has(lookupKey)) {
+          movementsSkipped++;
+          continue;
+        }
 
-          if (existing) {
-            movementsSkipped++;
-            continue;
+        const rate = item.ratePerUnit || 0;
+        const totalValue = rate * totalQty;
+        const movementDoc = {
+          tenantId: inv.tenantId,
+          productId: prodId,
+          batchId: item.batchId || null,
+          type: 'SALE' as const,
+          quantity: totalQty,
+          rate,
+          totalValue,
+          referenceType: 'Invoice',
+          referenceId: String(inv._id),
+          createdBy: inv.createdBy || { userModel: 'Admin' },
+          createdAt: inv.createdAt || inv.invoiceDate || new Date()
+        };
+
+        pendingBatch.push(movementDoc);
+        existingSet.add(lookupKey); // Prevent duplicate lines in same invoice from colliding
+
+        if (pendingBatch.length >= BATCH_SIZE) {
+          if (!isDryRun) {
+            await StockMovement.insertMany(pendingBatch, { ordered: false });
           }
-
-          const rate = item.ratePerUnit || 0;
-          const totalValue = rate * totalQty;
-          const movementDoc = {
-            tenantId: inv.tenantId,
-            productId: prodId,
-            batchId: item.batchId || null,
-            type: 'SALE' as const,
-            quantity: totalQty,
-            rate,
-            totalValue,
-            referenceType: 'Invoice',
-            referenceId: String(inv._id),
-            createdBy: inv.createdBy || { userModel: 'Admin' },
-            createdAt: inv.createdAt || inv.invoiceDate || new Date()
-          };
-
-          if (isDryRun) {
-            console.log(`  [DRY RUN] Would create SALE movement: Invoice ${inv.invoiceNumber} -> Product ${prodId} (Qty: ${totalQty}, Val: ₹${totalValue})`);
-          } else {
-            await StockMovement.create(movementDoc);
-            console.log(`  [OK] Created SALE movement: Invoice ${inv.invoiceNumber} -> Product ${prodId} (Qty: ${totalQty})`);
-          }
-
-          movementsCreated++;
-        } catch (err: any) {
-          console.error(`  [ERROR] Failed to reconcile item for invoice ${inv.invoiceNumber}: ${err.message}`);
-          errorsCount++;
+          movementsCreated += pendingBatch.length;
+          console.log(`  Processed ${movementsCreated} movements...`);
+          pendingBatch = [];
         }
       }
+    }
+
+    // Flush remaining batch
+    if (pendingBatch.length > 0) {
+      if (!isDryRun) {
+        await StockMovement.insertMany(pendingBatch, { ordered: false });
+      }
+      movementsCreated += pendingBatch.length;
+      console.log(`  Processed ${movementsCreated} movements...`);
+      pendingBatch = [];
     }
 
     console.log('\n' + '='.repeat(70));
