@@ -4,7 +4,7 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
-## [v2.6.5](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.6.5) — 2026-09-24 — Inventory Ledger Remediation & Sales Movement Audit Synchronization
+## [v2.7.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.7.0) — 2026-09-24 — Inventory Ledger Remediation, IST Synchronization & Auth Transition Hardening
 
 ### 📦 Non-Batch Inventory Sales Movement Logging (`invoiceController.js`)
 - **Root Cause of Missing Invoice Movements** — Identified that when `preferences.enableBatchTracking` was `false` (the default setting), `createInvoice`, `updateInvoice`, and `updateInvoiceStatus` directly deducted/restored `currentStockQty` on `Product` and wrote to `Product.stockHistory`, but bypassed `StockMovement` creation entirely because `recordStockMovement` was previously coupled inside batch-only FIFO allocation helpers.
