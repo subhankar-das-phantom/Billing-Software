@@ -145,7 +145,7 @@ export const exportStockMovements = async (req: AuthRequest, res: Response, next
       const batchNoStr = m.batch?.batchNo || m.batchNumber;
       const displayBatch = batchNoStr && batchNoStr !== 'UNNAMED' ? batchNoStr : '-';
       const expiryDate = m.batch?.expiryDate
-        ? new Date(m.batch.expiryDate).toLocaleDateString('en-IN')
+        ? new Date(m.batch.expiryDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })
         : '-';
 
       const isInflow = m.direction === 'IN' || (m.direction ? false : INFLOW_TYPES.has(m.type));

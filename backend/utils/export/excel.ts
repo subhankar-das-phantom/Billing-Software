@@ -95,6 +95,19 @@ export const buildWorkbook = async <T = any>(
           if (!isNaN(numVal)) val = numVal / 100;
         }
       }
+      if (col.format === 'datetime' || col.format === 'date') {
+        if (val instanceof Date || (typeof val === 'string' && val)) {
+          const d = new Date(val);
+          if (!isNaN(d.getTime())) {
+            // Excel serial dates have no timezone metadata. ExcelJS serializes Date objects as UTC.
+            // Adjust by Indian Standard Time (+5:30) offset relative to runtime server timezone
+            // so Excel spreadsheets display exact Asia/Kolkata calendar date and time.
+            const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+            const serverOffsetMs = d.getTimezoneOffset() * 60 * 1000;
+            val = new Date(d.getTime() + IST_OFFSET_MS + serverOffsetMs);
+          }
+        }
+      }
       rowValues[String(col.key)] = val ?? '';
     });
 

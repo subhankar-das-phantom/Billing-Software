@@ -290,7 +290,7 @@ export default function PricingSection() {
                   <ArrowRight className="w-4 h-4" />
                 </Link>
                 <p className="text-center text-[11px] text-slate-400 mt-2">
-                  Includes {trialDays}-day initial trial access
+                  {!isError && trialDays ? `Includes ${trialDays}-day initial trial access` : 'Full access trial included'}
                 </p>
               </div>
             </div>

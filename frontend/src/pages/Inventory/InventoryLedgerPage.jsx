@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import stockMovementService from '../../services/stockMovementService';
 import { productService } from '../../services/products/productService';
-import { formatCurrency, formatDate } from '../../utils/formatters';
+import { formatCurrency, formatDate, formatTime } from '../../utils/formatters';
 import { useToast } from '../../contexts/ToastContext';
 import { useDebounce, useFirstVisit, useMotionConfig, useSWR, invalidateCachePattern } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
@@ -127,34 +127,34 @@ export default function InventoryLedgerPage() {
     };
   }, [debouncedProductSearchText, showProductDropdown]);
 
+  // Helper: Format date in Indian Standard Time (YYYY-MM-DD)
+  const toIST_YMD = (d) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(d);
+
   // Date Presets Handler
   const handleDatePreset = (preset) => {
     setDatePreset(preset);
     const now = new Date();
-    const toYMD = (d) => {
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    };
+    const todayStr = toIST_YMD(now);
+    const [currY, currM, currD] = todayStr.split('-').map(Number);
 
     switch (preset) {
       case 'today': {
-        const todayStr = toYMD(now);
         setDateFrom(todayStr);
         setDateTo(todayStr);
         break;
       }
       case 'thisWeek': {
-        const firstDay = new Date(now.setDate(now.getDate() - now.getDay()));
-        setDateFrom(toYMD(firstDay));
-        setDateTo(toYMD(new Date()));
+        const dayOfWeek = new Date(Date.UTC(currY, currM - 1, currD)).getUTCDay();
+        const startDayUtc = new Date(Date.UTC(currY, currM - 1, currD - dayOfWeek));
+        const weekStartStr = `${startDayUtc.getUTCFullYear()}-${String(startDayUtc.getUTCMonth() + 1).padStart(2, '0')}-${String(startDayUtc.getUTCDate()).padStart(2, '0')}`;
+        setDateFrom(weekStartStr);
+        setDateTo(todayStr);
         break;
       }
       case 'thisMonth': {
-        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-        setDateFrom(toYMD(firstDay));
-        setDateTo(toYMD(new Date()));
+        const monthStart = `${currY}-${String(currM).padStart(2, '0')}-01`;
+        setDateFrom(monthStart);
+        setDateTo(todayStr);
         break;
       }
       case 'all':
@@ -709,7 +709,7 @@ export default function InventoryLedgerPage() {
                           </span>
                           <span className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
                             <Clock className="w-3 h-3 text-slate-500" />
-                            {new Date(mov.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {formatTime(mov.createdAt)}
                           </span>
                         </div>
                       </td>

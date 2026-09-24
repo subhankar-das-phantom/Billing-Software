@@ -186,10 +186,13 @@ export const formatDate = (date, format = 'medium') => {
   };
   
   try {
-    const res = new Intl.DateTimeFormat('en-IN', formats[format]).format(d);
+    const res = new Intl.DateTimeFormat('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      ...formats[format]
+    }).format(d);
     return res.replace(/\bSept\b/g, 'Sep');
   } catch (e) {
-    return d.toLocaleDateString('en-IN');
+    return d.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
   }
 };
 
@@ -228,6 +231,7 @@ export const formatPaymentTime = (payment) => {
   if (!sourceDate || Number.isNaN(sourceDate.getTime())) return '-';
 
   return sourceDate.toLocaleTimeString('en-IN', {
+    timeZone: 'Asia/Kolkata',
     hour: '2-digit',
     minute: '2-digit',
     hour12: true
@@ -273,6 +277,7 @@ export const formatDateTime = (date) => {
   if (isNaN(d.getTime())) return '-';
   
   return d.toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata',
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -295,6 +300,7 @@ export const formatTime = (date, seconds = false) => {
   if (isNaN(d.getTime())) return '-';
   
   const options = {
+    timeZone: 'Asia/Kolkata',
     hour: '2-digit',
     minute: '2-digit',
     hour12: true
@@ -304,7 +310,7 @@ export const formatTime = (date, seconds = false) => {
     options.second = '2-digit';
   }
   
-  return d.toLocaleTimeString('en-IN', options);
+  return d.toLocaleTimeString('en-IN', options).toUpperCase();
 };
 
 /**

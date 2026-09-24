@@ -17,6 +17,20 @@ function escapeRegex(text: string): string {
   return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
 }
 
+export const parseISTDateBoundary = (dateInput?: any, endOfDay = false): Date | null => {
+  if (!dateInput) return null;
+  const raw = String(dateInput).trim();
+  const ymdMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (ymdMatch) {
+    const [, year, month, day] = ymdMatch;
+    const timePart = endOfDay ? '23:59:59.999' : '00:00:00.000';
+    const parsed = new Date(`${year}-${month}-${day}T${timePart}+05:30`);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
 export const stockMovementService = {
   async getStockMovements(
     tenantId: string,
@@ -69,12 +83,12 @@ export const stockMovementService = {
     if (filters.dateFrom || filters.dateTo) {
       matchStage.createdAt = {};
       if (filters.dateFrom) {
-        matchStage.createdAt.$gte = new Date(filters.dateFrom);
+        const fromDate = parseISTDateBoundary(filters.dateFrom, false);
+        if (fromDate) matchStage.createdAt.$gte = fromDate;
       }
       if (filters.dateTo) {
-        const toDate = new Date(filters.dateTo);
-        toDate.setHours(23, 59, 59, 999);
-        matchStage.createdAt.$lte = toDate;
+        const toDate = parseISTDateBoundary(filters.dateTo, true);
+        if (toDate) matchStage.createdAt.$lte = toDate;
       }
     }
 
