@@ -265,6 +265,14 @@ export default function InventoryLedgerPage() {
     setPage(1);
   };
 
+  const INFLOW_TYPES = useMemo(() => new Set([
+    'PURCHASE',
+    'OPENING_STOCK',
+    'MANUAL_ADJUSTMENT_IN',
+    'SALE_RETURN',
+    'SALE_REVERSAL'
+  ]), []);
+
   // Summary Metrics from Current Page / Movements
   const metrics = useMemo(() => {
     let inflowUnits = 0;
@@ -272,9 +280,14 @@ export default function InventoryLedgerPage() {
     let totalVal = 0;
 
     movements.forEach((mov) => {
-      const qty = mov.quantity || 0;
-      if (qty > 0) inflowUnits += qty;
-      else outflowUnits += Math.abs(qty);
+      const qty = Math.abs(mov.quantity || 0);
+      const isInflow = mov.direction === 'IN' || (mov.direction ? false : INFLOW_TYPES.has(mov.type));
+
+      if (isInflow) {
+        inflowUnits += qty;
+      } else {
+        outflowUnits += qty;
+      }
 
       totalVal += mov.totalValue || Math.abs(qty * (mov.rate || 0));
     });
@@ -285,7 +298,7 @@ export default function InventoryLedgerPage() {
       totalVal,
       count: total
     };
-  }, [movements, total]);
+  }, [movements, total, INFLOW_TYPES]);
 
   // Handle Export via Unified Export Engine (Excel, PDF, CSV)
   const handleExport = async ({ format, dateRange }) => {
@@ -669,7 +682,8 @@ export default function InventoryLedgerPage() {
               </thead>
               <tbody className="divide-y divide-slate-800 text-sm">
                 {movements.map((mov) => {
-                  const isPositive = mov.quantity > 0;
+                  const isInflow = mov.direction === 'IN' || (mov.direction ? false : INFLOW_TYPES.has(mov.type));
+                  const displayQty = Math.abs(mov.quantity || 0);
                   const config = movementConfig[mov.type] || {
                     label: mov.type?.replace(/_/g, ' ') || 'Movement',
                     color: 'text-slate-300',
@@ -748,12 +762,12 @@ export default function InventoryLedgerPage() {
                       <td className="py-3 px-4 text-right">
                         <span
                           className={`inline-flex items-center font-bold px-2.5 py-1 rounded-lg text-xs font-mono ${
-                            isPositive
+                            isInflow
                               ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-sm shadow-emerald-500/10'
                               : 'bg-rose-500/10 text-rose-400 border border-rose-500/20 shadow-sm shadow-rose-500/10'
                           }`}
                         >
-                          {isPositive ? `+${mov.quantity}` : mov.quantity}
+                          {isInflow ? `+${displayQty}` : `-${displayQty}`}
                         </span>
                       </td>
 
