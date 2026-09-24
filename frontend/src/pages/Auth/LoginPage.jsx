@@ -87,12 +87,19 @@ export default function LoginPage() {
     }
 
     setLoading(true);
+    const startTime = Date.now();
     try {
       const result = await login(email, password);
       if (result?.success) {
         navigate('/');
       }
     } catch (err) {
+      // Hold loading state for at least 400ms so rapid local network 401 rejections (~20ms) don't trigger a 1-frame button flick
+      const elapsed = Date.now() - startTime;
+      const MIN_LOADING_MS = 400;
+      if (elapsed < MIN_LOADING_MS) {
+        await new Promise(resolve => setTimeout(resolve, MIN_LOADING_MS - elapsed));
+      }
       showError(err.message || 'Login failed');
     } finally {
       setLoading(false);
