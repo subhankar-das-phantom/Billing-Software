@@ -125,6 +125,30 @@ export const stockMovementService = {
         $project: {
           type: 1,
           quantity: 1,
+          direction: {
+            $cond: {
+              if: {
+                $in: [
+                  '$type',
+                  ['PURCHASE', 'OPENING_STOCK', 'MANUAL_ADJUSTMENT_IN', 'SALE_RETURN', 'SALE_REVERSAL']
+                ]
+              },
+              then: 'IN',
+              else: 'OUT'
+            }
+          },
+          signedQuantity: {
+            $cond: {
+              if: {
+                $in: [
+                  '$type',
+                  ['PURCHASE', 'OPENING_STOCK', 'MANUAL_ADJUSTMENT_IN', 'SALE_RETURN', 'SALE_REVERSAL']
+                ]
+              },
+              then: '$quantity',
+              else: { $multiply: ['$quantity', -1] }
+            }
+          },
           rate: 1,
           totalValue: 1,
           referenceType: 1,

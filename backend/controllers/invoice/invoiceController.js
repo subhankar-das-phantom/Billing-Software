@@ -757,6 +757,37 @@ exports.createInvoice = async (req, res, next) => {
       await Product.bulkWrite(stockUpdateOperations, { session });
     }
 
+    if (!enableBatchTracking) {
+      const StockMovement = require('../../models/StockMovement').default || require('../../models/StockMovement');
+      const nonBatchMovements = [];
+
+      for (const item of processedItems) {
+        const totalQty = (item.quantitySold || 0) + (item.freeQuantity || 0);
+        if (totalQty <= 0) continue;
+        const prodId = item.product?._id || item.product;
+        const product = productMap.get(prodId.toString());
+        const rate = item.ratePerUnit || product?.rate || 0;
+
+        nonBatchMovements.push({
+          tenantId,
+          productId: prodId,
+          batchId: null,
+          type: 'SALE',
+          quantity: totalQty,
+          rate,
+          totalValue: rate * totalQty,
+          referenceType: 'Invoice',
+          referenceId: String(invoice[0]._id),
+          createdBy: getAttribution(req),
+          createdAt: invoice[0].invoiceDate || stockTimestamp
+        });
+      }
+
+      if (nonBatchMovements.length > 0) {
+        await StockMovement.insertMany(nonBatchMovements, { session });
+      }
+    }
+
     if (enableBatchTracking) {
       const inventoryService = require('../../services/inventoryService');
       const batchExpandedItems = [];
@@ -1031,6 +1062,22 @@ exports.updateInvoice = async (req, res, next) => {
             success: false, message: `Insufficient stock for ${productMap[pid].productName}. Additional required: ${delta}`
           });
         }
+
+        const StockMovement = require('../../models/StockMovement').default || require('../../models/StockMovement');
+        const prodRate = productMap[pid]?.rate || productMap[pid]?.newMRP || 0;
+        await StockMovement.create([{
+          tenantId,
+          productId: pid,
+          batchId: null,
+          type: 'SALE',
+          quantity: delta,
+          rate: prodRate,
+          totalValue: prodRate * delta,
+          referenceType: 'Invoice',
+          referenceId: String(existingInvoice._id),
+          createdBy: getAttribution(req),
+          createdAt: new Date()
+        }], { session });
       } else {
         await Product.findOneAndUpdate(
           { _id: pid, tenantId },
@@ -1044,6 +1091,23 @@ exports.updateInvoice = async (req, res, next) => {
             }
           }, { session }
         );
+
+        const StockMovement = require('../../models/StockMovement').default || require('../../models/StockMovement');
+        const prodRate = productMap[pid]?.rate || productMap[pid]?.newMRP || 0;
+        const restoredQty = Math.abs(delta);
+        await StockMovement.create([{
+          tenantId,
+          productId: pid,
+          batchId: null,
+          type: 'SALE_RETURN',
+          quantity: restoredQty,
+          rate: prodRate,
+          totalValue: prodRate * restoredQty,
+          referenceType: 'Invoice',
+          referenceId: String(existingInvoice._id),
+          createdBy: getAttribution(req),
+          createdAt: new Date()
+        }], { session });
       }
     }
 
@@ -1360,6 +1424,22 @@ exports.updateInvoiceStatus = async (req, res, next) => {
               },
               { session }
             );
+
+            const StockMovement = require('../../models/StockMovement').default || require('../../models/StockMovement');
+            const rate = item.ratePerUnit || 0;
+            await StockMovement.create([{
+              tenantId,
+              productId: item.product._id,
+              batchId: null,
+              type: 'SALE_REVERSAL',
+              quantity: totalQty,
+              rate,
+              totalValue: rate * totalQty,
+              referenceType: 'Invoice',
+              referenceId: String(invoice._id),
+              createdBy: getAttribution(req),
+              createdAt: new Date()
+            }], { session });
           }
         }
 
@@ -1415,6 +1495,22 @@ exports.updateInvoiceStatus = async (req, res, next) => {
                 }
               }
             );
+
+            const StockMovement = require('../../models/StockMovement').default || require('../../models/StockMovement');
+            const rate = item.ratePerUnit || 0;
+            await StockMovement.create([{
+              tenantId,
+              productId: item.product._id,
+              batchId: null,
+              type: 'SALE_REVERSAL',
+              quantity: totalQty,
+              rate,
+              totalValue: rate * totalQty,
+              referenceType: 'Invoice',
+              referenceId: String(invoice._id),
+              createdBy: getAttribution(req),
+              createdAt: new Date()
+            }]);
           }
 
           const customerUpdate = {

@@ -234,8 +234,8 @@ export const purchaseReportService = {
       totalOutflowQty: 0
     };
 
-    const inTypes = ['PURCHASE', 'OPENING_STOCK', 'MANUAL_ADJUSTMENT_IN', 'SALE_RETURN'];
-    const outTypes = ['SALE', 'MANUAL_ADJUSTMENT_OUT', 'PURCHASE_RETURN', 'SALE_REVERSAL'];
+    const inTypes = ['PURCHASE', 'OPENING_STOCK', 'MANUAL_ADJUSTMENT_IN', 'SALE_RETURN', 'SALE_REVERSAL'];
+    const outTypes = ['SALE', 'MANUAL_ADJUSTMENT_OUT', 'PURCHASE_RETURN'];
 
     results.forEach(r => {
       const item = { type: r._id, count: r.count, quantity: r.quantity };

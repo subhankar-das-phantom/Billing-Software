@@ -138,6 +138,8 @@ export const exportStockMovements = async (req: AuthRequest, res: Response, next
       MANUAL_ADJUSTMENT_OUT: 'Adjustment Out'
     };
 
+    const INFLOW_TYPES = new Set(['PURCHASE', 'OPENING_STOCK', 'MANUAL_ADJUSTMENT_IN', 'SALE_RETURN', 'SALE_REVERSAL']);
+
     // 1. Map Data Rows
     const dataRows: StockMovementExportRow[] = movements.map((m: any) => {
       const batchNoStr = m.batch?.batchNo || m.batchNumber;
@@ -146,15 +148,19 @@ export const exportStockMovements = async (req: AuthRequest, res: Response, next
         ? new Date(m.batch.expiryDate).toLocaleDateString('en-IN')
         : '-';
 
+      const isInflow = m.direction === 'IN' || (m.direction ? false : INFLOW_TYPES.has(m.type));
+      const absQty = Math.abs(m.quantity || 0);
+      const signedQty = isInflow ? absQty : -absQty;
+
       return {
         dateTime: m.createdAt ? new Date(m.createdAt) : '',
         type: typeLabels[m.type] || m.type || 'Movement',
         productName: m.product?.productName || m.productName || 'General Product',
         batchNo: displayBatch,
         expiryDate,
-        quantity: m.quantity || 0,
+        quantity: signedQty,
         rate: m.rate || 0,
-        totalValue: m.totalValue || Math.abs((m.quantity || 0) * (m.rate || 0)),
+        totalValue: m.totalValue || Math.abs(absQty * (m.rate || 0)),
         operator: m.createdBy?.name || 'System',
         referenceType: m.referenceType || '-'
       };
@@ -168,7 +174,7 @@ export const exportStockMovements = async (req: AuthRequest, res: Response, next
     const uniqueBatches = new Set<string>();
 
     dataRows.forEach(r => {
-      if (r.quantity > 0) totalInflowUnits += r.quantity;
+      if (r.quantity >= 0) totalInflowUnits += r.quantity;
       else totalOutflowUnits += Math.abs(r.quantity);
 
       totalTurnoverVal += r.totalValue;
