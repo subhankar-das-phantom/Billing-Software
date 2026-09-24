@@ -2,14 +2,12 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, CheckCircle2 } from 'lucide-react';
 import { AUTH_ACTIONS } from '../data/navigation';
-import {
-  useTrialDaysQuery,
-  useStartingPriceQuery,
-} from '../../../features/saas/queries/useSubscriptionPlansQuery';
+import { useSubscriptionPlansQuery } from '../../../features/saas/queries/useSubscriptionPlansQuery';
 
 export default function FinalCTA() {
-  const trialDays = useTrialDaysQuery();
-  const minStartingPrice = useStartingPriceQuery();
+  const { data: plansData, isError } = useSubscriptionPlansQuery();
+  const trialDays = plansData?.trialDays;
+  const minStartingPrice = plansData?.minStartingPrice;
 
   return (
     <section className="py-20 lg:py-28 border-t border-slate-800/80 bg-slate-950 relative overflow-hidden transition-colors">
@@ -51,7 +49,7 @@ export default function FinalCTA() {
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs text-slate-400">
             <div className="flex items-center space-x-1.5">
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              <span>{trialDays}-Day Trial Period</span>
+              <span>{!isError && trialDays ? `${trialDays}-Day Free Trial` : 'Full Access Free Trial'}</span>
             </div>
             <div className="flex items-center space-x-1.5">
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
@@ -59,7 +57,7 @@ export default function FinalCTA() {
             </div>
             <div className="flex items-center space-x-1.5">
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              <span>Plans from ₹{minStartingPrice.toLocaleString('en-IN')}/mo</span>
+              <span>{!isError && minStartingPrice ? `Plans from ₹${minStartingPrice.toLocaleString('en-IN')}/mo` : 'Flexible Growth Plans'}</span>
             </div>
           </div>
         </div>

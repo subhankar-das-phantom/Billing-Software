@@ -23,6 +23,12 @@ For full release notes with implementation details, see [GitHub Releases](https:
 ### 🔄 Safe Idempotent Historical Backfill Script (`backfillStockMovements.js`)
 - **Historical Invoice Reconciliation** — Provided a standalone, additive-only migration script (`backend/scripts/backfillStockMovements.js`) with `--dry-run` simulation support. Reconciles pre-existing non-batch invoices into `StockMovement` audit records without modifying `Product.currentStockQty` or disrupting active inventories.
 
+### 💎 Landing Page Refinements & Showcase Truthfulness (`HeroSection.jsx`, `FinalCTA.jsx`)
+- **Social Proof Claim Alignment (`HeroSection.jsx`)** — Replaced unsupported social-proof eyebrow (`"TRUSTED BY INDIAN DISTRIBUTORS, WHOLESALERS & RETAIL ENTERPRISES"`) with defensible product positioning (`"BUILT FOR INDIAN DISTRIBUTORS, WHOLESALERS & RETAIL ENTERPRISES"`).
+- **Showcase Data Neutrality & Copy Honesty (`HeroSection.jsx`)** — Replaced misleading "live" operational terminology on floating hero cards with honest showcase labeling: `"Showcase metrics"` (Sample badge) instead of `"Live Telemetry"`, `"Showcase snapshot"` (Sample badge) instead of `"Catalog Status / Synchronized"`, and `"Inventory overview"` instead of `"Real-time inventory"`.
+- **Pricing Query Failure Resilience & Fallback Parity (`HeroSection.jsx`, `FinalCTA.jsx`)** — Wired Hero and Final CTA reassurance copy to directly consume the reactive query state from `useSubscriptionPlansQuery()`. When plan fetching encounters an error in production, the UI gracefully suppresses stale commercial pricing numbers and displays neutral copy (`"Flexible plans for growing distribution businesses"` / `"Full Access Free Trial"` / `"Flexible Growth Plans"`), maintaining parity with `PricingSection`'s synchronization state.
+- **Side-by-Side 50/50 Desktop Hero Layout & 2-Line Headline (`HeroSection.jsx`)** — Balanced desktop hero columns from 5/7 to 6/6 (`lg:col-span-6`) with `<span className="lg:block">The Operating System for</span> <span>Modern Indian Distribution</span>` at `lg:text-[40px] xl:text-[46px] 2xl:text-[48px]`, guaranteeing an aesthetically balanced, natural 2-line title on desktop and wide monitors without awkward line breaks.
+
 ## [v2.6.4](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.6.4) — 2026-09-23 — Enterprise UI Skeletons & Landing Page Mobile Flicker Resolution
 
 ### 💎 Enterprise UI Loading Skeletons: Refer & Earn, Collections & Subscription

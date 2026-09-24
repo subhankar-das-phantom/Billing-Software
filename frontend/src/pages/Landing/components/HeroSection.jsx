@@ -3,16 +3,17 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, BarChart3, Package } from 'lucide-react';
 import ProductWindow from './ProductWindow';
 import { AUTH_ACTIONS } from '../data/navigation';
-import {
-  useTrialDaysQuery,
-  useStartingPriceQuery,
-  useShowcaseTelemetryQuery,
-} from '../../../features/saas/queries/useSubscriptionPlansQuery';
+import { useSubscriptionPlansQuery } from '../../../features/saas/queries/useSubscriptionPlansQuery';
 
 export default function HeroSection() {
-  const trialDays = useTrialDaysQuery();
-  const minStartingPrice = useStartingPriceQuery();
-  const telemetry = useShowcaseTelemetryQuery();
+  const { data: plansData, isError } = useSubscriptionPlansQuery();
+  const trialDays = plansData?.trialDays;
+  const minStartingPrice = plansData?.minStartingPrice;
+  const telemetry = plansData?.telemetry || {
+    productsCount: 50,
+    batchesCount: 112,
+    firmName: 'Bharat Healthcare & Distributors',
+  };
 
   return (
     <section id="product" className="relative pt-16 pb-12 sm:pt-20 sm:pb-16 lg:pt-20 lg:pb-16 overflow-hidden">
@@ -25,13 +26,14 @@ export default function HeroSection() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 xl:gap-14 items-center">
           {/* Left Column: Eyebrow, Headline, Subtitle, CTAs & Trial Info */}
-          <div className="lg:col-span-5 flex flex-col justify-center text-left">
+          <div className="lg:col-span-6 flex flex-col justify-center text-left">
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3 sm:mb-4">
-              TRUSTED BY INDIAN DISTRIBUTORS, WHOLESALERS & RETAIL ENTERPRISES
+              BUILT FOR INDIAN DISTRIBUTORS, WHOLESALERS & RETAIL ENTERPRISES
             </p>
 
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-[44px] xl:text-[50px] font-bold text-slate-50 tracking-tight leading-[1.12]">
-              The Operating System for Modern Indian Distribution
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-[40px] xl:text-[46px] 2xl:text-[48px] font-bold text-slate-50 tracking-tight leading-[1.14]">
+              <span className="lg:block">The Operating System for</span>{' '}
+              <span>Modern Indian Distribution</span>
             </h1>
 
             <p className="mt-4 sm:mt-5 text-base sm:text-lg text-slate-400 leading-relaxed max-w-xl">
@@ -58,12 +60,18 @@ export default function HeroSection() {
 
             {/* Reassurance notice */}
             <p className="mt-3.5 text-xs text-slate-400">
-              {trialDays}-day full access trial • Tiered plans starting from ₹{minStartingPrice.toLocaleString('en-IN')}/month
+              {!isError && trialDays && minStartingPrice ? (
+                <>
+                  {trialDays}-day full access trial • Tiered plans starting from ₹{minStartingPrice.toLocaleString('en-IN')}/month
+                </>
+              ) : (
+                'Flexible plans for growing distribution businesses'
+              )}
             </p>
           </div>
 
           {/* Right Column: Hero Visual with Product Window & Floating Cards */}
-          <div className="lg:col-span-7 relative">
+          <div className="lg:col-span-6 relative">
             <ProductWindow
               src="/landing/product/dashboard-v2.webp"
               mobileSrc="/landing/product/dashboard-v2-mobile.webp"
@@ -82,10 +90,10 @@ export default function HeroSection() {
               <div className="group/card bg-slate-900/90 backdrop-blur-xl border border-slate-750/90 rounded-2xl p-3.5 shadow-[0_20px_50px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.06)] hover:shadow-2xl hover:border-blue-500/40 hover:-translate-y-0.5 transition-all duration-200">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-400">
-                    Live Telemetry
+                    Showcase metrics
                   </span>
                   <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                    Active
+                    Sample
                   </span>
                 </div>
                 <div className="flex items-start gap-3">
@@ -110,10 +118,10 @@ export default function HeroSection() {
               <div className="group/card bg-slate-900/90 backdrop-blur-xl border border-slate-750/90 rounded-2xl p-3.5 shadow-[0_20px_50px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.06)] hover:shadow-2xl hover:border-slate-650 hover:-translate-y-0.5 transition-all duration-200">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                    Catalog Status
+                    Showcase snapshot
                   </span>
                   <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                    Synchronized
+                    Sample
                   </span>
                 </div>
                 <div className="flex items-start gap-3">
@@ -128,7 +136,7 @@ export default function HeroSection() {
                       {telemetry.productsCount} SKUs • {telemetry.batchesCount} Batches
                     </div>
                     <div className="text-[10px] text-slate-400 mt-0.5">
-                      Real-time inventory
+                      Inventory overview
                     </div>
                   </div>
                 </div>
