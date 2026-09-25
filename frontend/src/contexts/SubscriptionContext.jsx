@@ -3,6 +3,8 @@ import { useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { subscriptionService } from '../services/saas/subscriptionService';
 import { ROUTE_FEATURE_MAP, SubscriptionStatus, getFeatureForRoute } from '../saas/features';
+import { isDemoModeActive } from '../demo/demoState';
+import { DEMO_SUBSCRIPTION } from '../demo/demoData';
 
 const SubscriptionContext = createContext(null);
 
@@ -21,13 +23,19 @@ export const SubscriptionProvider = ({ children }) => {
 
   const [subscription, setSubscription] = useState(() => {
     try {
+      if (isDemoModeActive()) return DEMO_SUBSCRIPTION;
       const saved = localStorage.getItem('cached_subscription');
       return saved ? JSON.parse(saved) : null;
     } catch {
       return null;
     }
   });
-  const [activeDbSub, setActiveDbSub] = useState(null);
+  const [activeDbSub, setActiveDbSub] = useState(() => {
+    if (isDemoModeActive()) {
+      return { ...DEMO_SUBSCRIPTION, planId: DEMO_SUBSCRIPTION.plan?._id || 'plan_professional_003' };
+    }
+    return null;
+  });
   const [loading, setLoading] = useState(() => {
     const hasToken = typeof window !== 'undefined' ? !!localStorage.getItem('token') : false;
     const isPublic = typeof window !== 'undefined' && (
@@ -90,6 +98,8 @@ export const SubscriptionProvider = ({ children }) => {
    */
   const canAccess = useCallback(
     (feature) => {
+      // In Demo Mode, allow all features unconditionally to showcase full enterprise suite
+      if (isDemoModeActive()) return true;
       // While loading or no subscription data, allow access (don't block UI)
       if (!subscription || loading) return true;
       // If plan features include the feature, allow
@@ -103,6 +113,7 @@ export const SubscriptionProvider = ({ children }) => {
    */
   const canAccessRoute = useCallback(
     (routePath) => {
+      if (isDemoModeActive()) return true;
       const feature = getFeatureForRoute(routePath) || ROUTE_FEATURE_MAP[routePath];
       if (!feature) return true; // Route not mapped = always accessible
       return canAccess(feature);

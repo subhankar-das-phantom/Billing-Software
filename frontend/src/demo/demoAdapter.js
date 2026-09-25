@@ -5,7 +5,9 @@
  */
 import {
   DEMO_ADMIN,
+  DEMO_PLANS,
   DEMO_SUBSCRIPTION,
+  DEMO_CREDIT_STATS,
   DEMO_PRODUCTS,
   DEMO_CUSTOMERS,
   DEMO_INVOICES,
@@ -78,16 +80,21 @@ export const demoMockAdapter = async (config) => {
   }
 
   // 2. Subscription & SaaS Plans
-  else if (path === '/subscription/current' || path === '/subscription') {
+  else if (path === '/saas/subscription' || path === '/subscription/current' || path === '/subscription') {
     responseData = {
       success: true,
-      subscription: DEMO_SUBSCRIPTION,
+      subscription: {
+        ...DEMO_SUBSCRIPTION,
+        planId: DEMO_PLANS[2]._id,
+      },
       info: DEMO_SUBSCRIPTION,
     };
-  } else if (path === '/saas/plans') {
+  } else if (path === '/saas/plans' || path === '/subscription/plans') {
     responseData = {
       success: true,
-      plans: [DEMO_SUBSCRIPTION.plan],
+      plans: DEMO_PLANS,
+      trialDays: 14,
+      minStartingPrice: 299,
     };
   }
 
@@ -377,6 +384,47 @@ export const demoMockAdapter = async (config) => {
     responseData = {
       success: true,
       logs: DEMO_DASHBOARD_STATS.recentActivity,
+    };
+  } else if (path === '/reports/credit-stats') {
+    responseData = {
+      success: true,
+      stats: DEMO_CREDIT_STATS,
+    };
+  } else if (path === '/reports/recent-payments') {
+    responseData = {
+      success: true,
+      payments: DEMO_COLLECTIONS.map((c) => ({
+        _id: c._id,
+        paymentNumber: c.paymentNumber,
+        amount: c.amount,
+        paymentDate: c.paymentDate,
+        paymentMethod: c.paymentMethod,
+        customer: { _id: c.customerId, name: c.customerName },
+        invoice: { invoiceNumber: c.invoiceNumber },
+      })),
+    };
+  } else if (path === '/reports/outstanding') {
+    responseData = {
+      success: true,
+      data: DEMO_CUSTOMERS.filter((c) => c.outstandingBalance > 0).map((c) => ({
+        customerId: c._id,
+        customerName: c.name,
+        phone: c.phone,
+        totalOutstanding: c.outstandingBalance,
+        creditLimit: c.creditLimit,
+        creditDays: c.creditDays,
+      })),
+    };
+  } else if (path === '/reports/ageing') {
+    responseData = {
+      success: true,
+      data: {
+        current: 85200.0,
+        days30: 38400.0,
+        days60: 24620.0,
+        days90Plus: 0.0,
+        total: 148220.0,
+      },
     };
   } else if (path === '/referrals' || path === '/referral') {
     responseData = {
