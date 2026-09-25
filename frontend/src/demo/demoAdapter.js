@@ -295,10 +295,19 @@ export const demoMockAdapter = async (config) => {
       manualEntryCount: 0,
       unpaidInvoicesCount: liveOutstanding > 0 ? custInvoices.filter((inv) => (inv.remainingAmount ?? 0) > 0).length : 0,
     };
+    const enrichedCustomer = {
+      ...found,
+      totalPurchases: liveTotalPurchases,
+      totalPurchasesAmount: liveTotalPurchases,
+      invoiceCount: custInvoices.length,
+      totalInvoicesCount: custInvoices.length,
+      outstandingBalance: liveOutstanding,
+      totalOutstanding: liveOutstanding,
+    };
     responseData = {
       success: true,
-      customer: found,
-      data: found,
+      customer: enrichedCustomer,
+      data: enrichedCustomer,
       summary: customerSummary,
     };
   } else if (path === '/customers') {
