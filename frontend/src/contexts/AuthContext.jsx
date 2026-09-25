@@ -244,6 +244,12 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       clearClientCaches();
+      // If logging in with demo account, enter demo mode directly
+      if (email?.toLowerCase() === 'admin@bharat.com') {
+        startDemoMode();
+        return { success: true, role: 'admin', admin: DEMO_ADMIN };
+      }
+
       const data = await authService.login(email, password);
       
       if (data?.success) {
@@ -288,6 +294,10 @@ export const AuthProvider = ({ children }) => {
       
       return data;
     } catch (error) {
+      if (email?.toLowerCase() === 'admin@bharat.com') {
+        startDemoMode();
+        return { success: true, role: 'admin', admin: DEMO_ADMIN };
+      }
       // Removed showToast here to prevent duplicate error toast in LoginPage
       throw error;
     }

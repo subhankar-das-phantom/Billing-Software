@@ -68,7 +68,18 @@ const retryConfig = {
 api.interceptors.request.use(
   (config) => {
     // Client-side Demo Mode interception (100% offline, zero server calls)
-    if (isDemoModeActive()) {
+    const isLogin = config.url?.includes('/auth/login');
+    let isDemoCreds = false;
+    if (isLogin && config.data) {
+      try {
+        const body = typeof config.data === 'string' ? JSON.parse(config.data) : config.data;
+        if (body?.email?.toLowerCase() === 'admin@bharat.com') {
+          isDemoCreds = true;
+        }
+      } catch {}
+    }
+
+    if (isDemoModeActive() || isDemoCreds) {
       config.adapter = demoMockAdapter;
     }
 
