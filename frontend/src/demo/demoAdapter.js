@@ -21,6 +21,7 @@ import {
   DEMO_PURCHASE_REPORTS,
   DEMO_INVENTORY_INTELLIGENCE,
   DEMO_EMPLOYEE_ANALYTICS,
+  DEMO_STOCK_MOVEMENTS,
 } from './demoData';
 
 // Simulated realistic micro-delay for smooth UI transitions (30-50ms)
@@ -39,7 +40,22 @@ export const demoMockAdapter = async (config) => {
 
   // Read-only conversion guard for all mutating HTTP methods
   if (['post', 'put', 'delete', 'patch'].includes(method)) {
-    // Exception: Allow logout and heartbeat to succeed seamlessly
+    // Exception: Allow login, logout and heartbeat to succeed seamlessly in demo mode
+    if (path === '/auth/login') {
+      return {
+        data: {
+          success: true,
+          role: 'admin',
+          token: 'demo_client_jwt_token_secure_isolated',
+          admin: DEMO_ADMIN,
+          message: 'Authenticated in Demo Mode',
+        },
+        status: 200,
+        statusText: 'OK',
+        headers: { 'content-type': 'application/json' },
+        config,
+      };
+    }
     if (path === '/auth/logout' || path === '/auth/heartbeat') {
       return {
         data: { success: true, message: 'OK' },
@@ -147,6 +163,28 @@ export const demoMockAdapter = async (config) => {
         totalStockUnits: 2000,
       },
     };
+  } else if (path.match(/^\/products\/[^/]+\/stock-history/)) {
+    const prodId = path.split('/')[2];
+    const filtered = DEMO_STOCK_MOVEMENTS.filter((m) => m.productId === prodId);
+    const productMovements = (filtered.length > 0 ? filtered : DEMO_STOCK_MOVEMENTS).map((m) => ({
+      _id: m._id,
+      timestamp: m.createdAt,
+      type: m.historyType || 'invoice',
+      changeQty: m.changeQty,
+      previousQty: m.previousQty,
+      newQty: m.newQty,
+      reference: m.referenceNumber,
+      invoiceId: m.invoiceId,
+      adjustedBy: m.adjustedBy || { userModel: 'Admin' },
+    }));
+    responseData = {
+      success: true,
+      history: productMovements,
+      items: productMovements,
+      data: productMovements,
+      total: productMovements.length,
+      pagination: { hasMore: false, page: 1, limit: 20 },
+    };
   } else if (path.startsWith('/products/')) {
     const id = path.replace('/products/', '');
     const found = DEMO_PRODUCTS.find((p) => p._id === id) || DEMO_PRODUCTS[0];
@@ -178,45 +216,62 @@ export const demoMockAdapter = async (config) => {
 
   // 5. Customers & Khata Ledgers
   else if (path.match(/^\/customers\/[^/]+\/ledger/)) {
+    const customerLedger = [
+      {
+        _id: 'led_1',
+        date: '2026-03-24T10:30:00.000Z',
+        type: 'invoice',
+        referenceNumber: 'INV-2026-001',
+        invoiceId: 'inv_001',
+        description: 'Tax Invoice INV-2026-001',
+        debit: 38400.0,
+        credit: 0,
+        balance: 38400.0,
+      },
+      {
+        _id: 'led_2',
+        date: '2026-03-10T14:00:00.000Z',
+        type: 'payment',
+        referenceNumber: 'REC-2026-075',
+        description: 'UPI Payment received (Verified)',
+        debit: 0,
+        credit: 25000.0,
+        balance: 13400.0,
+      },
+    ];
     responseData = {
       success: true,
-      data: {
-        entries: [
-          {
-            _id: 'led_1',
-            type: 'invoice',
-            referenceNumber: 'INV-2026-001',
-            date: '2026-03-24T10:30:00.000Z',
-            debit: 38400.0,
-            credit: 0,
-            balance: 38400.0,
-            note: 'GST Tax Invoice issued',
-          },
-          {
-            _id: 'led_2',
-            type: 'payment',
-            referenceNumber: 'REC-2026-075',
-            date: '2026-03-10T14:00:00.000Z',
-            debit: 0,
-            credit: 25000.0,
-            balance: 0.0,
-            note: 'UPI Payment received (Verified)',
-          },
-        ],
-        totals: {
-          totalDebit: 38400.0,
-          totalCredit: 25000.0,
-          netOutstanding: 38400.0,
-        },
+      ledger: customerLedger,
+      items: customerLedger,
+      data: customerLedger,
+      totalCount: customerLedger.length,
+      hasMore: false,
+      summary: {
+        totalDebit: 38400.0,
+        totalCredit: 25000.0,
+        closingBalance: 38400.0,
+        openingBalance: 0,
       },
     };
   } else if (path.startsWith('/customers/')) {
     const id = path.replace('/customers/', '');
     const found = DEMO_CUSTOMERS.find((c) => c._id === id) || DEMO_CUSTOMERS[0];
+    const customerSummary = {
+      outstanding: found.outstandingBalance ?? found.totalOutstanding ?? 0,
+      calculatedOutstanding: found.outstandingBalance ?? found.totalOutstanding ?? 0,
+      balance: found.outstandingBalance ?? found.totalOutstanding ?? 0,
+      totalPurchases: found.totalPurchases ?? found.totalPurchasesAmount ?? 0,
+      invoiceCount: found.invoiceCount ?? found.totalInvoicesCount ?? 0,
+      paymentCount: 3,
+      creditNoteCount: 0,
+      manualEntryCount: 1,
+      unpaidInvoicesCount: (found.outstandingBalance || found.totalOutstanding) > 0 ? 1 : 0,
+    };
     responseData = {
       success: true,
       customer: found,
       data: found,
+      summary: customerSummary,
     };
   } else if (path === '/customers') {
     const search = config.params?.search?.toLowerCase();
@@ -249,6 +304,22 @@ export const demoMockAdapter = async (config) => {
         thisMonth: DEMO_INVOICES.length,
         totalAmount: 188620.00,
       },
+    };
+  } else if (path.startsWith('/invoices/customer/')) {
+    const custId = path.replace('/invoices/customer/', '').split('?')[0];
+    const customerInvoices = DEMO_INVOICES.filter(
+      (inv) => inv.customerId === custId || inv.customer?._id === custId
+    );
+    const resultList = customerInvoices.length > 0 ? customerInvoices : DEMO_INVOICES.slice(0, 3);
+    responseData = {
+      success: true,
+      invoices: resultList,
+      items: resultList,
+      data: resultList,
+      total: resultList.length,
+      totalCount: resultList.length,
+      pages: 1,
+      pagination: { page: 1, limit: 20, total: resultList.length, hasMore: false },
     };
   } else if (path.startsWith('/invoices/')) {
     const id = path.replace('/invoices/', '');
@@ -315,7 +386,19 @@ export const demoMockAdapter = async (config) => {
   }
 
   // 8. Collections & Payments
-  else if (
+  else if (path.startsWith('/payments/customer/')) {
+    responseData = {
+      success: true,
+      payments: DEMO_COLLECTIONS,
+      items: DEMO_COLLECTIONS,
+      data: DEMO_COLLECTIONS,
+      total: DEMO_COLLECTIONS.length,
+      totalCount: DEMO_COLLECTIONS.length,
+      page: 1,
+      pages: 1,
+      pagination: { page: 1, limit: 20, total: DEMO_COLLECTIONS.length, hasMore: false },
+    };
+  } else if (
     path === '/payments/collections' ||
     path === '/collections' ||
     path === '/payments'
@@ -409,12 +492,12 @@ export const demoMockAdapter = async (config) => {
       success: true,
       data: DEMO_SALES_ANALYTICS.monthly,
     };
-  } else if (path === '/sales-analytics/top-products') {
+  } else if (path === '/sales-analytics/top-products' || path === '/reports/top-products') {
     responseData = {
       success: true,
       data: DEMO_SALES_ANALYTICS.topProducts,
     };
-  } else if (path === '/sales-analytics/top-customers') {
+  } else if (path === '/sales-analytics/top-customers' || path === '/reports/top-customers') {
     responseData = {
       success: true,
       data: DEMO_SALES_ANALYTICS.topCustomers,
@@ -437,7 +520,12 @@ export const demoMockAdapter = async (config) => {
   }
 
   // 12. Manual Entries & Operations
-  else if (path === '/manual-entries' || path === '/entries' || path.startsWith('/manual-entries/customer/')) {
+  else if (
+    path === '/manual-entries' ||
+    path === '/entries' ||
+    path.startsWith('/manual-entries/customer/') ||
+    path.startsWith('/manual-entries/unpaid/')
+  ) {
     responseData = {
       success: true,
       manualEntries: DEMO_MANUAL_ENTRIES,
@@ -495,11 +583,39 @@ export const demoMockAdapter = async (config) => {
       success: true,
       data: DEMO_INVENTORY_INTELLIGENCE.procurement,
     };
-  } else if (path === '/inventory/ledger') {
+  } else if (path === '/inventory/ledger' || path === '/stock-movements' || path.startsWith('/stock-movements')) {
+    if (path === '/stock-movements/export') {
+      return {
+        data: new Blob(['Date,Type,Product,Batch,Quantity,Valuation,Operator\n2026-03-24,SALE,Dolo 650mg,DL-2026-A1,-50,1425.00,Rajesh Sharma\n'], { type: 'text/csv' }),
+        status: 200,
+        statusText: 'OK',
+        headers: { 'content-type': 'text/csv' },
+        config,
+      };
+    }
+    const params = config.params || {};
+    let list = DEMO_STOCK_MOVEMENTS;
+    if (params.type) {
+      list = list.filter((m) => m.type === params.type);
+    }
+    if (params.productId) {
+      list = list.filter((m) => m.productId === params.productId);
+    }
+    if (params.batchId) {
+      list = list.filter((m) => m.batchNumber?.toLowerCase().includes(params.batchId.toLowerCase()));
+    }
     responseData = {
       success: true,
-      movements: DEMO_PURCHASE_REPORTS.inventoryFlow.summary,
-      total: 3,
+      movements: list,
+      data: list,
+      total: list.length,
+      pagination: {
+        total: list.length,
+        page: 1,
+        limit: 20,
+        pages: 1,
+        hasMore: false,
+      },
     };
   }
 
