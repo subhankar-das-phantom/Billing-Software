@@ -1210,6 +1210,8 @@ export const DEMO_COLLECTIONS = [
     paymentDate: '2026-03-18T10:00:00.000Z',
     status: 'verified',
     invoiceNumber: 'INV-2026-005',
+    invoiceId: 'inv_005',
+    invoice: { _id: 'inv_005', invoiceNumber: 'INV-2026-005' },
   },
   {
     _id: 'col_002',
@@ -1222,6 +1224,8 @@ export const DEMO_COLLECTIONS = [
     paymentDate: '2026-03-16T12:30:00.000Z',
     status: 'verified',
     invoiceNumber: 'INV-2026-006',
+    invoiceId: 'inv_006',
+    invoice: { _id: 'inv_006', invoiceNumber: 'INV-2026-006' },
   },
   {
     _id: 'col_003',
@@ -1234,6 +1238,8 @@ export const DEMO_COLLECTIONS = [
     paymentDate: '2026-03-21T17:10:00.000Z',
     status: 'verified',
     invoiceNumber: 'INV-2026-004',
+    invoiceId: 'inv_004',
+    invoice: { _id: 'inv_004', invoiceNumber: 'INV-2026-004' },
   }
 ];
 

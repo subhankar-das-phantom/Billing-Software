@@ -120,10 +120,10 @@ export default function InvoiceViewPage() {
 
   // Column definitions
   const ALL_COLUMNS = [
-    { key: 'qty', label: 'Qty', width: '4%', align: 'center', render: (item) => item.quantitySold },
+    { key: 'qty', label: 'Qty', width: '4%', align: 'center', render: (item) => item.quantitySold ?? item.quantity ?? 0 },
     { key: 'free', label: 'Fr', width: '3%', align: 'center', render: (item) => item.freeQuantity || 0 },
-    { key: 'productName', label: 'Product Name', width: '33%', align: 'left', render: (item) => item.product?.productName },
-    { key: 'hsn', label: 'HSN', width: '7%', align: 'center', render: (item) => item.product?.hsnCode },
+    { key: 'productName', label: 'Product Name', width: '33%', align: 'left', render: (item) => item.product?.productName ?? item.productName ?? item.name ?? '-' },
+    { key: 'hsn', label: 'HSN', width: '7%', align: 'center', render: (item) => item.product?.hsnCode ?? item.hsnCode ?? '-' },
     { key: 'batchNo', label: 'Batch', width: '10%', align: 'center', render: (item) => {
         if (enableBatchTracking && item.batchAllocations?.length > 0) {
           const groups = getBatchGroups(item.batchAllocations);
@@ -141,7 +141,7 @@ export default function InvoiceViewPage() {
             </div>
           );
         }
-        const bNo = item.product?.batchNo;
+        const bNo = item.product?.batchNo ?? item.batchNumber ?? item.batchNo;
         return bNo && bNo !== 'UNNAMED' ? bNo : 'No Batch #';
     }},
     { key: 'expiry', label: 'Expiry', width: '7%', align: 'center', render: (item) => {
@@ -155,14 +155,15 @@ export default function InvoiceViewPage() {
             </div>
           );
         }
-        return item.product?.expiryDate ? new Date(item.product.expiryDate).toLocaleDateString('en-IN', { month: '2-digit', year: '2-digit' }) : '-';
+        const expiryRaw = item.product?.expiryDate ?? item.expiryDate ?? null;
+        return expiryRaw ? new Date(expiryRaw).toLocaleDateString('en-IN', { month: '2-digit', year: '2-digit' }) : '-';
     }},
-    { key: 'mrp', label: 'MRP', width: '8%', align: 'right', render: (item) => item.product?.newMRP?.toFixed(2) || '-' },
-    { key: 'rate', label: 'Rate', width: '7%', align: 'right', render: (item) => item.ratePerUnit.toFixed(2) },
-    { key: 'net', label: 'Net', width: '7%', align: 'right', render: (item) => (item.ratePerUnit * (1 + (item.product?.gstPercentage || 0) / 100)).toFixed(2) },
-    { key: 'disc', label: 'Disc%', width: '5%', align: 'center', render: (item) => `${item.schemeDiscount || 0}%` },
-    { key: 'gst', label: 'GST%', width: '4%', align: 'center', render: (item) => `${item.product?.gstPercentage}%` },
-    { key: 'amount', label: 'Amount', width: '9%', align: 'right', render: (item) => (item.quantitySold * item.ratePerUnit).toFixed(2) },
+    { key: 'mrp', label: 'MRP', width: '8%', align: 'right', render: (item) => (item.product?.newMRP ?? item.mrp ?? item.newMRP)?.toFixed(2) ?? '-' },
+    { key: 'rate', label: 'Rate', width: '7%', align: 'right', render: (item) => ((item.ratePerUnit ?? item.rate) || 0).toFixed(2) },
+    { key: 'net', label: 'Net', width: '7%', align: 'right', render: (item) => { const rate = (item.ratePerUnit ?? item.rate) || 0; const gst = item.product?.gstPercentage ?? item.gstPercentage ?? item.gstRate ?? 0; return (rate * (1 + gst / 100)).toFixed(2); } },
+    { key: 'disc', label: 'Disc%', width: '5%', align: 'center', render: (item) => `${item.schemeDiscount ?? item.discountPercentage ?? 0}%` },
+    { key: 'gst', label: 'GST%', width: '4%', align: 'center', render: (item) => `${item.product?.gstPercentage ?? item.gstPercentage ?? item.gstRate ?? 0}%` },
+    { key: 'amount', label: 'Amount', width: '9%', align: 'right', render: (item) => { const qty = item.quantitySold ?? item.quantity ?? 0; const rate = (item.ratePerUnit ?? item.rate) || 0; return (item.totalAmount != null ? item.totalAmount : qty * rate).toFixed(2); } },
   ];
 
   const DEFAULT_INVOICE_COLUMNS = [
