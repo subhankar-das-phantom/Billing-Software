@@ -115,6 +115,9 @@ export default function RecordPaymentModal({
   const [fifoResult, setFifoResult] = useState(null);
   // { successCount, totalCount, failedLabel?, failedError?, totalAmount? }
 
+  // Can the modal be closed right now?
+  const isProcessing = loading && fifoProgress !== null;
+
   // Synchronous Frame-0 State Pre-Seeding (Eliminates 1-frame async layout jump & pop-in)
   const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
   const [prevPreSelectedId, setPrevPreSelectedId] = useState(preSelectedInvoiceId);
@@ -658,9 +661,6 @@ export default function RecordPaymentModal({
       }
     }
   };
-
-  // Can the modal be closed right now?
-  const isProcessing = loading && fifoProgress !== null;
 
   // Lock body scroll when modal is open
   useEffect(() => {
