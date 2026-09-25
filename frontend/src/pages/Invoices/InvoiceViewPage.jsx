@@ -25,6 +25,9 @@ import {
   Edit,
   RotateCcw,
   Settings,
+  SlidersHorizontal,
+  MoreVertical,
+  ChevronDown,
   Check
 } from 'lucide-react';
 import { invoiceService } from '../../services/invoices/invoiceService';
@@ -103,6 +106,36 @@ export default function InvoiceViewPage() {
   const [updating, setUpdating] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showColumnSettings, setShowColumnSettings] = useState(false);
+  const [showManageMenu, setShowManageMenu] = useState(false);
+  const columnSettingsRef = useRef(null);
+  const manageMenuRef = useRef(null);
+
+  // Outside click listener for floating popovers
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (columnSettingsRef.current && !columnSettingsRef.current.contains(e.target)) {
+        setShowColumnSettings(false);
+      }
+      if (manageMenuRef.current && !manageMenuRef.current.contains(e.target)) {
+        setShowManageMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Escape key dismiss listener
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setShowColumnSettings(false);
+        setShowManageMenu(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const [isSingleCopy, setIsSingleCopy] = useState(() => {
     try {
       return localStorage.getItem('invoiceCopyMode') === 'single';
@@ -628,197 +661,298 @@ export default function InvoiceViewPage() {
         animate="visible"
         className="space-y-6"
       >
-        {/* Actions Bar */}
-        <motion.div
-          variants={cardVariants}
-          className="flex flex-wrap gap-3 no-print"
-        >
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Link to="/invoices" className="btn btn-secondary flex items-center gap-2">
-              <ArrowLeft className="w-5 h-5" />
-              Back
-            </Link>
-          </motion.div>
-
-          {/* Edit Button - only show for non-cancelled invoices */}
-          {invoice.status !== 'Cancelled' && (
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Link to={`/invoices/${id}/edit`} className="btn btn-secondary flex items-center gap-2">
-                <Edit className="w-5 h-5" />
-                Edit
-              </Link>
-            </motion.div>
-          )}
-
-          {/* Create Return / Credit Note - only for non-cancelled invoices */}
-          {invoice.status !== 'Cancelled' && (
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Link to={`/invoices/${id}/return`} className="btn btn-secondary flex items-center gap-2 text-amber-400 border-amber-500/30 hover:bg-amber-500/10">
-                <RotateCcw className="w-5 h-5" />
-                Create Return
-              </Link>
-            </motion.div>
-          )}
-
-          {canRecordPayment && (
-            <motion.button
-              onClick={() => setShowPaymentModal(true)}
-              className="btn btn-success flex items-center gap-2"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <CreditCard className="w-5 h-5" />
-              Record Payment
-            </motion.button>
-          )}
-
-          <motion.button
-            onClick={handlePrint}
-            className="btn btn-primary flex items-center gap-2"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Printer className="w-5 h-5" />
-            Print
-          </motion.button>
-
-          <motion.button
-            onClick={toggleCopyMode}
-            className="btn btn-secondary flex items-center gap-2"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            title="Switch between single and double print copies"
-          >
-            <FileText className="w-5 h-5" />
-            {isSingleCopy ? 'Single Copy' : 'Double Copy'}
-          </motion.button>
-
-          <AnimatePresence mode="wait">
-            {invoice.status === 'Created' && (
-              <motion.button
-                onClick={handleMarkPrinted}
-                disabled={updating}
-                className="btn btn-success flex items-center gap-2"
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0 }}
-                whileHover={{ scale: updating ? 1 : 1.05 }}
-                whileTap={{ scale: updating ? 1 : 0.95 }}
+        {/* Enterprise 2-Tier Header Card */}
+        <div className="glass-card p-4 sm:p-5 space-y-4 no-print border border-slate-800/80 shadow-xl">
+          {/* ─── Tier 1: Identity & Primary CTAs ──────────────────────── */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            {/* Left: Back Link & Document Identity */}
+            <div className="flex flex-wrap items-center gap-3">
+              <Link
+                to="/invoices"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/70 hover:bg-slate-700/80 border border-slate-700/60 text-slate-300 hover:text-slate-100 text-xs font-medium transition-colors"
               >
-                {updating ? (
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                <ArrowLeft className="w-4 h-4 text-slate-400" />
+                <span>Invoices</span>
+              </Link>
+
+              <div className="h-4 w-px bg-slate-700/60 hidden sm:block" />
+
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-100 tracking-tight font-mono">
+                  {invoice.invoiceNumber || 'INV-DRAFT'}
+                </h1>
+                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${statusConfig[invoice.status]?.bg || 'bg-slate-800'} ${statusConfig[invoice.status]?.color || 'text-slate-300'} border-current/20`}>
+                  <StatusIcon className="w-3.5 h-3.5" />
+                  {invoice.status}
+                </span>
+              </div>
+
+              {/* Dynamic Payment Due Pill */}
+              {invoice.status !== 'Cancelled' && (
+                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                  netDue > 0
+                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                    : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                }`}>
+                  {netDue > 0 ? (
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                      Due: {formatCurrency(netDue)}
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-3 h-3 text-emerald-400" />
+                      Fully Paid
+                    </>
+                  )}
+                </span>
+              )}
+            </div>
+
+            {/* Right: High Prominence Primary CTAs */}
+            <div className="flex items-center gap-2.5 self-end sm:self-auto">
+              {canRecordPayment && (
+                <button
+                  type="button"
+                  onClick={() => setShowPaymentModal(true)}
+                  className="btn btn-success flex items-center gap-2 py-2 px-3.5 text-xs font-medium shadow-md shadow-emerald-900/20 active:translate-y-px"
+                >
+                  <CreditCard className="w-4 h-4" />
+                  <span>Record Payment</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={handlePrint}
+                className="btn btn-primary flex items-center gap-2 py-2 px-4 text-xs font-medium shadow-md shadow-blue-900/30 active:translate-y-px"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Print Invoice</span>
+              </button>
+            </div>
+          </div>
+
+          {/* ─── Tier 2: Print & Export Utility Strip ──────────────────── */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-3.5 border-t border-slate-800/80">
+            {/* Left: Print Configurations (Copy Mode & Columns Popover) */}
+            <div className="flex flex-wrap items-center gap-2.5">
+              {/* Segmented Copy Mode Capsule */}
+              <div className="inline-flex items-center p-0.5 rounded-xl bg-slate-900/90 border border-slate-700/60 shadow-inner">
+                <button
+                  type="button"
+                  onClick={() => { if (!isSingleCopy) toggleCopyMode(); }}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                    isSingleCopy
+                      ? 'bg-slate-800 text-slate-100 shadow-xs border border-slate-700/80'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                  title="Print single copy"
+                >
+                  1x Single
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { if (isSingleCopy) toggleCopyMode(); }}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                    !isSingleCopy
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                  title="Print customer and business copies"
+                >
+                  2x Double
+                </button>
+              </div>
+
+              {/* Floating Columns Popover */}
+              <div className="relative" ref={columnSettingsRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowColumnSettings(prev => !prev)}
+                  className={`btn btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs font-medium transition-colors ${
+                    showColumnSettings
+                      ? 'bg-slate-800 border-slate-600 text-slate-100 shadow-xs'
+                      : 'border-slate-700/70 hover:border-slate-600 text-slate-300 hover:text-slate-100'
+                  }`}
+                  aria-expanded={showColumnSettings}
+                  title="Customise table columns on printed invoice"
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5 pointer-events-none text-slate-400" />
+                  <span className="pointer-events-none">Columns</span>
+                  <span className="pointer-events-none px-1.5 py-0.2 rounded-full text-[10px] font-semibold bg-blue-500/15 text-blue-400 border border-blue-500/30">
+                    {visibleColumns.length}/{ALL_COLUMNS.length}
+                  </span>
+                  <ChevronDown className={`w-3.5 h-3.5 pointer-events-none text-slate-400 transition-transform duration-150 ${showColumnSettings ? 'rotate-180' : ''}`} />
+                </button>
+
+                <AnimatePresence>
+                  {showColumnSettings && (
+                    <motion.div
+                      key="invoice-column-popover"
+                      className="absolute left-0 mt-2 w-72 sm:w-80 bg-slate-900 border border-slate-700/90 rounded-2xl shadow-2xl shadow-black/80 p-3.5 z-50 will-change-[transform,opacity]"
+                      style={{ transformOrigin: 'top left' }}
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
+                    >
+                      <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800">
+                        <span className="text-xs font-semibold text-slate-200">Printed Columns</span>
+                        <span className="text-[11px] text-slate-400">{visibleColumns.length} visible</span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 mb-2.5">
+                        Toggle which columns appear on the printed document:
+                      </p>
+                      <div className="grid grid-cols-2 gap-1.5 max-h-56 overflow-y-auto pr-1">
+                        {ALL_COLUMNS.map(col => {
+                          const isActive = visibleColumns.includes(col.key);
+                          return (
+                            <button
+                              key={col.key}
+                              type="button"
+                              onClick={() => toggleColumn(col.key)}
+                              className={`px-2 py-1.5 rounded-lg text-xs flex items-center justify-between border transition-all text-left ${
+                                isActive
+                                  ? 'bg-blue-500/15 text-blue-300 border-blue-500/40 font-medium'
+                                  : 'bg-slate-800/60 text-slate-400 border-slate-700/50 hover:bg-slate-800 hover:text-slate-200'
+                              }`}
+                            >
+                              <span className="truncate">{col.label}</span>
+                              {isActive ? (
+                                <Check className="w-3.5 h-3.5 text-blue-400 shrink-0 ml-1" />
+                              ) : (
+                                <span className="w-3.5 h-3.5 shrink-0 ml-1 border border-slate-600 rounded-sm" />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Mark Printed Action (when Created) */}
+              <AnimatePresence>
+                {invoice.status === 'Created' && (
+                  <motion.button
+                    type="button"
+                    onClick={handleMarkPrinted}
+                    disabled={updating}
+                    className="btn btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs font-medium text-emerald-400 hover:text-emerald-300 border-emerald-500/30 hover:border-emerald-500/50 hover:bg-emerald-500/10 transition-colors"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    title="Mark status as printed"
                   >
-                    <Clock className="w-5 h-5" />
-                  </motion.div>
-                ) : (
-                  <CheckCircle className="w-5 h-5" />
+                    {updating ? (
+                      <Clock className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <CheckCircle className="w-3.5 h-3.5" />
+                    )}
+                    <span>{updating ? 'Updating...' : 'Mark Printed'}</span>
+                  </motion.button>
                 )}
-                {updating ? 'Updating...' : 'Mark Printed'}
-              </motion.button>
-            )}
-          </AnimatePresence>
+              </AnimatePresence>
+            </div>
 
-          <motion.button
-            onClick={handleDownload}
-            className="btn btn-secondary flex items-center gap-2"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Download className="w-5 h-5" />
-            Download
-          </motion.button>
-
-          <motion.button
-            onClick={handleShare}
-            className="btn btn-secondary flex items-center gap-2"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            title="Share invoice link"
-          >
-            {copiedShare ? (
-              <Check className="w-5 h-5 text-emerald-400" />
-            ) : (
-              <Share2 className="w-5 h-5" />
-            )}
-            {copiedShare ? 'Copied' : 'Share'}
-          </motion.button>
-
-          {/* Cancel Invoice Button */}
-          <AnimatePresence>
-            {invoice.status !== 'Cancelled' && (
-              <motion.button
-                onClick={handleCancelInvoice}
-                disabled={updating}
-                className="btn bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30 flex items-center gap-2 rounded-xl px-4 py-2"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+            {/* Right: Export Utilities & Manage Dropdown */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleDownload}
+                className="btn btn-secondary flex items-center gap-1.5 py-1.5 px-2.5 text-xs font-medium hover:text-slate-100 border-slate-700/70"
+                title="Download PDF"
               >
-                <XCircle className="w-5 h-5" />
-                {updating ? 'Cancelling...' : 'Cancel Invoice'}
-              </motion.button>
-            )}
-          </AnimatePresence>
+                <Download className="w-3.5 h-3.5 text-slate-400" />
+                <span className="hidden sm:inline">Download</span>
+              </button>
 
-          <motion.div
-            className={`badge ${statusConfig[invoice.status]?.badge || 'badge-info'} ml-auto flex items-center gap-2 px-4 py-2`}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            whileHover={{ scale: 1.05 }}
-          >
-            <StatusIcon className="w-4 h-4" />
-            {invoice.status}
-          </motion.div>
-        </motion.div>
-
-        {/* Column Settings Toggle */}
-        <motion.div variants={cardVariants} className="no-print">
-          <motion.button
-            onClick={() => setShowColumnSettings(!showColumnSettings)}
-            className="btn btn-secondary flex items-center gap-2"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Settings className="w-5 h-5" />
-            Customise Columns
-          </motion.button>
-          <AnimatePresence>
-            {showColumnSettings && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="glass-card mt-3 p-4 overflow-hidden"
+              <button
+                type="button"
+                onClick={handleShare}
+                className="btn btn-secondary flex items-center gap-1.5 py-1.5 px-2.5 text-xs font-medium hover:text-slate-100 border-slate-700/70"
+                title="Share invoice link"
               >
-                <p className="text-sm text-slate-400 mb-3">Select which columns appear on the printed invoice:</p>
-                <div className="flex flex-wrap gap-2">
-                  {ALL_COLUMNS.map(col => {
-                    const isActive = visibleColumns.includes(col.key);
-                    return (
-                      <motion.button
-                        key={col.key}
-                        onClick={() => toggleColumn(col.key)}
-                        className={`px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 border transition-colors ${isActive
-                            ? 'bg-blue-500/20 text-blue-400 border-blue-500/40'
-                            : 'bg-slate-800 text-slate-500 border-slate-700 hover:text-slate-300'
-                          }`}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
+                {copiedShare ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                ) : (
+                  <Share2 className="w-3.5 h-3.5 text-slate-400" />
+                )}
+                <span>{copiedShare ? 'Copied' : 'Share'}</span>
+              </button>
+
+              {/* Manage Dropdown (Edit, Create Return, Cancel) */}
+              {invoice.status !== 'Cancelled' && (
+                <div className="relative" ref={manageMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => setShowManageMenu(prev => !prev)}
+                    className={`btn btn-secondary flex items-center gap-1.5 py-1.5 px-2.5 text-xs font-medium transition-colors ${
+                      showManageMenu
+                        ? 'bg-slate-800 border-slate-600 text-slate-100 shadow-xs'
+                        : 'border-slate-700/70 text-slate-300 hover:text-slate-100'
+                    }`}
+                    aria-expanded={showManageMenu}
+                    title="More actions"
+                  >
+                    <MoreVertical className="w-3.5 h-3.5 pointer-events-none text-slate-400" />
+                    <span className="pointer-events-none hidden sm:inline">Manage</span>
+                  </button>
+
+                  <AnimatePresence>
+                    {showManageMenu && (
+                      <motion.div
+                        key="invoice-manage-menu"
+                        className="absolute right-0 mt-2 w-48 bg-slate-900 border border-slate-700/90 rounded-2xl shadow-2xl shadow-black/80 p-1.5 z-50 will-change-[transform,opacity]"
+                        style={{ transformOrigin: 'top right' }}
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
                       >
-                        {isActive && <Check className="w-3.5 h-3.5" />}
-                        {col.label}
-                      </motion.button>
-                    );
-                  })}
+                        <Link
+                          to={`/invoices/${id}/edit`}
+                          onClick={() => setShowManageMenu(false)}
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-200 hover:text-slate-100 hover:bg-slate-800/80 transition-colors"
+                        >
+                          <Edit className="w-4 h-4 text-slate-400" />
+                          <span>Edit Invoice</span>
+                        </Link>
+
+                        <Link
+                          to={`/invoices/${id}/return`}
+                          onClick={() => setShowManageMenu(false)}
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 transition-colors"
+                        >
+                          <RotateCcw className="w-4 h-4 text-amber-400" />
+                          <span>Create Return</span>
+                        </Link>
+
+                        <div className="h-px bg-slate-800 my-1" />
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowManageMenu(false);
+                            handleCancelInvoice();
+                          }}
+                          disabled={updating}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors text-left"
+                        >
+                          <XCircle className="w-4 h-4 text-rose-400" />
+                          <span>Cancel Invoice</span>
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
+              )}
+            </div>
+          </div>
+        </div>
 
         {/* Credit Notes Section */}
         {creditNotes.length > 0 && (
@@ -908,41 +1042,8 @@ export default function InvoiceViewPage() {
                   }`}>{formatCurrency(netDue)}</p>
               </div>
             </div>
-            {canRecordPayment && (
-              <motion.button
-                type="button"
-                onClick={() => setShowPaymentModal(true)}
-                className="mt-4 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition-colors inline-flex items-center gap-2"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <CreditCard className="w-4 h-4" />
-                Record Payment
-              </motion.button>
-            )}
           </motion.div>
         )}
-
-        {/* Copy Mode Control */}
-        <motion.div variants={cardVariants} className="glass-card p-4 no-print">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-slate-100">Copy Mode</p>
-              <p className="text-xs text-slate-400">Choose whether to print one copy or both customer and business copies.</p>
-            </div>
-            <motion.button
-              onClick={toggleCopyMode}
-              className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${isSingleCopy
-                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                  : 'bg-blue-500/20 text-blue-300 border-blue-500/40'
-                }`}
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-            >
-              {isSingleCopy ? 'Single Copy (1x)' : 'Double Copy (2x)'}
-            </motion.button>
-          </div>
-        </motion.div>
 
         {/* Invoice Print Area */}
         <div className="flex justify-center">
