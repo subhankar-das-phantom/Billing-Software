@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -70,19 +70,6 @@ const cardVariants = {
   }
 };
 
-const tableRowVariants = {
-  hidden: { opacity: 0, x: -20 },
-  visible: (i) => ({
-    opacity: 1,
-    x: 0,
-    transition: {
-      delay: i * 0.05,
-      type: 'spring',
-      stiffness: 300,
-      damping: 24
-    }
-  })
-};
 
 const getBatchGroups = (allocations) => {
   const groupsMap = allocations.reduce((acc, alloc) => {
@@ -264,7 +251,31 @@ export default function InvoiceViewPage() {
   );
 
   const invoice = invoiceData?.invoice;
-  const creditNotes = creditNotesData?.creditNotes || [];
+  const creditNotes = useMemo(() => creditNotesData?.creditNotes || [], [creditNotesData]);
+
+  const totalCreditNoteAmount = useMemo(() => roundCurrency(
+    creditNotes.reduce((sum, cn) => sum + (cn.totals?.netTotal || 0), 0)
+  ), [creditNotes]);
+
+  const netDue = useMemo(() => Math.max(
+    0,
+    roundCurrency((invoice?.totals?.netTotal || 0) - (invoice?.paidAmount || 0) - totalCreditNoteAmount)
+  ), [invoice?.totals?.netTotal, invoice?.paidAmount, totalCreditNoteAmount]);
+
+  const canRecordPayment = Boolean(invoice && invoice.status !== 'Cancelled' && netDue > 0);
+
+  const invoiceForPayment = useMemo(() => {
+    if (!invoice) return null;
+    return {
+      ...invoice,
+      creditNoteTotal: totalCreditNoteAmount,
+      effectiveDue: netDue
+    };
+  }, [invoice, totalCreditNoteAmount, netDue]);
+
+  const invoiceForPaymentList = useMemo(() => (
+    canRecordPayment && invoiceForPayment ? [invoiceForPayment] : []
+  ), [canRecordPayment, invoiceForPayment]);
 
   // 3. Customer Outstanding Logic (using SWR)
   const customerId = invoice?.customer?._id;
@@ -324,8 +335,8 @@ export default function InvoiceViewPage() {
       }).replace(/\//g, '-');
       const invoiceNum = invoice.invoiceNumber || '';
 
-      // Set title for PDF filename: "Invoice_CustomerName_Date"
-      document.title = `Invoice_${customerName}_${invoiceDate}`;
+      // Set title for PDF filename: "Invoice_Number_CustomerName_Date"
+      document.title = invoiceNum ? `Invoice_${invoiceNum}_${customerName}_${invoiceDate}` : `Invoice_${customerName}_${invoiceDate}`;
 
       // Restore original title when leaving the page
       return () => {
@@ -353,7 +364,7 @@ export default function InvoiceViewPage() {
       invalidateCachePattern(`invoice-${id}`);
       invalidateCachePattern('invoices');
       success('Invoice marked as printed');
-    } catch (err) {
+    } catch {
       error('Failed to update status');
     } finally {
       setUpdating(false);
@@ -437,7 +448,7 @@ export default function InvoiceViewPage() {
       invalidateCachePattern('dashboard');
       invalidateCachePattern('products');
       success('Invoice cancelled successfully');
-    } catch (err) {
+    } catch {
       error('Failed to cancel invoice');
     } finally {
       setUpdating(false);
@@ -490,22 +501,6 @@ export default function InvoiceViewPage() {
   };
 
   const StatusIcon = statusConfig[invoice.status]?.icon || FileText;
-  const totalCreditNoteAmount = useMemo(() => roundCurrency(
-    creditNotes.reduce((sum, cn) => sum + (cn.totals?.netTotal || 0), 0)
-  ), [creditNotes]);
-  const netDue = useMemo(() => Math.max(
-    0,
-    roundCurrency((invoice.totals?.netTotal || 0) - (invoice.paidAmount || 0) - totalCreditNoteAmount)
-  ), [invoice.totals?.netTotal, invoice.paidAmount, totalCreditNoteAmount]);
-  const canRecordPayment = invoice.status !== 'Cancelled' && netDue > 0;
-  const invoiceForPayment = useMemo(() => ({
-    ...invoice,
-    creditNoteTotal: totalCreditNoteAmount,
-    effectiveDue: netDue
-  }), [invoice, totalCreditNoteAmount, netDue]);
-  const invoiceForPaymentList = useMemo(() => (
-    canRecordPayment && invoiceForPayment ? [invoiceForPayment] : []
-  ), [canRecordPayment, invoiceForPayment]);
 
   // Reusable Invoice Copy Component
   const InvoiceCopy = () => (

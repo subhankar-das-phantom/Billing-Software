@@ -319,12 +319,12 @@ export default function RecordPaymentModal({
     if (!isOpen || isProcessing) return;
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        handleModalClose();
+        onClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isProcessing]);
+  }, [isOpen, isProcessing, onClose]);
 
   // Debounced Customer Search for Standalone Mode
   useEffect(() => {
@@ -688,9 +688,6 @@ export default function RecordPaymentModal({
     if (isProcessing) return; // Prevent close during FIFO processing
     onClose();
   };
-
-  // Whether FIFO toggle can be activated
-  const canUseFifo = !preSelectedInvoiceId && fifoQueue.length > 0;
 
   return createPortal(
     <AnimatePresence>
@@ -1090,7 +1087,7 @@ export default function RecordPaymentModal({
                                 </p>
                               </div>
                               <div className="divide-y divide-slate-700/50 max-h-48 overflow-y-auto">
-                                {fifoQueue.map((item, idx) => {
+                                {fifoQueue.map((item) => {
                                   const allocation = fifoAllocations.find(a => a.id === item.id && a.type === item.type);
                                   const isFull = allocation && allocation.remainingAfterAllocation <= 0;
                                   const isPartial = allocation && allocation.remainingAfterAllocation > 0;
