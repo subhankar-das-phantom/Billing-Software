@@ -11,7 +11,8 @@
       (function () {
         try {
           var path = window.location.pathname;
-          var isPublic = path === '/' || path === '/landing' || path === '/login' || path === '/register' || path === '/privacy-policy' || path === '/terms' || path.indexOf('/forgot-password') === 0 || path.indexOf('/reset-password') === 0;
+          var isAuthRoute = path === '/login' || path === '/register' || path.indexOf('/login') === 0 || path.indexOf('/register') === 0;
+          var isPublic = path === '/' || path === '/landing' || isAuthRoute || path === '/privacy-policy' || path === '/terms' || path.indexOf('/forgot-password') === 0 || path.indexOf('/reset-password') === 0;
           var systemDark = !window.matchMedia || window.matchMedia('(prefers-color-scheme: dark)').matches;
           var isDark = true;
 
@@ -26,8 +27,8 @@
           } else if (activePref === 'system') {
             isDark = systemDark;
           } else {
-            // Default: unauthenticated public pages default to system preference, workspace defaults to dark
-            isDark = isPublic ? systemDark : true;
+            // Default: Auth routes and workspace default to dark, unconfigured marketing defaults to system preference
+            isDark = isAuthRoute ? true : (isPublic ? systemDark : true);
           }
 
           var root = document.documentElement;

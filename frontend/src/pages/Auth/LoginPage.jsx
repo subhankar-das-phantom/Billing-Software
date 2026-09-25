@@ -1,6 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LogIn, 
   Mail, 
@@ -12,56 +11,10 @@ import {
   EyeOff,
   CheckCircle,
   AlertCircle,
-  Sparkles,
   Shield
 } from 'lucide-react';
-import { ThemeToggle } from '../../components/Common/Buttons/ThemeToggle';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-
-// Detect if we should reduce motion for performance
-const getReducedMotionPreference = () => {
-  if (typeof window === 'undefined') return false;
-  const isMobile = window.matchMedia('(max-width: 768px)').matches;
-  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  return isMobile || prefersReducedMotion;
-};
-
-// Simplified variants for mobile - just fade in, no complex physics
-const getMobilePageVariants = () => ({
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { duration: 0.3 } }
-});
-
-const getDesktopPageVariants = () => ({
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      duration: 0.6,
-      staggerChildren: 0.1,
-      delayChildren: 0.2
-    }
-  }
-});
-
-const getMobileItemVariants = () => ({
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { duration: 0.2 } }
-});
-
-const getDesktopItemVariants = () => ({
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      type: 'spring',
-      stiffness: 300,
-      damping: 24
-    }
-  }
-});
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -72,11 +25,6 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
   const { error: showError } = useToast();
-
-  // Memoize motion preference to avoid recalculating on every render
-  const shouldReduceMotion = useMemo(() => getReducedMotionPreference(), []);
-  const pageVariants = useMemo(() => shouldReduceMotion ? getMobilePageVariants() : getDesktopPageVariants(), [shouldReduceMotion]);
-  const itemVariants = useMemo(() => shouldReduceMotion ? getMobileItemVariants() : getDesktopItemVariants(), [shouldReduceMotion]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -107,37 +55,31 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-slate-950">
-      {/* Top Navigation Bar */}
-      <div className="absolute top-4 left-4 right-4 sm:top-6 sm:left-6 sm:right-6 flex items-center justify-between z-20 pointer-events-auto">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 py-8 sm:py-12 relative overflow-y-auto bg-slate-950">
+      {/* Crisp Subtle Grid Background */}
+      <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_75%_50%_at_50%_50%,black,transparent)]" />
+
+      {/* In-Flow Navigation Header (Positioned above the card, zero displacement) */}
+      <div className="w-full max-w-md mb-3 flex items-center justify-start z-10 pointer-events-auto">
         <Link
           to="/landing"
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Home</span>
         </Link>
-        <ThemeToggle className="bg-slate-900/60 border border-slate-800/80 shadow-xs" />
       </div>
 
-      {/* Crisp Subtle Grid Background */}
-      <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_75%_50%_at_50%_50%,black,transparent)]" />
-
-      {/* Login Card */}
-      <motion.div
-        variants={pageVariants}
-        initial="hidden"
-        animate="visible"
-        className="relative w-full max-w-md z-10"
-      >
+      {/* Login Card (Instant Frame-0 Mount - Zero CLS) */}
+      <div className="relative w-full max-w-md z-10">
         <div className="glass-card p-8 md:p-10 shadow-xl border border-slate-700/60 relative overflow-hidden">
           {/* Logo Section */}
-          <motion.div variants={itemVariants} className="text-center mb-8">
+          <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-blue-600 mb-4 shadow-sm text-white font-bold text-2xl">
               B
             </div>
 
-            <motion.div variants={itemVariants}>
+            <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-slate-100 mb-2 tracking-tight">
                 Bharat Enterprise
               </h1>
@@ -145,23 +87,20 @@ export default function LoginPage() {
                 <Shield className="w-4 h-4 text-blue-500" />
                 Billing & Business Operations
               </p>
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
 
           {/* Welcome Message */}
-          <motion.div
-            variants={itemVariants}
-            className="text-center mb-6 p-3.5 rounded-xl bg-slate-800/40 border border-slate-700/60"
-          >
+          <div className="text-center mb-6 p-3.5 rounded-xl bg-slate-800/40 border border-slate-700/60">
             <p className="text-slate-300 text-sm">
               Welcome back. Sign in to your workstation.
             </p>
-          </motion.div>
+          </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Email Field */}
-            <motion.div variants={itemVariants}>
+            <div>
               <label className="label flex items-center gap-2 mb-2" htmlFor="email">
                 <Mail size={16} className="text-slate-400" />
                 Email Address
@@ -188,10 +127,10 @@ export default function LoginPage() {
                   </div>
                 )}
               </div>
-            </motion.div>
+            </div>
 
             {/* Password Field */}
-            <motion.div variants={itemVariants}>
+            <div>
               <label className="label flex items-center gap-2 mb-2" htmlFor="password">
                 <Lock size={16} className="text-slate-400" />
                 Password
@@ -220,7 +159,7 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-            </motion.div>
+            </div>
 
             {/* Submit Button */}
             <button
@@ -246,10 +185,7 @@ export default function LoginPage() {
           </form>
 
           {/* Demo Credentials */}
-          <motion.div
-            variants={itemVariants}
-            className="mt-6 p-3.5 rounded-xl bg-slate-800/40 border border-slate-700/60"
-          >
+          <div className="mt-6 p-3.5 rounded-xl bg-slate-800/40 border border-slate-700/60">
             <div className="flex items-center gap-2 mb-2">
               <AlertCircle size={15} className="text-blue-400" />
               <p className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Demo Credentials</p>
@@ -268,13 +204,10 @@ export default function LoginPage() {
                 </code>
               </div>
             </div>
-          </motion.div>
+          </div>
 
           {/* Register Link */}
-          <motion.div
-            variants={itemVariants}
-            className="mt-6 text-center"
-          >
+          <div className="mt-6 text-center">
             <p className="text-slate-400 text-sm">
               Don't have an account?{' '}
               <Link 
@@ -284,31 +217,15 @@ export default function LoginPage() {
                 Create one here
               </Link>
             </p>
-          </motion.div>
+          </div>
 
           {/* Security Badge */}
-          <motion.div
-            variants={itemVariants}
-            className="mt-6 flex items-center justify-center gap-2 text-xs text-slate-500"
-          >
+          <div className="mt-6 flex items-center justify-center gap-2 text-xs text-slate-500">
             <Shield size={14} className="text-emerald-400" />
             <span>Secured with end-to-end encryption</span>
-          </motion.div>
-
-          {/* Back to Landing */}
-          <motion.div
-            variants={itemVariants}
-            className="mt-4 text-center"
-          >
-            <Link 
-              to="/landing" 
-              className="text-slate-500 hover:text-slate-300 text-xs font-medium transition-colors"
-            >
-              ← Back to Home
-            </Link>
-          </motion.div>
+          </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

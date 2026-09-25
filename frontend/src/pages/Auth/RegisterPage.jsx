@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { 
   UserPlus, 
   Mail, 
@@ -18,55 +17,10 @@ import {
   Sparkles,
   Shield
 } from 'lucide-react';
-import { ThemeToggle } from '../../components/Common/Buttons/ThemeToggle';
 import { authService } from '../../services/auth/authService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { subscriptionService } from '../../services/saas/subscriptionService';
-
-// Detect if we should reduce motion for performance
-const getReducedMotionPreference = () => {
-  if (typeof window === 'undefined') return false;
-  const isMobile = window.matchMedia('(max-width: 768px)').matches;
-  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  return isMobile || prefersReducedMotion;
-};
-
-// Simplified variants for mobile - just fade in, no complex physics
-const getMobilePageVariants = () => ({
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { duration: 0.3 } }
-});
-
-const getDesktopPageVariants = () => ({
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      duration: 0.6,
-      staggerChildren: 0.1,
-      delayChildren: 0.2
-    }
-  }
-});
-
-const getMobileItemVariants = () => ({
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { duration: 0.2 } }
-});
-
-const getDesktopItemVariants = () => ({
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      type: 'spring',
-      stiffness: 300,
-      damping: 24
-    }
-  }
-});
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -89,11 +43,6 @@ export default function RegisterPage() {
   
   // Extract referral code from URL
   const refCode = useMemo(() => new URLSearchParams(location.search).get('ref'), [location.search]);
-
-  // Memoize motion preference to avoid recalculating on every render
-  const shouldReduceMotion = useMemo(() => getReducedMotionPreference(), []);
-  const pageVariants = useMemo(() => shouldReduceMotion ? getMobilePageVariants() : getDesktopPageVariants(), [shouldReduceMotion]);
-  const itemVariants = useMemo(() => shouldReduceMotion ? getMobileItemVariants() : getDesktopItemVariants(), [shouldReduceMotion]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -169,7 +118,7 @@ export default function RegisterPage() {
     };
 
     return (
-      <motion.div variants={itemVariants}>
+      <div>
         <label className="label flex items-center gap-2 mb-2" htmlFor={name}>
           <Icon size={16} className="text-slate-400" />
           {label}
@@ -210,42 +159,36 @@ export default function RegisterPage() {
             )
           )}
         </div>
-      </motion.div>
+      </div>
     );
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-slate-950">
-      {/* Top Navigation Bar */}
-      <div className="absolute top-4 left-4 right-4 sm:top-6 sm:left-6 sm:right-6 flex items-center justify-between z-20 pointer-events-auto">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 py-8 sm:py-12 relative overflow-y-auto bg-slate-950">
+      {/* Crisp Subtle Grid Background */}
+      <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_75%_50%_at_50%_50%,black,transparent)]" />
+
+      {/* In-Flow Navigation Header (Positioned above the card, zero displacement) */}
+      <div className="w-full max-w-lg mb-3 flex items-center justify-start z-10 pointer-events-auto">
         <Link
           to="/landing"
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Home</span>
         </Link>
-        <ThemeToggle className="bg-slate-900/60 border border-slate-800/80 shadow-xs" />
       </div>
 
-      {/* Crisp Subtle Grid Background */}
-      <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_75%_50%_at_50%_50%,black,transparent)]" />
-
-      {/* Register Card */}
-      <motion.div
-        variants={pageVariants}
-        initial="hidden"
-        animate="visible"
-        className="relative w-full max-w-lg z-10"
-      >
+      {/* Register Card (Instant Frame-0 Mount - Zero CLS) */}
+      <div className="relative w-full max-w-lg z-10">
         <div className="glass-card p-8 md:p-10 shadow-xl border border-slate-700/60 relative overflow-hidden">
           {/* Logo Section */}
-          <motion.div variants={itemVariants} className="text-center mb-6">
+          <div className="text-center mb-6">
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-blue-600 mb-4 shadow-sm text-white font-bold text-2xl">
               <UserPlus className="w-7 h-7 text-white" />
             </div>
 
-            <motion.div variants={itemVariants}>
+            <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-slate-100 mb-2 tracking-tight">
                 Create Account
               </h1>
@@ -259,8 +202,8 @@ export default function RegisterPage() {
                   Referral code '{refCode}' applied!
                 </div>
               )}
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -292,7 +235,7 @@ export default function RegisterPage() {
             </div>
 
             {/* Firm Details Section */}
-            <motion.div variants={itemVariants} className="pt-4 border-t border-slate-700/50">
+            <div className="pt-4 border-t border-slate-700/50">
               <p className="text-sm text-slate-400 mb-4 flex items-center gap-2">
                 <Building2 size={14} />
                 Business Details (Optional)
@@ -326,10 +269,10 @@ export default function RegisterPage() {
                   placeholder: 'Business address' 
                 })}
               </div>
-            </motion.div>
+            </div>
 
             {/* Privacy Policy & Terms Consent — Explicit Checkbox */}
-            <motion.div variants={itemVariants} className="mt-3">
+            <div className="mt-3">
               <label className="flex items-start gap-3 cursor-pointer group" htmlFor="consent-checkbox">
                 <div className="relative flex-shrink-0 mt-0.5">
                   <input
@@ -342,7 +285,7 @@ export default function RegisterPage() {
                   />
                   <div className="w-5 h-5 rounded-md border-2 border-slate-600 bg-slate-800/50 peer-checked:bg-emerald-500 peer-checked:border-emerald-500 transition-all duration-200 flex items-center justify-center group-hover:border-slate-500 peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-500/50">
                     {agreedToTerms && (
-                      <svg className="w-3 h-3 text-slate-100" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <svg className="w-3 h-3 text-slate-100" fill="none" viewBox="0 24 24" stroke="currentColor" strokeWidth={3}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>
                     )}
@@ -368,7 +311,7 @@ export default function RegisterPage() {
                   </Link>
                 </span>
               </label>
-            </motion.div>
+            </div>
 
             {/* Submit Button */}
             <button
@@ -394,10 +337,7 @@ export default function RegisterPage() {
           </form>
 
           {/* Login Link */}
-          <motion.div
-            variants={itemVariants}
-            className="mt-6 text-center"
-          >
+          <div className="mt-6 text-center">
             <p className="text-slate-400 text-sm">
               Already have an account?{' '}
               <Link 
@@ -407,31 +347,15 @@ export default function RegisterPage() {
                 Sign in here
               </Link>
             </p>
-          </motion.div>
+          </div>
 
           {/* Security Badge */}
-          <motion.div
-            variants={itemVariants}
-            className="mt-4 flex items-center justify-center gap-2 text-xs text-slate-500"
-          >
+          <div className="mt-4 flex items-center justify-center gap-2 text-xs text-slate-500">
             <Shield size={14} className="text-emerald-400" />
             <span>Your data is encrypted and secure</span>
-          </motion.div>
-
-          {/* Back to Landing */}
-          <motion.div
-            variants={itemVariants}
-            className="mt-4 text-center"
-          >
-            <Link 
-              to="/landing" 
-              className="text-slate-500 hover:text-slate-300 text-xs font-medium transition-colors"
-            >
-              ← Back to Home
-            </Link>
-          </motion.div>
+          </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

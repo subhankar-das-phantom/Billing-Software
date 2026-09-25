@@ -182,6 +182,11 @@ function PermissionRoute({ resource, action = 'view', feature: explicitFeature, 
 
 // Public Route Wrapper (redirect if logged in)
 function PublicRoute({ children }) {
+  const hasToken = typeof window !== 'undefined' ? !!localStorage.getItem('token') : false;
+  if (!hasToken) {
+    return children;
+  }
+
   const { user, loading } = useAuth();
   
   if (loading) {
