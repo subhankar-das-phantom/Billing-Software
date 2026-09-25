@@ -24,19 +24,24 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 import mongoose from 'mongoose';
 const connectDB = require('../config/database');
 const Invoice = require('../models/Invoice');
+const CreditNote = require('../models/CreditNote');
 import StockMovement from '../models/StockMovement';
 
 async function runBackfill() {
   const isDryRun = process.argv.includes('--dry-run');
 
   console.log('='.repeat(70));
-  console.log(`Inventory Ledger Sales Reconciliation Script ${isDryRun ? '[DRY RUN]' : '[LIVE]'}`);
+  console.log(`Inventory Ledger Sales & Returns Reconciliation Script ${isDryRun ? '[DRY RUN]' : '[LIVE]'}`);
   console.log('='.repeat(70));
 
   try {
     await connectDB();
     console.log('Connected to MongoDB database.');
 
+    // -------------------------------------------------------------------------
+    // Phase 1: Invoices (Sales Outflow) Reconciliation
+    // -------------------------------------------------------------------------
+    console.log('\n--- Phase 1: Checking Historical Invoices (Sales Out) ---');
     const activeInvoices = await Invoice.find({
       status: { $ne: 'Cancelled' }
     }).sort({ invoiceDate: 1, createdAt: 1 }).lean();
@@ -109,29 +114,120 @@ async function runBackfill() {
             await StockMovement.insertMany(pendingBatch, { ordered: false });
           }
           movementsCreated += pendingBatch.length;
-          console.log(`  Processed ${movementsCreated} movements...`);
+          console.log(`  Processed ${movementsCreated} invoice movements...`);
           pendingBatch = [];
         }
       }
     }
 
-    // Flush remaining batch
+    // Flush remaining invoice batch
     if (pendingBatch.length > 0) {
       if (!isDryRun) {
         await StockMovement.insertMany(pendingBatch, { ordered: false });
       }
       movementsCreated += pendingBatch.length;
-      console.log(`  Processed ${movementsCreated} movements...`);
+      console.log(`  Processed ${movementsCreated} invoice movements...`);
+      pendingBatch = [];
+    }
+
+    // -------------------------------------------------------------------------
+    // Phase 2: Credit Notes (Sales Returns Inflow) Reconciliation
+    // -------------------------------------------------------------------------
+    console.log('\n--- Phase 2: Checking Historical Credit Notes (Sales Returns) ---');
+    const creditNotes = await CreditNote.find({}).sort({ createdAt: 1 }).lean();
+    console.log(`Found ${creditNotes.length} credit notes across all tenants.`);
+
+    console.log('Loading existing credit note stock movements...');
+    const existingCNMovements = await StockMovement.find({
+      $or: [
+        { referenceType: 'CreditNote' },
+        { type: 'SALE_RETURN' }
+      ]
+    }).select('referenceId productId').lean();
+
+    const existingCNSet = new Set<string>();
+    for (const em of existingCNMovements) {
+      if (em.referenceId && em.productId) {
+        existingCNSet.add(`${String(em.referenceId)}_${String(em.productId)}`);
+      }
+    }
+    console.log(`Loaded ${existingCNSet.size} pre-existing credit note movement checkpoints.`);
+
+    let cnItemsChecked = 0;
+    let cnMovementsCreated = 0;
+    let cnMovementsSkipped = 0;
+
+    for (const cn of creditNotes) {
+      const items = cn.items || [];
+      for (const item of items) {
+        cnItemsChecked++;
+        const qty = item.quantityReturned || 0;
+        if (qty <= 0) continue;
+
+        const prodId = item.productId?._id || item.productId;
+        if (!prodId) {
+          console.warn(`  [WARN] CreditNote ${cn.creditNoteNumber} item missing productId. Skipping.`);
+          errorsCount++;
+          continue;
+        }
+
+        const lookupKey = `${String(cn.creditNoteNumber)}_${String(prodId)}`;
+        if (existingCNSet.has(lookupKey)) {
+          cnMovementsSkipped++;
+          continue;
+        }
+
+        const rate = item.rate || 0;
+        const totalValue = rate * qty;
+        const movementDoc = {
+          tenantId: cn.tenantId,
+          productId: prodId,
+          batchId: item.batchId || null,
+          type: 'SALE_RETURN' as const,
+          quantity: qty,
+          rate,
+          totalValue,
+          referenceType: 'CreditNote',
+          referenceId: cn.creditNoteNumber,
+          createdBy: cn.createdBy || { userModel: 'Admin' },
+          createdAt: cn.createdAt || new Date()
+        };
+
+        pendingBatch.push(movementDoc);
+        existingCNSet.add(lookupKey);
+
+        if (pendingBatch.length >= BATCH_SIZE) {
+          if (!isDryRun) {
+            await StockMovement.insertMany(pendingBatch, { ordered: false });
+          }
+          cnMovementsCreated += pendingBatch.length;
+          console.log(`  Processed ${cnMovementsCreated} credit note movements...`);
+          pendingBatch = [];
+        }
+      }
+    }
+
+    // Flush remaining credit note batch
+    if (pendingBatch.length > 0) {
+      if (!isDryRun) {
+        await StockMovement.insertMany(pendingBatch, { ordered: false });
+      }
+      cnMovementsCreated += pendingBatch.length;
+      console.log(`  Processed ${cnMovementsCreated} credit note movements...`);
       pendingBatch = [];
     }
 
     console.log('\n' + '='.repeat(70));
     console.log('RECONCILIATION SUMMARY:');
-    console.log(`- Invoices Checked:     ${activeInvoices.length}`);
-    console.log(`- Total Items Scanned:  ${totalItemsChecked}`);
-    console.log(`- Movements Created:    ${movementsCreated} ${isDryRun ? '(simulated)' : ''}`);
-    console.log(`- Movements Skipped:    ${movementsSkipped} (already had audit records)`);
-    console.log(`- Errors / Warnings:    ${errorsCount}`);
+    console.log(`- Invoices Checked:         ${activeInvoices.length}`);
+    console.log(`- Invoice Items Scanned:    ${totalItemsChecked}`);
+    console.log(`- Sales Movements Created:  ${movementsCreated} ${isDryRun ? '(simulated)' : ''}`);
+    console.log(`- Sales Movements Skipped:  ${movementsSkipped} (already had audit records)`);
+    console.log(`- Credit Notes Checked:     ${creditNotes.length}`);
+    console.log(`- CN Items Scanned:         ${cnItemsChecked}`);
+    console.log(`- Return Movements Created: ${cnMovementsCreated} ${isDryRun ? '(simulated)' : ''}`);
+    console.log(`- Return Movements Skipped: ${cnMovementsSkipped} (already had audit records)`);
+    console.log(`- Errors / Warnings:        ${errorsCount}`);
     console.log('='.repeat(70));
 
   } catch (fatalErr) {

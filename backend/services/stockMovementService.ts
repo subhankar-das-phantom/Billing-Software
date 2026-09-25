@@ -178,8 +178,16 @@ export const stockMovementService = {
           'createdBy': {
             $cond: {
               if: { $eq: ['$createdBy.userModel', 'Admin'] },
-              then: { _id: '$admin._id', name: '$admin.name', model: 'Admin' },
-              else: { _id: '$employee._id', name: '$employee.name', model: 'Employee' }
+              then: {
+                _id: '$admin._id',
+                name: { $ifNull: ['$admin.name', { $ifNull: ['$admin.firmName', 'Admin'] }] },
+                model: 'Admin'
+              },
+              else: {
+                _id: '$employee._id',
+                name: { $ifNull: ['$employee.name', 'Employee'] },
+                model: 'Employee'
+              }
             }
           }
         }

@@ -118,8 +118,40 @@ exports.createCreditNote = async (req, res, next) => {
         sgstAmount: amounts.sgstAmount,
         totalAmount: amounts.totalAmount
       });
+    }
 
-      // 4. Restore stock to product's currentStockQty or Batch
+    if (processedItems.length === 0) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: 'No items to return'
+      });
+    }
+
+    // 4. Generate credit note number upfront so audit records carry the final ID
+    const lastCN = await CreditNote.findOne({ tenantId }).sort({ createdAt: -1 }).session(session);
+    let creditNoteNumber;
+    if (lastCN && lastCN.creditNoteNumber) {
+      const lastNum = parseInt(lastCN.creditNoteNumber.split('-').pop());
+      creditNoteNumber = `CN-${new Date().getFullYear()}-${String(isNaN(lastNum) ? 1 : lastNum + 1).padStart(4, '0')}`;
+    } else {
+      creditNoteNumber = `CN-${new Date().getFullYear()}-0001`;
+    }
+
+    const attribution = getAttribution(req);
+
+    // 5. Restore stock to product's currentStockQty or Batch and record StockMovement
+    for (const returnItem of items) {
+      if (returnItem.quantityReturned <= 0) continue;
+
+      const invoiceItem = returnItem.invoiceItemId
+        ? invoice.items.id(returnItem.invoiceItemId)
+        : invoice.items.find(ii =>
+            ii.product._id.toString() === returnItem.productId
+            && (!returnItem.batchId || ii.batchAllocations?.some(a => a.batchId?.toString() === returnItem.batchId))
+          );
+      if (!invoiceItem) continue;
+
       const batchAllocation = returnItem.batchId
         ? invoiceItem.batchAllocations?.find(a => a.batchId?.toString() === returnItem.batchId)
         : invoiceItem.batchAllocations?.[0];
@@ -136,12 +168,21 @@ exports.createCreditNote = async (req, res, next) => {
           [{ ...allocationForRestore, quantity: returnItem.quantityReturned }],
           returnItem.quantityReturned,
           invoice._id,
-          `Sales Return: CN-NEW`,
+          `Sales Return: ${creditNoteNumber}`,
           'sales_return',
-          session
+          session,
+          {
+            referenceType: 'CreditNote',
+            referenceId: creditNoteNumber,
+            createdBy: attribution
+          }
         );
       } else {
-        await Product.findOneAndUpdate(
+        const productDoc = await Product.findOne({ _id: invoiceItem.product._id, tenantId }).session(session);
+        const previousQty = productDoc ? (productDoc.currentStockQty ?? 0) : 0;
+        const newQty = previousQty + returnItem.quantityReturned;
+
+        await Product.updateOne(
           { _id: invoiceItem.product._id, tenantId },
           {
             $inc: { currentStockQty: returnItem.quantityReturned, stockVersion: 1 },
@@ -149,25 +190,34 @@ exports.createCreditNote = async (req, res, next) => {
               stockHistory: {
                 type: 'sales_return',
                 changeQty: returnItem.quantityReturned,
-                reference: 'Sales Return: CN-NEW',
-                timestamp: new Date()
+                previousQty,
+                newQty,
+                reference: `Sales Return: ${creditNoteNumber}`,
+                timestamp: new Date(),
+                adjustedBy: attribution
               }
             }
           },
           { session }
         );
+
+        // Record stock movement so Inventory Ledger sees this sales return
+        await inventoryService.recordStockMovement({
+          tenantId,
+          productId: invoiceItem.product._id,
+          batchId: null,
+          type: 'SALE_RETURN',
+          quantity: returnItem.quantityReturned,
+          rate: invoiceItem.ratePerUnit || 0,
+          totalValue: (invoiceItem.ratePerUnit || 0) * returnItem.quantityReturned,
+          referenceType: 'CreditNote',
+          referenceId: creditNoteNumber,
+          createdBy: attribution
+        }, session);
       }
     }
 
-    if (processedItems.length === 0) {
-      await session.abortTransaction();
-      return res.status(400).json({
-        success: false,
-        message: 'No items to return'
-      });
-    }
-
-    // 5. Calculate totals
+    // 6. Calculate totals
     const totals = processedItems.reduce((acc, item) => {
       acc.totalTaxable += item.taxableAmount;
       acc.totalGST += item.gstAmount;
@@ -181,25 +231,6 @@ exports.createCreditNote = async (req, res, next) => {
     Object.keys(totals).forEach(key => {
       totals[key] = round(totals[key]);
     });
-
-    // 6. Generate credit note number
-    const lastCN = await CreditNote.findOne({ tenantId }).sort({ createdAt: -1 }).session(session);
-    let creditNoteNumber;
-    if (lastCN) {
-      const lastNum = parseInt(lastCN.creditNoteNumber.split('-').pop());
-      creditNoteNumber = `CN-${new Date().getFullYear()}-${String(lastNum + 1).padStart(4, '0')}`;
-    } else {
-      creditNoteNumber = `CN-${new Date().getFullYear()}-0001`;
-    }
-
-    // Update reference in stock history now that we have the number
-    for (const item of processedItems) {
-        await Product.updateOne(
-            { _id: item.productId, tenantId, 'stockHistory.reference': 'Sales Return: CN-NEW' },
-            { $set: { 'stockHistory.$.reference': `Sales Return: ${creditNoteNumber}` } },
-            { session }
-        );
-    }
 
     // 7. Get admin info and create credit note
     const adminInfo = await Admin.findById(tenantId).session(session);

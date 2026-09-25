@@ -693,7 +693,11 @@ export default function ProductDetailsPage() {
                           {changePrefix}{entry.changeQty}
                         </div>
                         <div className="text-sm text-slate-400">
-                          {entry.previousQty ?? '-'} → <span className="text-slate-100 font-medium">{entry.newQty ?? '-'}</span>
+                          {entry.previousQty != null ? (
+                            <>{entry.previousQty} → <span className="text-slate-100 font-medium">{entry.newQty ?? (entry.previousQty + entry.changeQty)}</span></>
+                          ) : (
+                            <span className="text-slate-300 font-medium">{entry.changeQty > 0 ? `+${entry.changeQty} returned` : `${entry.changeQty} deducted`}</span>
+                          )}
                         </div>
                         <div className="text-sm truncate">
                           {referenceContent}
@@ -722,7 +726,11 @@ export default function ProductDetailsPage() {
                           {changePrefix}{entry.changeQty}
                         </div>
                         <div className="text-sm text-slate-400">
-                          {entry.previousQty ?? '-'} → <span className="text-slate-100 font-medium">{entry.newQty ?? '-'}</span>
+                          {entry.previousQty != null ? (
+                            <>{entry.previousQty} → <span className="text-slate-100 font-medium">{entry.newQty ?? (entry.previousQty + entry.changeQty)}</span></>
+                          ) : (
+                            <span className="text-slate-300 font-medium">{entry.changeQty > 0 ? `+${entry.changeQty} returned` : `${entry.changeQty} deducted`}</span>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center justify-between text-sm">

@@ -293,9 +293,17 @@ export const restoreBatchAllocations = async (
   quantityToRestore: number,
   invoiceId: mongoose.Types.ObjectId | string,
   invoiceNumber: string,
-  type: 'invoice_cancelled' | 'invoice_edit_reversal' = 'invoice_cancelled',
-  session: ClientSession
+  type: 'invoice_cancelled' | 'invoice_edit_reversal' | 'sales_return' = 'invoice_cancelled',
+  session: ClientSession,
+  options?: {
+    referenceType?: string;
+    referenceId?: string;
+    createdBy?: { user: mongoose.Types.ObjectId | string; userModel: 'Admin' | 'Employee' };
+  }
 ): Promise<void> => {
+  const movementRefType = options?.referenceType || (type === 'sales_return' ? 'CreditNote' : 'Invoice');
+  const movementRefId = options?.referenceId || (type === 'sales_return' ? invoiceNumber : String(invoiceId));
+
   if (allocations && allocations.length > 0) {
     for (const alloc of allocations) {
       await Batch.updateOne(
@@ -308,12 +316,13 @@ export const restoreBatchAllocations = async (
         tenantId,
         productId,
         batchId: alloc.batchId,
-        type: type === 'invoice_cancelled' ? 'SALE_REVERSAL' : 'SALE_RETURN', // Map appropriately, invoice_edit_reversal usually acts like return
+        type: type === 'invoice_cancelled' ? 'SALE_REVERSAL' : 'SALE_RETURN',
         quantity: alloc.quantity,
         rate: alloc.rate || 0,
         totalValue: (alloc.rate || 0) * alloc.quantity,
-        referenceType: 'Invoice',
-        referenceId: String(invoiceId)
+        referenceType: movementRefType,
+        referenceId: movementRefId,
+        createdBy: options?.createdBy
       }, session);
     }
   }
@@ -337,7 +346,8 @@ export const restoreBatchAllocations = async (
             previousQty,
             newQty,
             reference: invoiceNumber,
-            timestamp: new Date()
+            timestamp: new Date(),
+            ...(options?.createdBy ? { adjustedBy: options.createdBy } : {})
           }
         }
       },
@@ -353,8 +363,9 @@ export const restoreBatchAllocations = async (
         quantity: quantityToRestore,
         rate: product.rate || 0,
         totalValue: (product.rate || 0) * quantityToRestore,
-        referenceType: 'Invoice',
-        referenceId: String(invoiceId)
+        referenceType: movementRefType,
+        referenceId: movementRefId,
+        createdBy: options?.createdBy
       }, session);
     }
   }
