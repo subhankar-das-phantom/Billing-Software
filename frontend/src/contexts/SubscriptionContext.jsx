@@ -11,7 +11,6 @@ export const SubscriptionProvider = ({ children }) => {
   const location = useLocation();
 
   const isPublicMarketingRoute = 
-    location.pathname === '/' ||
     location.pathname === '/landing' ||
     location.pathname === '/privacy-policy' ||
     location.pathname === '/terms' ||
@@ -32,7 +31,6 @@ export const SubscriptionProvider = ({ children }) => {
   const [loading, setLoading] = useState(() => {
     const hasToken = typeof window !== 'undefined' ? !!localStorage.getItem('token') : false;
     const isPublic = typeof window !== 'undefined' && (
-      window.location.pathname === '/' ||
       window.location.pathname === '/landing' ||
       window.location.pathname === '/privacy-policy' ||
       window.location.pathname === '/terms' ||
@@ -41,8 +39,7 @@ export const SubscriptionProvider = ({ children }) => {
       window.location.pathname.startsWith('/login') ||
       window.location.pathname.startsWith('/register')
     );
-    if (!hasToken || isPublic) return false;
-    return !subscription;
+    return !hasToken || isPublic ? false : !subscription;
   });
   const [error, setError] = useState(null);
 

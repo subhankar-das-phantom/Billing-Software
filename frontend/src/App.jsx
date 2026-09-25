@@ -59,7 +59,6 @@ import AppShellSkeleton from './components/Layout/AppShellSkeleton';
 function PageLoader() {
   const location = useLocation();
   const isPublicRoute = 
-    location.pathname === '/' ||
     location.pathname === '/landing' ||
     location.pathname === '/privacy-policy' ||
     location.pathname === '/terms' ||
@@ -94,7 +93,7 @@ function ProtectedRoute({ children }) {
   const { user, loading, isAdmin, logout } = useAuth();
   const { canAccess, loading: subLoading } = useSubscription();
   
-  if (loading || subLoading) {
+  if (loading || subLoading || (!user && typeof window !== 'undefined' && (localStorage.getItem('admin') || localStorage.getItem('isDemoMode')))) {
     return <AppShellSkeleton />;
   }
   

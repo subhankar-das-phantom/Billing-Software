@@ -25,7 +25,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, startDemoMode } = useAuth();
   const { error: showError } = useToast();
 
   const handleSubmit = async (e) => {
@@ -201,7 +201,7 @@ export default function LoginPage() {
           {/* 1-Click Interactive Live Demo Button */}
           <button
             type="button"
-            onClick={() => enterDemoMode(navigate)}
+            onClick={startDemoMode}
             className="w-full p-3.5 rounded-xl bg-slate-800/60 hover:bg-slate-800/90 border border-slate-700/70 hover:border-amber-500/50 text-slate-200 hover:text-white transition-all shadow-xs flex items-center justify-between group cursor-pointer"
           >
             <div className="flex items-center gap-3 text-left min-w-0">

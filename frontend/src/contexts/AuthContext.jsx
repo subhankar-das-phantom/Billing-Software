@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { DEMO_ADMIN, DEMO_SUBSCRIPTION } from '../demo/demoData';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Loader2, 
@@ -70,9 +71,9 @@ const Toast = ({ message, type = 'success', onClose }) => {
 export const AuthProvider = ({ children }) => {
   const { setThemeMode } = useTheme();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const isPublicMarketingRoute = 
-    location.pathname === '/' ||
     location.pathname === '/landing' ||
     location.pathname === '/privacy-policy' ||
     location.pathname === '/terms';
@@ -89,13 +90,31 @@ export const AuthProvider = ({ children }) => {
   // Check if there's a token to verify — if not, skip auth entirely
   const hasToken = !!localStorage.getItem('token');
 
-  // Support for both admin and employee users
-  const [user, setUser] = useState(null); // Current user (admin or employee)
-  const [userRole, setUserRole] = useState(null); // 'admin' or 'employee'
-  const [admin, setAdmin] = useState(null); // For backward compatibility
+  // Support for both admin and employee users with Frame-0 localStorage pre-seeding
+  const [user, setUser] = useState(() => {
+    try {
+      const savedAdmin = localStorage.getItem('admin');
+      const savedUser = localStorage.getItem('user');
+      if (savedAdmin) return JSON.parse(savedAdmin);
+      if (savedUser) return JSON.parse(savedUser);
+      return null;
+    } catch {
+      return null;
+    }
+  });
+  const [userRole, setUserRole] = useState(() => {
+    return localStorage.getItem('userRole') || null;
+  });
+  const [admin, setAdmin] = useState(() => {
+    try {
+      const savedAdmin = localStorage.getItem('admin');
+      return savedAdmin ? JSON.parse(savedAdmin) : null;
+    } catch {
+      return null;
+    }
+  });
   const [loading, setLoading] = useState(() => {
     const isPublic = typeof window !== 'undefined' && (
-      window.location.pathname === '/' ||
       window.location.pathname === '/landing' ||
       window.location.pathname === '/privacy-policy' ||
       window.location.pathname === '/terms' ||
@@ -104,7 +123,7 @@ export const AuthProvider = ({ children }) => {
       window.location.pathname.startsWith('/login') ||
       window.location.pathname.startsWith('/register')
     );
-    return isPublic ? false : hasToken;
+    return isPublic ? false : hasToken && !localStorage.getItem('admin') && !localStorage.getItem('user');
   });
   const [toast, setToast] = useState(null);
   const [authTransition, setAuthTransition] = useState(null); // 'login' | 'logout'
@@ -356,6 +375,26 @@ export const AuthProvider = ({ children }) => {
     return false;
   }, [userRole, user]);
 
+  const startDemoMode = useCallback(() => {
+    clearClientCaches();
+    localStorage.setItem('isDemoMode', 'true');
+    localStorage.setItem('token', 'demo_client_jwt_token_secure_isolated');
+    localStorage.setItem('userRole', 'admin');
+    localStorage.setItem('admin', JSON.stringify(DEMO_ADMIN));
+    localStorage.setItem('cached_subscription', JSON.stringify(DEMO_SUBSCRIPTION));
+
+    setAdmin(DEMO_ADMIN);
+    setUser(DEMO_ADMIN);
+    setUserRole('admin');
+    setLoading(false);
+
+    if (DEMO_ADMIN.preferences?.themeMode) {
+      setThemeMode(DEMO_ADMIN.preferences.themeMode);
+    }
+
+    navigate('/');
+  }, [navigate, setThemeMode]);
+
   return (
     <AuthContext.Provider 
       value={{ 
@@ -370,6 +409,7 @@ export const AuthProvider = ({ children }) => {
         // Auth actions
         login, 
         logout, 
+        startDemoMode,
         updateAdmin, 
         updateUserPreferences,
         hasPermission,
@@ -440,6 +480,7 @@ export const useAuth = () => {
       showToast: () => {},
       logout: () => {},
       login: () => {},
+      startDemoMode: () => {},
     };
   }
   return context;
