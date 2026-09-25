@@ -16,14 +16,14 @@ export default function HeroSection() {
   };
 
   return (
-    <section id="product" className="relative pt-16 pb-12 sm:pt-20 sm:pb-16 lg:pt-20 lg:pb-16 overflow-hidden">
+    <section id="product" className="relative pt-28 pb-12 sm:pt-32 sm:pb-16 lg:pt-36 lg:pb-20 xl:pt-40 overflow-hidden">
       {/* Background ambient lighting - fixed anchor to eliminate CLS layout shift */}
       <div
-        className="absolute top-48 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-blue-500/10 dark:bg-blue-600/15 blur-[120px] rounded-full pointer-events-none -z-10"
+        className="absolute top-56 sm:top-60 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-blue-500/10 dark:bg-blue-600/15 blur-[120px] rounded-full pointer-events-none -z-10"
         aria-hidden="true"
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-2 sm:pt-4 lg:pt-5">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 xl:gap-14 items-center">
           {/* Left Column: Eyebrow, Headline, Subtitle, CTAs & Trial Info */}
           <div className="lg:col-span-6 flex flex-col justify-center text-left">
@@ -59,7 +59,7 @@ export default function HeroSection() {
             </div>
 
             {/* Reassurance notice */}
-            <p className="mt-5 sm:mt-6 pt-1 text-xs text-slate-400">
+            <p className="mt-6 sm:mt-7 pt-1.5 text-xs text-slate-400">
               {!isError && trialDays && minStartingPrice ? (
                 <>
                   {trialDays}-day full access trial • Tiered plans starting from ₹{minStartingPrice.toLocaleString('en-IN')}/month
@@ -84,30 +84,30 @@ export default function HeroSection() {
               badges={[]}
             />
 
-            {/* Floating Notification Cards Stacked on Right Edge with Distinct Glassmorphism */}
-            <div className="hidden xl:flex flex-col gap-3.5 absolute -right-6 2xl:-right-10 top-1/2 -translate-y-1/2 z-30 w-[256px] select-none pointer-events-auto">
+            {/* Floating Notification Cards Stacked on Right Edge with Proportional Micro-Scale */}
+            <div className="hidden xl:flex flex-col gap-2.5 absolute -right-3 xl:-right-4 2xl:-right-6 top-1/2 -translate-y-1/2 z-30 w-[204px] 2xl:w-[214px] select-none pointer-events-auto">
               {/* Card 1: Monthly Revenue */}
-              <div className="group/card bg-slate-900/90 backdrop-blur-xl border border-slate-750/90 rounded-2xl p-3.5 shadow-[0_20px_50px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.06)] hover:shadow-2xl hover:border-blue-500/40 hover:-translate-y-0.5 transition-all duration-200">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-400">
+              <div className="group/card bg-slate-900/95 backdrop-blur-xl border border-slate-750/90 rounded-xl p-2.5 shadow-[0_12px_30px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.06)] hover:shadow-xl hover:border-blue-500/40 hover:-translate-y-0.5 transition-all duration-200">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[9px] font-semibold uppercase tracking-wider text-blue-400">
                     Showcase metrics
                   </span>
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  <span className="inline-flex items-center px-1.5 py-0.2 rounded-full text-[8.5px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                     Sample
                   </span>
                 </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center shrink-0 text-blue-400">
-                    <BarChart3 className="w-4 h-4" />
+                <div className="flex items-start gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-blue-500/15 border border-blue-500/30 flex items-center justify-center shrink-0 text-blue-400 mt-0.5">
+                    <BarChart3 className="w-3.5 h-3.5" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-xs font-semibold text-slate-100">
+                    <div className="text-[11px] font-semibold text-slate-200 truncate">
                       Monthly Revenue
                     </div>
-                    <div className="text-sm font-bold text-slate-100 tracking-tight">
-                      ₹3,90,546 <span className="font-medium text-emerald-400 text-xs">(+93.4%)</span>
+                    <div className="text-xs font-bold text-slate-100 tracking-tight leading-tight">
+                      ₹3,90,546 <span className="font-medium text-emerald-400 text-[10px]">(+93.4%)</span>
                     </div>
-                    <div className="text-[10px] text-slate-400 mt-0.5">
+                    <div className="text-[9px] text-slate-400 mt-0.5">
                       vs. last month
                     </div>
                   </div>
@@ -115,27 +115,27 @@ export default function HeroSection() {
               </div>
 
               {/* Card 2: Catalog */}
-              <div className="group/card bg-slate-900/90 backdrop-blur-xl border border-slate-750/90 rounded-2xl p-3.5 shadow-[0_20px_50px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.06)] hover:shadow-2xl hover:border-slate-650 hover:-translate-y-0.5 transition-all duration-200">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+              <div className="group/card bg-slate-900/95 backdrop-blur-xl border border-slate-750/90 rounded-xl p-2.5 shadow-[0_12px_30px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.06)] hover:shadow-xl hover:border-slate-650 hover:-translate-y-0.5 transition-all duration-200">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">
                     Showcase snapshot
                   </span>
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                  <span className="inline-flex items-center px-1.5 py-0.2 rounded-full text-[8.5px] font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
                     Sample
                   </span>
                 </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0 text-slate-300">
-                    <Package className="w-4 h-4" />
+                <div className="flex items-start gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0 text-slate-300 mt-0.5">
+                    <Package className="w-3.5 h-3.5" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-xs font-semibold text-slate-100">
+                    <div className="text-[11px] font-semibold text-slate-200 truncate">
                       Active Catalog
                     </div>
-                    <div className="text-xs font-bold text-slate-100 truncate">
+                    <div className="text-[11px] font-bold text-slate-100 truncate leading-tight">
                       {telemetry.productsCount} SKUs • {telemetry.batchesCount} Batches
                     </div>
-                    <div className="text-[10px] text-slate-400 mt-0.5">
+                    <div className="text-[9px] text-slate-400 mt-0.5">
                       Inventory overview
                     </div>
                   </div>
