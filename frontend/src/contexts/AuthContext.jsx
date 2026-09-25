@@ -285,6 +285,8 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('user');
       localStorage.removeItem('userRole');
       localStorage.removeItem('bharat_mobile_card_density');
+      localStorage.removeItem('isDemoMode');
+      localStorage.removeItem('cached_subscription');
       setAdmin(null);
       setUser(null);
       setUserRole(null);

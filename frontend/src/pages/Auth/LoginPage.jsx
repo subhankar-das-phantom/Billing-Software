@@ -11,10 +11,12 @@ import {
   EyeOff,
   CheckCircle,
   AlertCircle,
-  Shield
+  Shield,
+  Sparkles
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
+import { enterDemoMode } from '../../demo/demoState';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -184,27 +186,42 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Demo Credentials */}
-          <div className="mt-6 p-3.5 rounded-xl bg-slate-800/40 border border-slate-700/60">
-            <div className="flex items-center gap-2 mb-2">
-              <AlertCircle size={15} className="text-blue-400" />
-              <p className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Demo Credentials</p>
+          {/* Divider */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-700/60" />
             </div>
-            <div className="space-y-1.5 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">Email:</span>
-                <code className="text-blue-400 font-mono bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700/60">
-                  admin@bharat.com
-                </code>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">Password:</span>
-                <code className="text-blue-400 font-mono bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700/60">
-                  admin123
-                </code>
-              </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-slate-900 px-3 text-slate-400 font-semibold tracking-wider">
+                Or explore instantly
+              </span>
             </div>
           </div>
+
+          {/* 1-Click Interactive Live Demo Button */}
+          <button
+            type="button"
+            onClick={() => enterDemoMode(navigate)}
+            className="w-full p-3.5 rounded-xl bg-slate-800/60 hover:bg-slate-800/90 border border-slate-700/70 hover:border-amber-500/50 text-slate-200 hover:text-white transition-all shadow-xs flex items-center justify-between group cursor-pointer"
+          >
+            <div className="flex items-center gap-3 text-left min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0 group-hover:scale-105 transition-transform">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-semibold text-slate-100 flex items-center gap-1.5 truncate">
+                  <span>Explore Live Demo Mode</span>
+                  <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 shrink-0">
+                    No Login Required
+                  </span>
+                </div>
+                <div className="text-[11px] text-slate-400 truncate mt-0.5">
+                  Full workspace preview with realistic Indian distribution data
+                </div>
+              </div>
+            </div>
+            <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-400 group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
+          </button>
 
           {/* Register Link */}
           <div className="mt-6 text-center">

@@ -17,6 +17,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { resolveBreadcrumbs } from './navigationConfig';
 import ThemeToggle from '../Common/Buttons/ThemeToggle';
+import { isDemoModeActive, exitDemoMode } from '../../demo/demoState';
 
 export default function Header({
   onToggleSidebar,
@@ -29,6 +30,7 @@ export default function Header({
   const { admin, user, isAdmin, logout } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
   const profileDropdownRef = useRef(null);
+  const isDemo = isDemoModeActive();
 
   // Derive dynamic breadcrumbs and title from current route
   const { title, crumbs } = resolveBreadcrumbs(location.pathname);
@@ -172,6 +174,23 @@ export default function Header({
             {formattedDate}
           </div>
 
+          {/* Demo Mode Indicator Pill */}
+          {isDemo && (
+            <div className="flex items-center gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-medium shadow-xs shrink-0">
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0" />
+              <span className="hidden md:inline font-semibold">Demo Mode</span>
+              <span className="hidden xl:inline text-amber-300/80 text-[11px]">• Offline Preview</span>
+              <button
+                type="button"
+                onClick={() => exitDemoMode(navigate)}
+                className="ml-1 text-[11px] font-semibold text-amber-400 hover:text-white underline transition-colors cursor-pointer shrink-0"
+                title="Exit Demo Mode and return to sign in"
+              >
+                Exit
+              </button>
+            </div>
+          )}
+
           {/* Theme Toggle Button */}
           <ThemeToggle />
 
@@ -295,12 +314,16 @@ export default function Header({
                       type="button"
                       onClick={() => {
                         setProfileOpen(false);
-                        logout();
+                        if (isDemo) {
+                          exitDemoMode(navigate);
+                        } else {
+                          logout();
+                        }
                       }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors cursor-pointer"
                     >
                       <LogOut size={15} />
-                      <span>Logout</span>
+                      <span>{isDemo ? 'Exit Demo Mode' : 'Logout'}</span>
                     </button>
                   </div>
                 </motion.div>
