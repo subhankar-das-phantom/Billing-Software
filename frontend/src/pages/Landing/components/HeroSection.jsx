@@ -32,7 +32,7 @@ export default function HeroSection() {
             </p>
 
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-[40px] xl:text-[46px] 2xl:text-[48px] font-bold text-slate-50 tracking-tight leading-[1.14]">
-              <span className="lg:block">The Operating System for</span>{' '}
+              <span className="lg:block">The Operating System for </span>
               <span>Modern Indian Distribution</span>
             </h1>
 
@@ -59,7 +59,7 @@ export default function HeroSection() {
             </div>
 
             {/* Reassurance notice */}
-            <p className="mt-3.5 text-xs text-slate-400">
+            <p className="mt-5 sm:mt-6 pt-1 text-xs text-slate-400">
               {!isError && trialDays && minStartingPrice ? (
                 <>
                   {trialDays}-day full access trial • Tiered plans starting from ₹{minStartingPrice.toLocaleString('en-IN')}/month
