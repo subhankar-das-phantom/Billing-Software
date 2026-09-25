@@ -198,16 +198,20 @@ export default function Header({
           <div className="relative" ref={profileDropdownRef}>
             <button
               type="button"
-              onClick={() => setProfileOpen(!profileOpen)}
-              className="flex items-center gap-2 p-1 sm:px-2.5 sm:py-1.5 rounded-xl bg-slate-800/40 hover:bg-slate-800/80 border border-slate-700/40 hover:border-slate-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              onClick={() => setProfileOpen((prev) => !prev)}
+              className={`flex items-center gap-2 p-1 sm:px-2.5 sm:py-1.5 rounded-xl border transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer ${
+                profileOpen
+                  ? 'bg-slate-800 border-slate-600 text-slate-100 shadow-xs'
+                  : 'bg-slate-800/40 hover:bg-slate-800/80 border-slate-700/40 hover:border-slate-600 text-slate-300 hover:text-slate-100'
+              }`}
               aria-expanded={profileOpen}
               aria-label="User menu"
             >
-              <div className="w-8 h-8 rounded-full flex items-center justify-center bg-slate-800 border border-slate-700/60 text-slate-200 font-semibold text-xs shrink-0 shadow-xs">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center bg-slate-800 border border-slate-700/60 text-slate-200 font-semibold text-xs shrink-0 shadow-xs pointer-events-none">
                 {userInitial}
               </div>
 
-              <div className="hidden xl:block text-left min-w-0 max-w-[130px]">
+              <div className="hidden xl:block text-left min-w-0 max-w-[130px] pointer-events-none">
                 <p className="text-xs font-medium text-slate-100 truncate leading-tight">
                   {displayName}
                 </p>
@@ -218,7 +222,7 @@ export default function Header({
 
               <ChevronDown
                 size={14}
-                className={`text-slate-400 transition-transform duration-200 hidden sm:block ${
+                className={`text-slate-400 transition-transform duration-150 hidden sm:block pointer-events-none ${
                   profileOpen ? 'rotate-180' : ''
                 }`}
               />
@@ -228,11 +232,13 @@ export default function Header({
             <AnimatePresence>
               {profileOpen && (
                 <motion.div
-                  className="absolute right-0 mt-2 w-60 bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl shadow-black/60 overflow-hidden z-50 p-1.5"
-                  initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                  transition={{ type: 'spring', stiffness: 450, damping: 30 }}
+                  key="header-user-menu"
+                  className="absolute right-0 mt-2 w-60 bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl shadow-black/60 overflow-hidden z-50 p-1.5 will-change-[transform,opacity]"
+                  style={{ transformOrigin: 'top right' }}
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
                 >
                   {/* Profile Header */}
                   <div className="p-3 border-b border-slate-800">
