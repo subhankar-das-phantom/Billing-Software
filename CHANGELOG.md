@@ -4,7 +4,7 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
-## [v2.7.1](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.7.1) — 2026-09-25 — Auth Flow Stabilization, Public Theme Consolidation & Hardware-Tiered Scroll Reveal
+## [v2.7.1](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.7.1) — 2026-09-25 — Auth Flow Stabilization, Public Theme Consolidation, Zero-CLS Anti-Flicker Architecture & Invoice View Redesign
 
 ### 🛠️ Demo Mode Full-Stack Parity & Runtime Error Elimination (`demoData.js`, `demoAdapter.js`, `Header.jsx`, `ActivityLogPage.jsx`, `CustomerDetailsPage.jsx`, `InvoiceViewPage.jsx`, `InventoryLedgerPage.jsx`, `TopProductsChart.jsx`, `TopCustomersChart.jsx`, `DashboardChartsSection.jsx`, `AuthContext.jsx`, `api.js`, `index.html`)
 - **Record Payment Modal Zero-CLS Anti-Flicker Architecture (`RecordPaymentModal.jsx`, `InvoiceViewPage.jsx`)** — Eliminated visual flicker, border shimmering, and layout jumping when opening the Record Payment Modal from the Invoice View page.
