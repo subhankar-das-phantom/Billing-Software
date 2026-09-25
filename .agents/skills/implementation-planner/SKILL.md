@@ -26,6 +26,9 @@ This skill guides the agent through requirements analysis, architectural impact 
   - **Check for Concurrency & Read-Modify-Write**: Are entity balances modified via in-memory math and overwritten, risking lost updates? Are atomic `$inc` operators and `session.withTransaction` auto-retrying write conflicts used?
   - **Check for Single-vs-List Query Parity**: Does a single entity detail lookup (`getCustomer`) compute balances dynamically from live unpaid invoices/ledgers with zero-overhead background self-healing, matching collection endpoints (`getCustomers`) and ledgers?
   - **Check for Currency Precision & Decimal Truncation**: Are financial counters and KPI cards using `decimals={2}` with `'en-IN'` locale formatting, or is `Math.round()` / `decimals={0}` truncating paise?
+  - **Check for Dropdown / Popover Flicker & Trigger Flashing**: Do dropdowns, popovers, or floating menus use spring physics or unanchored scale animations? Do they lack `transformOrigin`, `will-change-[transform,opacity]`, or locked active trigger button styling when open? Do child elements inside trigger buttons lack `pointer-events-none`?
+  - **Check Table Column Defensive Shapes & Method Safety**: Do table renderers call `.toFixed()`, `.slice()`, or `.charAt()` directly on potentially flat, undefined, or unpopulated fields without nullish coalescing `??` fallbacks?
+  - **Check Mock Data Parity & Isolation**: Do mock handlers synchronize both root `entity.*` and `summary.*` fields to avoid split KPI counts on detail pages? Are mock collections isolated per entity ID, and do they supply relationship IDs (`invoiceId`, `invoice: { _id, invoiceNumber }`) for deep-links?
   - **Check for Identifier & Import Integrity**: Are all JSX components (e.g. `RefreshIndicator`) and external helpers explicitly imported with zero duplicate `useState` holdovers?
 - **DO NOT** execute file edits, write code, or execute mutating scripts during this stage.
 

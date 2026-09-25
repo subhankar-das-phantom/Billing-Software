@@ -52,6 +52,52 @@ This skill ensures that all UI development in the Bharat Enterprise platform adh
    - Keep modal exit transitions snappy (`duration: 0.15s` or `0.2s` ease-out), avoiding complex unmount cascades and heavy nested Framer Motion trees.
 5. **Lightweight Interactive Elements**:
    - Avoid wrapping simple banner or table buttons in heavy Framer Motion components (`motion.button`). Use native CSS hardware-accelerated transforms (`active:scale-95 transition-transform duration-100`).
+6. **Dropdown, Menu, Popover & Floating Panel Anti-Flicker Engineering**:
+   - **Forbid Spring Physics & Center Scale on Floating Elements**: Spring physics (`type: 'spring'`) causes high-frequency subpixel oscillations that trigger border anti-aliasing shimmering on 1px borders (`border-slate-700/80`), deep box-shadow rasterization thrashing (`shadow-2xl shadow-black/60`), and text blurring on Chromium. Always use GPU-accelerated opacity and subtle Y-glide:
+     ```jsx
+     initial={{ opacity: 0, y: -6 }}
+     animate={{ opacity: 1, y: 0 }}
+     exit={{ opacity: 0, y: -6 }}
+     transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
+     ```
+   - **Mandatory Transform Anchor Origin**: Floating cards positioned via `right-0` (or `left-0`) must explicitly define `style={{ transformOrigin: 'top right' }}` (or `'top left'`). Never allow the browser to default to `center center`, which causes anchored edges to drift horizontally and snap back during opening/closing.
+   - **Compositor Layer Promotion**: Always add `will-change-[transform,opacity]` or `style={{ willChange: 'transform, opacity' }}` to isolate the dropdown panel on its own GPU compositor layer immediately upon mounting.
+   - **Trigger Button Active Open State Locking**: Trigger buttons must NEVER rely solely on `:hover` classes. When the dropdown menu is open (`isOpen` / `aria-expanded="true"`), the trigger button must be conditionally styled to retain its active background/border (`isOpen ? 'bg-slate-800 border-slate-600 text-slate-100 shadow-xs' : 'bg-slate-800/40 hover:bg-slate-800/80...'`). This prevents the button from losing hover and triggering abrupt `transition-colors` back and forth when the user navigates the cursor across the gap into the dropdown menu.
+   - **Trigger Child Event Isolation**: Apply `pointer-events-none` to inner text, avatars, and indicator SVGs inside trigger buttons to ensure stable event target resolution directly on the `<button>`. Use functional state updaters `setIsOpen((prev) => !prev)` to avoid closure races.
+   - **Indicator Transition Synchronization**: Match the transition duration of indicator chevrons (e.g. `duration-150`) to the dropdown panel's exit/entry duration (`0.15s`).
+
+---
+
+## 🛡️ Defensive Data Rendering & Table Column Shape Parity
+
+1. **Dual-Shape Table Column Renderers**:
+   - When rendering tables or item lists (such as invoices, bills, credit notes, or receipts), never assume a single strict schema (e.g. `item.product.productName`, `item.ratePerUnit`, `item.quantitySold`).
+   - Always implement nullish-coalescing fallbacks for flat data structures:
+     - Product Name: `item.product?.productName ?? item.productName ?? item.name`
+     - Rate: `item.ratePerUnit ?? item.rate ?? 0`
+     - Quantity: `item.quantitySold ?? item.quantity ?? 0`
+     - Batch: `item.product?.batchNo ?? item.batchNumber ?? item.batchNo`
+     - Expiry: `item.product?.expiryDate ?? item.expiryDate`
+     - Total: `item.totalAmount ?? (qty * rate)`
+2. **Defensive Numeric & String Method Calls**:
+   - Never call `.toFixed()`, `.slice()`, or `.charAt()` without nullish coalescing or optional chaining:
+     - `(Number(val) || 0).toFixed(2)`
+     - `(Array.isArray(list) ? list : []).slice(0, limit)`
+     - `(str || '?').charAt(0)`
+   - Never perform direct `.length` lookups on potentially undefined nested arrays without null-safe fallback `(activities?.invoicesCreated || []).length`.
+
+---
+
+## 🧪 Demo Mode & Mock Adapter Data Parity Protocols
+
+1. **Dual-Source Binding Synchronization (Root Entity vs Summary Object)**:
+   - When building mock endpoints or detail views, always synchronize root entity properties (`entity.totalPurchases`, `entity.invoiceCount`) with the `summary` object (`summary.totalPurchases`, `summary.invoiceCount`). Detail pages frequently bind KPI cards to both locations; failure to synchronize leads to contradictory numbers on the same page.
+2. **Per-Entity Mock Isolation**:
+   - Mock endpoints must filter collections strictly by entity ID (e.g. `customerId`, `supplierId`). Never return global mock arrays for specific entity queries.
+3. **Deep-Link Key Integrity**:
+   - Mock records must always populate valid relationship IDs (`invoiceId`, `invoice: { _id, invoiceNumber }`) to prevent broken `/undefined` navigation routes.
+4. **Authentic Business Variance in Mock Analytics**:
+   - Mock charts and analytics must avoid flat lockstep percentages (e.g. daily collections locked to 88% of daily sales). Use natural variance with independent sales spikes, weekend dips, and lagged payment clearing waves.
 
 ---
 
@@ -115,6 +161,10 @@ This skill ensures that all UI development in the Bharat Enterprise platform adh
 
 Before completing any frontend code change, verify that:
 - [ ] **Zero-CLS Banner Layout**: Top banners use GPU opacity/translate animations (`duration: 0.15s`), never `height: 'auto'` spring physics.
+- [ ] **Dropdown Anti-Flicker & Zero Spring Scale**: Dropdown menus, popovers, and floating cards use GPU-accelerated opacity/Y-glide (`duration: 0.15s`), explicit `transformOrigin`, `will-change-[transform,opacity]`, locked active button styling when open, `pointer-events-none` on button children, and zero spring oscillations.
+- [ ] **Defensive Table Column Renderers**: Column renderers provide nullish-coalescing fallbacks for nested vs flat data (`item.product?.name ?? item.name`, `item.ratePerUnit ?? item.rate`), never calling `.toFixed()` on undefined.
+- [ ] **Defensive String & Array Calls**: All `.slice()`, `.toFixed()`, and `.charAt()` calls are guarded by nullish coalescing and optional chaining.
+- [ ] **Mock Adapter Parity & Isolation**: Mock endpoints isolate data per entity ID, populate relationship IDs for deep-links, and synchronize both root `entity.*` and `summary.*` fields to avoid split KPI counts.
 - [ ] **Frame-0 Cached Mounting & Anti-Stale Data**: Operational pages use `useSWR` (30s TTL) with `localStorage` pre-seeding to eliminate skeleton flicker while silently revalidating in the background.
 - [ ] **Reactive Mutation Invalidation**: Service mutation methods (`create`, `update`, `delete`) invoke `invalidateCachePattern` to purge memory, `localStorage`, and multi-tab `BroadcastChannel` states.
 - [ ] **Header Refresh Indicator**: Pages utilizing background revalidation include `<RefreshIndicator isRefreshing={isValidating} size="sm" showText />` in their header.
