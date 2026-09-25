@@ -90,8 +90,10 @@ export default function RecordPaymentModal({
   const manualEntries = initialCustomer ? initialManualEntries : standaloneManualEntries;
   const creditNotes = initialCustomer ? initialCreditNotes : standaloneCreditNotes;
 
-  const [formData, setFormData] = useState({
-    selectionId: '', // Can be invoiceId or entryId
+  const preSelectedInvoiceId = getInvoiceId(preSelectedInvoice);
+
+  const createInitialFormData = (targetInvoiceId = preSelectedInvoiceId) => ({
+    selectionId: targetInvoiceId || '', // Can be invoiceId or entryId
     selectionType: 'invoice', // 'invoice' or 'entry'
     amount: '',
     paymentDate: new Date().toISOString().split('T')[0],
@@ -99,6 +101,8 @@ export default function RecordPaymentModal({
     referenceNumber: '',
     notes: ''
   });
+
+  const [formData, setFormData] = useState(() => createInitialFormData(preSelectedInvoiceId));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -111,7 +115,42 @@ export default function RecordPaymentModal({
   const [fifoResult, setFifoResult] = useState(null);
   // { successCount, totalCount, failedLabel?, failedError?, totalAmount? }
 
-  const preSelectedInvoiceId = getInvoiceId(preSelectedInvoice);
+  // Synchronous Frame-0 State Pre-Seeding (Eliminates 1-frame async layout jump & pop-in)
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  const [prevPreSelectedId, setPrevPreSelectedId] = useState(preSelectedInvoiceId);
+
+  if (isOpen && !prevIsOpen) {
+    setPrevIsOpen(true);
+    setPrevPreSelectedId(preSelectedInvoiceId);
+    setFormData(createInitialFormData(preSelectedInvoiceId));
+    setError('');
+    setSuccess(false);
+    setFifoMode(false);
+    setFifoProgress(null);
+    setFifoConfirm(false);
+    setFifoResult(null);
+
+    // Reset standalone selection when opened without pre-selected customer
+    if (!initialCustomer) {
+      setSelectedCustomer(null);
+      setCustomerSearch('');
+      setCustomerResults([]);
+      setStandaloneInvoices([]);
+      setStandaloneManualEntries([]);
+      setStandaloneCreditNotes([]);
+      setLoadingCustomerData(false);
+    }
+  } else if (!isOpen && prevIsOpen) {
+    setPrevIsOpen(false);
+  } else if (isOpen && preSelectedInvoiceId !== prevPreSelectedId) {
+    setPrevPreSelectedId(preSelectedInvoiceId);
+    setFormData(prev => ({
+      ...prev,
+      selectionId: preSelectedInvoiceId || '',
+      selectionType: 'invoice'
+    }));
+  }
+
 
   // Filter manual entries to only show unpaid opening balances
   const unpaidEntries = manualEntries.filter(entry => 
@@ -275,37 +314,17 @@ export default function RecordPaymentModal({
     }
   }, [formData.selectionId, formData.selectionType, payableInvoices, unpaidEntries]);
 
-  // Reset form when modal opens
+  // Escape key dismiss listener (when not processing FIFO)
   useEffect(() => {
-    if (isOpen) {
-      setFormData({
-        selectionId: preSelectedInvoiceId || '',
-        selectionType: 'invoice',
-        amount: '',
-        paymentDate: new Date().toISOString().split('T')[0],
-        paymentMethod: 'Cash',
-        referenceNumber: '',
-        notes: ''
-      });
-      setError('');
-      setSuccess(false);
-      setFifoMode(false);
-      setFifoProgress(null);
-      setFifoConfirm(false);
-      setFifoResult(null);
-
-      // Reset standalone selection when opened without pre-selected customer
-      if (!initialCustomer) {
-        setSelectedCustomer(null);
-        setCustomerSearch('');
-        setCustomerResults([]);
-        setStandaloneInvoices([]);
-        setStandaloneManualEntries([]);
-        setStandaloneCreditNotes([]);
-        setLoadingCustomerData(false);
+    if (!isOpen || isProcessing) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        handleModalClose();
       }
-    }
-  }, [isOpen, preSelectedInvoiceId, initialCustomer]);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, isProcessing]);
 
   // Debounced Customer Search for Standalone Mode
   useEffect(() => {
@@ -674,30 +693,34 @@ export default function RecordPaymentModal({
   const canUseFifo = !preSelectedInvoiceId && fifoQueue.length > 0;
 
   return createPortal(
-    <AnimatePresence mode="wait">
+    <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 no-print">
+        <motion.div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-hidden no-print"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15, ease: 'easeOut' }}
+          style={{ willChange: 'opacity' }}
+        >
           {/* Backdrop */}
-          <motion.div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+          <div
+            className="absolute inset-0 bg-slate-950/75 backdrop-blur-[2px] transition-opacity"
             onClick={handleModalClose}
           />
 
           {/* Modal */}
           <motion.div
-            className="bg-slate-800/95 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl max-w-lg relative z-10 w-full flex flex-col max-h-[90vh] overflow-hidden"
-            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+            className="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl shadow-black/80 max-w-lg relative z-10 w-full flex flex-col max-h-[90vh] overflow-hidden"
+            initial={{ scale: 0.98, opacity: 0, y: 8 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.95, opacity: 0, y: 20 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            exit={{ scale: 0.98, opacity: 0, y: 8 }}
+            transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
+            style={{ willChange: 'transform, opacity' }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-slate-700/50 shrink-0">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-slate-800 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-emerald-500/20 rounded-lg">
                   <CreditCard className="w-5 h-5 text-emerald-400" />
@@ -711,15 +734,15 @@ export default function RecordPaymentModal({
                   )}
                 </div>
               </div>
-              <motion.button
+              <button
+                type="button"
                 onClick={handleModalClose}
-                className={`p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-slate-100 transition-colors ${isProcessing ? 'opacity-30 cursor-not-allowed' : ''}`}
-                whileHover={isProcessing ? {} : { scale: 1.1 }}
-                whileTap={isProcessing ? {} : { scale: 0.95 }}
+                className={`p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-100 transition-colors ${isProcessing ? 'opacity-30 cursor-not-allowed' : ''}`}
                 disabled={isProcessing}
+                aria-label="Close modal"
               >
                 <X className="w-5 h-5" />
-              </motion.button>
+              </button>
             </div>
 
             {/* Body */}
@@ -1060,11 +1083,7 @@ export default function RecordPaymentModal({
                         <>
                           {/* FIFO Allocation Preview */}
                           {fifoAllocations.length > 0 && (
-                            <motion.div
-                              className="rounded-xl border border-slate-600/50 overflow-hidden"
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: 'auto' }}
-                            >
+                            <div className="rounded-xl border border-slate-700/60 overflow-hidden bg-slate-800/40">
                               <div className="px-3 py-2 bg-slate-700/50 border-b border-slate-600/50">
                                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                                   Allocation Preview
@@ -1123,7 +1142,7 @@ export default function RecordPaymentModal({
                                   );
                                 })}
                               </div>
-                            </motion.div>
+                            </div>
                           )}
 
                           {/* Summary Card */}
@@ -1247,11 +1266,7 @@ export default function RecordPaymentModal({
 
                       {/* Selected Item Info */}
                       {selectedItem && (
-                        <motion.div
-                          className="p-4 bg-slate-700/30 rounded-lg border border-slate-600/50"
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                        >
+                        <div className="p-4 bg-slate-800/60 rounded-xl border border-slate-700/60">
                           <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
                               <span className="text-slate-400">
@@ -1294,7 +1309,7 @@ export default function RecordPaymentModal({
                               </span>
                             </div>
                           </div>
-                        </motion.div>
+                        </div>
                       )}
                     </>
                   )}
@@ -1327,15 +1342,13 @@ export default function RecordPaymentModal({
                         />
                       </div>
                       {(fifoMode ? fifoQueue.length > 0 : selectedItem) && (
-                        <motion.button
+                        <button
                           type="button"
                           onClick={handlePayFull}
-                          className="px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
+                          className="px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition-colors whitespace-nowrap active:scale-[0.98]"
                         >
                           Pay Full
-                        </motion.button>
+                        </button>
                       )}
                     </div>
                   </div>
@@ -1449,7 +1462,7 @@ export default function RecordPaymentModal({
                   </div>
 
                   {/* Submit Button Footer */}
-                  <div className="p-4 sm:p-6 border-t border-slate-200 dark:border-slate-700/50 bg-white/95 dark:bg-slate-800/95 shrink-0 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] w-full sticky bottom-0 z-10">
+                  <div className="p-4 sm:p-6 border-t border-slate-800 bg-slate-900/95 shrink-0 shadow-lg w-full sticky bottom-0 z-10">
                     <button
                       type="submit"
                       disabled={loading || (fifoMode && fifoQueue.length === 0)}
@@ -1486,7 +1499,7 @@ export default function RecordPaymentModal({
               )}
             </div>
           </motion.div>
-        </div>
+        </motion.div>
       )}
     </AnimatePresence>,
     document.body

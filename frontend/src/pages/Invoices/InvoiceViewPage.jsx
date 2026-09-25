@@ -490,19 +490,22 @@ export default function InvoiceViewPage() {
   };
 
   const StatusIcon = statusConfig[invoice.status]?.icon || FileText;
-  const totalCreditNoteAmount = roundCurrency(
+  const totalCreditNoteAmount = useMemo(() => roundCurrency(
     creditNotes.reduce((sum, cn) => sum + (cn.totals?.netTotal || 0), 0)
-  );
-  const netDue = Math.max(
+  ), [creditNotes]);
+  const netDue = useMemo(() => Math.max(
     0,
     roundCurrency((invoice.totals?.netTotal || 0) - (invoice.paidAmount || 0) - totalCreditNoteAmount)
-  );
+  ), [invoice.totals?.netTotal, invoice.paidAmount, totalCreditNoteAmount]);
   const canRecordPayment = invoice.status !== 'Cancelled' && netDue > 0;
-  const invoiceForPayment = {
+  const invoiceForPayment = useMemo(() => ({
     ...invoice,
     creditNoteTotal: totalCreditNoteAmount,
     effectiveDue: netDue
-  };
+  }), [invoice, totalCreditNoteAmount, netDue]);
+  const invoiceForPaymentList = useMemo(() => (
+    canRecordPayment && invoiceForPayment ? [invoiceForPayment] : []
+  ), [canRecordPayment, invoiceForPayment]);
 
   // Reusable Invoice Copy Component
   const InvoiceCopy = () => (
@@ -1079,7 +1082,7 @@ export default function InvoiceViewPage() {
         onClose={() => setShowPaymentModal(false)}
         onSuccess={handlePaymentSuccess}
         customer={invoice.customer}
-        invoices={canRecordPayment ? [invoiceForPayment] : []}
+        invoices={invoiceForPaymentList}
         manualEntries={[]}
         preSelectedInvoice={invoiceForPayment}
         creditNotes={creditNotes}
