@@ -446,13 +446,41 @@ export const demoMockAdapter = async (config) => {
       success: true,
       ...DEMO_EMPLOYEE_ANALYTICS.activityLog,
     };
-  } else if (path === '/analytics/employees' || path.startsWith('/analytics/employees/')) {
+  } else if (path.startsWith('/analytics/employees/')) {
+    const id = path.replace('/analytics/employees/', '');
+    const found = DEMO_EMPLOYEES.find((e) => e._id === id || e.id === id) || DEMO_EMPLOYEES[0];
+    const logEntry = DEMO_EMPLOYEE_ANALYTICS.activityLog.log.find((l) => l.employee?.id === found._id || l.employee?.id === found.id) || DEMO_EMPLOYEE_ANALYTICS.activityLog.log[0];
+    responseData = {
+      success: true,
+      employee: found,
+      sessionStats: {
+        today: { duration: 465, sessionsCount: 1 },
+        thisWeek: { duration: 2340, sessionsCount: 5 },
+        thisMonth: { duration: 9800, sessionsCount: 22 }
+      },
+      recentActivity: {
+        invoices: (logEntry?.activities?.invoicesCreated || []).map(inv => ({
+          invoiceNumber: inv.invoiceNumber,
+          customer: { customerName: inv.customer },
+          totals: { netTotal: inv.amount },
+          createdAt: inv.time,
+          invoiceDate: inv.time
+        })),
+        payments: (logEntry?.activities?.paymentsRecorded || []).map(p => ({
+          amount: p.amount,
+          paymentMethod: p.method,
+          invoiceSnapshot: { invoiceNumber: p.invoiceNumber },
+          createdAt: p.time,
+          paymentDate: p.time
+        }))
+      }
+    };
+  } else if (path === '/analytics/employees') {
     responseData = {
       success: true,
       employees: DEMO_EMPLOYEES,
-      employee: DEMO_EMPLOYEES[0],
+      count: DEMO_EMPLOYEES.length,
       sessionStats: DEMO_EMPLOYEE_ANALYTICS.sessionSummary.stats,
-      recentActivity: DEMO_EMPLOYEE_ANALYTICS.activityLog.log[0]?.activities || [],
     };
   } else if (path.startsWith('/employees/')) {
     const id = path.replace('/employees/', '');

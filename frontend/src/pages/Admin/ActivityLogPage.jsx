@@ -71,7 +71,61 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
   const [showAllProductsAdded, setShowAllProductsAdded] = useState(false);
   const [showAllProductsUpdated, setShowAllProductsUpdated] = useState(false);
 
-  const { session, employee, activities, summary } = entry;
+  if (!entry) return null;
+
+  const session = entry.session || null;
+  const employee = entry.employee || entry.session?.employee || {};
+  const summary = entry.summary || {
+    invoiceCount: 0,
+    paymentCount: 0,
+    productsAdded: 0,
+    productsUpdated: 0,
+    totalSales: 0,
+    totalCollected: 0
+  };
+
+  // Defensively extract activities into arrays regardless of whether activities is an object or a flat array
+  let invoicesCreated = [];
+  let paymentsRecorded = [];
+  let productsAdded = [];
+  let productsUpdated = [];
+
+  if (entry.activities && !Array.isArray(entry.activities)) {
+    invoicesCreated = Array.isArray(entry.activities.invoicesCreated) ? entry.activities.invoicesCreated : [];
+    paymentsRecorded = Array.isArray(entry.activities.paymentsRecorded) ? entry.activities.paymentsRecorded : [];
+    productsAdded = Array.isArray(entry.activities.productsAdded) ? entry.activities.productsAdded : [];
+    productsUpdated = Array.isArray(entry.activities.productsUpdated) ? entry.activities.productsUpdated : [];
+  } else if (Array.isArray(entry.activities)) {
+    entry.activities.forEach((act) => {
+      const type = String(act.type || '').toUpperCase();
+      if (type.includes('INVOICE')) {
+        invoicesCreated.push({
+          invoiceNumber: act.invoiceNumber || act.referenceNumber || act.description?.match(/INV-[0-9-]+/)?.[0] || 'INV',
+          customer: act.customer || act.customerName || 'Customer',
+          amount: Number(act.amount || act.grandTotal) || 0,
+          time: act.time || act.timestamp || new Date()
+        });
+      } else if (type.includes('PAYMENT')) {
+        paymentsRecorded.push({
+          invoiceNumber: act.invoiceNumber || act.referenceNumber || 'Invoice',
+          customer: act.customer || act.customerName || 'Customer',
+          amount: Number(act.amount) || 0,
+          method: act.method || act.paymentMethod || 'UPI',
+          time: act.time || act.timestamp || new Date()
+        });
+      } else if (type.includes('PRODUCT_ADD')) {
+        productsAdded.push({
+          name: act.name || act.productName || 'Product',
+          time: act.time || act.timestamp || new Date()
+        });
+      } else if (type.includes('PRODUCT')) {
+        productsUpdated.push({
+          name: act.name || act.productName || 'Product',
+          time: act.time || act.timestamp || new Date()
+        });
+      }
+    });
+  }
 
   const DEFAULT_DISPLAY_LIMIT = 5;
   const DEFAULT_PRODUCT_LIMIT = 8;
@@ -84,24 +138,24 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
     return () => clearTimeout(timer);
   }, [expanded, showAllInvoices, showAllPayments, showAllProductsAdded, showAllProductsUpdated, activeTab]);
 
-  const totalProducts = (activities.productsAdded?.length || 0) + (activities.productsUpdated?.length || 0);
-  const hasActivities = summary.invoiceCount > 0 || summary.paymentCount > 0 || totalProducts > 0;
+  const totalProducts = productsAdded.length + productsUpdated.length;
+  const hasActivities = (summary.invoiceCount || 0) > 0 || (summary.paymentCount || 0) > 0 || totalProducts > 0 || invoicesCreated.length > 0 || paymentsRecorded.length > 0;
 
   const visibleInvoices = showAllInvoices 
-    ? activities.invoicesCreated 
-    : activities.invoicesCreated.slice(0, DEFAULT_DISPLAY_LIMIT);
+    ? invoicesCreated 
+    : invoicesCreated.slice(0, DEFAULT_DISPLAY_LIMIT);
 
   const visiblePayments = showAllPayments 
-    ? activities.paymentsRecorded 
-    : activities.paymentsRecorded.slice(0, DEFAULT_DISPLAY_LIMIT);
+    ? paymentsRecorded 
+    : paymentsRecorded.slice(0, DEFAULT_DISPLAY_LIMIT);
 
   const visibleProductsAdded = showAllProductsAdded
-    ? activities.productsAdded
-    : activities.productsAdded.slice(0, DEFAULT_PRODUCT_LIMIT);
+    ? productsAdded 
+    : productsAdded.slice(0, DEFAULT_PRODUCT_LIMIT);
 
   const visibleProductsUpdated = showAllProductsUpdated
-    ? activities.productsUpdated
-    : activities.productsUpdated.slice(0, DEFAULT_PRODUCT_LIMIT);
+    ? productsUpdated 
+    : productsUpdated.slice(0, DEFAULT_PRODUCT_LIMIT);
 
   return (
     <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden hover:border-slate-700 transition-colors">
@@ -119,8 +173,8 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
             </div>
             
             <div className="min-w-0">
-              <h3 className="font-semibold text-slate-100 text-sm sm:text-base truncate">{employee.name}</h3>
-              <p className="text-xs text-slate-400 truncate">{employee.email}</p>
+              <h3 className="font-semibold text-slate-100 text-sm sm:text-base truncate">{employee.name || 'Staff Member'}</h3>
+              <p className="text-xs text-slate-400 truncate">{employee.email || ''}</p>
             </div>
           </div>
 
@@ -234,7 +288,7 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
                 >
                   All
                 </button>
-                {activities.invoicesCreated.length > 0 && (
+                {invoicesCreated.length > 0 && (
                   <button
                     type="button"
                     onClick={() => setActiveTab('invoices')}
@@ -245,10 +299,10 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
                     }`}
                   >
                     <FileText size={12} />
-                    <span>Invoices ({activities.invoicesCreated.length})</span>
+                    <span>Invoices ({invoicesCreated.length})</span>
                   </button>
                 )}
-                {activities.paymentsRecorded.length > 0 && (
+                {paymentsRecorded.length > 0 && (
                   <button
                     type="button"
                     onClick={() => setActiveTab('payments')}
@@ -259,7 +313,7 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
                     }`}
                   >
                     <Wallet size={12} />
-                    <span>Payments ({activities.paymentsRecorded.length})</span>
+                    <span>Payments ({paymentsRecorded.length})</span>
                   </button>
                 )}
                 {totalProducts > 0 && (
@@ -279,23 +333,23 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
               </div>
 
               {/* Invoices Created */}
-              {(activeTab === 'all' || activeTab === 'invoices') && activities.invoicesCreated.length > 0 && (
+              {(activeTab === 'all' || activeTab === 'invoices') && invoicesCreated.length > 0 && (
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="text-xs sm:text-sm font-semibold text-blue-400 flex items-center gap-2">
-                      <FileText size={14} /> Invoices Created ({activities.invoicesCreated.length})
+                      <FileText size={14} /> Invoices Created ({invoicesCreated.length})
                     </h4>
-                    {activities.invoicesCreated.length > DEFAULT_DISPLAY_LIMIT && (
+                    {invoicesCreated.length > DEFAULT_DISPLAY_LIMIT && (
                       <span className="text-[11px] text-slate-400 font-mono">
-                        Showing {visibleInvoices.length} of {activities.invoicesCreated.length}
+                        Showing {visibleInvoices.length} of {invoicesCreated.length}
                       </span>
                     )}
                   </div>
 
-                  {showAllInvoices && activities.invoicesCreated.length > DEFAULT_DISPLAY_LIMIT ? (
+                  {showAllInvoices && invoicesCreated.length > DEFAULT_DISPLAY_LIMIT ? (
                     <div className="max-h-72 overflow-y-auto custom-scrollbar pr-1 relative">
                       <VirtualizedList
-                        items={activities.invoicesCreated}
+                        items={invoicesCreated}
                         estimateSize={() => 48}
                         gap={8}
                         getKey={(inv, idx) => inv.invoiceNumber ? `${inv.invoiceNumber}-${idx}` : idx}
@@ -333,7 +387,7 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
                     </div>
                   )}
 
-                  {activities.invoicesCreated.length > DEFAULT_DISPLAY_LIMIT && (
+                  {invoicesCreated.length > DEFAULT_DISPLAY_LIMIT && (
                     <button
                       type="button"
                       onClick={() => setShowAllInvoices(!showAllInvoices)}
@@ -347,7 +401,7 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
                       ) : (
                         <>
                           <ChevronDown size={14} />
-                          <span>Show all {activities.invoicesCreated.length} invoices (+{activities.invoicesCreated.length - DEFAULT_DISPLAY_LIMIT} more)</span>
+                          <span>Show all {invoicesCreated.length} invoices (+{invoicesCreated.length - DEFAULT_DISPLAY_LIMIT} more)</span>
                         </>
                       )}
                     </button>
@@ -356,23 +410,23 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
               )}
 
               {/* Payments Recorded */}
-              {(activeTab === 'all' || activeTab === 'payments') && activities.paymentsRecorded.length > 0 && (
+              {(activeTab === 'all' || activeTab === 'payments') && paymentsRecorded.length > 0 && (
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="text-xs sm:text-sm font-semibold text-emerald-400 flex items-center gap-2">
-                      <Wallet size={14} /> Payments Recorded ({activities.paymentsRecorded.length})
+                      <Wallet size={14} /> Payments Recorded ({paymentsRecorded.length})
                     </h4>
-                    {activities.paymentsRecorded.length > DEFAULT_DISPLAY_LIMIT && (
+                    {paymentsRecorded.length > DEFAULT_DISPLAY_LIMIT && (
                       <span className="text-[11px] text-slate-400 font-mono">
-                        Showing {visiblePayments.length} of {activities.paymentsRecorded.length}
+                        Showing {visiblePayments.length} of {paymentsRecorded.length}
                       </span>
                     )}
                   </div>
 
-                  {showAllPayments && activities.paymentsRecorded.length > DEFAULT_DISPLAY_LIMIT ? (
+                  {showAllPayments && paymentsRecorded.length > DEFAULT_DISPLAY_LIMIT ? (
                     <div className="max-h-72 overflow-y-auto custom-scrollbar pr-1 relative">
                       <VirtualizedList
-                        items={activities.paymentsRecorded}
+                        items={paymentsRecorded}
                         estimateSize={() => 48}
                         gap={8}
                         getKey={(p, idx) => p.invoiceNumber ? `${p.invoiceNumber}-${idx}` : idx}
@@ -410,7 +464,7 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
                     </div>
                   )}
 
-                  {activities.paymentsRecorded.length > DEFAULT_DISPLAY_LIMIT && (
+                  {paymentsRecorded.length > DEFAULT_DISPLAY_LIMIT && (
                     <button
                       type="button"
                       onClick={() => setShowAllPayments(!showAllPayments)}
@@ -424,7 +478,7 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
                       ) : (
                         <>
                           <ChevronDown size={14} />
-                          <span>Show all {activities.paymentsRecorded.length} payments (+{activities.paymentsRecorded.length - DEFAULT_DISPLAY_LIMIT} more)</span>
+                          <span>Show all {paymentsRecorded.length} payments (+{paymentsRecorded.length - DEFAULT_DISPLAY_LIMIT} more)</span>
                         </>
                       )}
                     </button>
@@ -433,10 +487,10 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
               )}
 
               {/* Products Added */}
-              {(activeTab === 'all' || activeTab === 'products') && activities.productsAdded.length > 0 && (
+              {(activeTab === 'all' || activeTab === 'products') && productsAdded.length > 0 && (
                 <div>
                   <h4 className="text-xs sm:text-sm font-semibold text-amber-400 mb-2 flex items-center gap-2">
-                    <Package size={14} /> Products Added ({activities.productsAdded.length})
+                    <Package size={14} /> Products Added ({productsAdded.length})
                   </h4>
                   <div className="flex flex-wrap gap-2">
                     {visibleProductsAdded.map((p, idx) => (
@@ -444,13 +498,13 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
                         {p.name}
                       </span>
                     ))}
-                    {activities.productsAdded.length > DEFAULT_PRODUCT_LIMIT && (
+                    {productsAdded.length > DEFAULT_PRODUCT_LIMIT && (
                       <button
                         type="button"
                         onClick={() => setShowAllProductsAdded(!showAllProductsAdded)}
                         className="px-2.5 py-1 bg-slate-800 text-amber-400 hover:text-amber-300 rounded-lg text-xs border border-slate-700 hover:bg-slate-700 transition-colors font-medium"
                       >
-                        {showAllProductsAdded ? 'Show less' : `+${activities.productsAdded.length - DEFAULT_PRODUCT_LIMIT} more`}
+                        {showAllProductsAdded ? 'Show less' : `+${productsAdded.length - DEFAULT_PRODUCT_LIMIT} more`}
                       </button>
                     )}
                   </div>
@@ -458,10 +512,10 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
               )}
 
               {/* Products Updated */}
-              {(activeTab === 'all' || activeTab === 'products') && activities.productsUpdated.length > 0 && (
+              {(activeTab === 'all' || activeTab === 'products') && productsUpdated.length > 0 && (
                 <div>
                   <h4 className="text-xs sm:text-sm font-semibold text-yellow-400 mb-2 flex items-center gap-2">
-                    <Package size={14} /> Products Updated ({activities.productsUpdated.length})
+                    <Package size={14} /> Products Updated ({productsUpdated.length})
                   </h4>
                   <div className="flex flex-wrap gap-2">
                     {visibleProductsUpdated.map((p, idx) => (
@@ -469,13 +523,13 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
                         {p.name}
                       </span>
                     ))}
-                    {activities.productsUpdated.length > DEFAULT_PRODUCT_LIMIT && (
+                    {productsUpdated.length > DEFAULT_PRODUCT_LIMIT && (
                       <button
                         type="button"
                         onClick={() => setShowAllProductsUpdated(!showAllProductsUpdated)}
                         className="px-2.5 py-1 bg-slate-800 text-yellow-400 hover:text-yellow-300 rounded-lg text-xs border border-slate-700 hover:bg-slate-700 transition-colors font-medium"
                       >
-                        {showAllProductsUpdated ? 'Show less' : `+${activities.productsUpdated.length - DEFAULT_PRODUCT_LIMIT} more`}
+                        {showAllProductsUpdated ? 'Show less' : `+${productsUpdated.length - DEFAULT_PRODUCT_LIMIT} more`}
                       </button>
                     )}
                   </div>
@@ -754,7 +808,7 @@ export default function ActivityLogPage() {
           items={activityLog}
           estimateSize={() => 150}
           gap={12}
-          getKey={(entry, index) => entry.session?.id || `direct-${entry.employee?.id || 'emp'}-${index}`}
+          getKey={(entry, index) => entry?.session?.id || entry?.session?._id || `direct-${entry?.employee?.id || entry?.employee?._id || 'emp'}-${index}`}
           className="min-h-[150px]"
           renderItem={(entry, index) => (
             <SessionCard 

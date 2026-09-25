@@ -1704,43 +1704,88 @@ export const DEMO_EMPLOYEE_ANALYTICS = {
     log: [
       {
         session: {
+          id: 'sess_001',
           _id: 'sess_001',
-          employee: { id: 'emp_001', name: 'Amit Verma', email: 'amit.sales@bharatenterprise.local', designation: 'Sales & Distribution Manager' },
           loginTime: '2026-03-24T09:30:00.000Z',
-          lastActivityAt: '2026-03-24T17:15:00.000Z',
+          logoutTime: null,
+          duration: 465,
+          isActive: true,
           ipAddress: '192.168.1.42',
           device: 'Chrome / Windows',
+        },
+        employee: {
+          id: 'emp_001',
+          _id: 'emp_001',
+          name: 'Amit Verma',
+          email: 'amit.sales@bharatenterprise.local',
+          designation: 'Sales & Distribution Manager'
         },
         summary: {
           invoiceCount: 4,
           paymentCount: 2,
+          productsAdded: 1,
+          productsUpdated: 1,
           totalSales: 62500.00,
           totalCollected: 39400.00,
         },
-        activities: [
-          { type: 'INVOICE_CREATE', description: 'Generated Tax Invoice INV-2026-001 for Patel Medical & Surgicals', timestamp: '2026-03-24T10:30:00.000Z' },
-          { type: 'PAYMENT_RECORD', description: 'Recorded ₹15,200 UPI collection from Krishna Drug House', timestamp: '2026-03-24T15:20:00.000Z' },
-        ]
+        activities: {
+          invoicesCreated: [
+            { invoiceNumber: 'INV-2026-001', customer: 'Patel Medical & Surgicals', amount: 38400.00, time: '2026-03-24T10:30:00.000Z', status: 'PAID' },
+            { invoiceNumber: 'INV-2026-004', customer: 'Krishna Drug House', amount: 14200.00, time: '2026-03-24T12:15:00.000Z', status: 'PARTIAL' },
+            { invoiceNumber: 'INV-2026-005', customer: 'Apollo Healthcare Center', amount: 5600.00, time: '2026-03-24T14:40:00.000Z', status: 'UNPAID' },
+            { invoiceNumber: 'INV-2026-006', customer: 'Sunrise Pharma Distributors', amount: 4300.00, time: '2026-03-24T16:10:00.000Z', status: 'PAID' },
+          ],
+          paymentsRecorded: [
+            { invoiceNumber: 'INV-2026-004', customer: 'Krishna Drug House', amount: 15200.00, method: 'UPI', time: '2026-03-24T15:20:00.000Z' },
+            { invoiceNumber: 'INV-2026-001', customer: 'Patel Medical & Surgicals', amount: 24200.00, method: 'NEFT', time: '2026-03-24T16:45:00.000Z' },
+          ],
+          productsAdded: [
+            { name: 'Amoxicillin 500mg Capsules', time: '2026-03-24T11:00:00.000Z' }
+          ],
+          productsUpdated: [
+            { name: 'Dolo 650mg Tablets', time: '2026-03-24T13:30:00.000Z' }
+          ]
+        }
       },
       {
         session: {
+          id: 'sess_002',
           _id: 'sess_002',
-          employee: { id: 'emp_002', name: 'Priya Nair', email: 'priya.billing@bharatenterprise.local', designation: 'Accounts & GST Billing Executive' },
           loginTime: '2026-03-24T10:15:00.000Z',
-          lastActivityAt: '2026-03-24T16:30:00.000Z',
+          logoutTime: null,
+          duration: 375,
+          isActive: true,
           ipAddress: '192.168.1.58',
           device: 'Firefox / macOS',
+        },
+        employee: {
+          id: 'emp_002',
+          _id: 'emp_002',
+          name: 'Priya Nair',
+          email: 'priya.billing@bharatenterprise.local',
+          designation: 'Accounts & GST Billing Executive'
         },
         summary: {
           invoiceCount: 2,
           paymentCount: 1,
+          productsAdded: 0,
+          productsUpdated: 1,
           totalSales: 38400.00,
           totalCollected: 21000.00,
         },
-        activities: [
-          { type: 'INVOICE_CREATE', description: 'Generated Tax Invoice INV-2026-002 for Shreeji Pharma Agencies', timestamp: '2026-03-23T14:15:00.000Z' },
-          { type: 'PAYMENT_RECORD', description: 'Recorded ₹21,000 NEFT collection from Apex Healthline', timestamp: '2026-03-24T12:00:00.000Z' },
-        ]
+        activities: {
+          invoicesCreated: [
+            { invoiceNumber: 'INV-2026-002', customer: 'Shreeji Pharma Agencies', amount: 24500.00, time: '2026-03-24T11:20:00.000Z', status: 'PAID' },
+            { invoiceNumber: 'INV-2026-003', customer: 'Apex Healthline', amount: 13900.00, time: '2026-03-24T14:05:00.000Z', status: 'PARTIAL' },
+          ],
+          paymentsRecorded: [
+            { invoiceNumber: 'INV-2026-003', customer: 'Apex Healthline', amount: 21000.00, method: 'NEFT', time: '2026-03-24T12:00:00.000Z' },
+          ],
+          productsAdded: [],
+          productsUpdated: [
+            { name: 'Azithromycin 500mg Tablets', time: '2026-03-24T15:10:00.000Z' }
+          ]
+        }
       }
     ]
   }
