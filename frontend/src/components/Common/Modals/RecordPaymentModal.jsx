@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
@@ -117,12 +117,31 @@ export default function RecordPaymentModal({
 
   // Can the modal be closed right now?
   const isProcessing = loading && fifoProgress !== null;
+  const autoCloseTimerRef = useRef(null);
+
+  const handleModalClose = useCallback(() => {
+    if (isProcessing) return; // Prevent close during FIFO processing
+    if (autoCloseTimerRef.current) clearTimeout(autoCloseTimerRef.current);
+    onClose();
+    if (success && onSuccess) {
+      setTimeout(() => {
+        onSuccess();
+      }, 200);
+    }
+  }, [isProcessing, onClose, success, onSuccess]);
+
+  useEffect(() => {
+    return () => {
+      if (autoCloseTimerRef.current) clearTimeout(autoCloseTimerRef.current);
+    };
+  }, []);
 
   // Synchronous Frame-0 State Pre-Seeding (Eliminates 1-frame async layout jump & pop-in)
   const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
   const [prevPreSelectedId, setPrevPreSelectedId] = useState(preSelectedInvoiceId);
 
   if (isOpen && !prevIsOpen) {
+    if (autoCloseTimerRef.current) clearTimeout(autoCloseTimerRef.current);
     setPrevIsOpen(true);
     setPrevPreSelectedId(preSelectedInvoiceId);
     setFormData(createInitialFormData(preSelectedInvoiceId));
@@ -322,12 +341,12 @@ export default function RecordPaymentModal({
     if (!isOpen || isProcessing) return;
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        onClose();
+        handleModalClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isProcessing, onClose]);
+  }, [isOpen, isProcessing, handleModalClose]);
 
   // Debounced Customer Search for Standalone Mode
   useEffect(() => {
@@ -646,14 +665,16 @@ export default function RecordPaymentModal({
         invalidateCachePattern('customer');
         invalidateCachePattern('credit');
 
-        // Close modal first, then refresh data AFTER modal is closed
-        setTimeout(() => {
+        // Close modal after comfortable display, then refresh data AFTER modal has exited
+        if (autoCloseTimerRef.current) clearTimeout(autoCloseTimerRef.current);
+        autoCloseTimerRef.current = setTimeout(() => {
           onClose();
-          // Refresh data after modal is closed
-          if (onSuccess) {
-            onSuccess();
-          }
-        }, 800);
+          setTimeout(() => {
+            if (onSuccess) {
+              onSuccess();
+            }
+          }, 200);
+        }, 1200);
       } catch (err) {
         setError(err.message || 'Failed to record payment');
       } finally {
@@ -684,10 +705,6 @@ export default function RecordPaymentModal({
     return () => window.removeEventListener('keydown', handler);
   }, [isProcessing]);
 
-  const handleModalClose = () => {
-    if (isProcessing) return; // Prevent close during FIFO processing
-    onClose();
-  };
 
   return createPortal(
     <AnimatePresence>
@@ -747,12 +764,13 @@ export default function RecordPaymentModal({
               {/* ──── Success View ──── */}
               {success ? (
                 <motion.div
-                  className="text-center py-8 p-4 sm:p-6 overflow-y-auto"
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
+                  className="text-center p-6 flex flex-col items-center justify-center flex-1 min-h-[420px]"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.15, ease: 'easeOut' }}
                 >
-                  <div className="inline-flex p-4 bg-emerald-500/20 rounded-full mb-4">
-                    <CheckCircle className="w-12 h-12 text-emerald-400" />
+                  <div className="inline-flex p-4 bg-emerald-500/20 rounded-full mb-4 text-emerald-400">
+                    <CheckCircle className="w-12 h-12" />
                   </div>
                   {fifoResult && !fifoResult.failedLabel ? (
                     <>
@@ -763,7 +781,7 @@ export default function RecordPaymentModal({
                       <p className="text-sm text-slate-500 mt-1">
                         {fifoResult.successCount} {fifoResult.successCount === 1 ? 'payment was' : 'payments were'} created.
                       </p>
-                      <p className="text-xs text-slate-500 mt-1">Customer outstanding updated.</p>
+                      <p className="text-xs text-slate-500 mt-2">Customer outstanding updated.</p>
                     </>
                   ) : (
                     <>
@@ -771,8 +789,16 @@ export default function RecordPaymentModal({
                       <p className="text-slate-400">
                         {formatCurrency(parseFloat(formData.amount))} received successfully
                       </p>
+                      <p className="text-xs text-slate-500 mt-2">Invoice status and ledger updated.</p>
                     </>
                   )}
+                  <button
+                    type="button"
+                    onClick={handleModalClose}
+                    className="mt-6 px-6 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-sm font-medium rounded-xl transition-colors shadow-xs active:scale-[0.98]"
+                  >
+                    Done
+                  </button>
                 </motion.div>
 
               /* ──── FIFO Progress View ──── */
