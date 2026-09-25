@@ -1,4 +1,6 @@
 import axios from 'axios';
+import { isDemoModeActive } from '../demo/demoState';
+import { demoMockAdapter } from '../demo/demoAdapter';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 const isDevelopment = import.meta.env.DEV;
@@ -65,6 +67,11 @@ const retryConfig = {
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
+    // Client-side Demo Mode interception (100% offline, zero server calls)
+    if (isDemoModeActive()) {
+      config.adapter = demoMockAdapter;
+    }
+
     // Add request ID for tracking
     config.metadata = { 
       requestId: generateRequestId(),
@@ -179,6 +186,10 @@ api.interceptors.response.use(
 
     // Handle 401 Unauthorized
     if (error.response?.status === 401) {
+      if (isDemoModeActive()) {
+        return Promise.reject(error);
+      }
+
       const isAuthCheck = config?.url?.includes('/auth/me');
       const isLoginPage = window.location.pathname === '/login' || window.location.pathname.startsWith('/login');
       const isLoginRequest = config?.url?.includes('/auth/login');

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { isDemoModeActive } from '../demo/demoState';
 
 // Build the SSE base URL from the same env var that api.js uses.
 // VITE_API_URL is e.g. "https://billing-software-1-tbdx.onrender.com/api"
@@ -86,6 +87,11 @@ export function useStockSSE({ onStockUpdate, onReconnect, enabled = true }) {
      */
     function connect() {
       if (cancelled) return;
+
+      if (isDemoModeActive()) {
+        setConnectionState('connected');
+        return;
+      }
 
       const token = localStorage.getItem('token');
       if (!token) {
