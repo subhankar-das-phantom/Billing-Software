@@ -216,55 +216,77 @@ export const demoMockAdapter = async (config) => {
 
   // 5. Customers & Khata Ledgers
   else if (path.match(/^\/customers\/[^/]+\/ledger/)) {
-    const customerLedger = [
-      {
-        _id: 'led_1',
-        date: '2026-03-24T10:30:00.000Z',
+    const custId = path.split('/')[2];
+    const custInvoices = DEMO_INVOICES.filter(
+      (inv) => inv.customerId === custId || inv.customer?._id === custId
+    );
+    const custPayments = DEMO_COLLECTIONS.filter((p) => p.customerId === custId);
+
+    // Build running-balance ledger chronologically
+    const ledgerEntries = [];
+    let runningBalance = 0;
+    const allEvents = [
+      ...custInvoices.map((inv) => ({
+        _id: `led_inv_${inv._id}`,
+        date: inv.invoiceDate,
         type: 'invoice',
-        referenceNumber: 'INV-2026-001',
-        invoiceId: 'inv_001',
-        description: 'Tax Invoice INV-2026-001',
-        debit: 38400.0,
+        referenceNumber: inv.invoiceNumber,
+        invoiceId: inv._id,
+        description: `Tax Invoice ${inv.invoiceNumber}`,
+        debit: inv.grandTotal ?? inv.totals?.grandTotal ?? 0,
         credit: 0,
-        balance: 38400.0,
-      },
-      {
-        _id: 'led_2',
-        date: '2026-03-10T14:00:00.000Z',
+        sortKey: new Date(inv.invoiceDate).getTime(),
+      })),
+      ...custPayments.map((p) => ({
+        _id: `led_pay_${p._id}`,
+        date: p.paymentDate,
         type: 'payment',
-        referenceNumber: 'REC-2026-075',
-        description: 'UPI Payment received (Verified)',
+        referenceNumber: p.paymentNumber,
+        description: `${p.paymentMethod} Payment received (${p.status === 'verified' ? 'Verified' : 'Pending'})`,
         debit: 0,
-        credit: 25000.0,
-        balance: 13400.0,
-      },
-    ];
+        credit: p.amount,
+        sortKey: new Date(p.paymentDate).getTime(),
+      })),
+    ].sort((a, b) => a.sortKey - b.sortKey);
+
+    for (const ev of allEvents) {
+      runningBalance = runningBalance + ev.debit - ev.credit;
+      ledgerEntries.push({ ...ev, balance: parseFloat(runningBalance.toFixed(2)) });
+    }
+
+    const totalDebit = ledgerEntries.reduce((s, e) => s + e.debit, 0);
+    const totalCredit = ledgerEntries.reduce((s, e) => s + e.credit, 0);
     responseData = {
       success: true,
-      ledger: customerLedger,
-      items: customerLedger,
-      data: customerLedger,
-      totalCount: customerLedger.length,
+      ledger: ledgerEntries,
+      items: ledgerEntries,
+      data: ledgerEntries,
+      totalCount: ledgerEntries.length,
       hasMore: false,
       summary: {
-        totalDebit: 38400.0,
-        totalCredit: 25000.0,
-        closingBalance: 38400.0,
+        totalDebit: parseFloat(totalDebit.toFixed(2)),
+        totalCredit: parseFloat(totalCredit.toFixed(2)),
+        closingBalance: parseFloat((totalDebit - totalCredit).toFixed(2)),
         openingBalance: 0,
       },
     };
   } else if (path.startsWith('/customers/')) {
     const id = path.replace('/customers/', '');
     const found = DEMO_CUSTOMERS.find((c) => c._id === id) || DEMO_CUSTOMERS[0];
+    // Derive counts from actual demo datasets for the resolved customer
+    const custInvoices = DEMO_INVOICES.filter(
+      (inv) => inv.customerId === found._id || inv.customer?._id === found._id
+    );
+    const custPayments = DEMO_COLLECTIONS.filter((p) => p.customerId === found._id);
     const customerSummary = {
       outstanding: found.outstandingBalance ?? found.totalOutstanding ?? 0,
       calculatedOutstanding: found.outstandingBalance ?? found.totalOutstanding ?? 0,
       balance: found.outstandingBalance ?? found.totalOutstanding ?? 0,
       totalPurchases: found.totalPurchases ?? found.totalPurchasesAmount ?? 0,
-      invoiceCount: found.invoiceCount ?? found.totalInvoicesCount ?? 0,
-      paymentCount: 3,
+      invoiceCount: custInvoices.length,
+      paymentCount: custPayments.length,
       creditNoteCount: 0,
-      manualEntryCount: 1,
+      manualEntryCount: 0,
       unpaidInvoicesCount: (found.outstandingBalance || found.totalOutstanding) > 0 ? 1 : 0,
     };
     responseData = {
@@ -387,16 +409,18 @@ export const demoMockAdapter = async (config) => {
 
   // 8. Collections & Payments
   else if (path.startsWith('/payments/customer/')) {
+    const custId = path.replace('/payments/customer/', '').split('?')[0];
+    const custPayments = DEMO_COLLECTIONS.filter((p) => p.customerId === custId);
     responseData = {
       success: true,
-      payments: DEMO_COLLECTIONS,
-      items: DEMO_COLLECTIONS,
-      data: DEMO_COLLECTIONS,
-      total: DEMO_COLLECTIONS.length,
-      totalCount: DEMO_COLLECTIONS.length,
+      payments: custPayments,
+      items: custPayments,
+      data: custPayments,
+      total: custPayments.length,
+      totalCount: custPayments.length,
       page: 1,
       pages: 1,
-      pagination: { page: 1, limit: 20, total: DEMO_COLLECTIONS.length, hasMore: false },
+      pagination: { page: 1, limit: 20, total: custPayments.length, hasMore: false },
     };
   } else if (
     path === '/payments/collections' ||
