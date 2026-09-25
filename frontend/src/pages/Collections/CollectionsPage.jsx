@@ -369,18 +369,19 @@ export default function CollectionsPage() {
     let sum = 0;
     let cashSum = 0;
     let nonCashSum = 0;
-    for (const p of data.payments) {
-      sum += p.amount;
-      if (p.paymentMethod === 'Cash') cashSum += p.amount;
-      else nonCashSum += p.amount;
+    const paymentsList = data?.payments || [];
+    for (const p of paymentsList) {
+      sum += (p.amount || 0);
+      if (p.paymentMethod === 'Cash') cashSum += (p.amount || 0);
+      else nonCashSum += (p.amount || 0);
     }
     return {
-      count: data.payments.length,
+      count: paymentsList.length,
       total: sum,
       cashSum,
       nonCashSum
     };
-  }, [data.payments]);
+  }, [data?.payments]);
 
   // Has transient active filters
   const hasActiveFilters = Boolean(selectedMethod || activeSearch || (datePreset === 'custom'));

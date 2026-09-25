@@ -17,6 +17,10 @@ import {
   DEMO_COLLECTIONS,
   DEMO_DASHBOARD_STATS,
   DEMO_SALES_ANALYTICS,
+  DEMO_MANUAL_ENTRIES,
+  DEMO_PURCHASE_REPORTS,
+  DEMO_INVENTORY_INTELLIGENCE,
+  DEMO_EMPLOYEE_ANALYTICS,
 } from './demoData';
 
 // Simulated realistic micro-delay for smooth UI transitions (30-50ms)
@@ -132,6 +136,17 @@ export const demoMockAdapter = async (config) => {
       products: lowStock,
       count: lowStock.length,
     };
+  } else if (path === '/products/stats' || path === '/products-stats-global') {
+    responseData = {
+      success: true,
+      stats: {
+        totalProducts: DEMO_PRODUCTS.length,
+        totalCategories: 5,
+        lowStockCount: 2,
+        outOfStockCount: 0,
+        totalStockUnits: 2000,
+      },
+    };
   } else if (path.startsWith('/products/')) {
     const id = path.replace('/products/', '');
     const found = DEMO_PRODUCTS.find((p) => p._id === id) || DEMO_PRODUCTS[0];
@@ -225,7 +240,17 @@ export const demoMockAdapter = async (config) => {
   }
 
   // 6. Invoices
-  else if (path.startsWith('/invoices/')) {
+  else if (path === '/invoices/stats') {
+    responseData = {
+      success: true,
+      stats: {
+        total: DEMO_INVOICES.length,
+        today: 1,
+        thisMonth: DEMO_INVOICES.length,
+        totalAmount: 188620.00,
+      },
+    };
+  } else if (path.startsWith('/invoices/')) {
     const id = path.replace('/invoices/', '');
     const found = DEMO_INVOICES.find((inv) => inv._id === id) || DEMO_INVOICES[0];
     responseData = {
@@ -245,7 +270,17 @@ export const demoMockAdapter = async (config) => {
   }
 
   // 7. Suppliers & Purchases
-  else if (path.startsWith('/suppliers/')) {
+  else if (path === '/purchases/stats') {
+    responseData = {
+      success: true,
+      stats: {
+        totalPurchases: DEMO_PURCHASES.length,
+        todayPurchases: 0,
+        thisMonthPurchases: DEMO_PURCHASES.length,
+        totalSpend: 152880.00,
+      },
+    };
+  } else if (path.startsWith('/suppliers/')) {
     const id = path.replace('/suppliers/', '');
     const found = DEMO_SUPPLIERS.find((s) => s._id === id) || DEMO_SUPPLIERS[0];
     responseData = {
@@ -274,24 +309,71 @@ export const demoMockAdapter = async (config) => {
       purchases: DEMO_PURCHASES,
       data: DEMO_PURCHASES,
       total: DEMO_PURCHASES.length,
+      page: 1,
+      totalPages: 1,
     };
   }
 
   // 8. Collections & Payments
-  else if (path === '/collections' || path === '/payments') {
+  else if (
+    path === '/payments/collections' ||
+    path === '/collections' ||
+    path === '/payments'
+  ) {
     responseData = {
       success: true,
-      collections: DEMO_COLLECTIONS,
-      payments: DEMO_COLLECTIONS,
-      data: DEMO_COLLECTIONS,
+      summary: {
+        totalCollected: 60400.00,
+        paymentCount: DEMO_COLLECTIONS.length,
+        cashCollected: 0.00,
+        cashCount: 0,
+        nonCashCollected: 60400.00,
+        nonCashCount: DEMO_COLLECTIONS.length,
+        byMethod: {
+          UPI: { count: 2, total: 39400.00 },
+          NEFT: { count: 1, total: 21000.00 },
+          Cash: { count: 0, total: 0 },
+          Cheque: { count: 0, total: 0 },
+          Card: { count: 0, total: 0 },
+        },
+      },
+      count: DEMO_COLLECTIONS.length,
       total: DEMO_COLLECTIONS.length,
+      page: 1,
+      pages: 1,
+      payments: DEMO_COLLECTIONS,
+      collections: DEMO_COLLECTIONS,
+      data: DEMO_COLLECTIONS,
     };
   }
 
   // 9. Staff & Employees
-  else if (path.startsWith('/employees/')) {
+  else if (path === '/analytics/employees/comparison') {
+    responseData = {
+      success: true,
+      ...DEMO_EMPLOYEE_ANALYTICS.comparison,
+    };
+  } else if (path === '/analytics/sessions/summary') {
+    responseData = {
+      success: true,
+      ...DEMO_EMPLOYEE_ANALYTICS.sessionSummary,
+    };
+  } else if (path === '/analytics/activity-log') {
+    responseData = {
+      success: true,
+      ...DEMO_EMPLOYEE_ANALYTICS.activityLog,
+    };
+  } else if (path === '/analytics/employees' || path.startsWith('/analytics/employees/')) {
+    responseData = {
+      success: true,
+      employees: DEMO_EMPLOYEES,
+      employee: DEMO_EMPLOYEES[0],
+      sessionStats: DEMO_EMPLOYEE_ANALYTICS.sessionSummary.stats,
+      recentActivity: DEMO_EMPLOYEE_ANALYTICS.activityLog.log[0]?.activities || [],
+    };
+  } else if (path.startsWith('/employees/')) {
     const id = path.replace('/employees/', '');
-    const found = DEMO_EMPLOYEES.find((e) => e._id === id) || DEMO_EMPLOYEES[0];
+    const found = DEMO_EMPLOYEES.find((e) => e._id === id || e.id === id) || DEMO_EMPLOYEES[0];
     responseData = {
       success: true,
       employee: found,
@@ -354,7 +436,158 @@ export const demoMockAdapter = async (config) => {
     };
   }
 
-  // 12. Miscellaneous Collections
+  // 12. Manual Entries & Operations
+  else if (path === '/manual-entries' || path === '/entries' || path.startsWith('/manual-entries/customer/')) {
+    responseData = {
+      success: true,
+      manualEntries: DEMO_MANUAL_ENTRIES,
+      entries: DEMO_MANUAL_ENTRIES,
+      data: DEMO_MANUAL_ENTRIES,
+      total: DEMO_MANUAL_ENTRIES.length,
+      page: 1,
+      pages: 1,
+    };
+  }
+
+  // 13. Reports & Intelligence
+  else if (path === '/reports/purchases/summary') {
+    responseData = {
+      success: true,
+      data: DEMO_PURCHASE_REPORTS.summary,
+    };
+  } else if (path === '/reports/purchases/supplier-wise') {
+    responseData = {
+      success: true,
+      data: DEMO_PURCHASE_REPORTS.supplierWise,
+    };
+  } else if (path === '/reports/purchases/product-wise') {
+    responseData = {
+      success: true,
+      data: DEMO_PURCHASE_REPORTS.productWise,
+    };
+  } else if (path === '/reports/purchases/status') {
+    responseData = {
+      success: true,
+      data: DEMO_PURCHASE_REPORTS.statusSummary,
+    };
+  } else if (path === '/reports/purchases/inventory-flow') {
+    responseData = {
+      success: true,
+      data: DEMO_PURCHASE_REPORTS.inventoryFlow,
+    };
+  } else if (path === '/analytics/inventory/expiry-horizon') {
+    responseData = {
+      success: true,
+      data: DEMO_INVENTORY_INTELLIGENCE.expiryHorizon,
+    };
+  } else if (path === '/analytics/inventory/velocity') {
+    responseData = {
+      success: true,
+      data: DEMO_INVENTORY_INTELLIGENCE.velocity,
+    };
+  } else if (path === '/analytics/inventory/stock-risk') {
+    responseData = {
+      success: true,
+      data: DEMO_INVENTORY_INTELLIGENCE.stockRisk,
+    };
+  } else if (path === '/analytics/inventory/procurement') {
+    responseData = {
+      success: true,
+      data: DEMO_INVENTORY_INTELLIGENCE.procurement,
+    };
+  } else if (path === '/inventory/ledger') {
+    responseData = {
+      success: true,
+      movements: DEMO_PURCHASE_REPORTS.inventoryFlow.summary,
+      total: 3,
+    };
+  }
+
+  // 14. Outstanding & Ageing Khata Reports
+  else if (path === '/reports/credit-stats') {
+    responseData = {
+      success: true,
+      stats: DEMO_CREDIT_STATS,
+    };
+  } else if (path === '/reports/recent-payments') {
+    responseData = {
+      success: true,
+      payments: DEMO_COLLECTIONS.map((c) => ({
+        _id: c._id,
+        paymentNumber: c.paymentNumber,
+        amount: c.amount,
+        paymentDate: c.paymentDate,
+        paymentMethod: c.paymentMethod,
+        customer: { _id: c.customerId, name: c.customerName },
+        invoice: { invoiceNumber: c.invoiceNumber },
+      })),
+    };
+  } else if (path === '/reports/outstanding') {
+    const outstandingList = DEMO_CUSTOMERS.filter((c) => c.outstandingBalance > 0);
+    responseData = {
+      success: true,
+      summary: {
+        totalOutstanding: 148220.00,
+        overdueAmount: 38400.00,
+        customersWithDues: outstandingList.length,
+        totalOverdueCount: 1,
+      },
+      customers: outstandingList,
+      data: outstandingList,
+      pagination: {
+        page: 1,
+        limit: 20,
+        total: outstandingList.length,
+        pages: 1,
+      },
+      hasMore: false,
+    };
+  } else if (path === '/reports/ageing') {
+    const overdueInvoices = DEMO_INVOICES.filter((inv) => inv.remainingAmount > 0).map((inv) => ({
+      ...inv,
+      overdueDays: Math.max(
+        0,
+        Math.floor((new Date('2026-03-25').getTime() - new Date(inv.dueDate).getTime()) / (1000 * 60 * 60 * 24))
+      ),
+      bucket: inv.remainingAmount > 35000 ? 'overdue30' : 'current',
+    }));
+
+    responseData = {
+      success: true,
+      summary: {
+        totalAmount: 148220.00,
+        totalCount: overdueInvoices.length,
+        currentAmount: 85200.00,
+        overdueAmount: 63020.00,
+      },
+      buckets: {
+        current: { amount: 85200.0, count: 2 },
+        overdue30: { amount: 38400.0, count: 1 },
+        overdue60: { amount: 24620.0, count: 1 },
+        overdue90: { amount: 0, count: 0 },
+        days30: { amount: 38400.0, count: 1 },
+        days60: { amount: 24620.0, count: 1 },
+        days90: { amount: 0, count: 0 },
+      },
+      invoices: overdueInvoices,
+      data: {
+        current: 85200.0,
+        days30: 38400.0,
+        days60: 24620.0,
+        days90Plus: 0.0,
+        total: 148220.0,
+      },
+      pagination: {
+        page: 1,
+        limit: 20,
+        total: overdueInvoices.length,
+        pages: 1,
+      },
+      hasMore: false,
+    };
+  }
+
+  // 15. Miscellaneous
   else if (path === '/notes') {
     responseData = {
       success: true,
@@ -374,57 +607,10 @@ export const demoMockAdapter = async (config) => {
       creditNotes: [],
       data: [],
     };
-  } else if (path === '/manual-entries' || path === '/entries') {
-    responseData = {
-      success: true,
-      entries: [],
-      data: [],
-    };
   } else if (path === '/activity-logs' || path === '/admin/activity-logs') {
     responseData = {
       success: true,
       logs: DEMO_DASHBOARD_STATS.recentActivity,
-    };
-  } else if (path === '/reports/credit-stats') {
-    responseData = {
-      success: true,
-      stats: DEMO_CREDIT_STATS,
-    };
-  } else if (path === '/reports/recent-payments') {
-    responseData = {
-      success: true,
-      payments: DEMO_COLLECTIONS.map((c) => ({
-        _id: c._id,
-        paymentNumber: c.paymentNumber,
-        amount: c.amount,
-        paymentDate: c.paymentDate,
-        paymentMethod: c.paymentMethod,
-        customer: { _id: c.customerId, name: c.customerName },
-        invoice: { invoiceNumber: c.invoiceNumber },
-      })),
-    };
-  } else if (path === '/reports/outstanding') {
-    responseData = {
-      success: true,
-      data: DEMO_CUSTOMERS.filter((c) => c.outstandingBalance > 0).map((c) => ({
-        customerId: c._id,
-        customerName: c.name,
-        phone: c.phone,
-        totalOutstanding: c.outstandingBalance,
-        creditLimit: c.creditLimit,
-        creditDays: c.creditDays,
-      })),
-    };
-  } else if (path === '/reports/ageing') {
-    responseData = {
-      success: true,
-      data: {
-        current: 85200.0,
-        days30: 38400.0,
-        days60: 24620.0,
-        days90Plus: 0.0,
-        total: 148220.0,
-      },
     };
   } else if (path === '/referrals' || path === '/referral') {
     responseData = {

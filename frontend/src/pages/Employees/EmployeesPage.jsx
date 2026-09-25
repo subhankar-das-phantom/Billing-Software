@@ -595,7 +595,7 @@ const EmployeeCard = ({ employee, onEdit, onResetPassword, onToggleStatus, isMob
       {/* Actions */}
       <div className="flex items-center gap-2 pt-3 border-t border-slate-700">
         <Link
-          to={`/employees/${employee.id}`}
+          to={`/employees/${employee.id || employee._id}`}
           className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-700 transition-colors text-sm"
         >
           <Eye size={14} />

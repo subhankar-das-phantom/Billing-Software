@@ -81,7 +81,7 @@ export const DashboardChartsSection = ({
       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       return monthlySales.map(m => ({
         label: monthNames[m.month - 1] || `M${m.month}`,
-        sales: m.revenue || 0,
+        sales: m.revenue ?? m.sales ?? 0,
         collections: m.collections || 0
       }));
     }
@@ -92,7 +92,7 @@ export const DashboardChartsSection = ({
         const label = parts.length === 3 ? `${parts[2]}/${parts[1]}` : d.date;
         return {
           label,
-          sales: d.revenue || 0,
+          sales: d.revenue ?? d.sales ?? 0,
           collections: d.collections || 0
         };
       });

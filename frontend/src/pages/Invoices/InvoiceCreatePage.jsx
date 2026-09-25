@@ -2049,11 +2049,11 @@ export default function InvoiceCreatePage() {
               <div className="relative z-10 flex items-start justify-between">
                 <div className="flex items-start gap-3">
                   <div className="w-11 h-11 rounded-xl bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-base shadow-xs shrink-0">
-                    {selectedCustomer.customerName.charAt(0)?.toUpperCase()}
+                    {(selectedCustomer.customerName || selectedCustomer.name || '?').charAt(0)?.toUpperCase()}
                   </div>
                   <div>
                     <p className="font-semibold text-slate-100 text-base">
-                      {selectedCustomer.customerName}
+                      {selectedCustomer.customerName || selectedCustomer.name}
                     </p>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-300 mt-1">
                       {selectedCustomer.phone && (

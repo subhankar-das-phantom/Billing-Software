@@ -132,7 +132,7 @@ export const DEMO_SUBSCRIPTION = {
   currentPeriodEnd: '2027-12-31T23:59:59.000Z',
 };
 
-export const DEMO_PRODUCTS = [
+const RAW_DEMO_PRODUCTS = [
   {
     _id: 'prod_001',
     name: 'Dolo 650mg Tablets',
@@ -492,7 +492,20 @@ export const DEMO_PRODUCTS = [
   }
 ];
 
-export const DEMO_CUSTOMERS = [
+export const DEMO_PRODUCTS = RAW_DEMO_PRODUCTS.map((p) => ({
+  ...p,
+  id: p._id,
+  productName: p.name,
+  hsnCode: p.hsn,
+  newMRP: p.mrp,
+  oldMRP: p.mrp,
+  rate: p.sellingPrice,
+  gstPercentage: p.gstRate,
+  currentStockQty: p.totalStock,
+  effectiveStockQty: p.totalStock,
+}));
+
+const RAW_DEMO_CUSTOMERS = [
   {
     _id: 'cust_001',
     name: 'Patel Medical & Surgicals',
@@ -621,7 +634,16 @@ export const DEMO_CUSTOMERS = [
   }
 ];
 
-export const DEMO_INVOICES = [
+export const DEMO_CUSTOMERS = RAW_DEMO_CUSTOMERS.map((c) => ({
+  ...c,
+  id: c._id,
+  customerId: c._id,
+  customerName: c.name,
+  totalOutstanding: c.outstandingBalance,
+  isActive: true,
+}));
+
+const RAW_DEMO_INVOICES = [
   {
     _id: 'inv_001',
     invoiceNumber: 'INV-2026-001',
@@ -848,6 +870,73 @@ export const DEMO_INVOICES = [
   }
 ];
 
+export const DEMO_INVOICES = RAW_DEMO_INVOICES.map((inv, idx) => {
+  const custName = inv.customer?.name || inv.customerName || 'Patel Medical & Surgicals';
+  const sampleItems = [
+    {
+      product: 'prod_001',
+      productId: 'prod_001',
+      name: 'Dolo 650mg Tablets',
+      productName: 'Dolo 650mg Tablets',
+      batchNumber: 'DL26A04',
+      expiryDate: '2028-10-31',
+      quantity: 100,
+      rate: 28.50,
+      gstRate: 12,
+      gstPercentage: 12,
+      taxableAmount: 2544.64,
+      cgstAmount: 152.68,
+      sgstAmount: 152.68,
+      totalAmount: 2850.00,
+    },
+    {
+      product: 'prod_002',
+      productId: 'prod_002',
+      name: 'Augmentin 625 Duo Tablets',
+      productName: 'Augmentin 625 Duo Tablets',
+      batchNumber: 'AG26K09',
+      expiryDate: '2027-11-30',
+      quantity: 50,
+      rate: 168.00,
+      gstRate: 12,
+      gstPercentage: 12,
+      taxableAmount: 7500.00,
+      cgstAmount: 450.00,
+      sgstAmount: 450.00,
+      totalAmount: 8400.00,
+    }
+  ];
+
+  const items = inv.items && inv.items.length > 0 ? inv.items : sampleItems;
+
+  return {
+    ...inv,
+    id: inv._id,
+    customerName: custName,
+    paymentType: inv.paymentMode ? (inv.paymentMode.toUpperCase() === 'CASH' ? 'Cash' : 'Credit') : (idx === 4 ? 'Cash' : 'Credit'),
+    status: inv.status === 'paid' ? 'Printed' : 'Created',
+    items,
+    itemsCount: items.length,
+    totals: {
+      subTotal: inv.subTotal,
+      taxTotal: inv.taxTotal,
+      netTotal: inv.grandTotal,
+      grandTotal: inv.grandTotal,
+      cgst: inv.cgst,
+      sgst: inv.sgst,
+      igst: inv.igst,
+    },
+    customer: {
+      ...inv.customer,
+      id: inv.customer?._id || inv.customerId,
+      name: custName,
+      customerName: custName,
+      phone: inv.customer?.phone || inv.customerPhone,
+      gstin: inv.customer?.gstin || inv.customerGstin,
+    },
+  };
+});
+
 export const DEMO_SUPPLIERS = [
   {
     _id: 'sup_001',
@@ -902,7 +991,7 @@ export const DEMO_SUPPLIERS = [
   }
 ];
 
-export const DEMO_PURCHASES = [
+const RAW_DEMO_PURCHASES = [
   {
     _id: 'po_001',
     purchaseNumber: 'PO-2026-042',
@@ -914,7 +1003,8 @@ export const DEMO_PURCHASES = [
     subTotal: 84500.00,
     taxTotal: 10140.00,
     totalAmount: 94640.00,
-    status: 'received',
+    status: 'COMPLETED',
+    paymentType: 'Bank Transfer',
     paymentStatus: 'paid',
   },
   {
@@ -928,12 +1018,93 @@ export const DEMO_PURCHASES = [
     subTotal: 52000.00,
     taxTotal: 6240.00,
     totalAmount: 58240.00,
-    status: 'received',
+    status: 'COMPLETED',
+    paymentType: 'NEFT',
     paymentStatus: 'paid',
   }
 ];
 
-export const DEMO_EMPLOYEES = [
+export const DEMO_PURCHASES = RAW_DEMO_PURCHASES.map((p) => {
+  const sup = DEMO_SUPPLIERS.find((s) => s._id === p.supplierId) || {
+    _id: p.supplierId,
+    id: p.supplierId,
+    name: p.supplierName,
+    gstin: p.supplierGstin,
+    phone: '+91 22 4324 4324',
+  };
+  return {
+    ...p,
+    id: p._id,
+    supplierId: {
+      ...sup,
+      id: sup._id,
+    },
+    supplierName: sup.name,
+    supplierGstin: sup.gstin,
+    totals: {
+      subTotal: p.subTotal,
+      taxTotal: p.taxTotal,
+      grandTotal: p.totalAmount,
+      netTotal: p.totalAmount,
+    },
+    status: 'COMPLETED',
+    paymentType: p.paymentType || 'Credit',
+    items: [
+      {
+        product: 'prod_001',
+        productId: 'prod_001',
+        productName: 'Dolo 650mg Tablets',
+        quantity: 200,
+        freeQuantity: 20,
+        rate: 21.80,
+        total: 4360.00,
+        batchNumber: 'DL26A04',
+      },
+      {
+        product: 'prod_002',
+        productId: 'prod_002',
+        productName: 'Augmentin 625 Duo Tablets',
+        quantity: 120,
+        freeQuantity: 10,
+        rate: 142.50,
+        total: 17100.00,
+        batchNumber: 'AG26K09',
+      },
+      {
+        product: 'prod_003',
+        productId: 'prod_003',
+        productName: 'Pan 40mg Gastro-Resistant Tablets',
+        quantity: 180,
+        freeQuantity: 0,
+        rate: 94.00,
+        total: 16920.00,
+        batchNumber: 'PN25L44',
+      },
+      {
+        product: 'prod_005',
+        productId: 'prod_005',
+        productName: 'Montair LC Tablets',
+        quantity: 95,
+        freeQuantity: 5,
+        rate: 112.00,
+        total: 10640.00,
+        batchNumber: 'ML26B08',
+      },
+      {
+        product: 'prod_006',
+        productId: 'prod_006',
+        productName: 'Telma 40mg Tablets',
+        quantity: 160,
+        freeQuantity: 0,
+        rate: 162.00,
+        total: 25920.00,
+        batchNumber: 'TL26A18',
+      },
+    ],
+  };
+});
+
+const RAW_DEMO_EMPLOYEES = [
   {
     _id: 'emp_001',
     name: 'Amit Verma',
@@ -980,6 +1151,50 @@ export const DEMO_EMPLOYEES = [
     joinedDate: '2024-09-01',
   }
 ];
+
+export const DEMO_EMPLOYEES = RAW_DEMO_EMPLOYEES.map((emp, idx) => {
+  const metricsMap = [
+    {
+      invoicesCreatedCount: 58,
+      totalSalesGenerated: 184500.00,
+      paymentsRecordedCount: 24,
+      lastActivityAt: '2026-03-24T17:15:00.000Z',
+    },
+    {
+      invoicesCreatedCount: 42,
+      totalSalesGenerated: 142800.00,
+      paymentsRecordedCount: 19,
+      lastActivityAt: '2026-03-24T16:30:00.000Z',
+    },
+    {
+      invoicesCreatedCount: 0,
+      totalSalesGenerated: 0.00,
+      paymentsRecordedCount: 0,
+      lastActivityAt: '2026-03-24T18:00:00.000Z',
+    },
+  ];
+  const sessionStatsMap = [
+    { monthDuration: 14400, totalSessions: 32, averageSessionMinutes: 52 },
+    { monthDuration: 12600, totalSessions: 28, averageSessionMinutes: 48 },
+    { monthDuration: 10800, totalSessions: 22, averageSessionMinutes: 40 },
+  ];
+  const m = metricsMap[idx] || metricsMap[0];
+  const s = sessionStatsMap[idx] || sessionStatsMap[0];
+
+  return {
+    ...emp,
+    id: emp._id,
+    isActive: true,
+    metrics: m,
+    sessionStats: s,
+    period: {
+      invoicesCreated: m.invoicesCreatedCount,
+      salesGenerated: m.totalSalesGenerated,
+      paymentsRecorded: m.paymentsRecordedCount,
+      sessionDuration: s.monthDuration,
+    },
+  };
+});
 
 export const DEMO_COLLECTIONS = [
   {
@@ -1121,25 +1336,27 @@ export const DEMO_SALES_ANALYTICS = {
     const isWeekend = day % 7 === 0 || day % 7 === 6;
     const base = isWeekend ? 6500 : 14200;
     const jitter = (day * 347) % 3500;
+    const total = base + jitter;
     return {
       date: `2026-03-${day < 10 ? '0' + day : day}`,
-      sales: base + jitter,
-      collections: Math.round((base + jitter) * 0.88),
+      revenue: total,
+      sales: total,
+      collections: Math.round(total * 0.88),
       invoicesCount: isWeekend ? 2 : 6,
     };
   }),
   topProducts: [
-    { name: 'Augmentin 625 Duo', sales: 114240, quantity: 680 },
-    { name: 'Pan 40mg Tablets', sales: 94800, quantity: 800 },
-    { name: 'Dolo 650mg Tablets', sales: 85500, quantity: 3000 },
-    { name: 'Montair LC', sales: 55600, quantity: 400 },
-    { name: 'Telma 40mg', sales: 41000, quantity: 200 },
+    { name: 'Augmentin 625 Duo', sales: 114240, revenue: 114240, totalRevenue: 114240, units: 680, quantity: 680, totalQuantity: 680 },
+    { name: 'Pan 40mg Tablets', sales: 94800, revenue: 94800, totalRevenue: 94800, units: 800, quantity: 800, totalQuantity: 800 },
+    { name: 'Dolo 650mg Tablets', sales: 85500, revenue: 85500, totalRevenue: 85500, units: 3000, quantity: 3000, totalQuantity: 3000 },
+    { name: 'Montair LC', sales: 55600, revenue: 55600, totalRevenue: 55600, units: 400, quantity: 400, totalQuantity: 400 },
+    { name: 'Telma 40mg', sales: 41000, revenue: 41000, totalRevenue: 41000, units: 200, quantity: 200, totalQuantity: 200 },
   ],
   topCustomers: [
-    { name: 'Apollo Pharmacy SG Highway', revenue: 132400, orders: 22 },
-    { name: 'Shreeji Pharma Agencies', revenue: 98500, orders: 19 },
-    { name: 'Patel Medical & Surgicals', revenue: 76400, orders: 14 },
-    { name: 'Krishna Drug House', revenue: 45200, orders: 8 },
+    { name: 'Apollo Pharmacy SG Highway', revenue: 132400, totalRevenue: 132400, sales: 132400, orders: 22, invoicesCount: 22 },
+    { name: 'Shreeji Pharma Agencies', revenue: 98500, totalRevenue: 98500, sales: 98500, orders: 19, invoicesCount: 19 },
+    { name: 'Patel Medical & Surgicals', revenue: 76400, totalRevenue: 76400, sales: 76400, orders: 14, invoicesCount: 14 },
+    { name: 'Krishna Drug House', revenue: 45200, totalRevenue: 45200, sales: 45200, orders: 8, invoicesCount: 8 },
   ],
   paymentTrends: [
     { method: 'UPI / QR', percentage: 48, amount: 187462 },
@@ -1147,4 +1364,363 @@ export const DEMO_SALES_ANALYTICS = {
     { method: 'Cheque / Clearing', percentage: 12, amount: 46865 },
     { method: 'Cash', percentage: 8, amount: 31244 },
   ],
+};
+
+export const DEMO_MANUAL_ENTRIES = [
+  {
+    _id: 'me_001',
+    id: 'me_001',
+    customer: {
+      _id: 'cust_001',
+      id: 'cust_001',
+      name: 'Patel Medical & Surgicals',
+      customerName: 'Patel Medical & Surgicals',
+      phone: '+91 98250 11223',
+    },
+    customerSnapshot: {
+      customerId: 'cust_001',
+      customerName: 'Patel Medical & Surgicals',
+      phone: '+91 98250 11223',
+    },
+    entryType: 'opening_balance',
+    paymentType: 'Credit',
+    amount: 15000.00,
+    paidAmount: 0.00,
+    remainingAmount: 15000.00,
+    description: 'FY2025-26 Year-End Khata Carried Forward Balance',
+    entryDate: '2026-03-01T09:00:00.000Z',
+    status: 'active',
+  },
+  {
+    _id: 'me_002',
+    id: 'me_002',
+    customer: {
+      _id: 'cust_002',
+      id: 'cust_002',
+      name: 'Shreeji Pharma Agencies',
+      customerName: 'Shreeji Pharma Agencies',
+      phone: '+91 98251 44556',
+    },
+    customerSnapshot: {
+      customerId: 'cust_002',
+      customerName: 'Shreeji Pharma Agencies',
+      phone: '+91 98251 44556',
+    },
+    entryType: 'opening_balance',
+    paymentType: 'Credit',
+    amount: 25000.00,
+    paidAmount: 10000.00,
+    remainingAmount: 15000.00,
+    description: 'Initial Ledger Balance migration from Legacy Tally',
+    entryDate: '2026-03-01T09:30:00.000Z',
+    status: 'active',
+  },
+  {
+    _id: 'me_003',
+    id: 'me_003',
+    customer: {
+      _id: 'cust_003',
+      id: 'cust_003',
+      name: 'Krishna Drug House',
+      customerName: 'Krishna Drug House',
+      phone: '+91 94260 77889',
+    },
+    customerSnapshot: {
+      customerId: 'cust_003',
+      customerName: 'Krishna Drug House',
+      phone: '+91 94260 77889',
+    },
+    entryType: 'opening_balance',
+    paymentType: 'Credit',
+    amount: 8000.00,
+    paidAmount: 8000.00,
+    remainingAmount: 0.00,
+    description: 'Opening Balance settled via Bank Transfer',
+    entryDate: '2026-03-01T10:00:00.000Z',
+    status: 'settled',
+  }
+];
+
+export const DEMO_PURCHASE_REPORTS = {
+  summary: {
+    completed: { count: 2, value: 152880.00 },
+    cancelled: { count: 0, value: 0 },
+    draft: { count: 0, value: 0 },
+    totalPurchases: { count: 2, value: 152880.00 },
+  },
+  statusSummary: [
+    {
+      status: 'COMPLETED',
+      count: 2,
+      totalAmount: 152880.00,
+      totalTax: 16380.00,
+      totalDiscount: 0,
+    }
+  ],
+  supplierWise: [
+    {
+      supplierId: 'sup_001',
+      supplierName: 'Sun Pharma Laboratories Ltd',
+      supplierPhone: '+91 22 4324 4324',
+      supplierGstin: '27AAACS1234D1Z8',
+      status: 'COMPLETED',
+      count: 1,
+      totalValue: 94640.00,
+      lastPurchaseDate: '2026-03-10T11:00:00.000Z',
+    },
+    {
+      supplierId: 'sup_002',
+      supplierName: 'Cipla Distribution Depot',
+      supplierPhone: '+91 260 243 1122',
+      supplierGstin: '24AAACC1234H1Z5',
+      status: 'COMPLETED',
+      count: 1,
+      totalValue: 58240.00,
+      lastPurchaseDate: '2026-03-18T14:30:00.000Z',
+    }
+  ],
+  productWise: [
+    {
+      productId: 'prod_001',
+      productName: 'Dolo 650mg Tablets',
+      sku: 'DOLO-650-T15',
+      hsnCode: '300490',
+      status: 'COMPLETED',
+      paidQuantity: 200,
+      freeQuantity: 20,
+      receivedQuantity: 220,
+      totalValue: 4360.00,
+      count: 1,
+    },
+    {
+      productId: 'prod_002',
+      productName: 'Augmentin 625 Duo Tablets',
+      sku: 'AUG-625-T10',
+      hsnCode: '300410',
+      status: 'COMPLETED',
+      paidQuantity: 120,
+      freeQuantity: 10,
+      receivedQuantity: 130,
+      totalValue: 17100.00,
+      count: 1,
+    },
+    {
+      productId: 'prod_003',
+      productName: 'Pan 40mg Gastro-Resistant Tablets',
+      sku: 'PAN-40-T15',
+      hsnCode: '300490',
+      status: 'COMPLETED',
+      paidQuantity: 180,
+      freeQuantity: 0,
+      receivedQuantity: 180,
+      totalValue: 16920.00,
+      count: 1,
+    },
+    {
+      productId: 'prod_005',
+      productName: 'Montair LC Tablets',
+      sku: 'MON-LC-T10',
+      hsnCode: '300490',
+      status: 'COMPLETED',
+      paidQuantity: 95,
+      freeQuantity: 5,
+      receivedQuantity: 100,
+      totalValue: 10640.00,
+      count: 1,
+    },
+    {
+      productId: 'prod_006',
+      productName: 'Telma 40mg Tablets',
+      sku: 'TELMA-40-T30',
+      hsnCode: '300490',
+      status: 'COMPLETED',
+      paidQuantity: 160,
+      freeQuantity: 0,
+      receivedQuantity: 160,
+      totalValue: 25920.00,
+      count: 1,
+    },
+  ],
+  inventoryFlow: {
+    inflow: [
+      { type: 'PURCHASE', count: 2, quantity: 790 },
+      { type: 'OPENING_STOCK', count: 12, quantity: 1850 }
+    ],
+    outflow: [
+      { type: 'SALE', count: 6, quantity: 640 }
+    ],
+    summary: [
+      { type: 'PURCHASE', count: 2, quantity: 790 },
+      { type: 'OPENING_STOCK', count: 12, quantity: 1850 },
+      { type: 'SALE', count: 6, quantity: 640 }
+    ],
+    totalInflowQty: 2640,
+    totalOutflowQty: 640,
+  }
+};
+
+export const DEMO_INVENTORY_INTELLIGENCE = {
+  expiryHorizon: {
+    buckets: {
+      EXPIRED: { label: 'Expired', key: 'EXPIRED', batchCount: 0, totalRemainingQty: 0, productIds: [] },
+      DAYS_0_30: { label: '0 – 30 Days', key: 'DAYS_0_30', batchCount: 0, totalRemainingQty: 0, productIds: [] },
+      DAYS_31_60: { label: '31 – 60 Days', key: 'DAYS_31_60', batchCount: 1, totalRemainingQty: 15, productIds: ['prod_004'] },
+      DAYS_61_90: { label: '61 – 90 Days', key: 'DAYS_61_90', batchCount: 1, totalRemainingQty: 95, productIds: ['prod_005'] },
+      DAYS_90_PLUS: { label: '90+ Days', key: 'DAYS_90_PLUS', batchCount: 12, totalRemainingQty: 1890, productIds: ['prod_001', 'prod_002', 'prod_003', 'prod_006'] },
+      NO_EXPIRY: { label: 'No Expiry', key: 'NO_EXPIRY', batchCount: 0, totalRemainingQty: 0, productIds: [] },
+    },
+    criticalBatches: [
+      {
+        productId: 'prod_004',
+        productName: 'Azithral 500mg Tablets',
+        hsnCode: '300420',
+        manufacturer: 'Alembic Pharmaceuticals Ltd',
+        batchNo: 'AZ25M01',
+        expiryDate: '2027-07-31',
+        remainingQty: 15,
+        rate: 78.00,
+        mrp: 124.50,
+      }
+    ]
+  },
+  velocity: {
+    summary: {
+      totalProducts: 12,
+      fastMovingCount: 4,
+      normalCount: 5,
+      slowMovingCount: 2,
+      noSalesCount: 1,
+      totalUnitsSold: 5080,
+    },
+    fastMovingTop: [
+      { productId: 'prod_001', productName: 'Dolo 650mg Tablets', hsnCode: '300490', currentStockQty: 350, unitsSold: 3000, salesValue: 85500.00, segment: 'FAST_MOVING' },
+      { productId: 'prod_002', productName: 'Augmentin 625 Duo Tablets', hsnCode: '300410', currentStockQty: 120, unitsSold: 680, salesValue: 114240.00, segment: 'FAST_MOVING' },
+      { productId: 'prod_003', productName: 'Pan 40mg Gastro-Resistant Tablets', hsnCode: '300490', currentStockQty: 180, unitsSold: 800, salesValue: 94800.00, segment: 'FAST_MOVING' },
+      { productId: 'prod_005', productName: 'Montair LC Tablets', hsnCode: '300490', currentStockQty: 95, unitsSold: 400, salesValue: 55600.00, segment: 'FAST_MOVING' },
+    ],
+    slowMovingTop: [
+      { productId: 'prod_004', productName: 'Azithral 500mg Tablets', hsnCode: '300420', currentStockQty: 15, unitsSold: 50, salesValue: 4900.00, segment: 'SLOW_MOVING' },
+      { productId: 'prod_010', productName: 'Limcee 500mg Chewable Tablets', hsnCode: '300450', currentStockQty: 320, unitsSold: 150, salesValue: 3075.00, segment: 'SLOW_MOVING' },
+    ],
+    noSalesTop: [
+      { productId: 'prod_012', productName: 'Becosules Z Capsules', hsnCode: '300450', currentStockQty: 210, unitsSold: 0, salesValue: 0, segment: 'NO_SALES' },
+    ]
+  },
+  stockRisk: {
+    summary: {
+      outOfStockCount: 0,
+      lowStockCount: 2,
+      healthyCount: 10,
+      totalStockUnits: 2000,
+    },
+    outOfStockItems: [],
+    lowStockItems: [
+      { productId: 'prod_004', productName: 'Azithral 500mg Tablets', hsnCode: '300420', manufacturer: 'Alembic Pharmaceuticals Ltd', unit: 'Strip', currentStockQty: 15, rate: 78.00, newMRP: 124.50 },
+      { productId: 'prod_005', productName: 'Montair LC Tablets', hsnCode: '300490', manufacturer: 'Cipla Ltd', unit: 'Strip', currentStockQty: 28, rate: 112.00, newMRP: 182.00 },
+    ],
+    healthyItems: [
+      { productId: 'prod_001', productName: 'Dolo 650mg Tablets', currentStockQty: 350 },
+      { productId: 'prod_002', productName: 'Augmentin 625 Duo Tablets', currentStockQty: 120 },
+      { productId: 'prod_003', productName: 'Pan 40mg Gastro-Resistant Tablets', currentStockQty: 180 },
+    ]
+  },
+  procurement: {
+    suppliers: [
+      { supplierId: 'sup_001', supplierName: 'Sun Pharma Laboratories Ltd', supplierPhone: '+91 22 4324 4324', supplierGstin: '27AAACS1234D1Z8', orderCount: 1, totalAmount: 94640.00, totalTax: 10140.00, baseQuantity: 440, freeQuantity: 30, lastPurchaseDate: '2026-03-10T11:00:00.000Z' },
+      { supplierId: 'sup_002', supplierName: 'Cipla Distribution Depot', supplierPhone: '+91 260 243 1122', supplierGstin: '24AAACC1234H1Z5', orderCount: 1, totalAmount: 58240.00, totalTax: 6240.00, baseQuantity: 350, freeQuantity: 5, lastPurchaseDate: '2026-03-18T14:30:00.000Z' },
+    ]
+  }
+};
+
+export const DEMO_EMPLOYEE_ANALYTICS = {
+  analytics: {
+    employees: DEMO_EMPLOYEES,
+  },
+  comparison: {
+    period: { days: 30, startDate: '2026-02-23', endDate: '2026-03-25' },
+    employees: DEMO_EMPLOYEES,
+  },
+  sessionSummary: {
+    stats: {
+      activeSessionsCount: 2,
+      totalSessionsToday: 3,
+      avgDurationMinutes: 48,
+    },
+    activeSessions: [
+      {
+        _id: 'sess_001',
+        employeeId: 'emp_001',
+        employeeName: 'Amit Verma',
+        role: 'Sales & Distribution Manager',
+        device: 'Chrome on Windows 11',
+        ipAddress: '192.168.1.42',
+        loginTime: '2026-03-24T09:30:00.000Z',
+        lastActivity: '2026-03-24T17:15:00.000Z',
+        status: 'active',
+      },
+      {
+        _id: 'sess_002',
+        employeeId: 'emp_002',
+        employeeName: 'Priya Nair',
+        role: 'Accounts & GST Billing Executive',
+        device: 'Firefox on macOS Sonoma',
+        ipAddress: '192.168.1.58',
+        loginTime: '2026-03-24T10:15:00.000Z',
+        lastActivity: '2026-03-24T16:30:00.000Z',
+        status: 'active',
+      }
+    ],
+  },
+  activityLog: {
+    stats: {
+      totalSessions: 14,
+      totalInvoices: 100,
+      totalPayments: 43,
+      totalSales: 327300.00,
+    },
+    count: 3,
+    employees: DEMO_EMPLOYEES,
+    log: [
+      {
+        session: {
+          _id: 'sess_001',
+          employee: { id: 'emp_001', name: 'Amit Verma', email: 'amit.sales@bharatenterprise.local', designation: 'Sales & Distribution Manager' },
+          loginTime: '2026-03-24T09:30:00.000Z',
+          lastActivityAt: '2026-03-24T17:15:00.000Z',
+          ipAddress: '192.168.1.42',
+          device: 'Chrome / Windows',
+        },
+        summary: {
+          invoiceCount: 4,
+          paymentCount: 2,
+          totalSales: 62500.00,
+          totalCollected: 39400.00,
+        },
+        activities: [
+          { type: 'INVOICE_CREATE', description: 'Generated Tax Invoice INV-2026-001 for Patel Medical & Surgicals', timestamp: '2026-03-24T10:30:00.000Z' },
+          { type: 'PAYMENT_RECORD', description: 'Recorded ₹15,200 UPI collection from Krishna Drug House', timestamp: '2026-03-24T15:20:00.000Z' },
+        ]
+      },
+      {
+        session: {
+          _id: 'sess_002',
+          employee: { id: 'emp_002', name: 'Priya Nair', email: 'priya.billing@bharatenterprise.local', designation: 'Accounts & GST Billing Executive' },
+          loginTime: '2026-03-24T10:15:00.000Z',
+          lastActivityAt: '2026-03-24T16:30:00.000Z',
+          ipAddress: '192.168.1.58',
+          device: 'Firefox / macOS',
+        },
+        summary: {
+          invoiceCount: 2,
+          paymentCount: 1,
+          totalSales: 38400.00,
+          totalCollected: 21000.00,
+        },
+        activities: [
+          { type: 'INVOICE_CREATE', description: 'Generated Tax Invoice INV-2026-002 for Shreeji Pharma Agencies', timestamp: '2026-03-23T14:15:00.000Z' },
+          { type: 'PAYMENT_RECORD', description: 'Recorded ₹21,000 NEFT collection from Apex Healthline', timestamp: '2026-03-24T12:00:00.000Z' },
+        ]
+      }
+    ]
+  }
 };
