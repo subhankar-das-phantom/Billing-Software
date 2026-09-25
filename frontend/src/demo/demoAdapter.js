@@ -278,16 +278,22 @@ export const demoMockAdapter = async (config) => {
       (inv) => inv.customerId === found._id || inv.customer?._id === found._id
     );
     const custPayments = DEMO_COLLECTIONS.filter((p) => p.customerId === found._id);
+    const liveOutstanding = parseFloat(
+      custInvoices.reduce((sum, inv) => sum + (inv.remainingAmount ?? inv.grandTotal ?? 0), 0).toFixed(2)
+    );
+    const liveTotalPurchases = parseFloat(
+      custInvoices.reduce((sum, inv) => sum + (inv.grandTotal ?? inv.totals?.grandTotal ?? 0), 0).toFixed(2)
+    );
     const customerSummary = {
-      outstanding: found.outstandingBalance ?? found.totalOutstanding ?? 0,
-      calculatedOutstanding: found.outstandingBalance ?? found.totalOutstanding ?? 0,
-      balance: found.outstandingBalance ?? found.totalOutstanding ?? 0,
-      totalPurchases: found.totalPurchases ?? found.totalPurchasesAmount ?? 0,
+      outstanding: liveOutstanding,
+      calculatedOutstanding: liveOutstanding,
+      balance: liveOutstanding,
+      totalPurchases: liveTotalPurchases,
       invoiceCount: custInvoices.length,
       paymentCount: custPayments.length,
       creditNoteCount: 0,
       manualEntryCount: 0,
-      unpaidInvoicesCount: (found.outstandingBalance || found.totalOutstanding) > 0 ? 1 : 0,
+      unpaidInvoicesCount: liveOutstanding > 0 ? custInvoices.filter((inv) => (inv.remainingAmount ?? 0) > 0).length : 0,
     };
     responseData = {
       success: true,
