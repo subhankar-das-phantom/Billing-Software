@@ -32,6 +32,18 @@ exports.getProducts = async (req, res, next) => {
       ];
     }
 
+    // Batch query by IDs
+    if (req.query.ids) {
+      const idList = String(req.query.ids)
+        .split(',')
+        .map(id => id.trim())
+        .filter(id => mongoose.Types.ObjectId.isValid(id))
+        .map(id => new mongoose.Types.ObjectId(id));
+      if (idList.length > 0) {
+        query._id = { $in: idList };
+      }
+    }
+
     const tenant = await Admin.findById(tenantId).select('preferences').lean();
     const enableBatchTracking = tenant?.preferences?.enableBatchTracking === true;
 

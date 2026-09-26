@@ -302,24 +302,63 @@ export default function InvoiceCreatePage() {
     const stockMap = new Map();
     const versionMap = {};
 
-    await Promise.all(
-      productIds.map(async (id) => {
-        try {
-          const data = await productService.getProduct(id, false);
-          stockMap.set(id, {
-            stock:
-              data?.product?.effectiveStockQty ??
-              data?.product?.currentStockQty ??
-              0,
-            representation: data?.product?.inventoryRepresentation || "FREE",
-          });
-          versionMap[id] = data?.product?.stockVersion ?? 0;
-        } catch {
+    try {
+      // 1-request batch query with full effective stock calculation in MongoDB aggregation pipeline
+      const res = await productService.getProducts({
+        ids: productIds.join(','),
+        limit: productIds.length
+      });
+      const returnedProducts = res?.products || [];
+      returnedProducts.forEach((p) => {
+        const idStr = String(p._id);
+        const data = {
+          stock: p.effectiveStockQty ?? p.currentStockQty ?? 0,
+          representation: p.inventoryRepresentation || "FREE",
+        };
+        stockMap.set(idStr, data);
+        stockMap.set(p._id, data);
+        versionMap[idStr] = p.stockVersion ?? 0;
+        versionMap[p._id] = p.stockVersion ?? 0;
+      });
+
+      // Handle any product IDs that were not returned in the batch
+      productIds.forEach((id) => {
+        const strId = String(id);
+        if (!stockMap.has(strId)) {
+          stockMap.set(strId, { stock: 0, representation: "FREE" });
           stockMap.set(id, { stock: 0, representation: "FREE" });
+          versionMap[strId] = 0;
           versionMap[id] = 0;
         }
-      }),
-    );
+      });
+    } catch {
+      // Fallback to individual requests if batch endpoint encounters an error
+      await Promise.all(
+        productIds.map(async (id) => {
+          try {
+            const data = await productService.getProduct(id, false);
+            const strId = String(id);
+            const stockData = {
+              stock:
+                data?.product?.effectiveStockQty ??
+                data?.product?.currentStockQty ??
+                0,
+              representation: data?.product?.inventoryRepresentation || "FREE",
+            };
+            stockMap.set(strId, stockData);
+            stockMap.set(id, stockData);
+            versionMap[strId] = data?.product?.stockVersion ?? 0;
+            versionMap[id] = data?.product?.stockVersion ?? 0;
+          } catch {
+            const strId = String(id);
+            stockMap.set(strId, { stock: 0, representation: "FREE" });
+            stockMap.set(id, { stock: 0, representation: "FREE" });
+            versionMap[strId] = 0;
+            versionMap[id] = 0;
+          }
+        }),
+      );
+    }
 
     return { stockMap, versionMap };
   };
@@ -385,11 +424,6 @@ export default function InvoiceCreatePage() {
 
   const { connectionState: sseConnectionState, applyVersions } = useStockSSE({
     onStockUpdate: (updates) => {
-      // Always invalidate the global products cache when ANY stock update arrives,
-      // regardless of whether the product is in the current invoice draft.
-      // This ensures the Product Search dropdown gets fresh stock data.
-      invalidateCachePattern("products");
-
       setInvoiceItems((prev) => {
         let changed = false;
         const next = prev.map((item) => {
@@ -824,6 +858,7 @@ export default function InvoiceCreatePage() {
 
             setPaymentType(invoice.paymentType || "Credit");
             setNotes(invoice.notes || "");
+            setAllocationMode(invoice.allocationMode || "AUTO");
           } catch {
             error("Failed to load invoice for editing");
             navigate("/invoices");
@@ -881,6 +916,7 @@ export default function InvoiceCreatePage() {
 
           setPaymentType(invoice.paymentType || "Credit");
           setNotes(invoice.notes || "");
+          setAllocationMode(invoice.allocationMode || "AUTO");
         } catch {
           error("Failed to load invoice for editing");
           navigate("/invoices");
@@ -1786,20 +1822,24 @@ export default function InvoiceCreatePage() {
             schemeDiscount: item.schemeDiscount,
           };
           if (enableBatchTracking) {
-            mappedItem.allocationMode = "MANUAL";
-            if (item.manualAllocations && item.manualAllocations.length > 0) {
-              mappedItem.manualAllocations = item.manualAllocations;
-            } else if (item._batchId) {
-              mappedItem.manualAllocations = [
-                {
-                  batchId: item._batchId,
-                  quantity:
-                    (Number(item.quantitySold) || 0) +
-                    (Number(item.freeQuantity) || 0),
-                },
-              ];
+            if (allocationMode === "MANUAL") {
+              mappedItem.allocationMode = "MANUAL";
+              if (item.manualAllocations && item.manualAllocations.length > 0) {
+                mappedItem.manualAllocations = item.manualAllocations;
+              } else if (item._batchId) {
+                mappedItem.manualAllocations = [
+                  {
+                    batchId: item._batchId,
+                    quantity:
+                      (Number(item.quantitySold) || 0) +
+                      (Number(item.freeQuantity) || 0),
+                  },
+                ];
+              } else {
+                mappedItem.manualAllocations = [];
+              }
             } else {
-              mappedItem.manualAllocations = [];
+              mappedItem.allocationMode = "AUTO";
             }
           }
           return mappedItem;

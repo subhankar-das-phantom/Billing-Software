@@ -651,7 +651,7 @@ exports.createInvoice = async (req, res, next) => {
       const nextReservedQty = alreadyReservedQty + totalQty;
 
       // Resolve authoritative stock based on migration state
-      const stockInfo = await inventoryService.getProductEffectiveStock(tenantId, product);
+      const stockInfo = await inventoryService.getProductEffectiveStock(tenantId, product, enableBatchTracking);
       const availableStock = stockInfo.effectiveStockQty;
 
       // Check stock including repeated line-items of the same product.
@@ -798,8 +798,9 @@ exports.createInvoice = async (req, res, next) => {
         const product = productMap.get(item.product._id.toString());
         const totalQty = item.quantitySold + (item.freeQuantity || 0);
         let allocations = [];
+        const isManual = (originalItem.allocationMode === 'MANUAL' || req.body.allocationMode === 'MANUAL') && originalItem.manualAllocations && originalItem.manualAllocations.length > 0 && req.body.allocationMode !== 'AUTO';
         
-        if (originalItem.allocationMode === 'MANUAL' && originalItem.manualAllocations) {
+        if (isManual) {
           allocations = await inventoryService.allocateManualStock(
             tenantId,
             item.product._id,
@@ -1158,6 +1159,12 @@ exports.updateInvoice = async (req, res, next) => {
       if (mergedItemsMap[key]) {
         mergedItemsMap[key].quantitySold += item.quantitySold;
         mergedItemsMap[key].freeQuantity += (item.freeQuantity || 0);
+        if (item.manualAllocations) {
+          mergedItemsMap[key].manualAllocations = [
+            ...(mergedItemsMap[key].manualAllocations || []),
+            ...item.manualAllocations
+          ];
+        }
       } else {
         mergedItemsMap[key] = {
           productId: item.productId,
@@ -1166,7 +1173,7 @@ exports.updateInvoice = async (req, res, next) => {
           ratePerUnit: item.ratePerUnit,
           schemeDiscount: item.schemeDiscount || 0,
           allocationMode: item.allocationMode,
-          manualAllocations: item.manualAllocations
+          manualAllocations: item.manualAllocations ? [...item.manualAllocations] : undefined
         };
       }
     });
@@ -1199,7 +1206,8 @@ exports.updateInvoice = async (req, res, next) => {
 
       if (enableBatchTracking) {
         let allocations = [];
-        if (item.allocationMode === 'MANUAL' && item.manualAllocations) {
+        const isManualMode = (item.allocationMode === 'MANUAL' || req.body.allocationMode === 'MANUAL') && item.manualAllocations && item.manualAllocations.length > 0 && req.body.allocationMode !== 'AUTO';
+        if (isManualMode) {
           allocations = await inventoryService.allocateManualStock(
             tenantId, product._id, item.manualAllocations, totalQty, existingInvoice._id,
             `${existingInvoice.invoiceNumber} - Edit`, session
@@ -1214,7 +1222,7 @@ exports.updateInvoice = async (req, res, next) => {
           product,
           item,
           allocations,
-          allocationMode: item.allocationMode || 'AUTO'
+          allocationMode: isManualMode ? 'MANUAL' : 'AUTO'
         }));
         continue;
       } else if (batchManagedProducts.has(product._id.toString())) {

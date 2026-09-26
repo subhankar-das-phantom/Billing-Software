@@ -403,10 +403,15 @@ export const createBatch = async (
 export const ensureProductMigratedToBatch = async (
   tenantId: mongoose.Types.ObjectId | string,
   productId: mongoose.Types.ObjectId | string,
-  providedSession?: mongoose.ClientSession
+  providedSession?: mongoose.ClientSession,
+  isBatchTrackingEnabled?: boolean
 ): Promise<void> => {
-  const tenant = await Admin.findById(tenantId).select('preferences').lean();
-  if (!tenant?.preferences?.enableBatchTracking) return;
+  let enableBatchTracking = isBatchTrackingEnabled;
+  if (enableBatchTracking === undefined) {
+    const tenant = await Admin.findById(tenantId).select('preferences').lean();
+    enableBatchTracking = tenant?.preferences?.enableBatchTracking === true;
+  }
+  if (!enableBatchTracking) return;
 
   // Optimistic pre-check outside transaction to avoid unnecessary contention
   let preCheck = await ProductInventoryMigration.findOne({
@@ -672,10 +677,14 @@ export interface InventoryRepresentation {
 
 export const getProductEffectiveStock = async (
   tenantId: mongoose.Types.ObjectId | string,
-  product: any
+  product: any,
+  isBatchTrackingEnabled?: boolean
 ): Promise<InventoryRepresentation> => {
-  const tenant = await Admin.findById(tenantId).select('preferences').lean();
-  const enableBatchTracking = tenant?.preferences?.enableBatchTracking === true;
+  let enableBatchTracking = isBatchTrackingEnabled;
+  if (enableBatchTracking === undefined) {
+    const tenant = await Admin.findById(tenantId).select('preferences').lean();
+    enableBatchTracking = tenant?.preferences?.enableBatchTracking === true;
+  }
 
   if (!enableBatchTracking) {
     return {
