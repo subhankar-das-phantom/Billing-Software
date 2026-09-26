@@ -23,12 +23,14 @@ const createMigrationInProgressError = () => {
   return error;
 };
 
+export type StockMovementType = 'PURCHASE' | 'OPENING_STOCK' | 'MANUAL_ADJUSTMENT_IN' | 'MANUAL_ADJUSTMENT_OUT' | 'SALE' | 'SALE_REVERSAL' | 'SALE_RETURN' | 'PURCHASE_RETURN';
+
 export const recordStockMovement = async (
   data: {
     tenantId: mongoose.Types.ObjectId | string;
     productId: mongoose.Types.ObjectId | string;
     batchId?: mongoose.Types.ObjectId | string | null;
-    type: 'PURCHASE' | 'OPENING_STOCK' | 'MANUAL_ADJUSTMENT_IN' | 'MANUAL_ADJUSTMENT_OUT' | 'SALE' | 'SALE_REVERSAL' | 'SALE_RETURN' | 'PURCHASE_RETURN';
+    type: StockMovementType;
     quantity: number;
     rate?: number;
     totalValue?: number;
@@ -61,15 +63,27 @@ interface AllocationRecord {
   gstPercent: number;
 }
 
+export interface AllocationOptions {
+  isBatchTrackingEnabled?: boolean;
+  migratedProductIds?: Set<string>;
+  stockMovementsCollector?: any[];
+  knownProduct?: any;
+}
+
 export const allocateFifoStock = async (
   tenantId: mongoose.Types.ObjectId | string,
   productId: mongoose.Types.ObjectId | string,
   quantity: number,
   invoiceId: mongoose.Types.ObjectId | string,
   invoiceNumber: string,
-  session: ClientSession
+  session: ClientSession,
+  options?: AllocationOptions
 ): Promise<AllocationRecord[]> => {
-  await ensureProductMigratedToBatch(tenantId, productId, session);
+  const pidStr = productId.toString();
+  const isMigrated = options?.migratedProductIds?.has(pidStr);
+  if (!isMigrated) {
+    await ensureProductMigratedToBatch(tenantId, productId, session, options?.isBatchTrackingEnabled);
+  }
 
   // Get all active batches sorted by earliest expiry first (FIFO)
   const batches = await Batch.find({
@@ -112,24 +126,31 @@ export const allocateFifoStock = async (
       gstPercent: batch.gstPercent || 0
     });
 
-    await recordStockMovement({
+    const movementData = {
       tenantId,
       productId,
       batchId: batch._id,
-      type: 'SALE',
+      type: 'SALE' as const,
       quantity: take,
       rate: batch.rate || 0,
       totalValue: (batch.rate || 0) * take,
       referenceType: 'Invoice',
-      referenceId: String(invoiceId)
-    }, session);
+      referenceId: String(invoiceId),
+      createdAt: new Date()
+    };
+
+    if (options?.stockMovementsCollector) {
+      options.stockMovementsCollector.push(movementData);
+    } else {
+      await recordStockMovement(movementData, session);
+    }
 
     remaining -= take;
   }
 
   // Deduct from parent product and add history
   const ProductModel = mongoose.model('Product');
-  const product = await ProductModel.findOne({ _id: productId, tenantId }).session(session);
+  const product = options?.knownProduct || await ProductModel.findOne({ _id: productId, tenantId }).session(session);
   if (product) {
     const previousQty = product.currentStockQty;
     const newQty = previousQty - quantity;
@@ -155,17 +176,23 @@ export const allocateFifoStock = async (
 
     // Record StockMovement for FREE stock mode (if no batches were consumed, or as a general product movement)
     if (consumptionRecords.length === 0) {
-      await recordStockMovement({
+      const freeMovement = {
         tenantId,
         productId,
         batchId: null,
-        type: 'SALE',
+        type: 'SALE' as const,
         quantity,
         rate: product.rate || 0,
         totalValue: (product.rate || 0) * quantity,
         referenceType: 'Invoice',
-        referenceId: String(invoiceId)
-      }, session);
+        referenceId: String(invoiceId),
+        createdAt: new Date()
+      };
+      if (options?.stockMovementsCollector) {
+        options.stockMovementsCollector.push(freeMovement);
+      } else {
+        await recordStockMovement(freeMovement, session);
+      }
     }
   }
 
@@ -179,9 +206,14 @@ export const allocateManualStock = async (
   quantity: number,
   invoiceId: mongoose.Types.ObjectId | string,
   invoiceNumber: string,
-  session: ClientSession
+  session: ClientSession,
+  options?: AllocationOptions
 ): Promise<AllocationRecord[]> => {
-  await ensureProductMigratedToBatch(tenantId, productId, session);
+  const pidStr = productId.toString();
+  const isMigrated = options?.migratedProductIds?.has(pidStr);
+  if (!isMigrated) {
+    await ensureProductMigratedToBatch(tenantId, productId, session, options?.isBatchTrackingEnabled);
+  }
 
   let totalAllocated = 0;
   const consumptionRecords: AllocationRecord[] = [];
@@ -223,17 +255,24 @@ export const allocateManualStock = async (
       gstPercent: batch.gstPercent || 0
     });
 
-    await recordStockMovement({
+    const movementData = {
       tenantId,
       productId,
       batchId: batch._id,
-      type: 'SALE',
+      type: 'SALE' as const,
       quantity: alloc.quantity,
       rate: batch.rate || 0,
       totalValue: (batch.rate || 0) * alloc.quantity,
       referenceType: 'Invoice',
-      referenceId: String(invoiceId)
-    }, session);
+      referenceId: String(invoiceId),
+      createdAt: new Date()
+    };
+
+    if (options?.stockMovementsCollector) {
+      options.stockMovementsCollector.push(movementData);
+    } else {
+      await recordStockMovement(movementData, session);
+    }
 
     totalAllocated += alloc.quantity;
   }
@@ -244,7 +283,7 @@ export const allocateManualStock = async (
 
   // Deduct from parent product and add history
   const ProductModel = mongoose.model('Product');
-  const product = await ProductModel.findOne({ _id: productId, tenantId }).session(session);
+  const product = options?.knownProduct || await ProductModel.findOne({ _id: productId, tenantId }).session(session);
   if (product) {
     const previousQty = product.currentStockQty;
     const newQty = previousQty - quantity;
@@ -267,20 +306,6 @@ export const allocateManualStock = async (
       },
       { session }
     );
-
-    if (consumptionRecords.length === 0) {
-      await recordStockMovement({
-        tenantId,
-        productId,
-        batchId: null,
-        type: 'SALE',
-        quantity,
-        rate: product.rate || 0,
-        totalValue: (product.rate || 0) * quantity,
-        referenceType: 'Invoice',
-        referenceId: String(invoiceId)
-      }, session);
-    }
   }
 
   return consumptionRecords;
@@ -299,6 +324,8 @@ export const restoreBatchAllocations = async (
     referenceType?: string;
     referenceId?: string;
     createdBy?: { user: mongoose.Types.ObjectId | string; userModel: 'Admin' | 'Employee' };
+    knownProduct?: any;
+    stockMovementsCollector?: any[];
   }
 ): Promise<void> => {
   const movementRefType = options?.referenceType || (type === 'sales_return' ? 'CreditNote' : 'Invoice');
@@ -312,24 +339,31 @@ export const restoreBatchAllocations = async (
         { session }
       );
 
-      await recordStockMovement({
+      const movementData = {
         tenantId,
         productId,
         batchId: alloc.batchId,
-        type: type === 'invoice_cancelled' ? 'SALE_REVERSAL' : 'SALE_RETURN',
+        type: (type === 'invoice_cancelled' ? 'SALE_REVERSAL' : 'SALE_RETURN') as StockMovementType,
         quantity: alloc.quantity,
         rate: alloc.rate || 0,
         totalValue: (alloc.rate || 0) * alloc.quantity,
         referenceType: movementRefType,
         referenceId: movementRefId,
-        createdBy: options?.createdBy
-      }, session);
+        createdBy: options?.createdBy,
+        createdAt: new Date()
+      };
+
+      if (options?.stockMovementsCollector) {
+        options.stockMovementsCollector.push(movementData);
+      } else {
+        await recordStockMovement(movementData, session);
+      }
     }
   }
 
   // Restore parent product stock
   const ProductModel = mongoose.model('Product');
-  const product = await ProductModel.findOne({ _id: productId, tenantId }).session(session);
+  const product = options?.knownProduct || await ProductModel.findOne({ _id: productId, tenantId }).session(session);
   if (product) {
     const previousQty = product.currentStockQty;
     const newQty = previousQty + quantityToRestore;
@@ -355,18 +389,24 @@ export const restoreBatchAllocations = async (
     );
 
     if (!allocations || allocations.length === 0) {
-      await recordStockMovement({
+      const freeMovement = {
         tenantId,
         productId,
         batchId: null,
-        type: type === 'invoice_cancelled' ? 'SALE_REVERSAL' : 'SALE_RETURN',
+        type: (type === 'invoice_cancelled' ? 'SALE_REVERSAL' : 'SALE_RETURN') as StockMovementType,
         quantity: quantityToRestore,
         rate: product.rate || 0,
         totalValue: (product.rate || 0) * quantityToRestore,
         referenceType: movementRefType,
         referenceId: movementRefId,
-        createdBy: options?.createdBy
-      }, session);
+        createdBy: options?.createdBy,
+        createdAt: new Date()
+      };
+      if (options?.stockMovementsCollector) {
+        options.stockMovementsCollector.push(freeMovement);
+      } else {
+        await recordStockMovement(freeMovement, session);
+      }
     }
   }
 };

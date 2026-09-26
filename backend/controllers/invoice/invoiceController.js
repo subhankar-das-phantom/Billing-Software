@@ -607,6 +607,16 @@ exports.createInvoice = async (req, res, next) => {
       });
     }
 
+    const ProductInventoryMigration = require('../../models/ProductInventoryMigration').default || require('../../models/ProductInventoryMigration');
+    const completedMigrations = await ProductInventoryMigration.find({
+      tenantId,
+      productId: { $in: uniqueProductIds },
+      direction: 'FREE_TO_BATCH',
+      status: 'COMPLETED'
+    }).session(session).lean();
+    const migratedProductIds = new Set(completedMigrations.map(m => m.productId.toString()));
+    const stockMovementsCollector = [];
+
     const inventoryService = require('../../services/inventoryService');
 
     // Pre-merge identical items (same product + rate + discount)
@@ -800,6 +810,13 @@ exports.createInvoice = async (req, res, next) => {
         let allocations = [];
         const isManual = (originalItem.allocationMode === 'MANUAL' || req.body.allocationMode === 'MANUAL') && originalItem.manualAllocations && originalItem.manualAllocations.length > 0 && req.body.allocationMode !== 'AUTO';
         
+        const allocationOpts = {
+          isBatchTrackingEnabled: enableBatchTracking,
+          migratedProductIds,
+          stockMovementsCollector,
+          knownProduct: product
+        };
+
         if (isManual) {
           allocations = await inventoryService.allocateManualStock(
             tenantId,
@@ -808,7 +825,8 @@ exports.createInvoice = async (req, res, next) => {
             totalQty,
             invoice[0]._id,
             invoiceNumber,
-            session
+            session,
+            allocationOpts
           );
         } else {
           allocations = await inventoryService.allocateFifoStock(
@@ -817,7 +835,8 @@ exports.createInvoice = async (req, res, next) => {
             totalQty,
             invoice[0]._id,
             invoiceNumber,
-            session
+            session,
+            allocationOpts
           );
         }
         
@@ -855,6 +874,11 @@ exports.createInvoice = async (req, res, next) => {
       customerUpdate,
       { session }
     );
+
+    if (stockMovementsCollector.length > 0) {
+      const StockMovement = require('../../models/StockMovement').default || require('../../models/StockMovement');
+      await StockMovement.insertMany(stockMovementsCollector, { session });
+    }
 
     await session.commitTransaction();
 
@@ -1023,6 +1047,16 @@ exports.updateInvoice = async (req, res, next) => {
       }
     }
 
+    const ProductInventoryMigration = require('../../models/ProductInventoryMigration').default || require('../../models/ProductInventoryMigration');
+    const completedMigrations = await ProductInventoryMigration.find({
+      tenantId,
+      productId: { $in: allProductIds },
+      direction: 'FREE_TO_BATCH',
+      status: 'COMPLETED'
+    }).session(session).lean();
+    const migratedProductIds = new Set(completedMigrations.map(m => m.productId.toString()));
+    const stockMovementsCollector = [];
+
     // Determine which products are batch-managed in this transaction
     const batchManagedProducts = new Set();
     if (enableBatchTracking) {
@@ -1064,9 +1098,8 @@ exports.updateInvoice = async (req, res, next) => {
           });
         }
 
-        const StockMovement = require('../../models/StockMovement').default || require('../../models/StockMovement');
         const prodRate = productMap[pid]?.rate || productMap[pid]?.newMRP || 0;
-        await StockMovement.create([{
+        stockMovementsCollector.push({
           tenantId,
           productId: pid,
           batchId: null,
@@ -1078,7 +1111,7 @@ exports.updateInvoice = async (req, res, next) => {
           referenceId: String(existingInvoice._id),
           createdBy: getAttribution(req),
           createdAt: new Date()
-        }], { session });
+        });
       } else {
         await Product.findOneAndUpdate(
           { _id: pid, tenantId },
@@ -1093,10 +1126,9 @@ exports.updateInvoice = async (req, res, next) => {
           }, { session }
         );
 
-        const StockMovement = require('../../models/StockMovement').default || require('../../models/StockMovement');
         const prodRate = productMap[pid]?.rate || productMap[pid]?.newMRP || 0;
         const restoredQty = Math.abs(delta);
-        await StockMovement.create([{
+        stockMovementsCollector.push({
           tenantId,
           productId: pid,
           batchId: null,
@@ -1108,7 +1140,7 @@ exports.updateInvoice = async (req, res, next) => {
           referenceId: String(existingInvoice._id),
           createdBy: getAttribution(req),
           createdAt: new Date()
-        }], { session });
+        });
       }
     }
 
@@ -1123,7 +1155,11 @@ exports.updateInvoice = async (req, res, next) => {
       if (item.batchAllocations && item.batchAllocations.length > 0) {
         await inventoryService.restoreBatchAllocations(
           tenantId, pid, item.batchAllocations, oldQty, existingInvoice._id,
-          `${existingInvoice.invoiceNumber} - Edit (restored ${oldQty})`, 'invoice_edit_reversal', session
+          `${existingInvoice.invoiceNumber} - Edit (restored ${oldQty})`, 'invoice_edit_reversal', session,
+          {
+            knownProduct: productMap[pid],
+            stockMovementsCollector
+          }
         );
       } else {
         await Product.findOneAndUpdate(
@@ -1207,15 +1243,22 @@ exports.updateInvoice = async (req, res, next) => {
       if (enableBatchTracking) {
         let allocations = [];
         const isManualMode = (item.allocationMode === 'MANUAL' || req.body.allocationMode === 'MANUAL') && item.manualAllocations && item.manualAllocations.length > 0 && req.body.allocationMode !== 'AUTO';
+        const allocationOpts = {
+          isBatchTrackingEnabled: enableBatchTracking,
+          migratedProductIds,
+          stockMovementsCollector,
+          knownProduct: product
+        };
+
         if (isManualMode) {
           allocations = await inventoryService.allocateManualStock(
             tenantId, product._id, item.manualAllocations, totalQty, existingInvoice._id,
-            `${existingInvoice.invoiceNumber} - Edit`, session
+            `${existingInvoice.invoiceNumber} - Edit`, session, allocationOpts
           );
         } else {
           allocations = await inventoryService.allocateFifoStock(
             tenantId, product._id, totalQty, existingInvoice._id,
-            `${existingInvoice.invoiceNumber} - Edit`, session
+            `${existingInvoice.invoiceNumber} - Edit`, session, allocationOpts
           );
         }
         processedItems.push(...splitInvoiceItemByBatchAllocations({
@@ -1332,7 +1375,12 @@ exports.updateInvoice = async (req, res, next) => {
       { new: true, session }
     );
 
-    // ── STEP 11: Commit ────────────────────────────────────────────────
+    // ── STEP 11: Bulk write accumulated stock movements & Commit ──
+    if (stockMovementsCollector.length > 0) {
+      const StockMovement = require('../../models/StockMovement').default || require('../../models/StockMovement');
+      await StockMovement.insertMany(stockMovementsCollector, { session });
+    }
+
     await session.commitTransaction();
 
       // Invalidate GST report cache

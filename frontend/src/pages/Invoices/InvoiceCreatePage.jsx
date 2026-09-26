@@ -293,9 +293,19 @@ export default function InvoiceCreatePage() {
         (Number(item.freeQuantity) || 0),
     );
 
+  const getProductIdFromItem = (item) => {
+    const raw = item?.product?._id || item?.product?.id || item?.productId || item?.product;
+    if (!raw) return null;
+    if (typeof raw === "object") {
+      const inner = raw._id || raw.id;
+      return inner ? String(inner) : null;
+    }
+    return String(raw);
+  };
+
   const getCurrentStockByProductId = async (items = []) => {
     const productIds = [
-      ...new Set(items.map((item) => item?.product?._id).filter(Boolean)),
+      ...new Set(items.map(getProductIdFromItem).filter(Boolean)),
     ];
     if (productIds.length === 0) return { stockMap: new Map(), versionMap: {} };
 
@@ -331,33 +341,18 @@ export default function InvoiceCreatePage() {
           versionMap[id] = 0;
         }
       });
-    } catch {
-      // Fallback to individual requests if batch endpoint encounters an error
-      await Promise.all(
-        productIds.map(async (id) => {
-          try {
-            const data = await productService.getProduct(id, false);
-            const strId = String(id);
-            const stockData = {
-              stock:
-                data?.product?.effectiveStockQty ??
-                data?.product?.currentStockQty ??
-                0,
-              representation: data?.product?.inventoryRepresentation || "FREE",
-            };
-            stockMap.set(strId, stockData);
-            stockMap.set(id, stockData);
-            versionMap[strId] = data?.product?.stockVersion ?? 0;
-            versionMap[id] = data?.product?.stockVersion ?? 0;
-          } catch {
-            const strId = String(id);
-            stockMap.set(strId, { stock: 0, representation: "FREE" });
-            stockMap.set(id, { stock: 0, representation: "FREE" });
-            versionMap[strId] = 0;
-            versionMap[id] = 0;
-          }
-        }),
-      );
+    } catch (err) {
+      console.error("[getCurrentStockByProductId] Batch stock fetch failed:", err);
+      // Safe fallback: populate zeroes in-memory without hammering the backend with an N+1 storm
+      productIds.forEach((id) => {
+        const strId = String(id);
+        if (!stockMap.has(strId)) {
+          stockMap.set(strId, { stock: 0, representation: "FREE" });
+          stockMap.set(id, { stock: 0, representation: "FREE" });
+          versionMap[strId] = 0;
+          versionMap[id] = 0;
+        }
+      });
     }
 
     return { stockMap, versionMap };
@@ -821,7 +816,8 @@ export default function InvoiceCreatePage() {
             setCustomerSearch(invoice.customer.customerName);
 
             const loadedItems = invoice.items.map((item) => {
-              const currentStockData = stockMap.get(item.product._id);
+              const prodId = getProductIdFromItem(item);
+              const currentStockData = stockMap.get(prodId) || stockMap.get(item?.product?._id);
               const baseRate = item.ratePerUnit;
               const amounts = calculateItemAmounts(
                 item.quantitySold,
@@ -879,7 +875,8 @@ export default function InvoiceCreatePage() {
           setCustomerSearch(invoice.customer.customerName);
 
           const loadedItems = invoice.items.map((item) => {
-            const currentStockData = stockMap.get(item.product._id);
+            const prodId = getProductIdFromItem(item);
+            const currentStockData = stockMap.get(prodId) || stockMap.get(item?.product?._id);
             const baseRate = item.ratePerUnit;
             const amounts = calculateItemAmounts(
               item.quantitySold,

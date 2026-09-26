@@ -18,8 +18,13 @@ exports.getProducts = async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 50;
     const skip = (page - 1) * limit;
     const tenantId = getTenantId(req);
+    const tenantObjectId = new mongoose.Types.ObjectId(tenantId.toString());
 
-    const query = { tenantId, isActive: true };
+    let page = parseInt(req.query.page) || 1;
+    let limit = parseInt(req.query.limit) || 50;
+    let skip = (page - 1) * limit;
+
+    const query = { tenantId: tenantObjectId, isActive: true };
 
     // Search
     if (req.query.search) {
@@ -41,6 +46,14 @@ exports.getProducts = async (req, res, next) => {
         .map(id => new mongoose.Types.ObjectId(id));
       if (idList.length > 0) {
         query._id = { $in: idList };
+        // When fetching by explicit IDs, do not restrict by isActive so historical
+        // invoice items retain accurate product and stock representation
+        delete query.isActive;
+        // Do not skip when batch fetching specific entities
+        skip = 0;
+        if (!req.query.limit) {
+          limit = Math.max(idList.length, 50);
+        }
       }
     }
 

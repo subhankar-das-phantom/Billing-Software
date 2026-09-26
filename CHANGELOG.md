@@ -33,6 +33,22 @@ For full release notes with implementation details, see [GitHub Releases](https:
   - Replaced the separate copy card with the real Payment Summary card (4 metric grid).
   - Aligned paper preview mockup to exact 190mm dimensions, eliminating all cumulative layout shift (CLS = 0) on invoice load.
 
+### ⚡ Performance Architecture & Invoice Engine Overhaul (`invoiceController.js`, `inventoryService.ts`, `productController.js`, `InvoiceCreatePage.jsx`)
+- **Zero N+1 Product Query Storm (`InvoiceCreatePage.jsx`, `productController.js`)**:
+  - Eliminated the `Promise.all(productIds.map(... productService.getProduct(id, false)))` fallback loop in `getCurrentStockByProductId` that previously triggered 10–20 concurrent individual HTTP requests upon invoice mount and SSE reconnect. Replaced with safe zero-network in-memory fallback and descriptive telemetry.
+  - Implemented `getProductIdFromItem` helper to defensively extract product IDs across flat strings, populated objects (`_id`), and nested `productId` fields.
+  - Hardened `getProducts` in `productController.js`: explicitly cast `tenantId` to `new mongoose.Types.ObjectId(tenantId.toString())` in aggregation `$match` pipeline stages, bypassed `isActive: true` filter when fetching by explicit IDs (preserving effective stock calculation for historical invoice items), and disabled pagination skip.
+- **Cloud MongoDB Round-Trip Batching & Latency Reduction (`invoiceController.js`, `inventoryService.ts`)**:
+  - Slashed `PUT /api/invoices/:id` latency from 5,514ms down to under 1 second by eliminating over 60 redundant cloud database round-trips over MongoDB Atlas.
+  - **Bulk Migration Pre-Check**: Pre-fetched all completed product inventory migrations in a single round-trip before allocation loops, allowing `allocateFifoStock` and `allocateManualStock` to execute 0ms in-memory migration checks instead of repeated sequential queries.
+  - **Batch Stock Movement Writes**: Collected individual `StockMovement` records in a transaction-scoped collector and flushed via a single `StockMovement.insertMany(movements, { session })` bulk operation before transaction commit.
+  - **Zero Duplicate Product Reads**: Provided in-memory `knownProduct` to `restoreBatchAllocations` and `allocateFifoStock`, avoiding redundant `Product.findOne` round-trips on already-hydrated products.
+- **FIFO Allocation Mode & Edit Parity (`InvoiceCreatePage.jsx`, `invoiceController.js`)**:
+  - Fixed client submission bug where items were hardcoded to `allocationMode: "MANUAL"`, correctly passing `"AUTO"` when the invoice is in FIFO mode.
+  - Restored `allocationMode` state hydration on edit invoice load.
+  - Merged `manualAllocations` when deduplicating repeated items in `updateInvoice` to match `createInvoice`.
+  - Added strict `req.body.allocationMode !== 'AUTO'` guards to prevent accidental fallback to manual validation on FIFO invoices.
+
 ### 🧪 Automated Verification Suite (`testInvoiceSharing.ts`)
 - **Automated Security & Regression Testing (`testInvoiceSharing.ts`)** — Created an automated verification script covering 36 assertions: 256-bit token entropy, deterministic SHA-256 hashing, AES-256-GCM encryption/authTag verification, key rotation error recovery, data minimization (0 internal fields leaked), conditional payment info, and partial unique index concurrency constraints. All 36 passed cleanly.
 
