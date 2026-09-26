@@ -4,6 +4,38 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.8.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.8.0) — 2026-09-26 — Generic Resource Sharing System, Cryptographic Token Security, Public Invoice View & Invoice View Skeleton Overhaul
+
+### 🚀 Generic Reusable Resource Sharing & Cryptographic Token Architecture (`Share.ts`, `shareService.ts`, `shareCrypto.ts`, `shareController.ts`, `publicShareController.ts`, `shares.ts`, `publicShares.ts`, `publicInvoiceSerializer.ts`, `server.js`)
+- **Generic Multi-Resource Sharing System (`Share.ts`, `shareService.ts`)** — Implemented an extensible, tenant-isolated resource-sharing foundation supporting invoices, receipts, quotations, and credit notes without schema refactoring.
+  - **Dual-Layer Token Security (`shareCrypto.ts`)**: Generates 256-bit entropy raw tokens encoded as URL-safe `base64url`. Stored in MongoDB as SHA-256 hashes (`tokenHash`) for $O(1)$ constant-time public lookups with zero plaintext secret exposure.
+  - **Authenticated AES-256-GCM Encryption (`shareCrypto.ts`)**: Encrypts raw tokens (`encryptedToken`) using AES-256-GCM with environment-derived keys (`SHARE_TOKEN_SECRET` / `JWT_SECRET`), unique 12-byte IVs, and verified authentication tags, allowing the exact same URL to be returned on subsequent requests without inflating database records.
+  - **Safe Key-Rotation & Decryption Recovery (`shareService.ts`)**: If token decryption fails due to rotated server keys or corrupted payloads, the system fails safely: it marks the unreadable share stale, atomically generates a fresh active share, and returns the fresh link with zero 500 crashes.
+  - **Atomic Concurrency Protection (`Share.ts`, `shareService.ts`)**: Enforced a MongoDB partial unique index on `{ tenantId: 1, resourceType: 1, resourceId: 1 }` where `{ revokedAt: null }`. Concurrent creation requests catch MongoDB `E11000 duplicate key` collisions and re-query the winning active share, mathematically eliminating race conditions and duplicate active shares.
+  - **Configurable Public Rate Limiting (`publicShares.ts`)**: Protected public customer endpoints (`GET /api/public/shares/:token` and `GET /api/public/shares/:token/pdf`) with configurable rate limiting (`PUBLIC_SHARE_RATE_LIMIT_WINDOW_MS`, `PUBLIC_SHARE_RATE_LIMIT_MAX`) to prevent token brute-forcing and scraping.
+  - **Strict Customer-Visible Data Representation (`publicInvoiceSerializer.ts`)**: Sanitized the public invoice DTO strictly against the official customer-visible invoice representation. Strips all internal MongoDB `_id`s, purchase cost rates, supplier margins, employee attribution, and tenant internals. Distributor payment instructions (UPI, bank details) are included only when `paymentInformation.enabled` is explicitly true.
+
+### 💎 Enterprise Sharing UX & Public Customer Page (`ShareResourceMenu.jsx`, `useShareResource.js`, `PublicInvoicePage.jsx`, `InvoiceViewPage.jsx`, `invoiceService.js`, `shareService.js`, `App.jsx`, `demoAdapter.js`)
+- **Two-Option Share Action Menu (`ShareResourceMenu.jsx`, `useShareResource.js`, `InvoiceViewPage.jsx`)** — Replaced the legacy share action with an enterprise floating action popover:
+  - **Send a copy**: Independently consumes `invoiceService.getInvoicePDFBlob(id)` to share the actual invoice PDF file via native Web Share API (`navigator.share({ files: [file] })`), gracefully falling back to downloading the PDF file with an informational toast on desktop browsers without file-sharing capabilities.
+  - **Send link**: Obtains or reuses the active secure public link (`/share/:token`), sharing natively or copying to clipboard with visual feedback.
+  - **Zero-CLS Floating Menu**: Built with GPU-accelerated opacity/Y-glide (`0.15s`), locked active trigger button styling, `pointer-events-none` on children, outside-click and Escape listeners.
+  - **Preserved Existing Workflows**: Preserved established `handleDownload` (`window.print()`), segmented `1x Single | 2x Double` print copy modes, and table column customization untouched.
+- **Dedicated Public Customer Invoice Page (`PublicInvoicePage.jsx`, `App.jsx`)** — Built a responsive, standalone customer invoice viewer at `/share/:token`:
+  - Renders distributor details, conditional payment instructions (with 1-click UPI copy), customer information, items table, and detailed totals breakdown.
+  - Features 1-click "Download PDF" (streaming directly from `GET /api/public/shares/:token/pdf`) and "Print" actions with `.no-print` isolation.
+  - Provides a verified secure document badge and graceful error states for expired/revoked links.
+- **Demo Mode Parity (`demoAdapter.js`)** — Added offline mock support for `POST /shares`, `GET /public/shares/:token`, and `/pdf`, allowing prospective clients to test sharing workflows seamlessly without 403 Forbidden errors.
+
+### 🛡️ Invoice View Skeleton Overhaul & Zero-CLS Layout Parity (`InvoiceViewPageSkeleton.jsx`)
+- **Structural Ground-Truth Alignment (`InvoiceViewPageSkeleton.jsx`)** — Completely redesigned the loading skeleton to match the real `InvoiceViewPage.jsx` layout down to the exact dimensions:
+  - Replaced the obsolete 1-tier bar with the real 2-Tier Header Card: Tier 1 (Back link, divider, invoice number, status badge, dynamic payment due pill, record payment button, print button) and Tier 2 (segmented 1x/2x copy mode capsule, columns button, download button, share button, manage button).
+  - Replaced the separate copy card with the real Payment Summary card (4 metric grid).
+  - Aligned paper preview mockup to exact 190mm dimensions, eliminating all cumulative layout shift (CLS = 0) on invoice load.
+
+### 🧪 Automated Verification Suite (`testInvoiceSharing.ts`)
+- **Automated Security & Regression Testing (`testInvoiceSharing.ts`)** — Created an automated verification script covering 36 assertions: 256-bit token entropy, deterministic SHA-256 hashing, AES-256-GCM encryption/authTag verification, key rotation error recovery, data minimization (0 internal fields leaked), conditional payment info, and partial unique index concurrency constraints. All 36 passed cleanly.
+
 ## [v2.7.1](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.7.1) — 2026-09-25 — Auth Flow Stabilization, Public Theme Consolidation, Zero-CLS Anti-Flicker Architecture & Invoice View Redesign
 
 ### 🛠️ Demo Mode Full-Stack Parity & Runtime Error Elimination (`demoData.js`, `demoAdapter.js`, `Header.jsx`, `ActivityLogPage.jsx`, `CustomerDetailsPage.jsx`, `InvoiceViewPage.jsx`, `InventoryLedgerPage.jsx`, `TopProductsChart.jsx`, `TopCustomersChart.jsx`, `DashboardChartsSection.jsx`, `AuthContext.jsx`, `api.js`, `index.html`)
