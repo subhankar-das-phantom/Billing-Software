@@ -68,7 +68,7 @@ export const publicShareController = {
         const invNum = invoice.invoiceNumber ? invoice.invoiceNumber.replace(/[^a-zA-Z0-9-_]/g, '_') : 'Invoice';
 
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `inline; filename="${invNum}.pdf"`);
+        res.setHeader('Content-Disposition', `attachment; filename="${invNum}.pdf"`);
 
         const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 30, bufferPages: false });
         doc.on('error', next);

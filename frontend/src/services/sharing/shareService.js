@@ -44,6 +44,18 @@ export const shareService = {
    */
   getPublicSharePDFUrl: (token) => {
     return `${API_URL}/public/shares/${token}/pdf`;
+  },
+
+  /**
+   * Fetch public invoice PDF as a Blob for seamless in-page download
+   * @param {string} token
+   * @returns {Promise<Blob>}
+   */
+  getPublicSharePDFBlob: async (token) => {
+    const response = await api.get(`/public/shares/${token}/pdf`, {
+      responseType: 'blob'
+    });
+    return response.data;
   }
 };
 

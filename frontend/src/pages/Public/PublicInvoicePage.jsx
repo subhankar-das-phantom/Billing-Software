@@ -26,6 +26,7 @@ export default function PublicInvoicePage() {
   const [error, setError] = useState(null);
   const [data, setData] = useState(null);
   const [copiedUpi, setCopiedUpi] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -77,10 +78,27 @@ export default function PublicInvoicePage() {
     window.print();
   };
 
-  const handleDownloadPdf = () => {
-    if (!token) return;
-    const pdfUrl = shareService.getPublicSharePDFUrl(token);
-    window.open(pdfUrl, '_blank');
+  const handleDownloadPdf = async () => {
+    if (!token || downloadingPdf) return;
+    try {
+      setDownloadingPdf(true);
+      const blob = await shareService.getPublicSharePDFBlob(token);
+      const invNum = data?.invoiceNumber ? data.invoiceNumber.replace(/[^a-zA-Z0-9-_]/g, '_') : 'Invoice';
+      const fileName = `Invoice_${invNum}.pdf`;
+
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    } catch (err) {
+      console.error('Failed to download invoice PDF:', err);
+    } finally {
+      setDownloadingPdf(false);
+    }
   };
 
   const handleCopyUpi = async (upiId) => {
@@ -169,10 +187,15 @@ export default function PublicInvoicePage() {
             <button
               type="button"
               onClick={handleDownloadPdf}
-              className="btn btn-primary flex items-center gap-1.5 py-1.5 px-3.5 text-xs font-medium shadow-md shadow-blue-900/30"
+              disabled={downloadingPdf}
+              className="btn btn-primary flex items-center gap-1.5 py-1.5 px-3.5 text-xs font-medium shadow-md shadow-blue-900/30 disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed"
             >
-              <Download className="w-3.5 h-3.5" />
-              <span>Download PDF</span>
+              {downloadingPdf ? (
+                <Clock className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Download className="w-3.5 h-3.5" />
+              )}
+              <span>{downloadingPdf ? 'Downloading...' : 'Download PDF'}</span>
             </button>
           </div>
         </div>
