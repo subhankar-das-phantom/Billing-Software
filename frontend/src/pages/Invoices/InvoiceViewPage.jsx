@@ -42,6 +42,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { authService } from '../../services/auth/authService';
 import { useSWR, useFirstVisit, invalidateCachePattern } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
+import ShareResourceMenu from '../../components/Common/Sharing/ShareResourceMenu';
 
 const roundCurrency = (value) => Math.round(((Number(value) || 0) + Number.EPSILON) * 100) / 100;
 
@@ -132,7 +133,6 @@ export default function InvoiceViewPage() {
   });
   const printRef = useRef();
   const { success, error } = useToast();
-  const [copiedShare, setCopiedShare] = useState(false);
   const isFirstVisit = useFirstVisit('invoice-view');
 
   const { user, admin, updateUserPreferences } = useAuth();
@@ -283,43 +283,30 @@ export default function InvoiceViewPage() {
   const fetchCustomerBalance = async () => {
     if (!customerId) return 0;
     try {
-      const [customerData, entriesData, cnData] = await Promise.all([
-        customerService.getCustomer(customerId, true, { params: { includeInvoices: 'true' } }),
-        manualEntryService.getManualEntriesByCustomer(customerId).catch(() => ({ manualEntries: [] })),
-        creditNoteService.getCreditNotesByCustomer(customerId).catch(() => ({ creditNotes: [] }))
-      ]);
+      // 1. Authoritative ground-truth calculation directly from customer summary
+      const customerData = await customerService.getCustomer(customerId, true, {
+        params: { includeInvoices: 'false' }
+      });
 
-      const customerInvoices = customerData?.invoices || [];
-      const manualEntries = entriesData?.manualEntries || [];
-      const customerCreditNotes = cnData?.creditNotes || [];
+      const liveDue = customerData?.summary?.calculatedOutstanding
+        ?? customerData?.summary?.outstanding
+        ?? customerData?.customer?.calculatedOutstanding
+        ?? customerData?.customer?.outstandingBalance;
 
-      const invoiceOutstanding = customerInvoices.reduce((sum, inv) => {
-        if (inv.status === 'Cancelled') return sum;
-        const remaining = (inv.totals?.netTotal || 0) - (inv.paidAmount || 0);
-        return sum + (remaining > 0 ? remaining : 0);
-      }, 0);
+      if (liveDue !== undefined && liveDue !== null) {
+        return Number(liveDue);
+      }
 
-      const manualEntryOutstanding = manualEntries.reduce((sum, entry) => {
-        if (entry.entryType === 'opening_balance' && entry.paymentType === 'Credit') {
-          const remaining = entry.amount - (entry.paidAmount || 0);
-          return sum + remaining;
-        }
-        return sum;
-      }, 0);
-
-      // Subtract credit note totals
-      const creditNoteTotal = customerCreditNotes.reduce(
-        (sum, cn) => sum + (cn.totals?.netTotal || 0), 0
-      );
-
-      return Math.max(0, invoiceOutstanding + manualEntryOutstanding - creditNoteTotal);
+      // 2. High-precision secondary fallback to ledger closing balance
+      const ledgerRes = await customerService.getCustomerLedger(customerId);
+      return Number(ledgerRes?.summary?.closingBalance) || 0;
     } catch (e) {
-      console.warn('Failed calculating outstanding', e);
+      console.warn('Failed calculating customer outstanding dues', e);
       return 0;
     }
   };
 
-  const { data: customerOutstanding = 0 } = useSWR(
+  const { data: customerOutstanding = 0, mutate: mutateCustomerOutstanding } = useSWR(
     customerId ? `customer-outstanding-${customerId}` : null,
     fetchCustomerBalance
   );
@@ -375,54 +362,6 @@ export default function InvoiceViewPage() {
     window.print();
   };
 
-  const handleShare = async () => {
-    if (!invoice) return;
-    const invNumber = invoice.invoiceNumber || 'Invoice';
-    const custName = invoice.customer?.name || 'Customer';
-    const grandTotal = (invoice.grandTotal !== undefined && invoice.grandTotal !== null)
-      ? invoice.grandTotal
-      : (invoice.totalAmount || 0);
-    const formattedTotal = formatCurrency(grandTotal);
-    const shareUrl = window.location.href;
-    const shareText = `Invoice #${invNumber} for ${custName} — Total: ${formattedTotal}`;
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `Invoice #${invNumber}`,
-          text: `${shareText}\n${shareUrl}`,
-          url: shareUrl,
-        });
-        return;
-      } catch (err) {
-        if (err.name === 'AbortError') return;
-      }
-    }
-
-    // Fallback: Clipboard copy
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(shareUrl);
-      } else {
-        const textArea = document.createElement('textarea');
-        textArea.value = shareUrl;
-        textArea.style.position = 'fixed';
-        textArea.style.opacity = '0';
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-      }
-      setCopiedShare(true);
-      success('Invoice link copied to clipboard!');
-      setTimeout(() => setCopiedShare(false), 2500);
-    } catch (err) {
-      console.error('Failed to copy share link:', err);
-      error('Failed to copy share link to clipboard');
-    }
-  };
-
   const toggleCopyMode = () => {
     setIsSingleCopy((prev) => {
       const next = !prev;
@@ -460,9 +399,11 @@ export default function InvoiceViewPage() {
     invalidateCachePattern('invoices');
     invalidateCachePattern('customers');
     invalidateCachePattern('dashboard');
+    invalidateCachePattern(`customer-outstanding-${customerId}`);
     await Promise.all([
       mutateInvoice(),
-      mutateCN()
+      mutateCN(),
+      mutateCustomerOutstanding()
     ]);
   };
 
@@ -588,7 +529,7 @@ export default function InvoiceViewPage() {
       <div className="mt-auto">
         <div className="grid grid-cols-2 gap-2 mb-1">
           <div className="text-[11px]">
-            <p className="font-bold">Current Dues: ₹{Math.round(customerOutstanding)}</p>
+            <p className="font-bold">Current Dues: {customerOutstanding > 0 ? formatCurrency(customerOutstanding) : '₹0.00'}</p>
             <div className="border-t border-black mt-1 pt-0.5">
               <p className="font-bold mb-0.5">Amount in Words:</p>
               <p className="uppercase">{invoice.totals?.amountInWords || 'Rupees Zero Only'}</p>
@@ -868,19 +809,13 @@ export default function InvoiceViewPage() {
                 <span className="hidden sm:inline">Download</span>
               </button>
 
-              <button
-                type="button"
-                onClick={handleShare}
-                className="btn btn-secondary flex items-center gap-1.5 py-1.5 px-2.5 text-xs font-medium hover:text-slate-100 border-slate-700/70"
-                title="Share invoice link"
-              >
-                {copiedShare ? (
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                ) : (
-                  <Share2 className="w-3.5 h-3.5 text-slate-400" />
-                )}
-                <span>{copiedShare ? 'Copied' : 'Share'}</span>
-              </button>
+              <ShareResourceMenu
+                resourceType="invoice"
+                resourceId={invoice._id}
+                resourceTitle={`Invoice #${invoice.invoiceNumber || ''} for ${invoice.customer?.customerName || invoice.customer?.name || 'Customer'}`}
+                fileName={`Invoice_${invoice.invoiceNumber || 'INV'}_${invoice.customer?.customerName || 'Customer'}.pdf`}
+                getPdfBlob={() => invoiceService.getInvoicePDFBlob(id)}
+              />
 
               {/* Manage Dropdown (Edit, Create Return, Cancel) */}
               {invoice.status !== 'Cancelled' && (
@@ -1044,11 +979,11 @@ export default function InvoiceViewPage() {
         )}
 
         {/* Invoice Print Area */}
-        <div className="flex justify-center">
+        <div className="w-full overflow-x-auto pb-4 flex justify-start sm:justify-center">
           <motion.div
             ref={printRef}
             variants={cardVariants}
-            className="invoice-print bg-white border-2 border-slate-300 shadow-lg"
+            className="invoice-print bg-white border-2 border-slate-300 shadow-lg shrink-0 my-0 sm:mx-auto"
             style={{
               width: '190mm',
               fontSize: '10px',

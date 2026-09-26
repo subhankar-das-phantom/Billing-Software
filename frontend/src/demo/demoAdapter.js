@@ -65,6 +65,22 @@ export const demoMockAdapter = async (config) => {
         config,
       };
     }
+    if (path === '/shares') {
+      const demoToken = 'demo-preview-share-token-secure';
+      return {
+        data: {
+          success: true,
+          rawToken: demoToken,
+          shareUrl: `/share/${demoToken}`,
+          isNew: false,
+          expiresAt: null
+        },
+        status: 200,
+        statusText: 'OK',
+        headers: { 'content-type': 'application/json' },
+        config
+      };
+    }
 
     const message =
       'Demo Mode is read-only. Sign up for a free 14-day trial to perform live operations!';
@@ -365,6 +381,92 @@ export const demoMockAdapter = async (config) => {
       success: true,
       invoice: found,
       data: found,
+    };
+  } else if (path.startsWith('/public/shares/')) {
+    const firstInvoice = DEMO_INVOICES[0];
+    const publicInvoice = {
+      invoiceNumber: firstInvoice.invoiceNumber || 'INV-2026-001',
+      invoiceDate: firstInvoice.invoiceDate || new Date(),
+      paymentType: firstInvoice.paymentType || 'Credit',
+      status: firstInvoice.status || 'Created',
+      distributor: {
+        firmName: DEMO_ADMIN.firmName || 'BHARAT ENTERPRISES',
+        firmAddress: DEMO_ADMIN.firmAddress || '123 Market Street, Mumbai, Maharashtra - 400001',
+        firmPhone: DEMO_ADMIN.firmPhone || '9876543210',
+        firmGSTIN: DEMO_ADMIN.firmGSTIN || '27AAAAA0000A1Z5',
+        firmDL: DEMO_ADMIN.firmDL || 'DL-MH-2026-001',
+        paymentInformation: DEMO_ADMIN.paymentInformation?.enabled ? DEMO_ADMIN.paymentInformation : undefined
+      },
+      customer: {
+        customerName: firstInvoice.customer?.customerName || firstInvoice.customer?.name || 'Customer',
+        address: firstInvoice.customer?.address || '',
+        phone: firstInvoice.customer?.phone || '',
+        gstin: firstInvoice.customer?.gstin || '',
+        dlNo: firstInvoice.customer?.dlNo || ''
+      },
+      items: (firstInvoice.items || []).map((it) => {
+        const rate = it.ratePerUnit ?? it.rate ?? 0;
+        const gst = it.product?.gstPercentage ?? it.gstPercentage ?? 0;
+        const netRate = Math.round((rate * (1 + gst / 100)) * 100) / 100;
+        const batchAllocations = Array.isArray(it.batchAllocations)
+          ? it.batchAllocations.map((alloc) => ({
+              batchNo: alloc.batchNo && alloc.batchNo !== 'UNNAMED' ? alloc.batchNo : 'No Batch #',
+              quantity: Number(alloc.quantity) || 0,
+              expiryDate: alloc.expiryDate
+                ? (typeof alloc.expiryDate === 'string' && alloc.expiryDate.includes('/')
+                    ? alloc.expiryDate
+                    : new Date(alloc.expiryDate).toLocaleDateString('en-IN', { month: '2-digit', year: '2-digit' }))
+                : '-'
+            }))
+          : [];
+
+        return {
+          productName: it.product?.productName ?? it.productName ?? it.name ?? 'Item',
+          hsnCode: it.product?.hsnCode ?? it.hsnCode ?? '',
+          pack: it.product?.pack ?? it.pack ?? '',
+          batchNo: it.product?.batchNo ?? it.batchNo ?? '',
+          expiryDate: it.product?.expiryDate ? new Date(it.product.expiryDate).toLocaleDateString('en-IN', { month: '2-digit', year: '2-digit' }) : null,
+          batchAllocations,
+          quantity: it.quantitySold ?? it.quantity ?? 1,
+          freeQuantity: it.freeQuantity || 0,
+          mrp: it.product?.newMRP ?? it.mrp ?? 0,
+          rate,
+          netRate,
+          discountPercentage: it.schemeDiscount ?? it.discountPercentage ?? 0,
+          gstPercentage: gst,
+          taxableAmount: it.taxableAmount ?? 0,
+          cgstAmount: it.cgstAmount ?? 0,
+          sgstAmount: it.sgstAmount ?? 0,
+          totalAmount: it.totalAmount ?? 0
+        };
+      }),
+      totals: {
+        baseAmount: firstInvoice.totals?.baseAmount || 0,
+        totalDiscount: firstInvoice.totals?.totalDiscount || 0,
+        totalTaxable: firstInvoice.totals?.totalTaxable || 0,
+        totalCGST: firstInvoice.totals?.totalCGST || 0,
+        totalSGST: firstInvoice.totals?.totalSGST || 0,
+        roundOff: 0,
+        netTotal: firstInvoice.totals?.netTotal || 0,
+        amountInWords: firstInvoice.totals?.amountInWords || ''
+      },
+      paidAmount: firstInvoice.paidAmount || 0,
+      dueAmount: Math.max(0, (firstInvoice.totals?.netTotal || 0) - (firstInvoice.paidAmount || 0)),
+      downloadPdfUrl: `/api/public/shares/demo/pdf`
+    };
+    responseData = {
+      success: true,
+      resourceType: 'invoice',
+      data: publicInvoice
+    };
+  } else if (path.endsWith('/pdf')) {
+    const dummyPdf = '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/MediaBox[0 0 595 842]/Parent 2 0 R>>endobj\nxref\n0 4\n0000000000 65535 f\n0000000010 00000 n\n0000000053 00000 n\n0000000102 00000 n\ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n178\n%%EOF';
+    return {
+      data: new Blob([dummyPdf], { type: 'application/pdf' }),
+      status: 200,
+      statusText: 'OK',
+      headers: { 'content-type': 'application/pdf' },
+      config
     };
   } else if (path === '/invoices') {
     responseData = {

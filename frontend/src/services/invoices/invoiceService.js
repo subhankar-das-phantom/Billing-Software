@@ -43,6 +43,22 @@ export const invoiceService = {
   },
 
   /**
+   * Fetch invoice PDF as a Blob for sharing or downloading
+   * @param {string} id - Invoice ID
+   * @returns {Promise<Blob>}
+   */
+  getInvoicePDFBlob: async (id) => {
+    try {
+      const response = await api.get(`/invoices/${id}/pdf`, {
+        responseType: 'blob'
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
    * Create new invoice
    * @param {object} data - Invoice data
    * @returns {Promise<{success: boolean, invoice: object, message: string}>}

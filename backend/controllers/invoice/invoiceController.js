@@ -576,6 +576,8 @@ exports.createInvoice = async (req, res, next) => {
       });
     }
 
+    const enableBatchTracking = adminInfo.preferences?.enableBatchTracking === true;
+
     // Generate invoice number
     const lastInvoice = await Invoice.findOne({ tenantId })
       .sort({ createdAt: -1 })
@@ -606,6 +608,16 @@ exports.createInvoice = async (req, res, next) => {
         message: `Product not found: ${missingProductId}`
       });
     }
+
+    const ProductInventoryMigration = require('../../models/ProductInventoryMigration').default || require('../../models/ProductInventoryMigration');
+    const completedMigrations = await ProductInventoryMigration.find({
+      tenantId,
+      productId: { $in: uniqueProductIds },
+      direction: 'FREE_TO_BATCH',
+      status: 'COMPLETED'
+    }).session(session).lean();
+    const migratedProductIds = new Set(completedMigrations.map(m => m.productId.toString()));
+    const stockMovementsCollector = [];
 
     const inventoryService = require('../../services/inventoryService');
 
@@ -651,7 +663,7 @@ exports.createInvoice = async (req, res, next) => {
       const nextReservedQty = alreadyReservedQty + totalQty;
 
       // Resolve authoritative stock based on migration state
-      const stockInfo = await inventoryService.getProductEffectiveStock(tenantId, product);
+      const stockInfo = await inventoryService.getProductEffectiveStock(tenantId, product, enableBatchTracking);
       const availableStock = stockInfo.effectiveStockQty;
 
       // Check stock including repeated line-items of the same product.
@@ -710,8 +722,6 @@ exports.createInvoice = async (req, res, next) => {
       createRequestId: createRequestId || undefined,
       createdBy: getAttribution(req)
     }], { session });
-
-    const enableBatchTracking = adminInfo.preferences?.enableBatchTracking === true;
 
     if (isBatchTrackingEnabled !== undefined && isBatchTrackingEnabled !== enableBatchTracking) {
       await session.abortTransaction();
@@ -798,8 +808,16 @@ exports.createInvoice = async (req, res, next) => {
         const product = productMap.get(item.product._id.toString());
         const totalQty = item.quantitySold + (item.freeQuantity || 0);
         let allocations = [];
+        const isManual = (originalItem.allocationMode === 'MANUAL' || req.body.allocationMode === 'MANUAL') && originalItem.manualAllocations && originalItem.manualAllocations.length > 0 && req.body.allocationMode !== 'AUTO';
         
-        if (originalItem.allocationMode === 'MANUAL' && originalItem.manualAllocations) {
+        const allocationOpts = {
+          isBatchTrackingEnabled: enableBatchTracking,
+          migratedProductIds,
+          stockMovementsCollector,
+          knownProduct: product
+        };
+
+        if (isManual) {
           allocations = await inventoryService.allocateManualStock(
             tenantId,
             item.product._id,
@@ -807,7 +825,8 @@ exports.createInvoice = async (req, res, next) => {
             totalQty,
             invoice[0]._id,
             invoiceNumber,
-            session
+            session,
+            allocationOpts
           );
         } else {
           allocations = await inventoryService.allocateFifoStock(
@@ -816,7 +835,8 @@ exports.createInvoice = async (req, res, next) => {
             totalQty,
             invoice[0]._id,
             invoiceNumber,
-            session
+            session,
+            allocationOpts
           );
         }
         
@@ -854,6 +874,11 @@ exports.createInvoice = async (req, res, next) => {
       customerUpdate,
       { session }
     );
+
+    if (stockMovementsCollector.length > 0) {
+      const StockMovement = require('../../models/StockMovement').default || require('../../models/StockMovement');
+      await StockMovement.insertMany(stockMovementsCollector, { session });
+    }
 
     await session.commitTransaction();
 
@@ -1022,6 +1047,16 @@ exports.updateInvoice = async (req, res, next) => {
       }
     }
 
+    const ProductInventoryMigration = require('../../models/ProductInventoryMigration').default || require('../../models/ProductInventoryMigration');
+    const completedMigrations = await ProductInventoryMigration.find({
+      tenantId,
+      productId: { $in: allProductIds },
+      direction: 'FREE_TO_BATCH',
+      status: 'COMPLETED'
+    }).session(session).lean();
+    const migratedProductIds = new Set(completedMigrations.map(m => m.productId.toString()));
+    const stockMovementsCollector = [];
+
     // Determine which products are batch-managed in this transaction
     const batchManagedProducts = new Set();
     if (enableBatchTracking) {
@@ -1063,9 +1098,8 @@ exports.updateInvoice = async (req, res, next) => {
           });
         }
 
-        const StockMovement = require('../../models/StockMovement').default || require('../../models/StockMovement');
         const prodRate = productMap[pid]?.rate || productMap[pid]?.newMRP || 0;
-        await StockMovement.create([{
+        stockMovementsCollector.push({
           tenantId,
           productId: pid,
           batchId: null,
@@ -1077,7 +1111,7 @@ exports.updateInvoice = async (req, res, next) => {
           referenceId: String(existingInvoice._id),
           createdBy: getAttribution(req),
           createdAt: new Date()
-        }], { session });
+        });
       } else {
         await Product.findOneAndUpdate(
           { _id: pid, tenantId },
@@ -1092,10 +1126,9 @@ exports.updateInvoice = async (req, res, next) => {
           }, { session }
         );
 
-        const StockMovement = require('../../models/StockMovement').default || require('../../models/StockMovement');
         const prodRate = productMap[pid]?.rate || productMap[pid]?.newMRP || 0;
         const restoredQty = Math.abs(delta);
-        await StockMovement.create([{
+        stockMovementsCollector.push({
           tenantId,
           productId: pid,
           batchId: null,
@@ -1107,7 +1140,7 @@ exports.updateInvoice = async (req, res, next) => {
           referenceId: String(existingInvoice._id),
           createdBy: getAttribution(req),
           createdAt: new Date()
-        }], { session });
+        });
       }
     }
 
@@ -1122,7 +1155,11 @@ exports.updateInvoice = async (req, res, next) => {
       if (item.batchAllocations && item.batchAllocations.length > 0) {
         await inventoryService.restoreBatchAllocations(
           tenantId, pid, item.batchAllocations, oldQty, existingInvoice._id,
-          `${existingInvoice.invoiceNumber} - Edit (restored ${oldQty})`, 'invoice_edit_reversal', session
+          `${existingInvoice.invoiceNumber} - Edit (restored ${oldQty})`, 'invoice_edit_reversal', session,
+          {
+            knownProduct: productMap[pid],
+            stockMovementsCollector
+          }
         );
       } else {
         await Product.findOneAndUpdate(
@@ -1158,6 +1195,12 @@ exports.updateInvoice = async (req, res, next) => {
       if (mergedItemsMap[key]) {
         mergedItemsMap[key].quantitySold += item.quantitySold;
         mergedItemsMap[key].freeQuantity += (item.freeQuantity || 0);
+        if (item.manualAllocations) {
+          mergedItemsMap[key].manualAllocations = [
+            ...(mergedItemsMap[key].manualAllocations || []),
+            ...item.manualAllocations
+          ];
+        }
       } else {
         mergedItemsMap[key] = {
           productId: item.productId,
@@ -1166,7 +1209,7 @@ exports.updateInvoice = async (req, res, next) => {
           ratePerUnit: item.ratePerUnit,
           schemeDiscount: item.schemeDiscount || 0,
           allocationMode: item.allocationMode,
-          manualAllocations: item.manualAllocations
+          manualAllocations: item.manualAllocations ? [...item.manualAllocations] : undefined
         };
       }
     });
@@ -1199,22 +1242,30 @@ exports.updateInvoice = async (req, res, next) => {
 
       if (enableBatchTracking) {
         let allocations = [];
-        if (item.allocationMode === 'MANUAL' && item.manualAllocations) {
+        const isManualMode = (item.allocationMode === 'MANUAL' || req.body.allocationMode === 'MANUAL') && item.manualAllocations && item.manualAllocations.length > 0 && req.body.allocationMode !== 'AUTO';
+        const allocationOpts = {
+          isBatchTrackingEnabled: enableBatchTracking,
+          migratedProductIds,
+          stockMovementsCollector,
+          knownProduct: product
+        };
+
+        if (isManualMode) {
           allocations = await inventoryService.allocateManualStock(
             tenantId, product._id, item.manualAllocations, totalQty, existingInvoice._id,
-            `${existingInvoice.invoiceNumber} - Edit`, session
+            `${existingInvoice.invoiceNumber} - Edit`, session, allocationOpts
           );
         } else {
           allocations = await inventoryService.allocateFifoStock(
             tenantId, product._id, totalQty, existingInvoice._id,
-            `${existingInvoice.invoiceNumber} - Edit`, session
+            `${existingInvoice.invoiceNumber} - Edit`, session, allocationOpts
           );
         }
         processedItems.push(...splitInvoiceItemByBatchAllocations({
           product,
           item,
           allocations,
-          allocationMode: item.allocationMode || 'AUTO'
+          allocationMode: isManualMode ? 'MANUAL' : 'AUTO'
         }));
         continue;
       } else if (batchManagedProducts.has(product._id.toString())) {
@@ -1324,7 +1375,12 @@ exports.updateInvoice = async (req, res, next) => {
       { new: true, session }
     );
 
-    // ── STEP 11: Commit ────────────────────────────────────────────────
+    // ── STEP 11: Bulk write accumulated stock movements & Commit ──
+    if (stockMovementsCollector.length > 0) {
+      const StockMovement = require('../../models/StockMovement').default || require('../../models/StockMovement');
+      await StockMovement.insertMany(stockMovementsCollector, { session });
+    }
+
     await session.commitTransaction();
 
       // Invalidate GST report cache
