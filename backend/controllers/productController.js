@@ -14,9 +14,6 @@ const { escapeRegex, getSearchPattern } = require('../utils/searchUtils');
 // @access  Private
 exports.getProducts = async (req, res, next) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 50;
-    const skip = (page - 1) * limit;
     const tenantId = getTenantId(req);
     const tenantObjectId = new mongoose.Types.ObjectId(tenantId.toString());
 
