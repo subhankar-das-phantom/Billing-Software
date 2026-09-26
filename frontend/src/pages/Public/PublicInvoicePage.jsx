@@ -19,6 +19,9 @@ import {
 } from 'lucide-react';
 import { shareService } from '../../services/sharing/shareService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
+import { useMotionConfig } from '../../hooks/useMotionConfig';
+import { useDeviceType } from '../../hooks/useDeviceType';
+import { usePerformanceMode } from '../../hooks/usePerformanceMode';
 
 export default function PublicInvoicePage() {
   const { token } = useParams();
@@ -27,6 +30,11 @@ export default function PublicInvoicePage() {
   const [data, setData] = useState(null);
   const [copiedUpi, setCopiedUpi] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+
+  // Performance and device-aware motion tuning
+  const { shouldAnimate, isLowPerformance, isReducedPerformance, duration } = useMotionConfig();
+  const { isMobile, isTouchDevice } = useDeviceType();
+  const { performanceMode } = usePerformanceMode();
 
   useEffect(() => {
     let isMounted = true;
@@ -118,11 +126,11 @@ export default function PublicInvoicePage() {
     return (
       <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-4">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-500/30 text-blue-400 flex items-center justify-center animate-pulse shadow-lg shadow-blue-500/10">
+          <div className={`w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-500/30 text-blue-400 flex items-center justify-center shadow-lg shadow-blue-500/10 ${shouldAnimate && !isLowPerformance ? 'animate-pulse' : ''}`}>
             <FileText className="w-6 h-6" />
           </div>
           <div className="flex items-center gap-2 text-slate-400 text-sm">
-            <Clock className="w-4 h-4 animate-spin text-blue-400" />
+            <Clock className={`w-4 h-4 text-blue-400 ${shouldAnimate && !isLowPerformance ? 'animate-spin' : ''}`} />
             <span>Verifying secure document link...</span>
           </div>
         </div>
@@ -134,9 +142,13 @@ export default function PublicInvoicePage() {
     return (
       <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="glass-card max-w-md w-full p-8 text-center border-slate-800 shadow-2xl"
+          initial={shouldAnimate && !isLowPerformance ? { opacity: 0, y: 8 } : { opacity: 0 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            duration: shouldAnimate && !isLowPerformance ? (duration?.normal ?? 0.15) : 0.05,
+            ease: [0.16, 1, 0.3, 1]
+          }}
+          className="glass-card max-w-md w-full p-8 text-center border-slate-800 shadow-2xl will-change-[transform,opacity]"
         >
           <div className="w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center mx-auto mb-5 shadow-lg shadow-rose-900/20">
             <AlertCircle className="w-8 h-8" />
@@ -161,7 +173,9 @@ export default function PublicInvoicePage() {
     <div className="min-h-screen bg-slate-950 text-slate-100 py-6 sm:py-10 px-4 sm:px-6 flex flex-col justify-between">
       <div className="max-w-4xl mx-auto w-full space-y-6">
         {/* Top Floating Action Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/80 border border-slate-800/90 shadow-xl backdrop-blur-md no-print">
+        <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl border border-slate-800/90 shadow-xl no-print ${
+          isLowPerformance || isMobile ? 'bg-slate-900' : 'bg-slate-900/80 backdrop-blur-md'
+        }`}>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold font-mono text-sm">
               BE
@@ -191,7 +205,7 @@ export default function PublicInvoicePage() {
               className="btn btn-primary flex items-center gap-1.5 py-1.5 px-3.5 text-xs font-medium shadow-md shadow-blue-900/30 disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed"
             >
               {downloadingPdf ? (
-                <Clock className="w-3.5 h-3.5 animate-spin" />
+                <Clock className={`w-3.5 h-3.5 ${shouldAnimate && !isLowPerformance ? 'animate-spin' : ''}`} />
               ) : (
                 <Download className="w-3.5 h-3.5" />
               )}
@@ -202,10 +216,13 @@ export default function PublicInvoicePage() {
 
         {/* Main Invoice Sheet */}
         <motion.div
-          initial={{ opacity: 0, y: 15 }}
+          initial={shouldAnimate && !isLowPerformance ? { opacity: 0, y: 8 } : { opacity: 0 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="glass-card p-6 sm:p-8 space-y-6 border border-slate-800/90 shadow-2xl bg-slate-900/60"
+          transition={{
+            duration: shouldAnimate && !isLowPerformance ? (duration?.normal ?? 0.15) : 0.05,
+            ease: [0.16, 1, 0.3, 1]
+          }}
+          className="glass-card p-6 sm:p-8 space-y-6 border border-slate-800/90 shadow-2xl bg-slate-900/60 will-change-[transform,opacity]"
         >
           {/* Header: Issuer Details & Invoice Meta */}
           <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 pb-6 border-b border-slate-800">
@@ -376,7 +393,7 @@ export default function PublicInvoicePage() {
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 font-mono">
                   {items.map((item, idx) => (
-                    <tr key={idx} className="hover:bg-slate-800/20 transition-colors">
+                    <tr key={idx} className={!isTouchDevice && !isLowPerformance ? "hover:bg-slate-800/20 transition-colors" : ""}>
                       <td className="py-2.5 px-3 text-center text-slate-500 font-sans">{idx + 1}</td>
                       <td className="py-2.5 px-3 font-sans font-medium text-slate-200">
                         {item.productName}

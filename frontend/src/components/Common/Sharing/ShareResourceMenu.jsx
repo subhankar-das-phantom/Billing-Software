@@ -1,7 +1,10 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Share2, FileDown, Link2, Clock } from 'lucide-react';
 import { useShareResource } from '../../../hooks/useShareResource';
+import { useMotionConfig } from '../../../hooks/useMotionConfig';
+import { useDeviceType } from '../../../hooks/useDeviceType';
+import { usePerformanceMode } from '../../../hooks/usePerformanceMode';
 
 /**
  * ShareResourceMenu
@@ -16,10 +19,70 @@ export default function ShareResourceMenu({
   fileName,
   getPdfBlob,
   menuTitle = 'Share invoice',
+  align = 'auto',
   className = ''
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
+  const [popoverPos, setPopoverPos] = useState({ left: 'auto', right: 0, transformOrigin: 'top right' });
+
+  const { shouldAnimate, transition, isLowPerformance, duration } = useMotionConfig();
+  const { isMobile } = useDeviceType();
+  const { performanceMode } = usePerformanceMode();
+
+  // Smart boundary calculation: guarantees popover stays strictly within the enclosing card & viewport
+  const updatePosition = useCallback(() => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const padding = 12;
+    const popoverWidth = 224; // 14rem (w-56) - optimal width for 2 share actions
+
+    // Check parent card bounds if available, fallback to viewport
+    const parentCard = containerRef.current.closest('.glass-card') || containerRef.current.parentElement;
+    const cardRect = parentCard ? parentCard.getBoundingClientRect() : null;
+    const minLeft = cardRect ? Math.max(cardRect.left + padding, padding) : padding;
+    const maxRight = cardRect ? Math.min(cardRect.right - padding, viewportWidth - padding) : viewportWidth - padding;
+
+    // Calculate relative offset needed from the button's left edge
+    // relativeLeft = rect.width - popoverWidth aligns popover right edge with button right edge
+    let relativeLeft = rect.width - popoverWidth; // default to right-align with button
+
+    // Check if right-aligning would push left edge outside minLeft
+    if (align === 'left' || (align === 'auto' && rect.left + relativeLeft < minLeft)) {
+      relativeLeft = 0; // left-align with button
+    }
+
+    // Now clamp relativeLeft so the popover never breaches minLeft or maxRight
+    const screenLeft = rect.left + relativeLeft;
+    const screenRight = screenLeft + popoverWidth;
+
+    if (screenRight > maxRight) {
+      relativeLeft -= (screenRight - maxRight);
+    }
+    if (rect.left + relativeLeft < minLeft) {
+      relativeLeft = minLeft - rect.left;
+    }
+
+    const isAlignedRight = relativeLeft < 0;
+    setPopoverPos({
+      left: `${relativeLeft}px`,
+      right: 'auto',
+      transformOrigin: isAlignedRight ? 'top right' : 'top left'
+    });
+  }, [align]);
+
+  useEffect(() => {
+    if (isOpen) {
+      updatePosition();
+      window.addEventListener('resize', updatePosition);
+      window.addEventListener('scroll', updatePosition, true);
+      return () => {
+        window.removeEventListener('resize', updatePosition);
+        window.removeEventListener('scroll', updatePosition, true);
+      };
+    }
+  }, [isOpen, updatePosition]);
 
   const {
     shareCopy,
@@ -88,7 +151,7 @@ export default function ShareResourceMenu({
         title="Share options"
       >
         {isBusy ? (
-          <Clock className="w-3.5 h-3.5 pointer-events-none text-slate-400 animate-spin" />
+          <Clock className={`w-3.5 h-3.5 pointer-events-none text-slate-400 ${shouldAnimate && !isLowPerformance ? 'animate-spin' : ''}`} />
         ) : (
           <Share2 className="w-3.5 h-3.5 pointer-events-none text-slate-400" />
         )}
@@ -100,12 +163,19 @@ export default function ShareResourceMenu({
         {isOpen && (
           <motion.div
             key="share-resource-popover"
-            className="absolute right-0 mt-2 w-64 bg-slate-900 border border-slate-700/90 rounded-2xl shadow-2xl shadow-black/80 p-2 z-50 will-change-[transform,opacity]"
-            style={{ transformOrigin: 'top right' }}
-            initial={{ opacity: 0, y: -6 }}
+            className="absolute mt-2 w-56 max-w-[calc(100vw-1.5rem)] bg-slate-900 border border-slate-700/90 rounded-2xl shadow-2xl shadow-black/80 p-2 z-50 will-change-[transform,opacity]"
+            style={{
+              left: popoverPos.left,
+              right: popoverPos.right,
+              transformOrigin: popoverPos.transformOrigin
+            }}
+            initial={shouldAnimate && !isLowPerformance ? { opacity: 0, y: -6 } : { opacity: 0 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
+            exit={shouldAnimate && !isLowPerformance ? { opacity: 0, y: -6 } : { opacity: 0 }}
+            transition={{
+              duration: shouldAnimate && !isLowPerformance ? (duration?.normal ?? 0.15) : 0.05,
+              ease: [0.16, 1, 0.3, 1]
+            }}
           >
             {/* Popover Header */}
             <div className="px-2.5 py-1.5 border-b border-slate-800/80 mb-1">
@@ -121,7 +191,7 @@ export default function ShareResourceMenu({
             >
               <div className="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 mt-0.5 group-hover:border-blue-500/40">
                 {isSharingCopy ? (
-                  <Clock className="w-3.5 h-3.5 animate-spin" />
+                  <Clock className={`w-3.5 h-3.5 ${shouldAnimate && !isLowPerformance ? 'animate-spin' : ''}`} />
                 ) : (
                   <FileDown className="w-3.5 h-3.5" />
                 )}
@@ -143,7 +213,7 @@ export default function ShareResourceMenu({
             >
               <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 mt-0.5 group-hover:border-emerald-500/40">
                 {isSharingLink ? (
-                  <Clock className="w-3.5 h-3.5 animate-spin" />
+                  <Clock className={`w-3.5 h-3.5 ${shouldAnimate && !isLowPerformance ? 'animate-spin' : ''}`} />
                 ) : (
                   <Link2 className="w-3.5 h-3.5" />
                 )}
