@@ -49,6 +49,16 @@ For full release notes with implementation details, see [GitHub Releases](https:
   - Merged `manualAllocations` when deduplicating repeated items in `updateInvoice` to match `createInvoice`.
   - Added strict `req.body.allocationMode !== 'AUTO'` guards to prevent accidental fallback to manual validation on FIFO invoices.
 
+### 💰 Financial Counter Precision & Customer Ledger Parity (`InvoiceViewPage.jsx`)
+- **Authoritative Single-Trip Balance Sync (`InvoiceViewPage.jsx`)**:
+  - Eliminated the triplicated network requests (`getCustomer?includeInvoices=true`, `getManualEntriesByCustomer`, `getCreditNotesByCustomer`) and flawed client-side 20-invoice reduction loop in `fetchCustomerBalance`. Replaced with a single lightweight summary read pulling `calculatedOutstanding` directly from the customer summary with high-precision fallback to the customer ledger's `closingBalance`.
+  - Slashed network payload size on invoice view page loads from 50KB+ down to ~1KB.
+- **Exact Paise & Currency Standard Integrity (`InvoiceViewPage.jsx`)**:
+  - Stripped `Math.round(customerOutstanding)` from the printed invoice document, replacing it with `formatCurrency(customerOutstanding)` (`'en-IN'`, `decimals={2}`).
+  - Restored 100% visual and mathematical parity down to the exact paisa between the printed invoice "Current Dues" and the Customer profile summary card and Customer Ledger closing balance (e.g. ₹1,836.06).
+- **Real-Time Payment Cache Invalidation (`InvoiceViewPage.jsx`)**:
+  - Added `mutateCustomerOutstanding()` and cache invalidation for `customer-outstanding-${customerId}` inside `handlePaymentSuccess` so recording a payment in the invoice view immediately reconciles the printed document's dues without requiring a page reload.
+
 ### 🧪 Automated Verification Suite (`testInvoiceSharing.ts`)
 - **Automated Security & Regression Testing (`testInvoiceSharing.ts`)** — Created an automated verification script covering 36 assertions: 256-bit token entropy, deterministic SHA-256 hashing, AES-256-GCM encryption/authTag verification, key rotation error recovery, data minimization (0 internal fields leaked), conditional payment info, and partial unique index concurrency constraints. All 36 passed cleanly.
 
