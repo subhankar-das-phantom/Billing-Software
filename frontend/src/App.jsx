@@ -52,6 +52,7 @@ const CreditNoteViewPage = lazy(() => import('./pages/CreditNotes/CreditNoteView
 // Report pages
 const PrivacyPolicyPage = lazy(() => import('./pages/Legal/PrivacyPolicyPage'));
 const TermsPage = lazy(() => import('./pages/Legal/TermsPage'));
+const PublicInvoicePage = lazy(() => import('./pages/Public/PublicInvoicePage'));
 
 import AppShellSkeleton from './components/Layout/AppShellSkeleton';
 
@@ -65,7 +66,8 @@ function PageLoader() {
     location.pathname === '/login' ||
     location.pathname === '/register' ||
     location.pathname.startsWith('/login') ||
-    location.pathname.startsWith('/register');
+    location.pathname.startsWith('/register') ||
+    location.pathname.startsWith('/share');
 
   if (isPublicRoute) {
     return (
@@ -216,6 +218,7 @@ function AppRoutes() {
         <Route path="/landing" element={<LandingPage />} />
         <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
         <Route path="/terms" element={<TermsPage />} />
+        <Route path="/share/:token" element={<PublicInvoicePage />} />
 
         {/* Public Routes */}
         <Route

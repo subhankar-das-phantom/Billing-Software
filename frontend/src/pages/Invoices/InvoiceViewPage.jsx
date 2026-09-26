@@ -42,6 +42,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { authService } from '../../services/auth/authService';
 import { useSWR, useFirstVisit, invalidateCachePattern } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
+import ShareResourceMenu from '../../components/Common/Sharing/ShareResourceMenu';
 
 const roundCurrency = (value) => Math.round(((Number(value) || 0) + Number.EPSILON) * 100) / 100;
 
@@ -132,7 +133,6 @@ export default function InvoiceViewPage() {
   });
   const printRef = useRef();
   const { success, error } = useToast();
-  const [copiedShare, setCopiedShare] = useState(false);
   const isFirstVisit = useFirstVisit('invoice-view');
 
   const { user, admin, updateUserPreferences } = useAuth();
@@ -373,54 +373,6 @@ export default function InvoiceViewPage() {
 
   const handleDownload = () => {
     window.print();
-  };
-
-  const handleShare = async () => {
-    if (!invoice) return;
-    const invNumber = invoice.invoiceNumber || 'Invoice';
-    const custName = invoice.customer?.name || 'Customer';
-    const grandTotal = (invoice.grandTotal !== undefined && invoice.grandTotal !== null)
-      ? invoice.grandTotal
-      : (invoice.totalAmount || 0);
-    const formattedTotal = formatCurrency(grandTotal);
-    const shareUrl = window.location.href;
-    const shareText = `Invoice #${invNumber} for ${custName} — Total: ${formattedTotal}`;
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `Invoice #${invNumber}`,
-          text: `${shareText}\n${shareUrl}`,
-          url: shareUrl,
-        });
-        return;
-      } catch (err) {
-        if (err.name === 'AbortError') return;
-      }
-    }
-
-    // Fallback: Clipboard copy
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(shareUrl);
-      } else {
-        const textArea = document.createElement('textarea');
-        textArea.value = shareUrl;
-        textArea.style.position = 'fixed';
-        textArea.style.opacity = '0';
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-      }
-      setCopiedShare(true);
-      success('Invoice link copied to clipboard!');
-      setTimeout(() => setCopiedShare(false), 2500);
-    } catch (err) {
-      console.error('Failed to copy share link:', err);
-      error('Failed to copy share link to clipboard');
-    }
   };
 
   const toggleCopyMode = () => {
@@ -868,19 +820,13 @@ export default function InvoiceViewPage() {
                 <span className="hidden sm:inline">Download</span>
               </button>
 
-              <button
-                type="button"
-                onClick={handleShare}
-                className="btn btn-secondary flex items-center gap-1.5 py-1.5 px-2.5 text-xs font-medium hover:text-slate-100 border-slate-700/70"
-                title="Share invoice link"
-              >
-                {copiedShare ? (
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                ) : (
-                  <Share2 className="w-3.5 h-3.5 text-slate-400" />
-                )}
-                <span>{copiedShare ? 'Copied' : 'Share'}</span>
-              </button>
+              <ShareResourceMenu
+                resourceType="invoice"
+                resourceId={invoice._id}
+                resourceTitle={`Invoice #${invoice.invoiceNumber || ''} for ${invoice.customer?.customerName || invoice.customer?.name || 'Customer'}`}
+                fileName={`Invoice_${invoice.invoiceNumber || 'INV'}_${invoice.customer?.customerName || 'Customer'}.pdf`}
+                getPdfBlob={() => invoiceService.getInvoicePDFBlob(id)}
+              />
 
               {/* Manage Dropdown (Edit, Create Return, Cancel) */}
               {invoice.status !== 'Cancelled' && (
