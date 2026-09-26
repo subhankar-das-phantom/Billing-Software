@@ -4,16 +4,24 @@
  * Zero internal IDs, profit margins, employee attribution, or tenant internals are exposed.
  */
 
+export interface IPublicBatchAllocationDTO {
+  batchNo: string;
+  quantity: number;
+  expiryDate?: string | null;
+}
+
 export interface IPublicInvoiceItemDTO {
   productName: string;
   hsnCode?: string;
   pack?: string;
   batchNo?: string;
   expiryDate?: string | null;
+  batchAllocations?: IPublicBatchAllocationDTO[];
   quantity: number;
   freeQuantity: number;
   mrp: number;
   rate: number;
+  netRate: number;
   discountPercentage: number;
   gstPercentage: number;
   taxableAmount: number;
@@ -126,16 +134,35 @@ export function serializePublicInvoice(
     const expiryRaw = item.product?.expiryDate ?? item.expiryDate;
     const expiryStr = expiryRaw ? new Date(expiryRaw).toLocaleDateString('en-IN', { month: '2-digit', year: '2-digit' }) : null;
 
+    const batchAllocations: IPublicBatchAllocationDTO[] = Array.isArray(item.batchAllocations)
+      ? item.batchAllocations.map((alloc: any) => {
+          const rawExp = alloc.expiryDate;
+          const expStr = rawExp
+            ? new Date(rawExp).toLocaleDateString('en-IN', { month: '2-digit', year: '2-digit' })
+            : '-';
+          const bNo = alloc.batchNo && alloc.batchNo !== 'UNNAMED' ? alloc.batchNo : 'No Batch #';
+          return {
+            batchNo: bNo,
+            quantity: Number(alloc.quantity) || 0,
+            expiryDate: expStr
+          };
+        })
+      : [];
+
+    const netRate = Math.round((rate * (1 + gstRate / 100)) * 100) / 100;
+
     return {
       productName: item.product?.productName ?? item.productName ?? item.name ?? 'Item',
       hsnCode: item.product?.hsnCode ?? item.hsnCode ?? '',
       pack: item.product?.pack ?? item.pack ?? '',
       batchNo: item.product?.batchNo ?? item.batchNumber ?? item.batchNo ?? '',
       expiryDate: expiryStr,
+      batchAllocations,
       quantity: qty,
       freeQuantity: Number(item.freeQuantity) || 0,
       mrp,
       rate,
+      netRate,
       discountPercentage: discount,
       gstPercentage: gstRate,
       taxableAmount: taxable,

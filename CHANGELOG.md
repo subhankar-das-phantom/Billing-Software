@@ -74,6 +74,19 @@ For full release notes with implementation details, see [GitHub Releases](https:
   - Removed dynamic `pb-64` bottom padding on customer search that caused 256px cumulative layout reflows (CLS).
 - **Mobile Viewport Horizontal Scrollbar Containment (`InvoiceViewPage.jsx`, `InvoiceViewPageSkeleton.jsx`)**: Wrapped the fixed 190mm (~718px) paper element inside a horizontal scroll container (`w-full overflow-x-auto pb-4 flex justify-start sm:justify-center`) with `shrink-0`, preventing the document preview from causing page-level horizontal overflow on mobile viewports.
 
+### 📊 Public Invoice Table & Batch Allocation Parity (`publicInvoiceSerializer.ts`, `PublicInvoicePage.jsx`, `invoiceExportController.ts`, `demoAdapter.js`, `testInvoiceSharing.ts`)
+- **Sanitized Multi-Batch Allocations & Net Rate (`publicInvoiceSerializer.ts`)**:
+  - Extended `IPublicInvoiceItemDTO` and defined `IPublicBatchAllocationDTO` (`batchNo`, `quantity`, `expiryDate`), allowing customer-visible invoice links to display multi-batch and FIFO allocation breakdowns without leaking internal MongoDB `batchId`s, margins, or cost attributes.
+  - Calculated and exposed `netRate` (`rate * (1 + gstRate / 100)`).
+- **Exact 12-Column Invoice Table Layout (`PublicInvoicePage.jsx`)**:
+  - Restructured the public invoice table to match the official 12-column layout in `InvoiceViewPage.jsx`: `Qty` | `Fr` | `Product Name` | `HSN` | `Batch` | `Expiry` | `MRP` | `Rate` | `Net` | `Disc%` | `GST%` | `Amount`.
+  - Added `getBatchGroups` to group and format multi-batch allocations with quantities (`No Batch # (220)` and `hjb88 (4)`) and corresponding expiries (`-` and `09/26`), achieving 100% visual and layout parity with the internal invoice view.
+- **Backend PDF Export & Demo Parity (`invoiceExportController.ts`, `demoAdapter.js`)**:
+  - Updated `drawSingleInvoicePDF` to format batch allocations with quantities and grouped expiries in downloaded PDFs.
+  - Updated `demoAdapter.js` mock handler for `/public/shares/:token` to pass `batchAllocations` and `netRate`.
+- **Automated Verification Suite (`testInvoiceSharing.ts`)**:
+  - Expanded test suite to 42 automated assertions, verifying batch allocation sanitization, omission of internal IDs/costs, and accurate net rate calculations.
+
 ## [v2.7.1](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.7.1) — 2026-09-25 — Auth Flow Stabilization, Public Theme Consolidation, Zero-CLS Anti-Flicker Architecture & Invoice View Redesign
 
 ### 🛠️ Demo Mode Full-Stack Parity & Runtime Error Elimination (`demoData.js`, `demoAdapter.js`, `Header.jsx`, `ActivityLogPage.jsx`, `CustomerDetailsPage.jsx`, `InvoiceViewPage.jsx`, `InventoryLedgerPage.jsx`, `TopProductsChart.jsx`, `TopCustomersChart.jsx`, `DashboardChartsSection.jsx`, `AuthContext.jsx`, `api.js`, `index.html`)

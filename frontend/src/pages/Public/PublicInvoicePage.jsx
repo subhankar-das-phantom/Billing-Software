@@ -23,6 +23,32 @@ import { useMotionConfig } from '../../hooks/useMotionConfig';
 import { useDeviceType } from '../../hooks/useDeviceType';
 import { usePerformanceMode } from '../../hooks/usePerformanceMode';
 
+const getBatchGroups = (allocations) => {
+  if (!Array.isArray(allocations) || allocations.length === 0) return [];
+  const groupsMap = allocations.reduce((acc, alloc) => {
+    const displayName = alloc.batchNo && alloc.batchNo !== 'UNNAMED' ? alloc.batchNo : 'No Batch #';
+    let expiryStr = '-';
+    if (alloc.expiryDate) {
+      if (typeof alloc.expiryDate === 'string' && /^\d{2}\/\d{2}$/.test(alloc.expiryDate.trim())) {
+        expiryStr = alloc.expiryDate.trim();
+      } else {
+        const d = new Date(alloc.expiryDate);
+        if (!Number.isNaN(d.getTime())) {
+          expiryStr = d.toLocaleDateString('en-IN', { month: '2-digit', year: '2-digit' });
+        }
+      }
+    }
+
+    const key = `${displayName}|${expiryStr}`;
+    if (!acc[key]) {
+      acc[key] = { name: displayName, expiry: expiryStr, qtys: [] };
+    }
+    acc[key].qtys.push(Number(alloc.quantity) || 0);
+    return acc;
+  }, {});
+  return Object.values(groupsMap);
+};
+
 export default function PublicInvoicePage() {
   const { token } = useParams();
   const [loading, setLoading] = useState(true);
@@ -378,46 +404,109 @@ export default function PublicInvoicePage() {
             <div className="overflow-x-auto">
               <table className="w-full text-xs text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-950/80 border-b border-slate-800 text-slate-400 font-medium">
-                    <th className="py-2.5 px-3 w-10 text-center">#</th>
-                    <th className="py-2.5 px-3">Item Description</th>
+                  <tr className="bg-slate-950/80 border-b border-slate-800 text-slate-400 font-semibold">
+                    <th className="py-2.5 px-2 text-center w-12">Qty</th>
+                    <th className="py-2.5 px-2 text-center w-10">Fr</th>
+                    <th className="py-2.5 px-3 text-left">Product Name</th>
                     <th className="py-2.5 px-2 text-center">HSN</th>
                     <th className="py-2.5 px-2 text-center">Batch</th>
                     <th className="py-2.5 px-2 text-center">Expiry</th>
-                    <th className="py-2.5 px-2 text-right">Qty</th>
+                    <th className="py-2.5 px-2 text-right">MRP</th>
                     <th className="py-2.5 px-2 text-right">Rate</th>
-                    <th className="py-2.5 px-2 text-center">Disc</th>
-                    <th className="py-2.5 px-2 text-center">GST</th>
+                    <th className="py-2.5 px-2 text-right">Net</th>
+                    <th className="py-2.5 px-2 text-center">Disc%</th>
+                    <th className="py-2.5 px-2 text-center">GST%</th>
                     <th className="py-2.5 px-3 text-right">Amount</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 font-mono">
-                  {items.map((item, idx) => (
-                    <tr key={idx} className={!isTouchDevice && !isLowPerformance ? "hover:bg-slate-800/20 transition-colors" : ""}>
-                      <td className="py-2.5 px-3 text-center text-slate-500 font-sans">{idx + 1}</td>
-                      <td className="py-2.5 px-3 font-sans font-medium text-slate-200">
-                        {item.productName}
-                        {item.pack && <span className="text-slate-400 font-normal ml-1">({item.pack})</span>}
-                      </td>
-                      <td className="py-2.5 px-2 text-center text-slate-400">{item.hsnCode || '-'}</td>
-                      <td className="py-2.5 px-2 text-center text-slate-400">{item.batchNo || '-'}</td>
-                      <td className="py-2.5 px-2 text-center text-slate-400">{item.expiryDate || '-'}</td>
-                      <td className="py-2.5 px-2 text-right text-slate-200">
-                        {item.quantity}
-                        {item.freeQuantity > 0 && (
-                          <span className="text-emerald-400 text-[10px] ml-1">+{item.freeQuantity}</span>
-                        )}
-                      </td>
-                      <td className="py-2.5 px-2 text-right text-slate-300">₹{item.rate.toFixed(2)}</td>
-                      <td className="py-2.5 px-2 text-center text-slate-400">
-                        {item.discountPercentage > 0 ? `${item.discountPercentage}%` : '-'}
-                      </td>
-                      <td className="py-2.5 px-2 text-center text-slate-400">{item.gstPercentage}%</td>
-                      <td className="py-2.5 px-3 text-right font-semibold text-slate-100">
-                        ₹{item.totalAmount.toFixed(2)}
-                      </td>
-                    </tr>
-                  ))}
+                  {items.map((item, idx) => {
+                    const groups = getBatchGroups(item.batchAllocations);
+                    const hasBatchAllocations = groups.length > 0;
+                    const rate = Number(item.rate) || 0;
+                    const gst = Number(item.gstPercentage) || 0;
+                    const net = item.netRate != null ? Number(item.netRate) : (rate * (1 + gst / 100));
+
+                    return (
+                      <tr key={idx} className={!isTouchDevice && !isLowPerformance ? "hover:bg-slate-800/20 transition-colors" : ""}>
+                        {/* Qty */}
+                        <td className="py-2.5 px-2 text-center text-slate-200 font-semibold">{item.quantity}</td>
+
+                        {/* Free */}
+                        <td className="py-2.5 px-2 text-center text-slate-400">{item.freeQuantity || 0}</td>
+
+                        {/* Product Name */}
+                        <td className="py-2.5 px-3 font-sans font-medium text-slate-200 text-left">
+                          {item.productName}
+                          {item.pack && <span className="text-slate-400 font-normal ml-1">({item.pack})</span>}
+                        </td>
+
+                        {/* HSN */}
+                        <td className="py-2.5 px-2 text-center text-slate-400">{item.hsnCode || '-'}</td>
+
+                        {/* Batch */}
+                        <td className="py-2.5 px-2 text-center text-slate-300">
+                          {hasBatchAllocations ? (
+                            <div className="flex flex-col gap-0.5 items-center">
+                              {groups.map((g, gIdx) => {
+                                const displayQty = g.name === 'No Batch #' ? g.qtys.join('+') : g.qtys.reduce((sum, q) => sum + q, 0);
+                                return (
+                                  <span key={gIdx} className="whitespace-nowrap">
+                                    {g.name} ({displayQty})
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            item.batchNo && item.batchNo !== 'UNNAMED' ? item.batchNo : 'No Batch #'
+                          )}
+                        </td>
+
+                        {/* Expiry */}
+                        <td className="py-2.5 px-2 text-center text-slate-400">
+                          {hasBatchAllocations ? (
+                            <div className="flex flex-col gap-0.5 items-center">
+                              {groups.map((g, gIdx) => (
+                                <span key={gIdx} className="whitespace-nowrap">{g.expiry}</span>
+                              ))}
+                            </div>
+                          ) : (
+                            item.expiryDate || '-'
+                          )}
+                        </td>
+
+                        {/* MRP */}
+                        <td className="py-2.5 px-2 text-right text-slate-300">
+                          {item.mrp > 0 ? Number(item.mrp).toFixed(2) : '-'}
+                        </td>
+
+                        {/* Rate */}
+                        <td className="py-2.5 px-2 text-right text-slate-300">
+                          {rate.toFixed(2)}
+                        </td>
+
+                        {/* Net */}
+                        <td className="py-2.5 px-2 text-right text-slate-300 font-medium">
+                          {net.toFixed(2)}
+                        </td>
+
+                        {/* Disc% */}
+                        <td className="py-2.5 px-2 text-center text-slate-400">
+                          {item.discountPercentage > 0 ? `${item.discountPercentage}%` : '0%'}
+                        </td>
+
+                        {/* GST% */}
+                        <td className="py-2.5 px-2 text-center text-slate-400">
+                          {gst}%
+                        </td>
+
+                        {/* Amount */}
+                        <td className="py-2.5 px-3 text-right font-semibold text-slate-100">
+                          {Number(item.totalAmount || 0).toFixed(2)}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

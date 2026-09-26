@@ -404,23 +404,42 @@ export const demoMockAdapter = async (config) => {
         gstin: firstInvoice.customer?.gstin || '',
         dlNo: firstInvoice.customer?.dlNo || ''
       },
-      items: (firstInvoice.items || []).map((it) => ({
-        productName: it.product?.productName ?? it.productName ?? it.name ?? 'Item',
-        hsnCode: it.product?.hsnCode ?? it.hsnCode ?? '',
-        pack: it.product?.pack ?? it.pack ?? '',
-        batchNo: it.product?.batchNo ?? it.batchNo ?? '',
-        expiryDate: it.product?.expiryDate ? new Date(it.product.expiryDate).toLocaleDateString('en-IN', { month: '2-digit', year: '2-digit' }) : null,
-        quantity: it.quantitySold ?? it.quantity ?? 1,
-        freeQuantity: it.freeQuantity || 0,
-        mrp: it.product?.newMRP ?? it.mrp ?? 0,
-        rate: it.ratePerUnit ?? it.rate ?? 0,
-        discountPercentage: it.schemeDiscount ?? it.discountPercentage ?? 0,
-        gstPercentage: it.product?.gstPercentage ?? it.gstPercentage ?? 0,
-        taxableAmount: it.taxableAmount ?? 0,
-        cgstAmount: it.cgstAmount ?? 0,
-        sgstAmount: it.sgstAmount ?? 0,
-        totalAmount: it.totalAmount ?? 0
-      })),
+      items: (firstInvoice.items || []).map((it) => {
+        const rate = it.ratePerUnit ?? it.rate ?? 0;
+        const gst = it.product?.gstPercentage ?? it.gstPercentage ?? 0;
+        const netRate = Math.round((rate * (1 + gst / 100)) * 100) / 100;
+        const batchAllocations = Array.isArray(it.batchAllocations)
+          ? it.batchAllocations.map((alloc) => ({
+              batchNo: alloc.batchNo && alloc.batchNo !== 'UNNAMED' ? alloc.batchNo : 'No Batch #',
+              quantity: Number(alloc.quantity) || 0,
+              expiryDate: alloc.expiryDate
+                ? (typeof alloc.expiryDate === 'string' && alloc.expiryDate.includes('/')
+                    ? alloc.expiryDate
+                    : new Date(alloc.expiryDate).toLocaleDateString('en-IN', { month: '2-digit', year: '2-digit' }))
+                : '-'
+            }))
+          : [];
+
+        return {
+          productName: it.product?.productName ?? it.productName ?? it.name ?? 'Item',
+          hsnCode: it.product?.hsnCode ?? it.hsnCode ?? '',
+          pack: it.product?.pack ?? it.pack ?? '',
+          batchNo: it.product?.batchNo ?? it.batchNo ?? '',
+          expiryDate: it.product?.expiryDate ? new Date(it.product.expiryDate).toLocaleDateString('en-IN', { month: '2-digit', year: '2-digit' }) : null,
+          batchAllocations,
+          quantity: it.quantitySold ?? it.quantity ?? 1,
+          freeQuantity: it.freeQuantity || 0,
+          mrp: it.product?.newMRP ?? it.mrp ?? 0,
+          rate,
+          netRate,
+          discountPercentage: it.schemeDiscount ?? it.discountPercentage ?? 0,
+          gstPercentage: gst,
+          taxableAmount: it.taxableAmount ?? 0,
+          cgstAmount: it.cgstAmount ?? 0,
+          sgstAmount: it.sgstAmount ?? 0,
+          totalAmount: it.totalAmount ?? 0
+        };
+      }),
       totals: {
         baseAmount: firstInvoice.totals?.baseAmount || 0,
         totalDiscount: firstInvoice.totals?.totalDiscount || 0,

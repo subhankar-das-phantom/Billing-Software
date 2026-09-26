@@ -116,6 +116,22 @@ async function runTests() {
         },
         quantitySold: 20,
         freeQuantity: 2,
+        batchAllocations: [
+          {
+            batchId: new mongoose.Types.ObjectId(),
+            batchNo: 'B-2026-A',
+            quantity: 15,
+            expiryDate: new Date('2027-12-31'),
+            internalCost: 12.0
+          },
+          {
+            batchId: new mongoose.Types.ObjectId(),
+            batchNo: 'B-2026-B',
+            quantity: 5,
+            expiryDate: new Date('2028-06-30'),
+            internalCost: 12.5
+          }
+        ],
         ratePerUnit: 25.0,
         schemeDiscount: 5.0,
         taxableAmount: 475.0,
@@ -164,6 +180,12 @@ async function runTests() {
   assert(serialized1.invoiceNumber === 'INV-2026-9999', 'Customer-visible invoice number is present');
   assert(serialized1.customer.customerName === 'Metro Pharmacy Ltd', 'Customer name is present');
   assert(serialized1.items[0].productName === 'Paracetamol 650mg', 'Item product name is present');
+  assert(serialized1.items[0].batchAllocations?.length === 2, 'Batch allocations are sanitized and included');
+  assert((serialized1.items[0].batchAllocations?.[0] as any)?.batchId === undefined, 'Internal batchId is strictly omitted');
+  assert((serialized1.items[0].batchAllocations?.[0] as any)?.internalCost === undefined, 'Internal batch costs are strictly omitted');
+  assert(serialized1.items[0].batchAllocations?.[0]?.batchNo === 'B-2026-A', 'Customer-visible batch number is present');
+  assert(serialized1.items[0].batchAllocations?.[0]?.quantity === 15, 'Batch allocation quantity is accurate');
+  assert(serialized1.items[0].netRate > 0, 'Item net rate is calculated');
   assert(serialized1.paidAmount === 200.0, 'Paid amount is accurate');
   assert(serialized1.dueAmount === 332.0, 'Due amount is accurately calculated (532 - 200 = 332)');
   assert(serialized1.downloadPdfUrl === `/api/public/shares/${token1}/pdf`, 'Download PDF route uses token');

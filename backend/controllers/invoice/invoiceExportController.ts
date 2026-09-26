@@ -572,13 +572,24 @@ function drawSingleInvoicePDF(doc: PDFKit.PDFDocument, invoice: IInvoice, distri
     const hsn = item.product?.hsnCode ?? item.hsnCode ?? '-';
 
     let batch = item.product?.batchNo ?? item.batchNo ?? item.batchNumber ?? '-';
-    if (item.batchAllocations?.length > 0) {
-      batch = item.batchAllocations.map((b: any) => b.batchNo || 'No Batch').join(', ');
-    }
-
     let expiry = '-';
-    if (item.batchAllocations?.length > 0 && item.batchAllocations[0].expiryDate) {
-      expiry = formatExpiryDate(item.batchAllocations[0].expiryDate);
+    if (item.batchAllocations?.length > 0) {
+      const groupsMap: Record<string, { name: string; expiry: string; qtys: number[] }> = {};
+      item.batchAllocations.forEach((alloc: any) => {
+        const displayName = alloc.batchNo && alloc.batchNo !== 'UNNAMED' ? alloc.batchNo : 'No Batch #';
+        const expiryStr = formatExpiryDate(alloc.expiryDate);
+        const key = `${displayName}|${expiryStr}`;
+        if (!groupsMap[key]) {
+          groupsMap[key] = { name: displayName, expiry: expiryStr, qtys: [] };
+        }
+        groupsMap[key].qtys.push(Number(alloc.quantity) || 0);
+      });
+      const groups = Object.values(groupsMap);
+      batch = groups.map((g) => {
+        const displayQty = g.name === 'No Batch #' ? g.qtys.join('+') : g.qtys.reduce((sum, q) => sum + q, 0);
+        return `${g.name} (${displayQty})`;
+      }).join(', ');
+      expiry = groups.map((g) => g.expiry).join(', ');
     } else {
       expiry = formatExpiryDate(item.product?.expiryDate ?? item.expiryDate);
     }
