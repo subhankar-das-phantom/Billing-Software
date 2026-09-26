@@ -979,11 +979,11 @@ export default function InvoiceViewPage() {
         )}
 
         {/* Invoice Print Area */}
-        <div className="flex justify-center">
+        <div className="w-full overflow-x-auto pb-4 flex justify-start sm:justify-center">
           <motion.div
             ref={printRef}
             variants={cardVariants}
-            className="invoice-print bg-white border-2 border-slate-300 shadow-lg"
+            className="invoice-print bg-white border-2 border-slate-300 shadow-lg shrink-0 my-0 sm:mx-auto"
             style={{
               width: '190mm',
               fontSize: '10px',

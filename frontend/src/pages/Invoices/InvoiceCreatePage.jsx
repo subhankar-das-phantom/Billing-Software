@@ -78,22 +78,22 @@ const cardVariants = {
 };
 
 const dropdownVariants = {
-  hidden: { opacity: 0, y: -10, scale: 0.95 },
+  hidden: { opacity: 0, y: -6 },
   visible: {
     opacity: 1,
     y: 0,
-    scale: 1,
     transition: {
-      type: "spring",
-      stiffness: 400,
-      damping: 25,
+      duration: 0.15,
+      ease: [0.16, 1, 0.3, 1],
     },
   },
   exit: {
     opacity: 0,
-    y: -10,
-    scale: 0.95,
-    transition: { duration: 0.15 },
+    y: -6,
+    transition: {
+      duration: 0.1,
+      ease: [0.16, 1, 0.3, 1],
+    },
   },
 };
 
@@ -234,6 +234,8 @@ export default function InvoiceCreatePage() {
 
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [originalInvoice, setOriginalInvoice] = useState(null);
+  const customerSearchContainerRef = useRef(null);
+  const productSearchContainerRef = useRef(null);
   const latestCustomerSearchRequest = useRef(0);
   const latestProductSearchRequest = useRef(0);
   const batchPreviewRequestRef = useRef(0);
@@ -573,6 +575,37 @@ export default function InvoiceCreatePage() {
       unsubscribe();
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("focus", handleFocus);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (
+        customerSearchContainerRef.current &&
+        !customerSearchContainerRef.current.contains(e.target)
+      ) {
+        setShowCustomerDropdown(false);
+      }
+      if (
+        productSearchContainerRef.current &&
+        !productSearchContainerRef.current.contains(e.target)
+      ) {
+        setShowProductDropdown(false);
+      }
+    };
+
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setShowCustomerDropdown(false);
+        setShowProductDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
 
@@ -1972,9 +2005,10 @@ export default function InvoiceCreatePage() {
         </div>
 
         <div
-          className={`relative ${showCustomerDropdown && customerSearch ? "pb-64" : ""}`}
+          ref={customerSearchContainerRef}
+          className="relative"
         >
-          <motion.div className="relative" whileFocus={{ scale: 1.01 }}>
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
             <input
               type="text"
@@ -1991,9 +2025,27 @@ export default function InvoiceCreatePage() {
               }}
               onFocus={() => setShowCustomerDropdown(true)}
               placeholder="Search customer by name, phone, or GSTIN..."
-              className="input pl-10"
+              className="input pl-10 pr-10"
             />
-          </motion.div>
+            {isCustomerSearchLoading ? (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
+              </div>
+            ) : customerSearch ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setCustomerSearch("");
+                  setCustomerResults([]);
+                  setShowCustomerDropdown(false);
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+                title="Clear search"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            ) : null}
+          </div>
 
           <AnimatePresence>
             {showCustomerDropdown && customerSearch && (
@@ -2002,21 +2054,21 @@ export default function InvoiceCreatePage() {
                 initial="hidden"
                 animate="visible"
                 exit="exit"
-                className="absolute z-50 w-full mt-2 bg-slate-900 border border-slate-800 rounded-xl shadow-xl max-h-60 overflow-y-auto"
+                style={{ transformOrigin: "top left" }}
+                className="absolute z-50 w-full mt-2 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl shadow-black/80 max-h-60 overflow-y-auto will-change-[transform,opacity]"
               >
-                {isCustomerSearchLoading && (
+                {isCustomerSearchLoading && customerResults.length === 0 && (
                   <div className="px-4 py-3 text-sm text-slate-300 flex items-center gap-2">
                     <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
                     Searching customers...
                   </div>
                 )}
 
-                {!isCustomerSearchLoading &&
-                  customerSearch.trim().length < 1 && (
-                    <div className="px-4 py-3 text-sm text-slate-400">
-                      Start typing to search customers
-                    </div>
-                  )}
+                {!isCustomerSearchLoading && customerSearch.trim().length < 1 && (
+                  <div className="px-4 py-3 text-sm text-slate-400">
+                    Start typing to search customers
+                  </div>
+                )}
 
                 {!isCustomerSearchLoading &&
                   customerSearch.trim().length >= 1 &&
@@ -2026,49 +2078,49 @@ export default function InvoiceCreatePage() {
                     </div>
                   )}
 
-                {!isCustomerSearchLoading &&
-                  customerSearch.trim().length >= 1 &&
-                  customerResults.map((customer, index) => (
-                    <motion.button
-                      key={customer._id}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCustomerSelect(customer);
-                      }}
-                      className="search-dropdown-item"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.03 }}
-                    >
-                      <div className="flex justify-between items-center gap-4">
-                        <div>
-                          <p className="font-medium text-slate-100 flex items-center gap-2">
-                            <User className="w-4 h-4 text-blue-500 dark:text-blue-400 shrink-0" />
-                            {customer.customerName}
-                          </p>
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400 mt-1">
-                            {customer.phone && (
-                              <span className="flex items-center gap-1.5">
-                                <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                <span>{customer.phone}</span>
-                              </span>
-                            )}
-                            {customer.address && (
-                              <span className="flex items-center gap-1.5 truncate max-w-xs">
-                                <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                <span>{customer.address}</span>
-                              </span>
-                            )}
+                {customerSearch.trim().length >= 1 && customerResults.length > 0 && (
+                  <div className={`transition-opacity duration-150 ${isCustomerSearchLoading ? "opacity-50 pointer-events-none" : "opacity-100"}`}>
+                    {customerResults.map((customer) => (
+                      <button
+                        key={customer._id}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCustomerSelect(customer);
+                        }}
+                        className="search-dropdown-item w-full text-left transition-colors"
+                      >
+                        <div className="flex justify-between items-center gap-4">
+                          <div>
+                            <p className="font-medium text-slate-100 flex items-center gap-2">
+                              <User className="w-4 h-4 text-blue-500 dark:text-blue-400 shrink-0" />
+                              {customer.customerName}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400 mt-1">
+                              {customer.phone && (
+                                <span className="flex items-center gap-1.5">
+                                  <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                  <span>{customer.phone}</span>
+                                </span>
+                              )}
+                              {customer.address && (
+                                <span className="flex items-center gap-1.5 truncate max-w-xs">
+                                  <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                  <span>{customer.address}</span>
+                                </span>
+                              )}
+                            </div>
                           </div>
+                          {customer.gstin && (
+                            <span className="text-xs bg-slate-800/80 border border-slate-700 text-slate-300 px-2 py-0.5 rounded font-mono shrink-0">
+                              {customer.gstin}
+                            </span>
+                          )}
                         </div>
-                        {customer.gstin && (
-                          <span className="text-xs bg-slate-800/80 border border-slate-700 text-slate-300 px-2 py-0.5 rounded font-mono shrink-0">
-                            {customer.gstin}
-                          </span>
-                        )}
-                      </div>
-                    </motion.button>
-                  ))}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
@@ -2133,7 +2185,7 @@ export default function InvoiceCreatePage() {
       {/* Product Selection */}
       <motion.div
         variants={cardVariants}
-        className="glass-card p-6 relative z-40"
+        className="glass-card p-6 relative z-10"
       >
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2.5 bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 rounded-xl text-blue-600 dark:text-blue-400">
@@ -2173,19 +2225,39 @@ export default function InvoiceCreatePage() {
           )}
         </div>
 
-        <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
-          <input
-            type="text"
-            value={productSearch}
-            onChange={(e) => {
-              setProductSearch(e.target.value);
-              setShowProductDropdown(true);
-            }}
-            onFocus={() => setShowProductDropdown(true)}
-            placeholder="Search product by name or HSN..."
-            className="input pl-10"
-          />
+        <div ref={productSearchContainerRef} className="relative mb-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              value={productSearch}
+              onChange={(e) => {
+                setProductSearch(e.target.value);
+                setShowProductDropdown(true);
+              }}
+              onFocus={() => setShowProductDropdown(true)}
+              placeholder="Search product by name or HSN..."
+              className="input pl-10 pr-10"
+            />
+            {isProductSearchLoading ? (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
+              </div>
+            ) : productSearch ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setProductSearch("");
+                  setProductResults([]);
+                  setShowProductDropdown(false);
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+                title="Clear search"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            ) : null}
+          </div>
 
           <AnimatePresence>
             {showProductDropdown && productSearch && (
@@ -2194,9 +2266,10 @@ export default function InvoiceCreatePage() {
                 initial="hidden"
                 animate="visible"
                 exit="exit"
-                className="absolute z-50 w-full mt-2 bg-slate-900 border border-slate-800 rounded-xl shadow-xl max-h-60 overflow-y-auto"
+                style={{ transformOrigin: "top left" }}
+                className="absolute z-50 w-full mt-2 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl shadow-black/80 max-h-60 overflow-y-auto will-change-[transform,opacity]"
               >
-                {isProductSearchLoading && (
+                {isProductSearchLoading && productResults.length === 0 && (
                   <div className="px-4 py-3 text-sm text-slate-300 flex items-center gap-2">
                     <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
                     Searching products...
@@ -2217,66 +2290,66 @@ export default function InvoiceCreatePage() {
                     </div>
                   )}
 
-                {!isProductSearchLoading &&
-                  productSearch.trim().length >= 1 &&
-                  productResults.map((product, index) => {
-                    const baseStock =
-                      product.effectiveStockQty ?? product.currentStockQty ?? 0;
-                    const availableStock = isEditMode
-                      ? getCurrentEditStock(baseStock, product._id)
-                      : baseStock;
+                {productSearch.trim().length >= 1 && productResults.length > 0 && (
+                  <div className={`transition-opacity duration-150 ${isProductSearchLoading ? "opacity-50 pointer-events-none" : "opacity-100"}`}>
+                    {productResults.map((product) => {
+                      const baseStock =
+                        product.effectiveStockQty ?? product.currentStockQty ?? 0;
+                      const availableStock = isEditMode
+                        ? getCurrentEditStock(baseStock, product._id)
+                        : baseStock;
 
-                    return (
-                      <motion.button
-                        key={product._id}
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                        }}
-                        onMouseEnter={() => {
-                          if (enableBatchTracking && allocationMode === "AUTO") {
-                            productService.getBatches(product._id);
-                          }
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleProductSelect(product);
-                        }}
-                        disabled={availableStock <= 0}
-                        className="search-dropdown-item"
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.03 }}
-                      >
-                        <div className="flex justify-between items-center gap-4">
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-slate-100 flex items-center gap-2 truncate">
-                              <Package className="w-4 h-4 text-blue-500 dark:text-accent-400 shrink-0" />
-                              <span className="truncate">{product.productName}</span>
-                            </p>
-                            <p className="text-xs text-slate-400 mt-1">
-                              GST: {product.gstPercentage}%
-                              {product.hsnCode && ` • HSN: ${product.hsnCode}`}
-                            </p>
+                      return (
+                        <button
+                          key={product._id}
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                          }}
+                          onMouseEnter={() => {
+                            if (enableBatchTracking && allocationMode === "AUTO") {
+                              productService.getBatches(product._id);
+                            }
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleProductSelect(product);
+                          }}
+                          disabled={availableStock <= 0}
+                          className="search-dropdown-item w-full text-left transition-colors"
+                        >
+                          <div className="flex justify-between items-center gap-4">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-slate-100 flex items-center gap-2 truncate">
+                                <Package className="w-4 h-4 text-blue-500 dark:text-accent-400 shrink-0" />
+                                <span className="truncate">{product.productName}</span>
+                              </p>
+                              <p className="text-xs text-slate-400 mt-1">
+                                GST: {product.gstPercentage}%
+                                {product.hsnCode && ` • HSN: ${product.hsnCode}`}
+                              </p>
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <p className="font-medium text-emerald-600 dark:text-emerald-400">
+                                {formatCurrency(product.rate)}
+                              </p>
+                              <p
+                                className={`text-xs mt-0.5 flex items-center justify-end gap-1 ${
+                                  availableStock <= 10
+                                    ? "text-rose-600 dark:text-rose-400 font-semibold"
+                                    : "text-slate-400"
+                                }`}
+                              >
+                                <Package className="w-3 h-3" />
+                                <span>{availableStock}</span>
+                              </p>
+                            </div>
                           </div>
-                          <div className="text-right flex-shrink-0">
-                            <p className="font-medium text-emerald-600 dark:text-emerald-400">
-                              {formatCurrency(product.rate)}
-                            </p>
-                            <p
-                              className={`text-xs mt-0.5 flex items-center justify-end gap-1 ${
-                                availableStock <= 10
-                                  ? "text-rose-600 dark:text-rose-400 font-semibold"
-                                  : "text-slate-400"
-                              }`}
-                            >
-                              <Package className="w-3 h-3" />
-                              <span>{availableStock}</span>
-                            </p>
-                          </div>
-                        </div>
-                      </motion.button>
-                    );
-                  })}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>

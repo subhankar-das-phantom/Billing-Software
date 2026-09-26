@@ -576,6 +576,8 @@ exports.createInvoice = async (req, res, next) => {
       });
     }
 
+    const enableBatchTracking = adminInfo.preferences?.enableBatchTracking === true;
+
     // Generate invoice number
     const lastInvoice = await Invoice.findOne({ tenantId })
       .sort({ createdAt: -1 })
@@ -720,8 +722,6 @@ exports.createInvoice = async (req, res, next) => {
       createRequestId: createRequestId || undefined,
       createdBy: getAttribution(req)
     }], { session });
-
-    const enableBatchTracking = adminInfo.preferences?.enableBatchTracking === true;
 
     if (isBatchTrackingEnabled !== undefined && isBatchTrackingEnabled !== enableBatchTracking) {
       await session.abortTransaction();

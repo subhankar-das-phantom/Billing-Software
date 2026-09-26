@@ -62,6 +62,18 @@ For full release notes with implementation details, see [GitHub Releases](https:
 ### 🧪 Automated Verification Suite (`testInvoiceSharing.ts`)
 - **Automated Security & Regression Testing (`testInvoiceSharing.ts`)** — Created an automated verification script covering 36 assertions: 256-bit token entropy, deterministic SHA-256 hashing, AES-256-GCM encryption/authTag verification, key rotation error recovery, data minimization (0 internal fields leaked), conditional payment info, and partial unique index concurrency constraints. All 36 passed cleanly.
 
+### 🛠️ Invoice Creation Hardening, Search Ergonomics & Layout Containment (`invoiceController.js`, `InvoiceCreatePage.jsx`, `InvoiceViewPage.jsx`, `InvoiceViewPageSkeleton.jsx`)
+- **Backend TDZ Initialization Fix (`invoiceController.js`)**: Resolved `ReferenceError: Cannot access 'enableBatchTracking' before initialization` during invoice creation. Hoisted `const enableBatchTracking = adminInfo.preferences?.enableBatchTracking === true;` immediately after fetching `adminInfo` ahead of the item validation loop, removing the duplicate declaration lower in the function.
+- **Navbar Z-Index Hierarchy (`InvoiceCreatePage.jsx`)**: Resolved the "Add Products" card overlapping the sticky navbar on scroll by adjusting its container z-index from `z-40` to `z-10` (aligning with `InvoiceCreatePageSkeleton.jsx`), allowing the card and table controls to cleanly slide underneath the sticky header (`z-30`).
+- **Product & Customer Search Anti-Flicker & Height Stabilization (`InvoiceCreatePage.jsx`)**:
+  - Eliminated dropdown height collapse and border oscillation by removing the `!isProductSearchLoading &&` / `!isCustomerSearchLoading &&` unmounting guards. Existing search results remain mounted with subtle dimming (`opacity-50 pointer-events-none`) while background queries resolve, keeping dropdown dimensions stable.
+  - Replaced spring physics and `scale: 0.95` with GPU-accelerated cubic-bezier Y-glide (`y: -6` to `y: 0`, `duration: 0.15s, ease: [0.16, 1, 0.3, 1]`) and `will-change-[transform,opacity]`.
+  - Removed fly-in slide animations (`x: -20`, staggered delays) on individual search result rows, replacing them with instant static items.
+  - Added inline animated `Loader2` spinners and 1-click clear (`X`) buttons to both product and customer search inputs.
+  - Added click-outside and `Escape` key listeners to dismiss search dropdowns cleanly.
+  - Removed dynamic `pb-64` bottom padding on customer search that caused 256px cumulative layout reflows (CLS).
+- **Mobile Viewport Horizontal Scrollbar Containment (`InvoiceViewPage.jsx`, `InvoiceViewPageSkeleton.jsx`)**: Wrapped the fixed 190mm (~718px) paper element inside a horizontal scroll container (`w-full overflow-x-auto pb-4 flex justify-start sm:justify-center`) with `shrink-0`, preventing the document preview from causing page-level horizontal overflow on mobile viewports.
+
 ## [v2.7.1](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.7.1) — 2026-09-25 — Auth Flow Stabilization, Public Theme Consolidation, Zero-CLS Anti-Flicker Architecture & Invoice View Redesign
 
 ### 🛠️ Demo Mode Full-Stack Parity & Runtime Error Elimination (`demoData.js`, `demoAdapter.js`, `Header.jsx`, `ActivityLogPage.jsx`, `CustomerDetailsPage.jsx`, `InvoiceViewPage.jsx`, `InventoryLedgerPage.jsx`, `TopProductsChart.jsx`, `TopCustomersChart.jsx`, `DashboardChartsSection.jsx`, `AuthContext.jsx`, `api.js`, `index.html`)

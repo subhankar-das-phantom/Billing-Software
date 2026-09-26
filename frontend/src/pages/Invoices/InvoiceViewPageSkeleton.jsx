@@ -66,9 +66,9 @@ export const InvoiceViewPageSkeleton = () => {
       </div>
 
       {/* ─── 190mm Paper Invoice Preview Area ───────────────────────── */}
-      <div className="flex justify-center">
+      <div className="w-full overflow-x-auto pb-4 flex justify-start sm:justify-center">
         <div
-          className="bg-white border-2 border-slate-300 shadow-lg p-4 space-y-3"
+          className="bg-white border-2 border-slate-300 shadow-lg p-4 space-y-3 shrink-0 my-0 sm:mx-auto"
           style={{ width: '190mm', minHeight: '130mm' }}
         >
           {/* Header Row */}
