@@ -15,5 +15,4 @@ router.post('/', requirePermission('invoices', 'view'), shareController.createOr
 // Revoke an active share link
 router.post('/:id/revoke', requirePermission('invoices', 'view'), shareController.revokeShare);
 
-export default router;
-module.exports = router;
+export = router;

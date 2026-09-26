@@ -27,5 +27,4 @@ router.get('/:token', publicShareController.getPublicShare);
 // Public PDF stream
 router.get('/:token/pdf', publicShareController.getPublicSharePDF);
 
-export default router;
-module.exports = router;
+export = router;

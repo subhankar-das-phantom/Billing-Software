@@ -87,4 +87,4 @@ export const publicShareController = {
   }
 };
 
-module.exports = publicShareController;
+export default publicShareController;

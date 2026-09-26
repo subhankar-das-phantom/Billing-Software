@@ -85,4 +85,4 @@ export const shareController = {
   }
 };
 
-module.exports = shareController;
+export default shareController;
