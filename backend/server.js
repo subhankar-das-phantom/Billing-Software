@@ -112,6 +112,8 @@ app.use('/api/purchases', generalLimiter, require('./routes/purchases'));
 app.use('/api/stock-movements', generalLimiter, require('./routes/stockMovements'));
 app.use('/api/reports/purchases', generalLimiter, require('./routes/purchaseReports'));
 app.use('/api/analytics/inventory', generalLimiter, require('./routes/inventoryAnalytics'));
+app.use('/api/shares', generalLimiter, require('./routes/shares'));
+app.use('/api/public/shares', require('./routes/publicShares'));
 
 // SSE route — no rate limiter (long-lived connection, protected by auth + per-user limit)
 app.use('/api/stock-events', require('./routes/stockEvents'));

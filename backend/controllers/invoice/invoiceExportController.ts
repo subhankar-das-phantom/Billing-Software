@@ -475,8 +475,7 @@ function drawSingleInvoicePDF(doc: PDFKit.PDFDocument, invoice: IInvoice, distri
     });
 }
 
-async function getDistributor(invoice: IInvoice, req: AuthenticatedRequest): Promise<IDistributorSnapshot> {
-  const tenantId = getTenantId(req);
+async function getDistributorByTenantId(invoice: IInvoice, tenantId: unknown): Promise<IDistributorSnapshot> {
   const admin = await Admin.findById(tenantId).lean() as any;
   
   const snap = invoice.distributor || {};
@@ -489,6 +488,11 @@ async function getDistributor(invoice: IInvoice, req: AuthenticatedRequest): Pro
     firmDL: snap.firmDL || admin?.firmDL,
     paymentInformation: snap.paymentInformation?.enabled ? snap.paymentInformation : admin?.paymentInformation
   };
+}
+
+async function getDistributor(invoice: IInvoice, req: AuthenticatedRequest): Promise<IDistributorSnapshot> {
+  const tenantId = getTenantId(req);
+  return getDistributorByTenantId(invoice, tenantId);
 }
 
 exports.exportInvoices = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -581,3 +585,6 @@ exports.generateSingleInvoicePDF = async (req: AuthenticatedRequest, res: Respon
     return next(error);
   }
 };
+
+exports.drawSingleInvoicePDF = drawSingleInvoicePDF;
+exports.getDistributorByTenantId = getDistributorByTenantId;
