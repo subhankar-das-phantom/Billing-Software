@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import LandingNav from './components/LandingNav';
 import HeroSection from './components/HeroSection';
 import CapabilityStrip from './components/CapabilityStrip';
@@ -16,29 +17,27 @@ import LandingFooter from './components/LandingFooter';
 
 import ScrollReveal from '../../components/Common/Motion/ScrollReveal';
 
+import usePageMetadata from '../../hooks/usePageMetadata';
+
 /**
  * Bharat Enterprise Master Landing Page.
  * Modular, product-first B2B SaaS architecture showcasing real application screenshots.
  * Full Dark and Light theme support aligned with canonical design system tokens.
  */
 export default function LandingPage() {
-  useEffect(() => {
-    // Set descriptive, professional document title
-    document.title = 'Bharat Enterprise — Billing, Multi-Batch Inventory & Customer Khata Suite';
+  const location = useLocation();
+  const canonicalPath = location.pathname === '/' ? '/' : '/landing';
 
-    // Update meta description
-    let metaDescription = document.querySelector('meta[name="description"]');
-    if (!metaDescription) {
-      metaDescription = document.createElement('meta');
-      metaDescription.name = 'description';
-      document.head.appendChild(metaDescription);
-    }
-    metaDescription.content =
-      'Enterprise billing, multi-batch inventory tracking, customer ledger accounting, and GST-ready invoicing for distributors, wholesalers, and retail enterprises.';
-  }, []);
+  usePageMetadata({
+    title: 'Bharat Enterprise — Billing, Multi-Batch Inventory & Customer Khata Suite',
+    description:
+      'Enterprise billing, multi-batch inventory tracking, customer ledger accounting, and GST-ready invoicing for distributors, wholesalers, and retail enterprises.',
+    canonicalPath,
+    robots: 'index, follow'
+  });
 
   return (
-    <div data-prerender-ready="true" className="min-h-screen bg-slate-950 text-slate-100 selection:bg-blue-600 selection:text-white antialiased font-sans">
+    <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-blue-600 selection:text-white antialiased font-sans">
       {/* Sticky Top Header Navigation with Theme Toggle */}
       <LandingNav />
 

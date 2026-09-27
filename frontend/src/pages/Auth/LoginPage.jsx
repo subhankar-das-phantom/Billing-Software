@@ -40,7 +40,7 @@ export default function LoginPage() {
     try {
       const result = await login(email, password);
       if (result?.success) {
-        navigate('/');
+        navigate('/dashboard');
       }
     } catch (err) {
       // Hold loading state for at least 400ms so rapid local network 401 rejections (~20ms) don't trigger a 1-frame button flick
@@ -56,7 +56,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div data-prerender-ready="true" className="min-h-screen flex flex-col items-center justify-center p-4 py-8 sm:py-12 relative overflow-y-auto bg-slate-950">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 py-8 sm:py-12 relative overflow-y-auto bg-slate-950">
       {/* Crisp Subtle Grid Background */}
       <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_75%_50%_at_50%_50%,black,transparent)]" />
 

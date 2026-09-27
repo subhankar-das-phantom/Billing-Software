@@ -100,7 +100,7 @@ function ProtectedRoute({ children }) {
   }
   
   if (!user) {
-    return <Navigate to="/landing" replace />;
+    return <Navigate to="/" replace />;
   }
 
   // Check if employee has access based on tenant's subscription
@@ -204,17 +204,46 @@ function PublicRoute({ children }) {
   }
   
   if (user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
   
   return children;
+}
+
+// Root Route: Unauthenticated visitors see LandingPage; authenticated sessions route to /dashboard
+function RootRoute() {
+  const hasToken = typeof window !== 'undefined' ? !!localStorage.getItem('token') : false;
+  if (!hasToken) {
+    return <LandingPage />;
+  }
+
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white font-bold text-xl flex items-center justify-center shadow-lg shadow-blue-500/20 animate-pulse">
+            B
+          </div>
+          <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mt-1" />
+        </div>
+      </div>
+    );
+  }
+
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <LandingPage />;
 }
 
 function AppRoutes() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        {/* Landing Page - Public */}
+        {/* Landing Page - Public Marketing & Legal */}
+        <Route path="/" element={<RootRoute />} />
         <Route path="/landing" element={<LandingPage />} />
         <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
         <Route path="/terms" element={<TermsPage />} />
@@ -246,8 +275,7 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         >
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/dashboard" element={<Navigate to="/" replace />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/products" element={<PermissionRoute resource="products"><ProductsPage /></PermissionRoute>} />
           <Route path="/products/:id" element={<PermissionRoute resource="products"><ProductDetailsPage /></PermissionRoute>} />
           <Route path="/customers" element={<PermissionRoute resource="customers"><CustomersPage /></PermissionRoute>} />

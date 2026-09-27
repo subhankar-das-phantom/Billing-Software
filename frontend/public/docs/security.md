@@ -8,8 +8,8 @@ Bharat Enterprise is engineered to meet strict data isolation and enterprise-gra
 
 ## 1. Authentication & Session Security
 
-* **JWT (JSON Web Tokens)**: Cryptographically signed tokens using `HS256` or `RS256` algorithms with configurable expiry lifetimes.
-* **HTTP-Only Cookie Storage**: Tokens are delivered in secure, `httpOnly`, `sameSite: 'strict'` (or `'none'` in cross-domain staging) cookies with `secure: true` in production, shielding credentials from XSS attacks.
+* **JWT (JSON Web Tokens)**: Cryptographically signed tokens using `HS256` algorithms with configurable expiry lifetimes.
+* **Dual-Mode Token Transport**: For high-throughput cross-origin SPA requests, offline demo mode, and SSE stream compatibility, tokens are delivered via `httpOnly` secure cookies while the client SPA includes the token in `Authorization: Bearer <token>` headers. Backend middleware evaluates cookies first with Authorization header fallback. (A dedicated transition roadmap to pure `httpOnly` cookie authentication is maintained in `AUTH_MIGRATION_ROADMAP.md`).
 * **Password Hashing**: User passwords are encrypted using `bcryptjs` with high work factors (10+ salt rounds). Plaintext passwords are never logged or stored.
 
 ---
@@ -35,3 +35,12 @@ The platform distinguishes between administrative owners and operational staff:
 * **Helmet Security Headers**: Strict Content-Security-Policy (CSP), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, and `Strict-Transport-Security` (HSTS).
 * **Rate Limiting**: Express middleware enforces tiered IP-based and user-based request throttling (`authLimiter`, `generalLimiter`) to prevent brute-force attacks and denial-of-service attempts.
 * **Input Sanitization**: All inbound parameters pass through schema-driven validators (`express-validator`) enforcing strict types, positive numeric boundaries, and string lengths before reaching domain logic.
+
+---
+
+## 5. Public Capability Tokens & Share Security
+
+* **Dedicated Cryptographic Secret**: Share token encryption uses AES-256-GCM authenticated encryption derived strictly from `SHARE_TOKEN_SECRET` (never reusing `JWT_SECRET`).
+* **Search Engine Indexing Prevention**: Public share routes are protected with `X-Robots-Tag: noindex, nofollow, noarchive` and dynamically injected `<meta name="robots" content="noindex,nofollow,noarchive">` in document heads.
+* **Explicit Caching Policy**: Customer-facing share endpoints enforce `Cache-Control: private, no-store` to prevent caching by public proxies or shared intermediate caches.
+* **Public Data Minimization Contract**: Public invoice views and PDF rendering strictly consume sanitized DTO payloads (`adaptPublicDTOToPDFInvoice`), mathematically preventing internal database IDs, tenant details, and profit margins from reaching public representations.

@@ -7,6 +7,24 @@ const Invoice = require('../models/Invoice');
 const Admin = require('../models/Admin');
 const { getDistributorByTenantId } = require('../controllers/invoice/invoiceExportController');
 
+export type ShareStatus = 'active' | 'revoked' | 'expired';
+
+/**
+ * Determine explicit lifecycle status of a share record.
+ */
+export function getShareStatus(share: IShare, asOf: Date = new Date()): ShareStatus {
+  if (share.revokedAt) return 'revoked';
+  if (share.expiresAt && new Date(share.expiresAt).getTime() <= asOf.getTime()) return 'expired';
+  return 'active';
+}
+
+/**
+ * Check if a share record is currently active.
+ */
+export function isShareActive(share: IShare, asOf: Date = new Date()): boolean {
+  return getShareStatus(share, asOf) === 'active';
+}
+
 export interface CreateShareParams {
   tenantId: mongoose.Types.ObjectId | string;
   resourceType: 'invoice' | 'receipt' | 'quotation' | 'credit_note' | 'payment_receipt';
@@ -33,6 +51,7 @@ export const shareService = {
   /**
    * Get an existing active share link or atomically create a new one.
    * Enforces race-condition protection via MongoDB partial unique index.
+   * Gracefully reconciles expired shares so fresh active shares can be created.
    */
   getOrCreateShare: async ({
     tenantId,
@@ -56,7 +75,22 @@ export const shareService = {
 
     // 2. Query for existing active share
     const now = new Date();
-    let existingShare = await Share.findOne({
+
+    // Reconcile un-revoked expired shares for this resource so the partial unique index is released
+    await Share.updateMany(
+      {
+        tenantId: tenantObjectId,
+        resourceType,
+        resourceId: resourceObjectId,
+        revokedAt: null,
+        expiresAt: { $ne: null, $lte: now }
+      },
+      {
+        $set: { revokedAt: now }
+      }
+    );
+
+    const existingShare = await Share.findOne({
       tenantId: tenantObjectId,
       resourceType,
       resourceId: resourceObjectId,
@@ -107,7 +141,8 @@ export const shareService = {
           tenantId: tenantObjectId,
           resourceType,
           resourceId: resourceObjectId,
-          revokedAt: null
+          revokedAt: null,
+          $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }]
         });
 
         if (winningShare) {
@@ -206,4 +241,4 @@ export const shareService = {
 };
 
 export default shareService;
-module.exports = { shareService };
+module.exports = { shareService, getShareStatus, isShareActive };

@@ -504,13 +504,22 @@ const sections = [
   }
 ];
 
+import usePageMetadata from '../../hooks/usePageMetadata';
+
 export default function TermsPage() {
+  usePageMetadata({
+    title: 'Terms & Conditions — Bharat Enterprise Billing System',
+    description: 'Terms and conditions governing access and usage of the Bharat Enterprise Billing System.',
+    canonicalPath: '/terms',
+    robots: 'index, follow'
+  });
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
   return (
-    <div data-prerender-ready="true" className="pp-page">
+    <div className="pp-page">
       {/* Background effects */}
       <div className="pp-bg-gradient pp-bg-gradient-1" />
       <div className="pp-bg-gradient pp-bg-gradient-2" />

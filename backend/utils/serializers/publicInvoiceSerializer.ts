@@ -209,3 +209,91 @@ export function serializePublicInvoice(
     allowPublicPrint: allowPublicPrint === true
   };
 }
+
+/**
+ * Public PDF DTO Adapter
+ * Converts the sanitized IPublicInvoiceDTO into the exact structural shape expected by drawSingleInvoicePDF.
+ * This guarantees that:
+ * 1. Zero internal fields (tenantId, _id, createdBy, internalCost, purchaseMargin, etc.) reach the PDF renderer.
+ * 2. The visual output of drawSingleInvoicePDF remains 100% pixel-perfect and identical.
+ */
+export function adaptPublicDTOToPDFInvoice(publicData: IPublicInvoiceDTO): {
+  invoice: any;
+  distributor: any;
+} {
+  const distributor = {
+    firmName: publicData.distributor.firmName,
+    firmAddress: publicData.distributor.firmAddress,
+    firmPhone: publicData.distributor.firmPhone,
+    firmGSTIN: publicData.distributor.firmGSTIN,
+    firmDL: publicData.distributor.firmDL,
+    paymentInformation: publicData.distributor.paymentInformation
+      ? {
+          enabled: true,
+          upiId: publicData.distributor.paymentInformation.upiId,
+          accountNumber: publicData.distributor.paymentInformation.accountNumber,
+          ifscCode: publicData.distributor.paymentInformation.ifscCode,
+          bankName: publicData.distributor.paymentInformation.bankName,
+          accountHolderName: publicData.distributor.paymentInformation.accountHolderName
+        }
+      : undefined
+  };
+
+  const invoice = {
+    invoiceNumber: publicData.invoiceNumber,
+    invoiceDate: publicData.invoiceDate,
+    paymentType: publicData.paymentType,
+    status: publicData.status,
+    customer: {
+      customerName: publicData.customer.customerName,
+      address: publicData.customer.address,
+      phone: publicData.customer.phone,
+      gstin: publicData.customer.gstin,
+      dlNo: publicData.customer.dlNo
+    },
+    items: publicData.items.map((item) => ({
+      product: {
+        productName: item.productName,
+        hsnCode: item.hsnCode,
+        pack: item.pack,
+        batchNo: item.batchNo,
+        expiryDate: item.expiryDate,
+        newMRP: item.mrp,
+        gstPercentage: item.gstPercentage
+      },
+      productName: item.productName,
+      hsnCode: item.hsnCode,
+      pack: item.pack,
+      batchNo: item.batchNo,
+      expiryDate: item.expiryDate,
+      batchAllocations: (item.batchAllocations || []).map((alloc) => ({
+        batchNo: alloc.batchNo,
+        quantity: alloc.quantity,
+        expiryDate: alloc.expiryDate
+      })),
+      quantitySold: item.quantity,
+      freeQuantity: item.freeQuantity,
+      ratePerUnit: item.rate,
+      mrp: item.mrp,
+      schemeDiscount: item.discountPercentage,
+      taxableAmount: item.taxableAmount,
+      cgstAmount: item.cgstAmount,
+      sgstAmount: item.sgstAmount,
+      totalAmount: item.totalAmount
+    })),
+    totals: {
+      baseAmount: publicData.totals.baseAmount,
+      totalDiscount: publicData.totals.totalDiscount,
+      totalTaxable: publicData.totals.totalTaxable,
+      totalCGST: publicData.totals.totalCGST,
+      totalSGST: publicData.totals.totalSGST,
+      roundOff: publicData.totals.roundOff,
+      netTotal: publicData.totals.netTotal,
+      amountInWords: publicData.totals.amountInWords
+    },
+    paidAmount: publicData.paidAmount
+  };
+
+  return { invoice, distributor };
+}
+

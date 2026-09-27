@@ -35,7 +35,7 @@ export const NAVIGATION_SECTIONS = [
     items: [
       {
         id: 'dashboard',
-        path: '/',
+        path: '/dashboard',
         label: 'Dashboard',
         icon: LayoutDashboard,
         exact: true,
@@ -406,7 +406,8 @@ export function isRouteActive(itemPath, currentPath) {
 export function resolveBreadcrumbs(pathname) {
   // Exact route title overrides
   const routeMap = {
-    '/': { title: 'Dashboard', crumbs: [{ label: 'Dashboard', path: '/' }] },
+    '/': { title: 'Dashboard', crumbs: [{ label: 'Dashboard', path: '/dashboard' }] },
+    '/dashboard': { title: 'Dashboard', crumbs: [{ label: 'Dashboard', path: '/dashboard' }] },
     '/customers': {
       title: 'Customers',
       crumbs: [{ label: 'Sales' }, { label: 'Customers', path: '/customers' }],
