@@ -47,5 +47,15 @@ These packages enable React Server Components and should **never** be added:
 
 ---
 
+## Authentication Transport & Session Security
+
+**Current Model (v2.9.2):** Dual-mode token transport.
+- The backend sets an `httpOnly` secure cookie upon authentication and also returns the signed JWT in the response payload.
+- The frontend SPA caches the JWT in `localStorage` for immediate client route guarding and attaches `Authorization: Bearer <token>` on API requests.
+- Backend middleware evaluates cookies first with Authorization header fallback.
+- **Future Migration:** See `docs/AUTH_MIGRATION_ROADMAP.md` for the planned cutover to pure `__Host-` prefixed `httpOnly` cookies under a unified custom apex domain.
+
+---
+
 **Maintained by:** Development Team  
 **Review Frequency:** Quarterly or when vulnerabilities disclosed

@@ -4,15 +4,78 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.9.2](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.9.2) — 2026-09-27 — Production Hardening, Public Delivery Refinement & Security Governance
+
+### 🌐 Root Route Delivery Conflict Resolution & Edge Negotiation Hardening (`frontend/vercel.json`)
+- **Root Route SPA Delivery Preservation**: Removed unconditional edge rewrite from `"source": "/"` to `"/landing/index.html"` in `vercel.json`. Authenticated users navigating to `/` now reliably receive the operational application shell (`app.html`), enabling immediate, seamless dashboard mounting without marketing DOM flashes or hydration mismatches.
+- **Narrowed Crawler Detection Regex**: Removed generic HTTP clients (`curl`, `wget`, `python`, `postman`, `httpclient`, `aiohttp`, `urllib`) from crawler rewrite rules so automated diagnostics, uptime monitors, and developers receive standard responses. Verified AI crawlers continue to negotiate `/landing.md`, while search engine and social spiders negotiate `/landing/index.html`.
+
+### 🔐 Cryptographic Share Token Hardening & Secret Management (`backend/utils/shareCrypto.ts`, `backend/server.js`, `backend/.env.example`)
+- **Mandatory Production Secret**: Required dedicated `SHARE_TOKEN_SECRET` for public share token AES-256-GCM encryption in production. Eliminated silent fallback to `JWT_SECRET` and deterministic fallback keys.
+- **Boot Startup Validation**: Added production check in `server.js` ensuring the server terminates immediately with a clear error if `SHARE_TOKEN_SECRET` is unconfigured.
+- **Environment Documentation**: Documented key generation (`openssl rand -hex 32`) and rotation considerations in `backend/.env.example`.
+
+### 🛡️ Public Invoice Privacy & Search Indexing Prevention (`frontend/vercel.json`, `frontend/src/pages/Public/PublicInvoicePage.jsx`, `backend/controllers/publicShareController.ts`)
+- **Primary HTML Indexing Protection**: Added `X-Robots-Tag: noindex, nofollow, noarchive` for `/share/(.*)` in `vercel.json` and dynamically set `<meta name="robots" content="noindex,nofollow,noarchive">` in `PublicInvoicePage.jsx` on mount with clean restoration on unmount.
+- **Defense-in-Depth Header Protection**: Attached `X-Robots-Tag: noindex, nofollow, noarchive` to both public share JSON and streaming PDF responses in `publicShareController.ts`.
+
+### 🚫 Explicit Non-Cacheable Policy for Shared Documents (`backend/controllers/publicShareController.ts`, `frontend/vercel.json`)
+- **Private No-Store Headers**: Attached `Cache-Control: private, no-store` and `Pragma: no-cache` to public invoice JSON data (`/api/public/shares/:token`) and public PDF streams (`/api/public/shares/:token/pdf`).
+- **Edge Header Rule**: Configured `Cache-Control: private, no-store` on `/share/(.*)` in `vercel.json` to prevent CDN or public proxy intermediate caching.
+
+### 📄 Public Invoice PDF Sanitization & DTO Adapter Contract (`backend/utils/serializers/publicInvoiceSerializer.ts`, `backend/controllers/publicShareController.ts`)
+- **Dedicated Public PDF Adapter (`adaptPublicDTOToPDFInvoice`)**: Built a structural adapter bridging `IPublicInvoiceDTO` to the layout engine in `drawSingleInvoicePDF`.
+- **Zero Internal Data Leak Guarantee**: Mathematically stripped internal IDs (`_id`, `tenantId`), creator attributions (`createdBy`), purchase margins, internal costs, and confidential database keys from the PDF generator while maintaining 100% pixel-perfect visual PDF parity.
+
+### 📸 Strict Deterministic Prerendering & Snapshot Validation Engine (`frontend/scripts/prerender.mjs`, `frontend/src/hooks/usePageMetadata.js`, `frontend/index.html`)
+- **Zero Hardcoded Domain Fallback**: Prerender origin resolves strictly from `VITE_FRONTEND_URL` / `VERCEL_PROJECT_PRODUCTION_URL`. In strict production builds, missing configuration throws an immediate fatal error rather than falling back to a hardcoded domain.
+- **Comprehensive Live DOM Verification**: `prerender.mjs` waits for and asserts that `document.title`, `meta[name="description"]`, `link[rel="canonical"]`, `meta[name="robots"]`, and `meta[property="og:url"]` are all verified in the live DOM before capturing snapshots.
+- **Post-Prerender Validation**: Builds fail if snapshots contain `127.0.0.1` or `localhost`. Removed inline origin overwrite script from `index.html`.
+- **Blocked Static Routes Invariant**: Asserted that dynamic application routes (`/login`, `/register`) never produce static files in `dist/`. Removed `data-prerender-ready` from auth pages.
+
+### 🔄 Formalized Share Link Lifecycle & Concurrency Race Immunity (`backend/services/shareService.ts`)
+- **Explicit Lifecycle States**: Formalized `active`, `revoked`, and `expired` lifecycle states with `getShareStatus()` and `isShareActive()` helpers.
+- **Expired Share Reconciliation**: Automatically reconciles un-revoked expired shares before creating fresh ones, eliminating MongoDB `E11000` duplicate key collisions on the partial unique index `{ tenantId, resourceType, resourceId } where revokedAt: null`.
+- **Simultaneous Race Immunity**: Handled concurrent creation races smoothly, returning the identical active share to both callers.
+
+### ⚙️ Express Reverse Proxy Trust & Client-IP Resolution (`backend/server.js`)
+- **Configurable Proxy Trust**: Configured `app.set('trust proxy', ...)` with fallback for Render single reverse proxy (`trust proxy = 1` in production) and `TRUST_PROXY` env override, ensuring public rate limiters accurately identify real client IPs instead of shared proxy IPs.
+
+### 📚 Authentication Documentation & Roadmap Alignment (`frontend/public/docs/security.md`, `frontend/SECURITY.md`, `docs/AUTH_MIGRATION_ROADMAP.md`)
+- **Documentation Parity**: Accurately documented the current dual-mode authentication model (`httpOnly` cookie + Authorization header fallback + client `localStorage` caching).
+- **Migration Roadmap**: Authored `docs/AUTH_MIGRATION_ROADMAP.md` detailing the transition toward pure `__Host-` prefixed `httpOnly` cookie authentication for a future major release.
+
+### Files Modified
+- `backend/utils/shareCrypto.ts` — mandatory `SHARE_TOKEN_SECRET`, removed `JWT_SECRET` fallback, exported `isShareSecretConfigured()`
+- `backend/server.js` — production boot validation for share secret, configured `trust proxy`
+- `backend/utils/serializers/publicInvoiceSerializer.ts` — built `adaptPublicDTOToPDFInvoice` adapter
+- `backend/controllers/publicShareController.ts` — set `X-Robots-Tag` and `Cache-Control` headers, used PDF adapter
+- `backend/services/shareService.ts` — formalized lifecycle, reconciled expired shares, handled concurrent creation
+- `backend/.env.example` — documented `SHARE_TOKEN_SECRET` and `TRUST_PROXY`
+- `frontend/vercel.json` — fixed root rewrite conflict, narrowed crawler UA regex, added `/share/` headers
+- `frontend/index.html` — removed unsafe inline origin script
+- `frontend/src/hooks/usePageMetadata.js` — created deterministic SEO & prerender hook
+- `frontend/src/pages/Landing/LandingPage.jsx` — integrated `usePageMetadata`, removed static attribute
+- `frontend/src/pages/Legal/PrivacyPolicyPage.jsx` — integrated `usePageMetadata`, removed static attribute
+- `frontend/src/pages/Legal/TermsPage.jsx` — integrated `usePageMetadata`, removed static attribute
+- `frontend/src/pages/Auth/LoginPage.jsx` — removed `data-prerender-ready` attribute
+- `frontend/src/pages/Auth/RegisterPage.jsx` — removed `data-prerender-ready` attribute
+- `frontend/src/pages/Public/PublicInvoicePage.jsx` — enforced `noindex, nofollow, noarchive` robots meta tag
+- `frontend/scripts/prerender.mjs` — strict origin resolution, DOM metadata verification, snapshot validation
+- `frontend/public/docs/security.md` — updated auth transport and share capability security
+- `frontend/SECURITY.md` — updated auth transport architecture notes
+- `docs/AUTH_MIGRATION_ROADMAP.md` — authored migration plan for pure cookie authentication
+- `CHANGELOG.md` — synchronized v2.9.1 notes, documented v2.9.2 release
+- `README.md` — updated version badge to v2.9.2
+
 ## [v2.9.1](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.9.1) — 2026-09-27 — Multi-Representation Delivery Architecture, Static Prerendering & AI Crawler Visibility
 
 ### 🤖 AI Browsing Tool Visibility & Edge Negotiation (ChatGPT Browse, Gemini, Perplexity)
 - **Pre-boot content baked into Vite source `index.html`**: Moved structured product/pricing HTML block directly into the `#prerender` div of `frontend/index.html` — Vite copies it verbatim into every build, eliminating fragile runtime regex injection in CI environments. (`frontend/index.html`)
 - **Deterministic Edge Content-Negotiation (`vercel.json`)**: Configured Vercel CDN edge rewrites to inspect incoming client `User-Agent` headers before falling back to the SPA shell:
-  - **AI & Terminal Crawlers**: Routed `gptbot`, `claudebot`, `perplexitybot`, `anthropic-ai`, `google-extended`, `bytespider`, `cohere-ai`, `applebot-extended`, `curl`, `python-requests`, `scrapy`, `wget`, `aiohttp`, `urllib`, and `postmanruntime` requesting `/` or `/landing` directly to `/landing.md`.
+  - **AI Crawlers**: Routed verified AI indexing bots requesting `/` or `/landing` directly to `/landing.md`.
   - **ChatGPT-User UA routed to HTML rule**: Routed the user-facing ChatGPT browsing tool to `/landing/index.html` to guarantee renderable HTML is returned rather than raw markdown.
-  - **Search Engine & Social Spiders**: Routed `googlebot`, `bingbot`, `yandex`, `baiduspider`, `duckduckbot`, `slurp`, `twitterbot`, `facebookexternalhit`, `linkedinbot`, `slackbot`, `telegrambot`, and `whatsapp` requesting `/` or `/landing` to `/landing/index.html`.
-  - **Unconditional Root Fallback**: Added `"source": "/"` → `"destination": "/landing/index.html"` fallback before the SPA catch-all, ensuring any unknown crawler receives fully prerendered marketing HTML.
+  - **Search Engine & Social Spiders**: Routed search crawlers and social preview bots requesting `/` or `/landing` to `/landing/index.html`.
 - **Simplified `prerender.mjs`**: Removed fragile regex injection blocks. The build process now deterministically performs noscript redirect injection and promotes `index.html` → `app.html` for clean edge rewrite behavior. (`frontend/scripts/prerender.mjs`)
 
 ### 📊 Competitive Pricing & Positioning (AI-Readable Content)
@@ -22,7 +85,7 @@ For full release notes with implementation details, see [GitHub Releases](https:
 - **Updated "When NOT to use" section**: Replaced generic ERP exclusion with accurate CA-accounting and Tally-ecosystem exclusion language. (`frontend/public/landing.md`)
 
 ### 🏛️ Public Representation Invariant & Zero Public-Marketing Flash Guarantee
-- **Public Representation Invariant**: Every crawler-facing representation is derived strictly from public, non-tenant-scoped content (`/landing`, `/privacy-policy`, `/terms`, `/login`, `/register`). Crawler edge routing acts purely as a representation/content-negotiation layer (`Markdown` vs `HTML` vs `SPA Shell`), remaining 100% decoupled from backend authorization (`httpOnly` JWT cookies), multi-tenant logical isolation (`tenantId`), and API endpoint security.
+- **Public Representation Invariant**: Every crawler-facing representation is derived strictly from public, non-tenant-scoped content (`/landing`, `/privacy-policy`, `/terms`), while operational application routes (`/login`, `/register`) are served dynamically via the SPA catch-all (`app.html`) to ensure hashed chunk resolution. Crawler edge routing acts purely as a representation/content-negotiation layer (`Markdown` vs `HTML` vs `SPA Shell`), remaining 100% decoupled from backend authorization (`httpOnly` JWT cookies), multi-tenant logical isolation (`tenantId`), and API endpoint security.
 - **Zero Public-Marketing Flash Guarantee**: Strictly preserved `dist/index.html` (promoted to `app.html`) as the operational SPA shell containing the clean `#prerender` loading indicator, while isolating pre-rendered marketing DOM strictly to `dist/landing/index.html`. Guarantees that authenticated enterprise users entering `/` never receive or render public marketing copy as the root application state.
 
 ### 📸 Build-Time Static HTML Prerendering Engine (`frontend/scripts/prerender.mjs`)
@@ -31,13 +94,14 @@ For full release notes with implementation details, see [GitHub Releases](https:
 - **Deterministic Ready Contract**: Replaced fragile `networkidle0` with `domcontentloaded` combined with `page.waitForSelector('[data-prerender-ready="true"]')`.
 - **Motion Flattening**: Emulated `prefers-reduced-motion: reduce` during crawling to ensure Framer Motion `ScrollReveal` sections render at 100% opacity in pre-rendered HTML.
 - **Stale Snapshot Elimination**: Purges previous route directories (`dist/landing`, `dist/privacy-policy`, etc.) prior to snapshot generation.
-- **Transparent Degradation Logging**: Explicitly differentiates `✓ Pre-rendering complete (5/5 routes)` from `⚠ Pre-rendering degraded (X/5 routes — failed: [...])` and Chromium launch unavailability, ensuring production CI builds are non-blocking.
+- **Transparent Degradation Logging**: Explicitly differentiates `✓ Pre-rendering complete (3/3 routes)` from `⚠ Pre-rendering degraded` and Chromium launch unavailability, ensuring production CI builds are non-blocking.
 
 ### ⚡ Dual-Mode Client Hydration & App Shell Isolation (`frontend/src/main.jsx`)
 - **Dual Client Mounting**: Upgraded React 19 client mounting to detect whether `#root` contains pre-rendered child nodes without `#prerender`. Routes with pre-rendered static HTML (`/landing`, `/privacy-policy`, etc.) invoke `hydrateRoot()` for immediate visual DOM availability with zero DOM recreation. Routes with the clean SPA shell (`/index.html`) invoke `createRoot()` for dynamic operational state initialization.
 
 ### 🎯 Deterministic Application-Ready Contracts
-- **Explicit Ready Attributes**: Attached `data-prerender-ready="true"` to the root container of all five target public pages (`LandingPage.jsx`, `PrivacyPolicyPage.jsx`, `TermsPage.jsx`, `LoginPage.jsx`, `RegisterPage.jsx`), formalizing an explicit contract between the React application and the snapshot engine.
+- **Explicit Ready Attributes**: Attached `data-prerender-ready="true"` to target public marketing and legal pages (`LandingPage.jsx`, `PrivacyPolicyPage.jsx`, `TermsPage.jsx`), formalizing an explicit contract between the React application and the snapshot engine.
+- **Dependency Hygiene**: Cleaned unused `enterDemoMode` import in `LoginPage.jsx`, ensuring 0 ESLint warnings on all modified files.
 - **Dependency Hygiene**: Cleaned unused `enterDemoMode` import in `LoginPage.jsx`, ensuring 0 ESLint warnings on all modified files.
 
 ### Files Modified
