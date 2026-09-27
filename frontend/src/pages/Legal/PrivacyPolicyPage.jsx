@@ -362,13 +362,22 @@ const sections = [
   }
 ];
 
+import usePageMetadata from '../../hooks/usePageMetadata';
+
 export default function PrivacyPolicyPage() {
+  usePageMetadata({
+    title: 'Privacy Policy — Bharat Enterprise Billing System',
+    description: 'Comprehensive privacy policy and data protection framework for Bharat Enterprise Billing System.',
+    canonicalPath: '/privacy-policy',
+    robots: 'index, follow'
+  });
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
   return (
-    <div data-prerender-ready="true" className="pp-page">
+    <div className="pp-page">
       {/* Background effects */}
       <div className="pp-bg-gradient pp-bg-gradient-1" />
       <div className="pp-bg-gradient pp-bg-gradient-2" />

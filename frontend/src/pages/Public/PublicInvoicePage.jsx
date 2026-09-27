@@ -104,13 +104,34 @@ export default function PublicInvoicePage() {
     };
   }, [token]);
 
-  // Set document title
+  // Set document title and enforce noindex privacy for shared customer documents
   useEffect(() => {
+    let originalRobots = '';
+    const robotsEl = document.querySelector('meta[name="robots"]');
+    if (robotsEl) {
+      originalRobots = robotsEl.getAttribute('content') || '';
+      robotsEl.setAttribute('content', 'noindex, nofollow, noarchive');
+    } else {
+      const newMeta = document.createElement('meta');
+      newMeta.name = 'robots';
+      newMeta.content = 'noindex, nofollow, noarchive';
+      document.head.appendChild(newMeta);
+    }
+
     if (data?.invoiceNumber) {
       document.title = `Invoice #${data.invoiceNumber}${data.distributor?.firmName ? ` — ${data.distributor.firmName}` : ''}`;
     }
+
     return () => {
       document.title = 'Bharat Enterprise - Billing System';
+      const el = document.querySelector('meta[name="robots"]');
+      if (el) {
+        if (originalRobots) {
+          el.setAttribute('content', originalRobots);
+        } else {
+          el.setAttribute('content', 'index, follow');
+        }
+      }
     };
   }, [data]);
 

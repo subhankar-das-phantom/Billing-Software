@@ -9,22 +9,69 @@ import path from 'path';
 // those must be served by the SPA catch-all (app.html) so that their
 // hashed JS assets resolve correctly. A prerendered /login/index.html
 // served statically by Vercel's filesystem causes JS MIME type errors.
-const ROUTES = [
-  '/landing',
-  '/privacy-policy',
-  '/terms',
+const ROUTE_CONFIGS = [
+  {
+    route: '/landing',
+    expectedTitle: 'Bharat Enterprise — Billing, Multi-Batch Inventory & Customer Khata Suite',
+    expectedRobots: 'index, follow'
+  },
+  {
+    route: '/privacy-policy',
+    expectedTitle: 'Privacy Policy — Bharat Enterprise Billing System',
+    expectedRobots: 'index, follow'
+  },
+  {
+    route: '/terms',
+    expectedTitle: 'Terms & Conditions — Bharat Enterprise Billing System',
+    expectedRobots: 'index, follow'
+  },
 ];
+
+const ROUTES = ROUTE_CONFIGS.map((c) => c.route);
 
 // Routes that must NOT exist as filesystem directories in dist/.
 // If stale snapshots of these exist, delete them before deploying.
 const BLOCKED_STATIC_ROUTES = ['/login', '/register'];
 
-
 const DIST_DIR = path.resolve('dist');
 const SNAPSHOTS_DIR = path.resolve('snapshots');
 
+const isStrict = process.env.PRERENDER_STRICT === 'true' || process.env.CI === 'true';
+
+/**
+ * Resolve production origin without hardcoding fallbacks.
+ * In strict production builds, missing configuration causes an immediate fatal error.
+ */
+function resolveProductionOrigin() {
+  const origin =
+    process.env.VITE_FRONTEND_URL ||
+    (process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : null);
+
+  if (!origin || !origin.trim()) {
+    if (isStrict) {
+      throw new Error(
+        '[prerender] FATAL: Production origin is not configured in strict mode. ' +
+        'Set VITE_FRONTEND_URL or VERCEL_PROJECT_PRODUCTION_URL before building.'
+      );
+    }
+    console.warn(
+      '[prerender] ⚠ Warning: Production origin is not configured. Local origin will be used for dev preview.'
+    );
+    return null;
+  }
+
+  return origin.trim().replace(/\/+$/, '');
+}
+
 async function run() {
   console.log('\n[prerender] Starting static snapshot generation...');
+
+  const productionOrigin = resolveProductionOrigin();
+  if (productionOrigin) {
+    console.log(`[prerender] Production origin configured: ${productionOrigin}`);
+  }
 
   // Only remove the stale index.html per route — NOT the full directory.
   // Vite copies static assets (images, fonts) from public/ into the same
@@ -35,9 +82,10 @@ async function run() {
     await fs.rm(staleIndex, { force: true }).catch(() => {});
   }
 
-
   let server;
   let browser;
+  const succeededRoutes = [];
+  const failedRoutes = [];
 
   try {
     server = createServer((request, response) => {
@@ -76,16 +124,51 @@ async function run() {
     // Emulate reduced motion so ScrollReveal renders content at 100% opacity
     await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
 
-    const succeededRoutes = [];
-    const failedRoutes = [];
+    // Inject production origin into the window context before scripts execute
+    if (productionOrigin) {
+      await page.evaluateOnNewDocument((origin) => {
+        window.__PRODUCTION_ORIGIN__ = origin;
+      }, productionOrigin);
+    }
 
-    for (const route of ROUTES) {
+    for (const cfg of ROUTE_CONFIGS) {
+      const { route } = cfg;
       const url = `http://127.0.0.1:${port}${route}`;
       try {
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-        await page.waitForSelector('[data-prerender-ready="true"]', { timeout: 10000 });
 
-        const html = await page.content();
+        // Deterministic metadata verification: wait until title, description, robots, and canonical are active in DOM
+        await page.waitForFunction(
+          (config, origin) => {
+            const ready =
+              document.documentElement.getAttribute('data-prerender-ready') === 'true' ||
+              window.__PRERENDER_METADATA_READY__ === true;
+            const titleOk = document.title === config.expectedTitle;
+            const desc = document.querySelector('meta[name="description"]')?.getAttribute('content');
+            const descOk = Boolean(desc && desc.trim().length > 10);
+            const robots = document.querySelector('meta[name="robots"]')?.getAttribute('content');
+            const robotsOk = Boolean(robots && robots.includes('index'));
+
+            let canonicalOk = true;
+            if (origin) {
+              const canonical = document.querySelector('link[rel="canonical"]')?.getAttribute('href');
+              canonicalOk = Boolean(canonical && canonical === `${origin}${config.route}`);
+            }
+
+            return ready && titleOk && descOk && robotsOk && canonicalOk;
+          },
+          { timeout: 15000 },
+          cfg,
+          productionOrigin
+        );
+
+        let html = await page.content();
+
+        // If production origin is configured, ensure any static %VITE_FRONTEND_URL% placeholders are resolved
+        if (productionOrigin) {
+          html = html.replaceAll('%VITE_FRONTEND_URL%', productionOrigin);
+        }
+
         const targetFile = path.join(DIST_DIR, route.slice(1), 'index.html');
         const snapshotFile = path.join(SNAPSHOTS_DIR, route.slice(1), 'index.html');
 
@@ -107,9 +190,16 @@ async function run() {
       console.log(`[prerender] ✓ Pre-rendering complete (${succeededRoutes.length}/${ROUTES.length} routes pre-rendered)\n`);
     } else {
       console.warn(`[prerender] ⚠ Pre-rendering degraded (${succeededRoutes.length}/${ROUTES.length} routes pre-rendered — failed: ${failedRoutes.join(', ')})\n`);
+      if (isStrict) {
+        throw new Error(`[prerender] Strict mode failure: failed to pre-render routes: ${failedRoutes.join(', ')}`);
+      }
     }
   } catch (err) {
-    console.warn('\n[prerender] ⚠ Headless browser pre-rendering unavailable in this environment:');
+    if (isStrict) {
+      throw err;
+    }
+
+    console.warn('\n[prerender] ⚠ Headless browser pre-rendering unavailable or failed:');
     console.warn(`[prerender]   ${err.message}`);
     console.log('[prerender] ℹ Hydrating static snapshots from committed snapshots/ repository...');
 
@@ -142,22 +232,63 @@ async function run() {
       const noscriptRedirect = `  <noscript><meta http-equiv="refresh" content="0;url=/landing" /></noscript>`;
       shellHtml = shellHtml.replace('</head>', `${noscriptRedirect}\n</head>`);
 
-      // NOTE: Pre-boot product content (pricing, plans, features) is already baked
-      // directly into index.html source template inside #prerender. No regex injection needed.
-
       await fs.writeFile(distApp, shellHtml, 'utf-8');
       await fs.unlink(distIndex);
       console.log('[prerender] ✓ Promoted dist/index.html -> dist/app.html with noscript redirect');
-
     } catch {
       // index.html may not exist or already promoted
     }
+
+    // ─── Post-Prerender Validation & Blocked Route Invariant Enforcement ────
+    console.log('[prerender] Validating snapshot invariants...');
+
+    // 1. Enforce blocked routes: assert /login and /register do not exist as static HTML files in dist/
+    for (const blockedRoute of BLOCKED_STATIC_ROUTES) {
+      const blockedDir = path.join(DIST_DIR, blockedRoute.slice(1));
+      const blockedFile = path.join(blockedDir, 'index.html');
+      try {
+        await fs.access(blockedFile);
+        console.warn(`  ⚠ Blocked static route detected: dist/${blockedRoute.slice(1)}/index.html. Purging...`);
+        await fs.rm(blockedDir, { recursive: true, force: true });
+        if (isStrict) {
+          throw new Error(`[prerender] Invariant violation: Blocked route ${blockedRoute} was produced in dist/!`);
+        }
+      } catch (err) {
+        if (err.code !== 'ENOENT') throw err;
+      }
+    }
+    console.log('  ✓ Invariant verified: No blocked dynamic routes (/login, /register) exist in dist/');
+
+    // 2. Validate that no snapshots contain local ephemeral URLs in canonical or OpenGraph metadata
+    for (const cfg of ROUTE_CONFIGS) {
+      const targetFile = path.join(DIST_DIR, cfg.route.slice(1), 'index.html');
+      try {
+        const content = await fs.readFile(targetFile, 'utf-8');
+        const hasLocalhost = content.includes('127.0.0.1') || content.includes('localhost');
+        if (hasLocalhost) {
+          const errMsg = `[prerender] Invariant violation: Snapshot for ${cfg.route} contains local ephemeral address (127.0.0.1 or localhost)!`;
+          if (isStrict) {
+            throw new Error(errMsg);
+          } else {
+            console.warn(`  ⚠ ${errMsg}`);
+          }
+        }
+      } catch (err) {
+        if (isStrict && err.code === 'ENOENT') throw err;
+      }
+    }
+    console.log('  ✓ Invariant verified: No local ephemeral URLs detected in static snapshots\n');
   }
 }
 
-run().then(() => {
-  process.exit(0);
-}).catch((err) => {
-  console.error('[prerender] Unexpected error:', err);
-  process.exit(0); // Graceful degradation: never fail the build
-});
+run()
+  .then(() => {
+    process.exit(0);
+  })
+  .catch((err) => {
+    console.error('[prerender] Fatal error:', err.message);
+    if (isStrict) {
+      process.exit(1);
+    }
+    process.exit(0);
+  });
