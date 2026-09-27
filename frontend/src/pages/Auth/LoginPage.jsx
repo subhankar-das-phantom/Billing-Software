@@ -40,7 +40,7 @@ export default function LoginPage() {
     try {
       const result = await login(email, password);
       if (result?.success) {
-        navigate('/');
+        navigate('/dashboard');
       }
     } catch (err) {
       // Hold loading state for at least 400ms so rapid local network 401 rejections (~20ms) don't trigger a 1-frame button flick

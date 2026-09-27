@@ -48,7 +48,7 @@ export default function PlanAccessRestricted({ feature, currentPlan = 'Starter' 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
             <button
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/dashboard')}
               className="w-full sm:flex-1 py-2.5 px-4 bg-slate-800 hover:bg-slate-700 active:bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700 transition-all flex items-center justify-center gap-2"
             >
               <LayoutDashboard className="w-3.5 h-3.5" />

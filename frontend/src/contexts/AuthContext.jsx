@@ -402,7 +402,7 @@ export const AuthProvider = ({ children }) => {
       setThemeMode(DEMO_ADMIN.preferences.themeMode);
     }
 
-    navigate('/');
+    navigate('/dashboard');
   }, [navigate, setThemeMode]);
 
   return (

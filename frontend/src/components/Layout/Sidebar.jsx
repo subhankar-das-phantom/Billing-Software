@@ -217,7 +217,7 @@ export default function Sidebar({
         }`}
       >
         <Link
-          to="/"
+          to="/dashboard"
           onClick={onClose}
           className="flex items-center gap-3 group focus-visible:outline-none"
           title="Bharat Enterprise"

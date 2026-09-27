@@ -221,22 +221,35 @@ async function run() {
     if (browser) await browser.close().catch(() => {});
     if (server) server.close();
 
-    // Promote dist/index.html to dist/app.html so that requests to root '/'
-    // are not intercepted by the physical filesystem before Vercel Edge rewrites are evaluated.
+    // 1. Save dist/index.html (the Vite client bundle SPA shell) as dist/app.html for dynamic routes
     const distIndex = path.join(DIST_DIR, 'index.html');
     const distApp = path.join(DIST_DIR, 'app.html');
     try {
       let shellHtml = await fs.readFile(distIndex, 'utf-8');
-
-      // Inject a <noscript> redirect so non-JS clients go to /landing
-      const noscriptRedirect = `  <noscript><meta http-equiv="refresh" content="0;url=/landing" /></noscript>`;
-      shellHtml = shellHtml.replace('</head>', `${noscriptRedirect}\n</head>`);
-
       await fs.writeFile(distApp, shellHtml, 'utf-8');
-      await fs.unlink(distIndex);
-      console.log('[prerender] ✓ Promoted dist/index.html -> dist/app.html with noscript redirect');
+      console.log('[prerender] ✓ Saved dist/app.html as dynamic SPA shell');
     } catch {
-      // index.html may not exist or already promoted
+      // index.html may already be handled
+    }
+
+    // 2. Promote pre-rendered /landing snapshot to dist/index.html so root '/' serves the complete landing page
+    const landingSnapshot = path.join(DIST_DIR, 'landing', 'index.html');
+    const rootSnapshotFile = path.join(SNAPSHOTS_DIR, 'index.html');
+    try {
+      let landingHtml = await fs.readFile(landingSnapshot, 'utf-8');
+      // Anchor canonical and og:url to root '/' for root delivery
+      landingHtml = landingHtml.replace(
+        /rel="canonical" href="([^"]*)\/landing"/,
+        'rel="canonical" href="$1/"'
+      ).replace(
+        /property="og:url" content="([^"]*)\/landing"/,
+        'property="og:url" content="$1/"'
+      );
+      await fs.writeFile(distIndex, landingHtml, 'utf-8');
+      await fs.writeFile(rootSnapshotFile, landingHtml, 'utf-8');
+      console.log('[prerender] ✓ Promoted landing snapshot -> dist/index.html for root delivery');
+    } catch (landingErr) {
+      console.warn(`[prerender] ⚠ Could not copy landing snapshot to index.html: ${landingErr.message}`);
     }
 
     // ─── Post-Prerender Validation & Blocked Route Invariant Enforcement ────

@@ -121,7 +121,7 @@ export default function Header({
               className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 font-medium overflow-hidden whitespace-nowrap"
             >
               <Link
-                to="/"
+                to="/dashboard"
                 className="hover:text-blue-400 transition-colors shrink-0"
               >
                 Home

@@ -6,9 +6,11 @@ For full release notes with implementation details, see [GitHub Releases](https:
 
 ## [v2.9.2](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.9.2) — 2026-09-27 — Production Hardening, Public Delivery Refinement & Security Governance
 
-### 🌐 Root Route Delivery Conflict Resolution & Edge Negotiation Hardening (`frontend/vercel.json`)
-- **Root Route SPA Delivery Preservation**: Removed unconditional edge rewrite from `"source": "/"` to `"/landing/index.html"` in `vercel.json`. Authenticated users navigating to `/` now reliably receive the operational application shell (`app.html`), enabling immediate, seamless dashboard mounting without marketing DOM flashes or hydration mismatches.
-- **Narrowed Crawler Detection Regex**: Removed generic HTTP clients (`curl`, `wget`, `python`, `postman`, `httpclient`, `aiohttp`, `urllib`) from crawler rewrite rules so automated diagnostics, uptime monitors, and developers receive standard responses. Verified AI crawlers continue to negotiate `/landing.md`, while search engine and social spiders negotiate `/landing/index.html`.
+### 🌐 Root Route Static Landing Delivery & Clean Operational Routing (`frontend/vercel.json`, `frontend/src/App.jsx`, `frontend/scripts/prerender.mjs`)
+- **Static Landing Snapshot at Root `/`**: Root requests to `/` now deliver the full pre-rendered landing page snapshot (`dist/index.html`) directly with 0ms FCP. ChatGPT, Googlebot, Perplexity, and first-time human visitors receive identical 100% complete HTML representation on both `/` and `/landing`, rendering all features, use cases, and subscription plans without requiring client-side JS redirects.
+- **Dedicated `/dashboard` Operational Route**: Separated the authenticated operational dashboard to `/dashboard` while routing unauthenticated root visits to `LandingPage`. Authenticated sessions visiting `/` seamlessly transition to `/dashboard`, eliminating client-side bouncing and DOM flashes.
+- **Dynamic SPA Shell Isolation (`dist/app.html`)**: Dynamic routes (`/dashboard`, `/login`, `/register`, `/invoices`, etc.) are served by `dist/app.html` via Vercel edge rewrites, while public marketing and legal routes (`/`, `/landing`, `/privacy-policy`, `/terms`) are served by their respective static HTML files.
+- **AI Agent Content Negotiation**: Configured explicit `/landing.md` content negotiation for LLM crawlers (`GPTBot`, `ClaudeBot`, `PerplexityBot`, etc.) while ensuring standard browser requests receive the static HTML representation.
 
 ### 🔐 Cryptographic Share Token Hardening & Secret Management (`backend/utils/shareCrypto.ts`, `backend/server.js`, `backend/.env.example`)
 - **Mandatory Production Secret**: Required dedicated `SHARE_TOKEN_SECRET` for public share token AES-256-GCM encryption in production. Eliminated silent fallback to `JWT_SECRET` and deterministic fallback keys.

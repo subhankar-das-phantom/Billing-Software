@@ -37,9 +37,9 @@ export const enterDemoMode = (navigate) => {
   localStorage.setItem('cached_subscription', JSON.stringify(DEMO_SUBSCRIPTION));
 
   if (navigate) {
-    navigate('/');
+    navigate('/dashboard');
   } else {
-    window.location.href = '/';
+    window.location.href = '/dashboard';
   }
 };
 

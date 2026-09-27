@@ -97,7 +97,7 @@ export default function RegisterPage() {
         }
         
         showSuccess('Account created successfully! Welcome to Bharat Enterprise.');
-        navigate('/');
+        navigate('/dashboard');
       }
     } catch (err) {
       // Show the specific error message from the server

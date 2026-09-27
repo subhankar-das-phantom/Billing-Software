@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import LandingNav from './components/LandingNav';
 import HeroSection from './components/HeroSection';
 import CapabilityStrip from './components/CapabilityStrip';
@@ -24,11 +25,14 @@ import usePageMetadata from '../../hooks/usePageMetadata';
  * Full Dark and Light theme support aligned with canonical design system tokens.
  */
 export default function LandingPage() {
+  const location = useLocation();
+  const canonicalPath = location.pathname === '/' ? '/' : '/landing';
+
   usePageMetadata({
     title: 'Bharat Enterprise — Billing, Multi-Batch Inventory & Customer Khata Suite',
     description:
       'Enterprise billing, multi-batch inventory tracking, customer ledger accounting, and GST-ready invoicing for distributors, wholesalers, and retail enterprises.',
-    canonicalPath: '/landing',
+    canonicalPath,
     robots: 'index, follow'
   });
 
