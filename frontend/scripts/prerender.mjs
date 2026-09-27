@@ -174,9 +174,16 @@ async function run() {
   </ul>
   <p>All plans include a 14-day free trial. Register at <a href="/register">billing-software-dev.vercel.app/register</a></p>
 </main></div>`;
-      shellHtml = shellHtml.replace('<div id="root"></div>', prebootContent);
-      // Fallback: also replace any root div with children (e.g. from previous build)
-      shellHtml = shellHtml.replace(/<div id="root">[\s\S]*?<\/div>(?=\s*<script)/, prebootContent);
+      // Extract inner HTML from prebootContent (strips outer <div id="root">...</div> wrapper)
+      const prebootInner = prebootContent.replace(/^<div id="root">/, '').replace(/<\/div>$/, '');
+      // Path 1: simple empty root div
+      shellHtml = shellHtml.replace('<div id="root"></div>', `<div id="root">${prebootInner}</div>`);
+      // Path 2: Vite inlines a #prerender spinner inside #root for FCP — replace it.
+      shellHtml = shellHtml.replace(
+        /<div id="prerender">[\s\S]*?<\/div>\s*<\/div>/,
+        `<div id="prerender">${prebootInner}</div>\n      </div>`
+      );
+
 
       await fs.writeFile(distApp, shellHtml, 'utf-8');
       await fs.unlink(distIndex);
