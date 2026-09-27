@@ -26,16 +26,13 @@ const SNAPSHOTS_DIR = path.resolve('snapshots');
 async function run() {
   console.log('\n[prerender] Starting static snapshot generation...');
 
-  // Remove stale route directories for ALL routes (fresh snapshot)
+  // Only remove the stale index.html per route — NOT the full directory.
+  // Vite copies static assets (images, fonts) from public/ into the same
+  // route subdirectories (e.g. dist/landing/product/*.webp). Deleting the
+  // full directory would remove those assets before the snapshot is written.
   for (const route of ROUTES) {
-    const routeDir = path.join(DIST_DIR, route.slice(1));
-    await fs.rm(routeDir, { recursive: true, force: true }).catch(() => {});
-  }
-
-  // Delete any blocked routes that should never be static filesystem pages
-  for (const route of BLOCKED_STATIC_ROUTES) {
-    const routeDir = path.join(DIST_DIR, route.slice(1));
-    await fs.rm(routeDir, { recursive: true, force: true }).catch(() => {});
+    const staleIndex = path.join(DIST_DIR, route.slice(1), 'index.html');
+    await fs.rm(staleIndex, { force: true }).catch(() => {});
   }
 
 
