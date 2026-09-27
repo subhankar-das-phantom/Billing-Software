@@ -124,9 +124,15 @@ async function run() {
     const distIndex = path.join(DIST_DIR, 'index.html');
     const distApp = path.join(DIST_DIR, 'app.html');
     try {
-      await fs.copyFile(distIndex, distApp);
+      let shellHtml = await fs.readFile(distIndex, 'utf-8');
+      // Inject a <noscript> redirect so headless browsers or non-JS clients
+      // that time out before React boots are sent to /landing where all
+      // product content, pricing, and features are pre-rendered and visible.
+      const noscriptRedirect = `  <noscript><meta http-equiv="refresh" content="0;url=/landing" /></noscript>`;
+      shellHtml = shellHtml.replace('</head>', `${noscriptRedirect}\n</head>`);
+      await fs.writeFile(distApp, shellHtml, 'utf-8');
       await fs.unlink(distIndex);
-      console.log('[prerender] ✓ Successfully promoted dist/index.html -> dist/app.html for Vercel Edge root rewrite evaluation');
+      console.log('[prerender] ✓ Promoted dist/index.html -> dist/app.html with noscript /landing redirect');
     } catch {
       // index.html may not exist or already promoted
     }
