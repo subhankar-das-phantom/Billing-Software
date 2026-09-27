@@ -179,7 +179,7 @@
       "destination": "/landing/index.html"
     },
     {
-      "source": "/((?!api/).*)",
+      "source": "/((?!api/|assets/|docs/).*)",
       "destination": "/app.html"
     }
   ]
