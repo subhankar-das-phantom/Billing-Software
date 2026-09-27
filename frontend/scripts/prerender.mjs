@@ -97,6 +97,18 @@ async function run() {
   } finally {
     if (browser) await browser.close().catch(() => {});
     if (server) server.close();
+
+    // Promote dist/index.html to dist/app.html so that requests to root '/'
+    // are not intercepted by the physical filesystem before Vercel Edge rewrites are evaluated.
+    const distIndex = path.join(DIST_DIR, 'index.html');
+    const distApp = path.join(DIST_DIR, 'app.html');
+    try {
+      await fs.copyFile(distIndex, distApp);
+      await fs.unlink(distIndex);
+      console.log('[prerender] ✓ Successfully promoted dist/index.html -> dist/app.html for Vercel Edge root rewrite evaluation');
+    } catch {
+      // index.html may not exist or already promoted
+    }
   }
 }
 
