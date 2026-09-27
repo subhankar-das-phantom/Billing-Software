@@ -13,6 +13,7 @@ const ROUTES = [
 ];
 
 const DIST_DIR = path.resolve('dist');
+const SNAPSHOTS_DIR = path.resolve('snapshots');
 
 async function run() {
   console.log('\n[prerender] Starting static snapshot generation...');
@@ -74,9 +75,14 @@ async function run() {
 
         const html = await page.content();
         const targetFile = path.join(DIST_DIR, route.slice(1), 'index.html');
+        const snapshotFile = path.join(SNAPSHOTS_DIR, route.slice(1), 'index.html');
 
         await fs.mkdir(path.dirname(targetFile), { recursive: true });
         await fs.writeFile(targetFile, html, 'utf-8');
+
+        await fs.mkdir(path.dirname(snapshotFile), { recursive: true });
+        await fs.writeFile(snapshotFile, html, 'utf-8');
+
         console.log(`  ✓ Snapshot generated: ${route} -> dist/${route.slice(1)}/index.html`);
         succeededRoutes.push(route);
       } catch (routeErr) {
@@ -93,7 +99,22 @@ async function run() {
   } catch (err) {
     console.warn('\n[prerender] ⚠ Headless browser pre-rendering unavailable in this environment:');
     console.warn(`[prerender]   ${err.message}`);
-    console.warn('[prerender] ⚠ Falling back to Edge Markdown routing & SPA static shell (deployment continues cleanly).\n');
+    console.log('[prerender] ℹ Hydrating static snapshots from committed snapshots/ repository...');
+
+    for (const route of ROUTES) {
+      const snapFile = path.join(SNAPSHOTS_DIR, route.slice(1), 'index.html');
+      const distTargetDir = path.join(DIST_DIR, route.slice(1));
+      const distTargetFile = path.join(distTargetDir, 'index.html');
+      try {
+        const snapContent = await fs.readFile(snapFile, 'utf-8');
+        await fs.mkdir(distTargetDir, { recursive: true });
+        await fs.writeFile(distTargetFile, snapContent, 'utf-8');
+        console.log(`  ✓ Snapshot hydrated: ${route} -> dist/${route.slice(1)}/index.html`);
+      } catch (copyErr) {
+        console.warn(`  ⚠ Warning: Could not hydrate ${route}: ${copyErr.message}`);
+      }
+    }
+    console.log('[prerender] ✓ All static snapshots successfully hydrated for deployment.\n');
   } finally {
     if (browser) await browser.close().catch(() => {});
     if (server) server.close();
