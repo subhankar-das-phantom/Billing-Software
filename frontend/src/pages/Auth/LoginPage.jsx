@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { enterDemoMode } from '../../demo/demoState';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -57,7 +56,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 py-8 sm:py-12 relative overflow-y-auto bg-slate-950">
+    <div data-prerender-ready="true" className="min-h-screen flex flex-col items-center justify-center p-4 py-8 sm:py-12 relative overflow-y-auto bg-slate-950">
       {/* Crisp Subtle Grid Background */}
       <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_75%_50%_at_50%_50%,black,transparent)]" />
 

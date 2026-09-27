@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build:client": "vite build",
+    "prerender": "node scripts/prerender.mjs",
+    "build": "vite build && node scripts/prerender.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "security:check": "node scripts/check-forbidden-packages.js"
@@ -34,6 +36,8 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
+    "puppeteer": "^25.12.0",
+    "serve-handler": "^6.1.7",
     "tailwindcss": "^4.1.18",
     "vite": "^7.2.4"
   }
