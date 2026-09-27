@@ -4,13 +4,21 @@ import handler from 'serve-handler';
 import fs from 'fs/promises';
 import path from 'path';
 
+// Only pre-render public marketing and legal pages.
+// NEVER include app routes like /login, /register, /dashboard here —
+// those must be served by the SPA catch-all (app.html) so that their
+// hashed JS assets resolve correctly. A prerendered /login/index.html
+// served statically by Vercel's filesystem causes JS MIME type errors.
 const ROUTES = [
   '/landing',
   '/privacy-policy',
   '/terms',
-  '/login',
-  '/register',
 ];
+
+// Routes that must NOT exist as filesystem directories in dist/.
+// If stale snapshots of these exist, delete them before deploying.
+const BLOCKED_STATIC_ROUTES = ['/login', '/register'];
+
 
 const DIST_DIR = path.resolve('dist');
 const SNAPSHOTS_DIR = path.resolve('snapshots');
@@ -18,11 +26,18 @@ const SNAPSHOTS_DIR = path.resolve('snapshots');
 async function run() {
   console.log('\n[prerender] Starting static snapshot generation...');
 
-  // Ensure stale route directories are cleaned before snapshotting
+  // Remove stale route directories for ALL routes (fresh snapshot)
   for (const route of ROUTES) {
     const routeDir = path.join(DIST_DIR, route.slice(1));
     await fs.rm(routeDir, { recursive: true, force: true }).catch(() => {});
   }
+
+  // Delete any blocked routes that should never be static filesystem pages
+  for (const route of BLOCKED_STATIC_ROUTES) {
+    const routeDir = path.join(DIST_DIR, route.slice(1));
+    await fs.rm(routeDir, { recursive: true, force: true }).catch(() => {});
+  }
+
 
   let server;
   let browser;
