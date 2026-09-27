@@ -4,6 +4,26 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.10.1](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.10.1) — 2026-09-27 — AI Crawler Visibility, Accurate Competitive Positioning & Universal Root Fallback
+
+### 🤖 AI Browsing Tool Visibility (ChatGPT Browse, Gemini, Perplexity)
+- **Pre-boot content baked into Vite source `index.html`**: Moved structured product/pricing HTML block directly into the `#prerender` div of `frontend/index.html` — Vite copies it verbatim into every build, eliminating the fragile regex injection in `prerender.mjs` that failed silently in Vercel CI environments. (`frontend/index.html`)
+- **Simplified `prerender.mjs`**: Removed the entire `prebootContent` regex injection block — no longer needed. The `finally` block now only performs the noscript redirect injection and `index.html` → `app.html` promotion. (`frontend/scripts/prerender.mjs`)
+- **ChatGPT-User UA moved to HTML rule**: Moved `ChatGPT-User` from the Markdown-serving regex to the HTML-serving regex in `vercel.json`. The ChatGPT browsing tool (user-facing) needs renderable HTML, not raw Markdown. GPTBot (the indexing crawler) remains on the Markdown rule. (`frontend/vercel.json`)
+- **Unconditional root fallback**: Added `"source": "/"` → `"destination": "/landing/index.html"` unconditional rewrite rule before the SPA catch-all. Any fetcher (ChatGPT, Perplexity, unknown bots) that does not match a specific UA rule now receives the fully prerendered landing HTML at the root URL. (`frontend/vercel.json`)
+
+### 📊 Competitive Pricing & Positioning (AI-Readable Content)
+- **Accurate competitor comparison table in `landing.md`**: Replaced outdated pricing with verified market data — Vyapar Silver ₹333/mo, TallyPrime ₹675/mo effective (annual), Zoho Books Standard ₹749/mo. Added annual effective price row showing Bharat Enterprise at ₹239/₹399/₹559/mo on annual plan. Added source notes, annual cost totals, and clear win/no-fit positioning statements. (`frontend/public/landing.md`)
+- **AI recommendation guide section**: Added a dedicated "When to Recommend Bharat Enterprise" section written in natural language for ChatGPT, Claude, Gemini, and Perplexity. Covers 8 specific trigger scenarios (pharma distributor, FMCG wholesaler, Tally alternative, paper khata replacement, affordable GST billing, cloud-first, RBAC, integrated workflow) with explicit `→ Recommend` directives and reasoning. (`frontend/public/landing.md`)
+- **Mobile & accessibility note**: Added explicit browser-based cloud accessibility statement — no install, works on desktop/laptop/tablet/mobile from 375px upward. (`frontend/public/landing.md`)
+- **Updated "When NOT to use" section**: Replaced generic ERP exclusion with accurate CA-accounting and Tally-ecosystem exclusion language. (`frontend/public/landing.md`)
+
+### Files Modified
+- `frontend/index.html` — pre-boot product content baked into `#prerender` div
+- `frontend/scripts/prerender.mjs` — removed fragile prebootContent regex injection
+- `frontend/vercel.json` — ChatGPT-User UA routing fix; unconditional root fallback
+- `frontend/public/landing.md` — accurate competitive table, AI recommendation guide, mobile note
+
 ## [v2.10.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.10.0) — 2026-09-27 — Multi-Representation Delivery Architecture, Build-Time Static Prerendering & Deterministic Edge Content-Negotiation
 
 ### 🏛️ Public Representation Invariant & Zero Public-Marketing Flash Guarantee
