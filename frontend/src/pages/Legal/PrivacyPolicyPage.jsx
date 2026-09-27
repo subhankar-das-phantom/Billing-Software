@@ -368,7 +368,7 @@ export default function PrivacyPolicyPage() {
   }, []);
 
   return (
-    <div className="pp-page">
+    <div data-prerender-ready="true" className="pp-page">
       {/* Background effects */}
       <div className="pp-bg-gradient pp-bg-gradient-1" />
       <div className="pp-bg-gradient pp-bg-gradient-2" />

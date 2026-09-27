@@ -117,6 +117,50 @@
   ],
   "rewrites": [
     {
+      "source": "/",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(gptbot|claudebot|perplexitybot|anthropic-ai|google-extended|bytespider|cohere-ai|applebot-extended|curl|python-requests|scrapy|httpclient|wget|aiohttp|urllib|postmanruntime).*"
+        }
+      ],
+      "destination": "/landing.md"
+    },
+    {
+      "source": "/landing",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(gptbot|claudebot|perplexitybot|anthropic-ai|google-extended|bytespider|cohere-ai|applebot-extended|curl|python-requests|scrapy|httpclient|wget|aiohttp|urllib|postmanruntime).*"
+        }
+      ],
+      "destination": "/landing.md"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(googlebot|bingbot|yandex|baiduspider|duckduckbot|slurp|twitterbot|facebookexternalhit|linkedinbot|slackbot|telegrambot|whatsapp).*"
+        }
+      ],
+      "destination": "/landing/index.html"
+    },
+    {
+      "source": "/landing",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(googlebot|bingbot|yandex|baiduspider|duckduckbot|slurp|twitterbot|facebookexternalhit|linkedinbot|slackbot|telegrambot|whatsapp).*"
+        }
+      ],
+      "destination": "/landing/index.html"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
