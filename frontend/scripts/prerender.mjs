@@ -137,14 +137,51 @@ async function run() {
     const distApp = path.join(DIST_DIR, 'app.html');
     try {
       let shellHtml = await fs.readFile(distIndex, 'utf-8');
-      // Inject a <noscript> redirect so headless browsers or non-JS clients
-      // that time out before React boots are sent to /landing where all
-      // product content, pricing, and features are pre-rendered and visible.
+
+      // Inject a <noscript> redirect so non-JS clients go to /landing
       const noscriptRedirect = `  <noscript><meta http-equiv="refresh" content="0;url=/landing" /></noscript>`;
       shellHtml = shellHtml.replace('</head>', `${noscriptRedirect}\n</head>`);
+
+      // Inject a pre-boot content block inside #root so that AI browsing tools
+      // (ChatGPT Browse, Gemini, Perplexity) that read page HTML before React
+      // executes see full product info, pricing and features instead of a blank div.
+      // React replaces this on hydration — real browser users are unaffected.
+      const prebootContent = `<div id="root"><main aria-label="Bharat Enterprise — Billing &amp; GST Invoicing Software" style="font-family:sans-serif;max-width:860px;margin:0 auto;padding:24px 16px;color:#0f172a">
+  <h1>Bharat Enterprise — The Operating System for Modern Indian Distribution</h1>
+  <p>Cloud billing, multi-batch inventory tracking, customer khata ledgers, and GST-ready invoicing for Indian distributors, wholesalers, pharmaceutical traders, and FMCG enterprises.</p>
+  <p><a href="/landing">View full product details</a> | <a href="/register">Start free 14-day trial</a> | <a href="/login">Sign in</a></p>
+  <h2>Subscription Plans &amp; Pricing</h2>
+  <ul>
+    <li><strong>Starter — ₹299/month:</strong> Dashboard, Customer Directory, Product Catalog, Create &amp; Print Invoices, Invoice History, Basic Reports. 14-day free trial.</li>
+    <li><strong>Business — ₹499/month (Most Popular):</strong> All Starter features + Supplier Management, Purchase Tracking, Inventory Ledger, Collections &amp; Payment Receipts, Credit Notes &amp; Returns, Customer Khata &amp; Ledgers, Manual Journal Entries, Outstanding Balance Tracking. 14-day free trial.</li>
+    <li><strong>Professional — ₹699/month:</strong> All Business features + Employee Management &amp; RBAC, Employee Activity Analytics, Administrative Activity Logs, GST Reports &amp; Tax Ledger Data, Advanced Business Reporting, Inventory Intelligence Engine. 14-day free trial.</li>
+  </ul>
+  <h2>Tenure Discounts</h2>
+  <ul>
+    <li>Monthly: standard price</li>
+    <li>Quarterly (3 months): 5% off</li>
+    <li>Half-Yearly (6 months): 10% off</li>
+    <li>Annual (12 months): 20% off — Business plan ₹4,790/year instead of ₹5,988</li>
+  </ul>
+  <h2>Key Features</h2>
+  <ul>
+    <li>GST-Ready Invoicing: CGST/SGST for intra-state, IGST for inter-state, HSN code mapping, dual-copy printing</li>
+    <li>Multi-Batch Inventory: batch numbers, expiry dates, MRP, low-stock alerts, movement ledger</li>
+    <li>Customer Khata: running balance, payment receipts (Cash/UPI/Cheque/NEFT), exportable statements</li>
+    <li>Supplier Management: GSTIN/DL tracking, purchase entries, procurement history</li>
+    <li>Analytics: daily/monthly sales trends, cash flow ratio, receivables aging</li>
+    <li>Role-Based Access: Admin and Employee roles, audit logs, secure sessions</li>
+  </ul>
+  <p>All plans include a 14-day free trial. Register at <a href="/register">billing-software-dev.vercel.app/register</a></p>
+</main></div>`;
+      shellHtml = shellHtml.replace('<div id="root"></div>', prebootContent);
+      // Fallback: also replace any root div with children (e.g. from previous build)
+      shellHtml = shellHtml.replace(/<div id="root">[\s\S]*?<\/div>(?=\s*<script)/, prebootContent);
+
       await fs.writeFile(distApp, shellHtml, 'utf-8');
       await fs.unlink(distIndex);
-      console.log('[prerender] ✓ Promoted dist/index.html -> dist/app.html with noscript /landing redirect');
+      console.log('[prerender] ✓ Promoted dist/index.html -> dist/app.html with pre-boot content and noscript redirect');
+
     } catch {
       // index.html may not exist or already promoted
     }
