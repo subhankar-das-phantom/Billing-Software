@@ -76,12 +76,16 @@ export interface IPublicInvoiceDTO {
   paidAmount: number;
   dueAmount: number;
   downloadPdfUrl: string;
+  invoiceColumns: string[];
+  allowPublicPrint: boolean;
 }
 
 export function serializePublicInvoice(
   invoice: any,
   distributorInfo: any,
-  rawToken: string
+  rawToken: string,
+  invoiceColumns?: string[],
+  allowPublicPrint: boolean = false
 ): IPublicInvoiceDTO {
   const isCancelled = invoice.status === 'Cancelled';
   const netTotal = Number(invoice.totals?.netTotal) || 0;
@@ -90,9 +94,13 @@ export function serializePublicInvoice(
   const roundOff = Math.round((roundedNet - netTotal) * 100) / 100;
   const dueAmount = isCancelled ? 0 : Math.max(0, netTotal - paidAmount);
 
+  // Strictly prioritize the invoice's own distributor snapshot over external business details
+  const hasInvoiceDist = invoice.distributor && typeof invoice.distributor === 'object' && Boolean(invoice.distributor.firmName);
+  const distSource = hasInvoiceDist ? invoice.distributor : (distributorInfo || {});
+
   // Distributor payment info only exposed if explicitly enabled
   let paymentInfo: IPublicDistributorDTO['paymentInformation'] = undefined;
-  const distPay = distributorInfo?.paymentInformation || invoice.distributor?.paymentInformation;
+  const distPay = distSource.paymentInformation;
   if (distPay?.enabled) {
     paymentInfo = {
       upiId: distPay.upiId || undefined,
@@ -104,11 +112,11 @@ export function serializePublicInvoice(
   }
 
   const distributor: IPublicDistributorDTO = {
-    firmName: distributorInfo?.firmName || invoice.distributor?.firmName || 'BHARAT ENTERPRISES',
-    firmAddress: distributorInfo?.firmAddress || invoice.distributor?.firmAddress || '',
-    firmPhone: distributorInfo?.firmPhone || invoice.distributor?.firmPhone || '',
-    firmGSTIN: distributorInfo?.firmGSTIN || invoice.distributor?.firmGSTIN || '',
-    firmDL: distributorInfo?.firmDL || invoice.distributor?.firmDL || '',
+    firmName: distSource.firmName || '',
+    firmAddress: distSource.firmAddress || '',
+    firmPhone: distSource.firmPhone || '',
+    firmGSTIN: distSource.firmGSTIN || '',
+    firmDL: distSource.firmDL || '',
     ...(paymentInfo ? { paymentInformation: paymentInfo } : {})
   };
 
@@ -194,6 +202,10 @@ export function serializePublicInvoice(
     totals,
     paidAmount,
     dueAmount,
-    downloadPdfUrl: `/api/public/shares/${rawToken}/pdf`
+    downloadPdfUrl: `/api/public/shares/${rawToken}/pdf`,
+    invoiceColumns: Array.isArray(invoiceColumns) && invoiceColumns.length > 0
+      ? invoiceColumns
+      : ['qty', 'free', 'productName', 'hsn', 'batchNo', 'expiry', 'mrp', 'rate', 'net', 'disc', 'gst', 'amount'],
+    allowPublicPrint: allowPublicPrint === true
   };
 }

@@ -49,6 +49,12 @@ const getBatchGroups = (allocations) => {
   return Object.values(groupsMap);
 };
 
+const DEFAULT_INVOICE_COLUMNS = [
+  'qty', 'free', 'productName', 'hsn', 'batchNo',
+  'expiry', 'mrp', 'rate', 'net', 'disc',
+  'gst', 'amount'
+];
+
 export default function PublicInvoicePage() {
   const { token } = useParams();
   const [loading, setLoading] = useState(true);
@@ -101,7 +107,7 @@ export default function PublicInvoicePage() {
   // Set document title
   useEffect(() => {
     if (data?.invoiceNumber) {
-      document.title = `Invoice #${data.invoiceNumber} — ${data.distributor?.firmName || 'Bharat Enterprise'}`;
+      document.title = `Invoice #${data.invoiceNumber}${data.distributor?.firmName ? ` — ${data.distributor.firmName}` : ''}`;
     }
     return () => {
       document.title = 'Bharat Enterprise - Billing System';
@@ -194,17 +200,156 @@ export default function PublicInvoicePage() {
   const { distributor, customer, items, totals, paidAmount, dueAmount } = data;
   const isPaid = dueAmount <= 0;
   const isCancelled = data.status === 'Cancelled';
+  const canPrint = data.allowPublicPrint === true;
+
+  const visibleColumns = Array.isArray(data.invoiceColumns) && data.invoiceColumns.length > 0
+    ? data.invoiceColumns
+    : DEFAULT_INVOICE_COLUMNS;
+
+  const ALL_PRINT_COLUMNS = [
+    {
+      key: 'qty',
+      label: 'Qty',
+      width: '4%',
+      align: 'text-center',
+      render: (item) => item.quantity ?? item.quantitySold ?? 0
+    },
+    {
+      key: 'free',
+      label: 'Fr',
+      width: '3%',
+      align: 'text-center',
+      render: (item) => item.freeQuantity || 0
+    },
+    {
+      key: 'productName',
+      label: 'Product Name',
+      width: '33%',
+      align: 'text-left',
+      render: (item) => (
+        <>
+          {item.productName || item.product?.productName || '-'}
+          {item.pack && <span className="font-normal ml-0.5">({item.pack})</span>}
+        </>
+      )
+    },
+    {
+      key: 'hsn',
+      label: 'HSN',
+      width: '7%',
+      align: 'text-center',
+      render: (item) => item.hsnCode || '-'
+    },
+    {
+      key: 'batchNo',
+      label: 'Batch',
+      width: '10%',
+      align: 'text-center',
+      render: (item) => {
+        const groups = getBatchGroups(item.batchAllocations);
+        if (groups.length > 0) {
+          return (
+            <div className="flex flex-col gap-0.5">
+              {groups.map((g, gIdx) => {
+                const displayQty = g.name === 'No Batch #' ? g.qtys.join('+') : g.qtys.reduce((sum, q) => sum + q, 0);
+                return (
+                  <span key={gIdx} className="whitespace-nowrap">
+                    {g.name} ({displayQty})
+                  </span>
+                );
+              })}
+            </div>
+          );
+        }
+        return item.batchNo && item.batchNo !== 'UNNAMED' ? item.batchNo : 'No Batch #';
+      }
+    },
+    {
+      key: 'expiry',
+      label: 'Expiry',
+      width: '7%',
+      align: 'text-center',
+      render: (item) => {
+        const groups = getBatchGroups(item.batchAllocations);
+        if (groups.length > 0) {
+          return (
+            <div className="flex flex-col gap-0.5">
+              {groups.map((g, gIdx) => (
+                <span key={gIdx} className="whitespace-nowrap">{g.expiry}</span>
+              ))}
+            </div>
+          );
+        }
+        return item.expiryDate || '-';
+      }
+    },
+    {
+      key: 'mrp',
+      label: 'MRP',
+      width: '8%',
+      align: 'text-right',
+      render: (item) => (item.mrp > 0 ? Number(item.mrp).toFixed(2) : '-')
+    },
+    {
+      key: 'rate',
+      label: 'Rate',
+      width: '7%',
+      align: 'text-right',
+      render: (item) => (Number(item.rate) || 0).toFixed(2)
+    },
+    {
+      key: 'net',
+      label: 'Net',
+      width: '7%',
+      align: 'text-right',
+      render: (item) => {
+        const rate = Number(item.rate) || 0;
+        const gst = Number(item.gstPercentage) || 0;
+        const net = item.netRate != null ? Number(item.netRate) : (rate * (1 + gst / 100));
+        return net.toFixed(2);
+      }
+    },
+    {
+      key: 'disc',
+      label: 'Disc%',
+      width: '5%',
+      align: 'text-center',
+      render: (item) => (item.discountPercentage > 0 ? `${item.discountPercentage}%` : '0%')
+    },
+    {
+      key: 'gst',
+      label: 'GST%',
+      width: '4%',
+      align: 'text-center',
+      render: (item) => `${item.gstPercentage || 0}%`
+    },
+    {
+      key: 'amount',
+      label: 'Amount',
+      width: '9%',
+      align: 'text-right',
+      render: (item) => Number(item.totalAmount || 0).toFixed(2)
+    }
+  ];
+
+  const activePrintColumns = ALL_PRINT_COLUMNS.filter((col) => visibleColumns.includes(col.key));
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 py-6 sm:py-10 px-4 sm:px-6 flex flex-col justify-between">
-      <div className="max-w-4xl mx-auto w-full space-y-6">
+    <div className="min-h-screen bg-slate-950 text-slate-100 py-6 sm:py-10 px-4 sm:px-6 flex flex-col justify-between print:min-h-0 print:p-0 print:bg-white print:text-black print:block">
+      <div className="max-w-4xl mx-auto w-full space-y-6 print:max-w-none print:m-0 print:p-0 print:space-y-0">
         {/* Top Floating Action Bar */}
         <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl border border-slate-800/90 shadow-xl no-print ${
           isLowPerformance || isMobile ? 'bg-slate-900' : 'bg-slate-900/80 backdrop-blur-md'
         }`}>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold font-mono text-sm">
-              BE
+              {(distributor.firmName || '')
+                .split(' ')
+                .filter(Boolean)
+                .map((w) => w[0])
+                .slice(0, 2)
+                .join('')
+                .toUpperCase() || 'INV'}
             </div>
             <div>
               <p className="text-xs text-slate-400">Invoice from</p>
@@ -215,14 +360,16 @@ export default function PublicInvoicePage() {
           </div>
 
           <div className="flex items-center gap-2.5 self-end sm:self-auto">
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="btn btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs font-medium border-slate-700 hover:text-slate-100"
-            >
-              <Printer className="w-3.5 h-3.5 text-slate-400" />
-              <span>Print</span>
-            </button>
+            {canPrint && (
+              <button
+                type="button"
+                onClick={handlePrint}
+                className="btn btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs font-medium border-slate-700 hover:text-slate-100"
+              >
+                <Printer className="w-3.5 h-3.5 text-slate-400" />
+                <span>Print</span>
+              </button>
+            )}
 
             <button
               type="button"
@@ -240,7 +387,7 @@ export default function PublicInvoicePage() {
           </div>
         </div>
 
-        {/* Main Invoice Sheet */}
+        {/* Main Interactive Screen Invoice Sheet (Hidden on print) */}
         <motion.div
           initial={shouldAnimate && !isLowPerformance ? { opacity: 0, y: 8 } : { opacity: 0 }}
           animate={{ opacity: 1, y: 0 }}
@@ -248,8 +395,15 @@ export default function PublicInvoicePage() {
             duration: shouldAnimate && !isLowPerformance ? (duration?.normal ?? 0.15) : 0.05,
             ease: [0.16, 1, 0.3, 1]
           }}
-          className="glass-card p-6 sm:p-8 space-y-6 border border-slate-800/90 shadow-2xl bg-slate-900/60 will-change-[transform,opacity]"
+          className="glass-card p-6 sm:p-8 space-y-6 border border-slate-800/90 shadow-2xl bg-slate-900/60 will-change-[transform,opacity] no-print"
         >
+          {/* Cancelled Bill Alert Callout */}
+          {isCancelled && (
+            <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-400 text-xs font-medium flex items-center gap-2.5">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+              <span>This invoice has been <strong>cancelled</strong> by the issuer and is void for statutory tax deduction and payment.</span>
+            </div>
+          )}
           {/* Header: Issuer Details & Invoice Meta */}
           <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 pb-6 border-b border-slate-800">
             {/* Left: Distributor / Firm Info */}
@@ -531,7 +685,7 @@ export default function PublicInvoicePage() {
               {!isCancelled && (
                 <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/60 flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-slate-400">Balance Due</p>
+                    <p className="text-xs text-slate-400">Bill Balance Due</p>
                     <p className={`text-lg font-bold font-mono ${dueAmount > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
                       {formatCurrency(dueAmount)}
                     </p>
@@ -582,7 +736,289 @@ export default function PublicInvoicePage() {
             </div>
           </div>
         </motion.div>
-      </div>
+
+        {/* Dedicated Printable A4 Tax Invoice (Strictly visible in @media print, hidden on screen) */}
+        {canPrint && (
+          <div
+            className="hidden print:block invoice-print bg-white my-0 mx-auto"
+          style={{
+            width: '100%',
+            maxWidth: '210mm',
+            fontSize: '11px',
+            color: '#000000',
+            margin: '0 auto',
+            padding: '2mm',
+            boxSizing: 'border-box'
+          }}
+        >
+          <div
+            className="invoice-copy bg-white flex flex-col relative"
+            style={{
+              width: '100%',
+              minHeight: '130mm',
+              fontSize: '11px',
+              color: '#000000',
+              padding: '3mm',
+              boxSizing: 'border-box',
+              position: 'relative'
+            }}
+          >
+            {/* Prominent Cancelled Watermark Stamp */}
+            {isCancelled && (
+              <div
+                className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden"
+                style={{ zIndex: 20 }}
+              >
+                <div
+                  style={{
+                    transform: 'rotate(-26deg)',
+                    fontSize: '68px',
+                    fontWeight: '900',
+                    color: 'rgba(220, 38, 38, 0.25)',
+                    border: '5px dashed rgba(220, 38, 38, 0.40)',
+                    borderRadius: '8px',
+                    padding: '8px 48px',
+                    letterSpacing: '0.15em',
+                    textTransform: 'uppercase',
+                    userSelect: 'none',
+                    lineHeight: '1'
+                  }}
+                >
+                  CANCELLED
+                </div>
+              </div>
+            )}
+
+            {/* Cancelled Banner for Physical Print */}
+            {isCancelled && (
+              <div
+                className="w-full text-center py-1 mb-1 font-bold text-[11px]"
+                style={{
+                  backgroundColor: '#fee2e2',
+                  color: '#b91c1c',
+                  border: '1.5px dashed #b91c1c',
+                  letterSpacing: '0.04em'
+                }}
+              >
+                *** VOID / CANCELLED INVOICE — EXCLUDED FROM STATUTORY ACCOUNTS & TAX CREDIT ***
+              </div>
+            )}
+            {/* Header: Issuer Details & Invoice Meta */}
+            <div
+              className="grid grid-cols-2 gap-2 border-b border-black pb-1 mb-1"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                borderBottom: '1px solid black',
+                paddingBottom: '4px',
+                marginBottom: '4px'
+              }}
+            >
+              <div className="text-left">
+                {distributor.firmName && (
+                  <h1 className="font-bold mb-0.5" style={{ fontSize: '18px', margin: 0 }}>
+                    {distributor.firmName}
+                  </h1>
+                )}
+                {distributor.firmAddress && (
+                  <p className="text-[11px] leading-tight" style={{ margin: '2px 0 0 0' }}>
+                    {distributor.firmAddress}
+                  </p>
+                )}
+              </div>
+
+              <div
+                className="flex justify-end text-[11px] leading-tight"
+                style={{ display: 'flex', justifyContent: 'flex-end', textAlign: 'right' }}
+              >
+                {distributor.paymentInformation && (
+                  <div
+                    className="text-left border-l border-r border-black px-2 mr-2"
+                    style={{
+                      borderLeft: '1px solid black',
+                      borderRight: '1px solid black',
+                      padding: '0 8px',
+                      marginRight: '8px',
+                      textAlign: 'left'
+                    }}
+                  >
+                    {distributor.paymentInformation.upiId && (
+                      <p style={{ margin: '1px 0' }}>UPI: {distributor.paymentInformation.upiId}</p>
+                    )}
+                    {distributor.paymentInformation.accountNumber && (
+                      <p style={{ margin: '1px 0' }}>A/C: {distributor.paymentInformation.accountNumber}</p>
+                    )}
+                    {distributor.paymentInformation.ifscCode && (
+                      <p style={{ margin: '1px 0' }}>IFSC: {distributor.paymentInformation.ifscCode}</p>
+                    )}
+                  </div>
+                )}
+                <div className="text-left" style={{ textAlign: 'left' }}>
+                  {distributor.firmPhone && <p style={{ margin: '1px 0' }}>Phone: {distributor.firmPhone}</p>}
+                  {distributor.firmDL && <p style={{ margin: '1px 0' }}>DL No: {distributor.firmDL}</p>}
+                  {distributor.firmGSTIN && <p style={{ margin: '1px 0' }}>GSTIN: {distributor.firmGSTIN}</p>}
+                </div>
+              </div>
+            </div>
+
+            {/* Buyer & Invoice Details (3 Columns) */}
+            <div
+              className="grid grid-cols-3 gap-2 mb-1 text-[11px]"
+              style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', marginBottom: '4px' }}
+            >
+              <div>
+                <p className="font-bold mb-0.5">M/s {customer.customerName}</p>
+                {customer.address && <p className="leading-tight">{customer.address}</p>}
+                {customer.phone && <p className="mt-0.5">Ph: {customer.phone}</p>}
+              </div>
+              <div
+                className="border-l border-black pl-2"
+                style={{ borderLeft: '1px solid black', paddingLeft: '8px' }}
+              >
+                {customer.gstin && <p>GSTIN: {customer.gstin}</p>}
+                {customer.dlNo && <p>DL No: {customer.dlNo}</p>}
+              </div>
+              <div className="text-right" style={{ textAlign: 'right' }}>
+                <p className="font-bold">Invoice No: {data.invoiceNumber}</p>
+                <p><span className="font-bold">Date:</span> {formatDate(data.invoiceDate)}</p>
+                {isCancelled ? (
+                  <p className="font-bold" style={{ color: '#b91c1c' }}>STATUS: CANCELLED</p>
+                ) : (
+                  <p><span className="font-bold">Bill Type:</span> {(data.paymentType || 'Credit').toUpperCase()}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Products Table */}
+            <div className="mb-1">
+              <table
+                className="w-full border-collapse text-[9px]"
+                style={{ border: '0.5px solid black' }}
+              >
+                <thead>
+                  <tr style={{ borderBottom: '0.5px solid black' }}>
+                    {activePrintColumns.map((col, cIdx) => (
+                      <th
+                        key={col.key}
+                        className={`${cIdx < activePrintColumns.length - 1 ? 'border-r border-black' : ''} p-0.5 font-bold ${col.align}`}
+                        style={{ width: col.width }}
+                      >
+                        {col.label}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((item, idx) => {
+                    const isLast = idx === items.length - 1;
+
+                    return (
+                      <tr
+                        key={idx}
+                        style={{ borderBottom: isLast ? 'none' : '0.5px solid #ddd' }}
+                      >
+                        {activePrintColumns.map((col, cIdx) => (
+                          <td
+                            key={col.key}
+                            className={`${cIdx < activePrintColumns.length - 1 ? 'border-r border-black' : ''} p-0.5 font-bold ${col.align}`}
+                          >
+                            {col.render(item)}
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Summary and Financial Breakdown */}
+            <div className="mt-auto">
+              <div className="grid grid-cols-2 gap-2 mb-1" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+                <div className="text-[11px]">
+                  {isCancelled ? (
+                    <p className="font-bold" style={{ color: '#b91c1c' }}>
+                      Status: CANCELLED (Voided — Zero Payment Obligation)
+                    </p>
+                  ) : (
+                    <p className="font-bold">
+                      Bill Balance Due: {dueAmount > 0 ? formatCurrency(dueAmount) : '₹0.00 (Fully Settled)'}
+                    </p>
+                  )}
+                  {totals.amountInWords && (
+                    <div className="border-t border-black mt-1 pt-0.5">
+                      <p className="font-bold mb-0.5">Amount in Words:</p>
+                      <p className="uppercase">{totals.amountInWords}</p>
+                    </div>
+                  )}
+                  {data.notes && (
+                    <div className="mt-1 pt-0.5 text-[10px] text-gray-700">
+                      <p><span className="font-bold">Notes:</span> {data.notes}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="text-[11px]">
+                  <table className="w-full">
+                    <tbody>
+                      <tr>
+                        <td className="py-0">Taxable:</td>
+                        <td className="text-right font-semibold">₹{totals.totalTaxable.toFixed(2)}</td>
+                      </tr>
+                      {totals.totalDiscount > 0 && (
+                        <tr>
+                          <td className="py-0">Discount:</td>
+                          <td className="text-right" style={{ color: '#dc2626' }}>-₹{totals.totalDiscount.toFixed(2)}</td>
+                        </tr>
+                      )}
+                      <tr>
+                        <td className="py-0">CGST:</td>
+                        <td className="text-right">₹{totals.totalCGST.toFixed(2)}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-0">SGST:</td>
+                        <td className="text-right">₹{totals.totalSGST.toFixed(2)}</td>
+                      </tr>
+                      {totals.roundOff !== 0 && (
+                        <tr>
+                          <td className="py-0">Round Off:</td>
+                          <td className="text-right">
+                            {totals.roundOff >= 0 ? `+₹${totals.roundOff.toFixed(2)}` : `-₹${Math.abs(totals.roundOff).toFixed(2)}`}
+                          </td>
+                        </tr>
+                      )}
+                      <tr className="border-t border-black" style={{ borderTop: '1px solid black' }}>
+                        <td className="py-0.5 font-bold">NET:</td>
+                        <td className="text-right font-bold text-[13px]">
+                          {formatCurrency(totals.netTotal)}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Signatory Footer */}
+              <div className="border-t border-black pt-1 text-[11px]" style={{ borderTop: '1px solid black' }}>
+                <div className="flex justify-between items-end">
+                  <div>
+                    <p>E & O E</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="h-6"></div>
+                    <p className="border-t border-black pt-0.5" style={{ borderTop: '1px solid black' }}>
+                      {distributor.firmName ? `For ${distributor.firmName}` : ''}
+                      {distributor.firmName && <br />}
+                      <span className="font-bold">Authorized Signatory</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
 
       {/* Public Footer */}
       <footer className="mt-12 text-center text-xs text-slate-500 space-y-1 no-print">

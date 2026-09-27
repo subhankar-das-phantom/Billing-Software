@@ -5,11 +5,36 @@ import path from 'path'
 import fs from 'fs'
 
 function dynamicSeoPlugin(env) {
+  const getDomain = () => {
+    return (
+      env.VITE_FRONTEND_URL ||
+      (process.env.VERCEL_PROJECT_PRODUCTION_URL
+        ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+        : 'https://billing-software-sigma.vercel.app')
+    ).replace(/\/+$/, '')
+  }
+
   return {
     name: 'dynamic-seo',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if (req.url === '/llms.txt' || req.url === '/llms-full.txt') {
+          const filePath = path.resolve(__dirname, 'public', req.url.slice(1))
+          if (fs.existsSync(filePath)) {
+            const domain = env.VITE_FRONTEND_URL || 'http://localhost:3000'
+            const content = fs.readFileSync(filePath, 'utf8').replace(/%DOMAIN%/g, domain)
+            res.setHeader('Content-Type', 'text/markdown; charset=utf-8')
+            res.setHeader('Access-Control-Allow-Origin', '*')
+            res.end(content)
+            return
+          }
+        }
+        next()
+      })
+    },
     writeBundle() {
       const outDir = path.resolve(__dirname, 'dist')
-      const domain = env.VITE_FRONTEND_URL || 'http://localhost:3000'
+      const domain = getDomain()
       
       const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -24,6 +49,16 @@ function dynamicSeoPlugin(env) {
 
       fs.writeFileSync(path.join(outDir, 'sitemap.xml'), sitemap)
       fs.writeFileSync(path.join(outDir, 'robots.txt'), robots)
+
+      // Replace %DOMAIN% placeholder in copied llms.txt and llms-full.txt
+      const llmsFiles = ['llms.txt', 'llms-full.txt']
+      for (const file of llmsFiles) {
+        const filePath = path.join(outDir, file)
+        if (fs.existsSync(filePath)) {
+          const content = fs.readFileSync(filePath, 'utf8')
+          fs.writeFileSync(filePath, content.replace(/%DOMAIN%/g, domain))
+        }
+      }
     }
   }
 }

@@ -1,0 +1,121 @@
+# Bharat Enterprise — Consolidated Product Documentation & System Reference
+
+> The Cloud Operating System for Modern Indian Distribution: Itemized GST Billing, Real-Time Inventory Ledger, Customer Khata, and SaaS Operations.
+
+This single-file document aggregates the complete technical, operational, architectural, and legal documentation for the Bharat Enterprise Billing System platform.
+
+---
+
+# Section 1: Product Overview
+
+Bharat Enterprise is a high-performance, multi-tenant cloud operations platform built specifically for Indian wholesale distributors, pharmaceutical stockists, FMCG traders, hardware dealers, and manufacturers. It replaces disconnected offline spreadsheets and legacy desktop accounting software with a unified, real-time operating system.
+
+### Target Verticals
+* **FMCG & Consumer Goods Distributors**: High-volume, rapid-turnover trading requiring sub-second invoice creation, scheme discounts, and real-time stock balances.
+* **Pharmaceutical & Medical Stockists**: Regulated distributors managing HSN/SAC codes, drug license numbers (DL), and statutory GST compliance.
+* **Wholesale & Building Material Traders**: Enterprises managing multi-tier customer credit, running khata ledgers, and aging debt audits.
+* **Manufacturers & Assemblers**: Operations tracking raw procurement, supplier invoices, sales returns, and central inventory audit logs.
+
+---
+
+# Section 2: System Architecture & Data Flow
+
+* **Topology**: Lightweight Single-Page Application (React 19 + Vite), stateless REST API service (Node.js + Express), and document database with ACID transactions (MongoDB Enterprise).
+* **Multi-Tenancy**: Logical data separation enforced at the database layer via indexed `tenantId` fields on all subsidiary models.
+* **Atomic Concurrency**: Direct database-level atomic operators (`$inc: { currentStockQty: -qty }`, `$inc: { outstandingBalance: delta }`) eliminate memory read-modify-write race conditions.
+* **ACID Transactions**: Multi-document operations run within MongoDB transactions (`session.withTransaction`) to guarantee ACID atomicity and prevent partial writes.
+* **Idempotency**: Client-supplied `createRequestId` UUIDs prevent double-submission during network retries.
+
+---
+
+# Section 3: Statutory GST Billing & Invoicing
+
+* **Invoice Sequence**: Continuous `INV-YYYY-XXXX` format per tenant per fiscal year.
+* **Tax Calculations**: Line-by-line tax computation with zero decimal truncation:
+  * Base Amount = Quantity Sold × Rate Per Unit
+  * Discount Amount = Base Amount × (Scheme Discount % / 100)
+  * Taxable Amount = Base Amount - Discount Amount
+  * Total GST = Taxable Amount × (GST % / 100)
+  * Intra-State: CGST = Total GST / 2, SGST = Total GST / 2
+  * Inter-State: IGST = Total GST
+* **Print Layouts**: Dual-copy and triplicate prints (Original for Recipient, Duplicate for Transporter, Triplicate for Supplier).
+* **Lifecycle**: `Created` → `Printed` → `Cancelled` (Reversal with stock restoral and balance credit).
+
+---
+
+# Section 4: Real-Time Inventory Control & Movement Ledger
+
+* **Single Source of Truth**: The `Product.currentStockQty` field on the product document is the authoritative on-hand stock quantity.
+* **Atomic Deductions**: Decrements and increments execute atomically on the database engine.
+* **Movement Ledger (`StockMovement`)**: Complete historical audit log tracking every inventory event:
+  * `SALE`: Stock deducted on invoice creation.
+  * `PURCHASE`: Stock added on supplier intake.
+  * `ADJUSTMENT`: Manual physical warehouse reconciliation.
+  * `SALES_RETURN` / `INVOICE_CANCELLED`: Stock restored on invoice cancellation.
+  * `PURCHASE_CANCELLED`: Stock reversed on supplier return.
+
+---
+
+# Section 5: B2B Customer Khata & Accounts Receivable
+
+* **Running Ledger**: Full credit/debit history for every customer.
+* **Dynamic Balances**: Real-time balance computed dynamically from active invoices and payments, with asynchronous self-healing for stored summary fields.
+* **Indian Numbering Standard**: All monetary figures formatted to 2 decimal places using `'en-IN'` locale formatting (e.g. `₹1,23,456.78`).
+* **Aging Categories**: Current (0–30 days), Overdue (31–60 days), and Critical (60+ days).
+
+---
+
+# Section 6: Payments & Multi-Mode Collections
+
+* **Supported Modes**: UPI (Google Pay, PhonePe, Paytm, BHIM), Bank Transfer (NEFT/RTGS/IMPS), Cheque/Draft, and Cash.
+* **Allocation Options**: Invoice-linked settlements (updating invoice `paymentStatus` to `Partial` or `Paid`) or On-Account khata credits.
+* **Attribution**: Every collection captures the user ID of the recording Admin or Employee.
+
+---
+
+# Section 7: SaaS Multi-Tenancy & Subscriptions
+
+* **Lifecycle Statuses**:
+  * `trial`: 14-day full operational evaluation.
+  * `active`: Paid subscription tier.
+  * `grace`: 3–5 day buffer following expiration with warning banner.
+  * `expired`: Write access locked (`403 Forbidden`); historical read/export access remains active.
+  * `suspended`: Account deactivated due to policy violations.
+* **Upgrades & Renewals**: Handled directly through official customer support at `support.bharatenterprise@gmail.com` with pre-filled inquiries from the application.
+
+---
+
+# Section 8: Pricing Tiers & Feature Matrix
+
+* **Starter**: Up to 300 invoices/month, 500 catalog items, 150 customer accounts, 1 Admin seat.
+* **Business**: Up to 1,500 invoices/month, 3,000 catalog items, 1,000 customer accounts, 1 Admin + 3 Staff seats, Excel exports.
+* **Professional**: Unlimited invoices, unlimited catalog items, unlimited customer accounts, 1 Admin + Unlimited Staff seats, automated backups, priority support.
+
+---
+
+# Section 9: Security, RBAC & Data Protection
+
+* **Authentication**: JWT tokens stored in `httpOnly`, `secure`, `sameSite` cookies; passwords hashed with `bcryptjs` (10+ salt rounds).
+* **Role-Based Access Control**: Admins maintain master governance; Employees operate under strict module permissions (`invoices.create`, `customers.view`, etc.).
+* **Security Headers & Defense**: Helmet CSP, HSTS, `X-Frame-Options: DENY`, and tiered Express rate limiters (`authLimiter`, `generalLimiter`).
+* **Zero Cross-Tenant Leakage**: All queries are bound to the authenticated `tenantId`.
+
+---
+
+# Section 10: Platform Terms & Conditions (Summary)
+
+* The platform provides software tools for business management and record-keeping; it does not provide certified accounting, tax filing, or legal auditing services.
+* Service is designed strictly for commercial and business use by entities operating in compliance with applicable Indian laws.
+* Each organization is represented by a single Admin owner who assumes operational responsibility for all activity within the tenant.
+* Multi-tenant logical isolation is absolute; probing or attempting cross-tenant access results in immediate termination and legal action.
+* Governed exclusively by the laws of India and subject to competent courts in India.
+
+---
+
+# Section 11: Platform Privacy Policy (Summary)
+
+* Only data necessary to operate billing, inventory, and customer ledgers is collected and processed.
+* Password credentials are never stored in plaintext.
+* Business data, customer accounts, and invoice registries are strictly isolated and never sold, rented, or brokered to third parties.
+* All network traffic is encrypted via TLS 1.2 / TLS 1.3.
+* Tenants retain full ownership of their data with export capabilities to PDF and Excel/CSV formats at any time.

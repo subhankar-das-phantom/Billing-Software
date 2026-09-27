@@ -318,7 +318,7 @@ function drawSingleInvoicePDF(doc: PDFKit.PDFDocument, invoice: IInvoice, distri
     .font('Helvetica-Bold')
     .fontSize(15)
     .fillColor('#0f172a')
-    .text(safeText(distributor.firmName, 'BHARAT ENTERPRISES'), distX, headerCardY + 8, {
+    .text(safeText(distributor.firmName, ''), distX, headerCardY + 8, {
       width: distWidth,
       ellipsis: true
     });
@@ -730,7 +730,7 @@ function drawSingleInvoicePDF(doc: PDFKit.PDFDocument, invoice: IInvoice, distri
     .font('Helvetica-Bold')
     .fontSize(7.5)
     .fillColor('#334155')
-    .text(`For ${safeText(distributor.firmName, 'Bharat Enterprises')}`, totalsX, signY, {
+    .text(distributor.firmName ? `For ${distributor.firmName}` : 'Authorized Signatory', totalsX, signY, {
       width: totalsWidth,
       align: 'center'
     });
@@ -762,17 +762,30 @@ function drawSingleInvoicePDF(doc: PDFKit.PDFDocument, invoice: IInvoice, distri
 
 
 async function getDistributorByTenantId(invoice: IInvoice, tenantId: unknown): Promise<IDistributorSnapshot> {
+  const snap = invoice.distributor;
+
+  // Authoritative snapshot: if the invoice has its own distributor details, strictly honor them
+  if (snap && typeof snap === 'object' && snap.firmName) {
+    return {
+      firmName: snap.firmName,
+      firmAddress: snap.firmAddress || '',
+      firmPhone: snap.firmPhone || '',
+      firmGSTIN: snap.firmGSTIN || '',
+      firmDL: snap.firmDL || '',
+      paymentInformation: snap.paymentInformation?.enabled ? snap.paymentInformation : undefined
+    };
+  }
+
+  // Fallback ONLY for legacy invoices created before distributor snapshotting existed
   const admin = await Admin.findById(tenantId).lean() as any;
-  
-  const snap = invoice.distributor || {};
-  
+
   return {
-    firmName: snap.firmName || admin?.firmName,
-    firmAddress: snap.firmAddress || admin?.firmAddress,
-    firmPhone: admin?.firmPhone || snap.firmPhone,
-    firmGSTIN: snap.firmGSTIN || admin?.firmGSTIN,
-    firmDL: snap.firmDL || admin?.firmDL,
-    paymentInformation: snap.paymentInformation?.enabled ? snap.paymentInformation : admin?.paymentInformation
+    firmName: snap?.firmName || admin?.firmName || '',
+    firmAddress: snap?.firmAddress || admin?.firmAddress || '',
+    firmPhone: snap?.firmPhone || admin?.firmPhone || '',
+    firmGSTIN: snap?.firmGSTIN || admin?.firmGSTIN || '',
+    firmDL: snap?.firmDL || admin?.firmDL || '',
+    paymentInformation: snap?.paymentInformation?.enabled ? snap.paymentInformation : (admin?.paymentInformation?.enabled ? admin.paymentInformation : undefined)
   };
 }
 

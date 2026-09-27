@@ -4,6 +4,7 @@ import { generateRawToken, hashToken, encryptToken, decryptToken } from '../util
 import { serializePublicInvoice, IPublicInvoiceDTO } from '../utils/serializers/publicInvoiceSerializer';
 
 const Invoice = require('../models/Invoice');
+const Admin = require('../models/Admin');
 const { getDistributorByTenantId } = require('../controllers/invoice/invoiceExportController');
 
 export interface CreateShareParams {
@@ -181,8 +182,15 @@ export const shareService = {
         return null;
       }
 
-      const distributor = await getDistributorByTenantId(invoice, share.tenantId);
-      const publicData = serializePublicInvoice(invoice, distributor, rawToken);
+      const [distributor, admin] = await Promise.all([
+        getDistributorByTenantId(invoice, share.tenantId),
+        Admin.findById(share.tenantId).select('preferences.invoiceColumns preferences.allowPublicInvoicePrint').lean() as any
+      ]);
+      const invoiceColumns = admin?.preferences?.invoiceColumns || [
+        'qty', 'free', 'productName', 'hsn', 'batchNo', 'expiry', 'mrp', 'rate', 'net', 'disc', 'gst', 'amount'
+      ];
+      const allowPublicPrint = admin?.preferences?.allowPublicInvoicePrint === true;
+      const publicData = serializePublicInvoice(invoice, distributor, rawToken, invoiceColumns, allowPublicPrint);
 
       return {
         share,

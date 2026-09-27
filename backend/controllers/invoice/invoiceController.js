@@ -711,8 +711,9 @@ exports.createInvoice = async (req, res, next) => {
       distributor: {
         firmName: adminInfo.firmName,
         firmAddress: adminInfo.firmAddress,
-        firmGSTIN: adminInfo.firmGSTIN,
-        firmDL: adminInfo.firmDL,
+        firmPhone: adminInfo.firmPhone || adminInfo.phone || '',
+        firmGSTIN: adminInfo.firmGSTIN || '',
+        firmDL: adminInfo.firmDL || '',
         paymentInformation: adminInfo.paymentInformation
       },
       items: processedItems,

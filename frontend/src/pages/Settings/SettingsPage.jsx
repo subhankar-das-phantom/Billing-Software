@@ -27,7 +27,8 @@ import {
   Monitor,
   Smartphone,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Printer
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -37,14 +38,22 @@ import { useMotionConfig } from '../../hooks';
 import SettingsPageSkeleton from './SettingsPageSkeleton';
 
 export default function SettingsPage() {
-  const { user, userRole, updateAdmin, updateUserPreferences } = useAuth();
+  const { user, userRole, isAdmin, admin, updateAdmin, updateUserPreferences } = useAuth();
   const { themeMode: activeThemeMode, setThemeMode } = useTheme();
   const { success: showSuccess, error: showError } = useToast();
   const { subscription, isExpired, isGrace, isTrial, planName, daysRemaining } = useSubscription();
   const motionConfig = useMotionConfig();
 
-  const [activeTab, setActiveTab] = useState(userRole === 'admin' ? 'general' : 'preferences');
-  const [loading, setLoading] = useState(!user);
+  const isUserAdmin = Boolean(
+    isAdmin ||
+    userRole === 'admin' ||
+    user?.role === 'admin' ||
+    Boolean(admin) ||
+    Boolean(user?.firmName && !user?.createdByAdmin)
+  );
+
+  const [activeTab, setActiveTab] = useState(isUserAdmin ? 'general' : 'preferences');
+  const [loading, setLoading] = useState(!user && !admin);
 
   useEffect(() => {
     if (user) {
@@ -73,6 +82,7 @@ export default function SettingsPage() {
     themeMode: 'dark',
     showCalculator: true,
     enableBatchTracking: false,
+    allowPublicInvoicePrint: false,
     mobileCardDensity: typeof window !== 'undefined' ? (localStorage.getItem('bharat_mobile_card_density') || 'compact') : 'compact'
   });
   const [preferencesLoading, setPreferencesLoading] = useState(false);
@@ -89,35 +99,38 @@ export default function SettingsPage() {
 
   // Load user data into form
   useEffect(() => {
-    if (userRole === 'admin' && user) {
+    const entity = user || admin;
+    if (isUserAdmin && entity) {
       setProfile({
-        firmName: user.firmName || '',
-        firmAddress: user.firmAddress || '',
-        firmPhone: user.firmPhone || '',
-        firmGSTIN: user.firmGSTIN || '',
-        firmDL: user.firmDL || '',
+        firmName: entity.firmName || '',
+        firmAddress: entity.firmAddress || '',
+        firmPhone: entity.firmPhone || '',
+        firmGSTIN: entity.firmGSTIN || '',
+        firmDL: entity.firmDL || '',
         paymentInformation: {
-          enabled: user.paymentInformation?.enabled || false,
-          upiId: user.paymentInformation?.upiId || '',
-          accountNumber: user.paymentInformation?.accountNumber || '',
-          ifscCode: user.paymentInformation?.ifscCode || ''
+          enabled: entity.paymentInformation?.enabled || false,
+          upiId: entity.paymentInformation?.upiId || '',
+          accountNumber: entity.paymentInformation?.accountNumber || '',
+          ifscCode: entity.paymentInformation?.ifscCode || ''
         }
       });
     }
-    if (user && user.preferences) {
+    const currentPrefs = user?.preferences || admin?.preferences;
+    if (currentPrefs) {
       setPreferences({
-        themeMode: user.preferences.themeMode || activeThemeMode || 'dark',
-        showCalculator: user.preferences.showCalculator !== false,
-        enableBatchTracking: user.preferences.enableBatchTracking === true,
-        mobileCardDensity: user.preferences.mobileCardDensity || 'compact'
+        themeMode: currentPrefs.themeMode || activeThemeMode || 'dark',
+        showCalculator: currentPrefs.showCalculator !== false,
+        enableBatchTracking: currentPrefs.enableBatchTracking === true,
+        allowPublicInvoicePrint: currentPrefs.allowPublicInvoicePrint === true,
+        mobileCardDensity: currentPrefs.mobileCardDensity || 'compact'
       });
     }
-  }, [user, userRole, activeThemeMode]);
+  }, [user, admin, isUserAdmin, activeThemeMode]);
 
   // Handlers
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
-    if (userRole !== 'admin') return;
+    if (!isUserAdmin) return;
     
     setProfileLoading(true);
     const submitData = {
@@ -164,9 +177,9 @@ export default function SettingsPage() {
   };
 
   const handleToggleBatchTracking = async () => {
-    if (userRole !== 'admin') return;
+    if (!isUserAdmin) return;
     const newEnableBatchTracking = !preferences.enableBatchTracking;
-    setPreferences({ ...preferences, enableBatchTracking: newEnableBatchTracking });
+    setPreferences(prev => ({ ...prev, enableBatchTracking: newEnableBatchTracking }));
     setPreferencesLoading(true);
     
     try {
@@ -176,7 +189,27 @@ export default function SettingsPage() {
         showSuccess(`Batch & FIFO Tracking is now ${newEnableBatchTracking ? 'enabled' : 'disabled'}`);
       }
     } catch (err) {
-      setPreferences({ ...preferences, enableBatchTracking: !newEnableBatchTracking });
+      setPreferences(prev => ({ ...prev, enableBatchTracking: !newEnableBatchTracking }));
+      showError(err.message || 'Failed to update preferences');
+    } finally {
+      setPreferencesLoading(false);
+    }
+  };
+
+  const handleTogglePublicPrint = async () => {
+    if (!isUserAdmin) return;
+    const newAllowPublicPrint = !preferences.allowPublicInvoicePrint;
+    setPreferences(prev => ({ ...prev, allowPublicInvoicePrint: newAllowPublicPrint }));
+    setPreferencesLoading(true);
+    
+    try {
+      const result = await authService.updatePreferences({ allowPublicInvoicePrint: newAllowPublicPrint });
+      if (result.success) {
+        updateUserPreferences({ allowPublicInvoicePrint: newAllowPublicPrint });
+        showSuccess(`Customer public invoice printing is now ${newAllowPublicPrint ? 'enabled' : 'disabled'}`);
+      }
+    } catch (err) {
+      setPreferences(prev => ({ ...prev, allowPublicInvoicePrint: !newAllowPublicPrint }));
       showError(err.message || 'Failed to update preferences');
     } finally {
       setPreferencesLoading(false);
@@ -270,8 +303,8 @@ export default function SettingsPage() {
 
   // Tabs Configuration
   const tabs = [
-    ...(userRole === 'admin' ? [{ id: 'general', label: 'General', icon: Building2, desc: 'Business details' }] : []),
-    ...(userRole === 'admin' ? [{ id: 'subscription', label: 'Subscription', icon: Crown, desc: 'Plan & Billing' }] : []),
+    ...(isUserAdmin ? [{ id: 'general', label: 'General', icon: Building2, desc: 'Business details' }] : []),
+    ...(isUserAdmin ? [{ id: 'subscription', label: 'Subscription', icon: Crown, desc: 'Plan & Billing' }] : []),
     { id: 'preferences', label: 'Preferences', icon: Palette, desc: 'App customization' },
     { id: 'security', label: 'Security', icon: Shield, desc: 'Password & auth' }
   ];
@@ -679,36 +712,83 @@ export default function SettingsPage() {
             </button>
           </div>
 
-          {/* Custom Pill Toggle for Batch & FIFO Tracking (Admin Only) */}
-          {userRole === 'admin' && (
-            <div className="flex items-start sm:items-center justify-between p-5 bg-slate-950/40 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-blue-500/10 rounded-xl shadow-[0_0_15px_rgba(59,130,246,0.1)]">
-                  <FileText className="w-6 h-6 text-blue-400" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-slate-100 text-base">Enable Batch & FIFO Tracking</h3>
-                  <p className="text-sm text-slate-400 mt-0.5 max-w-sm">Use comprehensive batch management, expiry tracking, and FIFO or Manual allocation for inventory.</p>
-                </div>
+          {/* Custom Pill Toggle for Public Invoice Printing */}
+          <div className="flex items-start sm:items-center justify-between p-5 bg-slate-950/40 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-emerald-500/10 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+                <Printer className="w-6 h-6 text-emerald-400" />
               </div>
-              
-              <button 
-                onClick={handleToggleBatchTracking}
-                disabled={preferencesLoading}
-                className={`relative inline-flex h-7 w-14 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-opacity-75 disabled:opacity-50 disabled:cursor-wait ${
-                  preferences.enableBatchTracking ? 'bg-blue-500' : 'bg-slate-700'
-                }`}
-              >
-                <span className="sr-only">Toggle Batch Tracking</span>
-                <span
-                  aria-hidden="true"
-                  className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg ring-0 transition duration-300 ease-in-out ${
-                    preferences.enableBatchTracking ? 'translate-x-7' : 'translate-x-0'
-                  }`}
-                />
-              </button>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold text-slate-100 text-base">Public Invoice Printing</h3>
+                  {!isUserAdmin && (
+                    <span className="px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase bg-slate-800 text-slate-400 border border-slate-700/60 rounded-md">
+                      Admin Only
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-slate-400 mt-0.5 max-w-sm">Allow customers viewing the public invoice link to print the invoice.</p>
+              </div>
             </div>
-          )}
+            
+            <button 
+              onClick={handleTogglePublicPrint}
+              disabled={preferencesLoading || !isUserAdmin}
+              title={!isUserAdmin ? "Only administrators can configure public invoice printing" : "Toggle customer print button on public invoice"}
+              className={`relative inline-flex h-7 w-14 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-opacity-75 disabled:opacity-50 ${
+                !isUserAdmin ? 'disabled:cursor-not-allowed' : 'disabled:cursor-wait'
+              } ${
+                preferences.allowPublicInvoicePrint ? 'bg-emerald-500' : 'bg-slate-700'
+              }`}
+            >
+              <span className="sr-only">Toggle Public Invoice Printing</span>
+              <span
+                aria-hidden="true"
+                className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg ring-0 transition duration-300 ease-in-out ${
+                  preferences.allowPublicInvoicePrint ? 'translate-x-7' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Custom Pill Toggle for Batch & FIFO Tracking */}
+          <div className="flex items-start sm:items-center justify-between p-5 bg-slate-950/40 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-blue-500/10 rounded-xl shadow-[0_0_15px_rgba(59,130,246,0.1)]">
+                <FileText className="w-6 h-6 text-blue-400" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold text-slate-100 text-base">Enable Batch & FIFO Tracking</h3>
+                  {!isUserAdmin && (
+                    <span className="px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase bg-slate-800 text-slate-400 border border-slate-700/60 rounded-md">
+                      Admin Only
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-slate-400 mt-0.5 max-w-sm">Use comprehensive batch management, expiry tracking, and FIFO or Manual allocation for inventory.</p>
+              </div>
+            </div>
+            
+            <button 
+              onClick={handleToggleBatchTracking}
+              disabled={preferencesLoading || !isUserAdmin}
+              title={!isUserAdmin ? "Only administrators can configure batch tracking" : "Toggle Batch & FIFO tracking"}
+              className={`relative inline-flex h-7 w-14 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-opacity-75 disabled:opacity-50 ${
+                !isUserAdmin ? 'disabled:cursor-not-allowed' : 'disabled:cursor-wait'
+              } ${
+                preferences.enableBatchTracking ? 'bg-blue-500' : 'bg-slate-700'
+              }`}
+            >
+              <span className="sr-only">Toggle Batch Tracking</span>
+              <span
+                aria-hidden="true"
+                className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg ring-0 transition duration-300 ease-in-out ${
+                  preferences.enableBatchTracking ? 'translate-x-7' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
 
           {/* Placeholder for future preferences */}
           <div className="flex items-start sm:items-center justify-between p-5 bg-slate-950/40 rounded-2xl border border-white/5 opacity-50 cursor-not-allowed">

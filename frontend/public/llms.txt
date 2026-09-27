@@ -1,19 +1,28 @@
-# Bharat Enterprise Billing System
+# Bharat Enterprise
 
-> The Operating System for Modern Indian Distribution: Itemized GST Billing, Multi-Batch Expiry Tracking, Customer Khata Ledgers, and Operational Business Intelligence.
+> Bharat Enterprise is a GST-ready billing, inventory, customer ledger, and SaaS management platform designed for distributors, medical stores, and small-to-medium businesses.
 
-Bharat Enterprise is a high-performance, multi-tenant cloud operations platform built for Indian distributors, wholesale merchants, pharmaceuticals, FMCG traders, and manufacturers. It replaces disconnected offline spreadsheets with a unified, real-time operating system covering billing, lot inventory, customer accounts, and tax reporting.
+## Overview
+- [Product Overview](%DOMAIN%/docs/overview.md): Product purpose, target users, and major capabilities.
+- [Architecture](%DOMAIN%/docs/architecture.md): High-level application architecture and data flow.
+- [Landing Page (Markdown)](%DOMAIN%/landing.md): Complete product feature showcase and marketing summary in Markdown.
 
-## Core Capabilities
+## Billing & Finance
+- [GST Billing](%DOMAIN%/docs/gst-billing.md): Invoice creation, GST calculation, tax handling, and invoice lifecycle.
+- [Customer Khata](%DOMAIN%/docs/customer-khata.md): Customer balances, credit, payments, and ledger history.
+- [Payments](%DOMAIN%/docs/payments.md): Payment recording and settlement workflows.
 
-- [Statutory GST Billing and Invoicing](https://billing-software-dev.vercel.app/landing#billing): Itemized tax invoices with CGST/SGST/IGST tax splits, HSN/SAC classification, dual-copy prints (Original for Recipient, Duplicate for Transporter), and instant settlement tracking.
-- [Multi-Batch Inventory and Stock Catalog](https://billing-software-dev.vercel.app/landing#inventory): Granular batch tracking with automated First-In-First-Out (FIFO) allocation, manufacturing and expiry date horizons, and low-stock alerts.
-- [Immutable Inventory Ledger](https://billing-software-dev.vercel.app/landing#inventory): Centralized historical movement audit log tracking purchases, sales deductions, customer returns, and manual stock reconciliations with pre/post balance snapshots.
-- [B2B Customer Khata and Credit Ledgers](https://billing-software-dev.vercel.app/landing#customers): Running balance statements, customer credit limits, payment receipts (UPI, Bank Transfer, Cheque, Cash), and aging debt audits.
-- [Operational Intelligence and Telemetry](https://billing-software-dev.vercel.app/landing#analytics): Live sales velocity analytics, cash flow collection ratios, average order value indicators, and procurement spend tracking.
-- [Tiered SaaS Subscription Architecture](https://billing-software-dev.vercel.app/landing#pricing): Flexible subscription tiers (Starter, Business, Professional) with 14-day free trials, multi-duration discounts, and Razorpay integration.
+## Inventory
+- [Inventory Management](%DOMAIN%/docs/inventory.md): Product stock management, immutable movement ledger, and inventory adjustments.
 
-## Compliance, Terms and Privacy
+## SaaS & Commercials
+- [SaaS Multi-Tenancy](%DOMAIN%/docs/subscriptions.md): Multi-tenant architecture, tenant lifecycle, and write-access gating.
+- [Pricing & Plans](%DOMAIN%/docs/pricing.md): Subscription plans, capabilities, and account lifecycle.
 
-- [Terms of Service](https://billing-software-dev.vercel.app/terms): Contractual terms, operational governance, and usage rights for enterprises.
-- [Privacy Policy](https://billing-software-dev.vercel.app/privacy-policy): Tenant data isolation, security encryption standards, and zero-leakage guarantees.
+## Legal & Security
+- [Security & Data Protection](%DOMAIN%/docs/security.md): Multi-tenant security model, RBAC, and data protection.
+- [Terms of Service](%DOMAIN%/docs/terms.md): Current terms governing use of the platform.
+- [Privacy Policy](%DOMAIN%/docs/privacy-policy.md): Current privacy and data-handling policy.
+
+## Optional
+- [Full LLM Context](%DOMAIN%/llms-full.txt): Consolidated product documentation for agents that need broader context.
