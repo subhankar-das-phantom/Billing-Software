@@ -33,6 +33,15 @@ const authLimiter = rateLimit({
   legacyHeaders: false
 });
 
+// Validate required cryptographic environment variables in production
+if (process.env.NODE_ENV === 'production') {
+  const { isShareSecretConfigured } = require('./utils/shareCrypto');
+  if (!isShareSecretConfigured()) {
+    console.error('[FATAL STARTUP ERROR] SHARE_TOKEN_SECRET environment variable is mandatory in production.');
+    process.exit(1);
+  }
+}
+
 // Connect to database and initialize Change Stream
 connectDB().then(() => {
   const stockChangeStream = require('./services/stockChangeStream');
@@ -40,6 +49,12 @@ connectDB().then(() => {
 });
 
 const app = express();
+
+// Configure proxy trust for accurate client IP resolution behind reverse proxies (Render / Cloudflare / Nginx)
+const trustProxySetting = process.env.TRUST_PROXY !== undefined
+  ? (isNaN(Number(process.env.TRUST_PROXY)) ? process.env.TRUST_PROXY : Number(process.env.TRUST_PROXY))
+  : (isDev ? false : 1);
+app.set('trust proxy', trustProxySetting);
 
 // Razorpay webhooks must receive the raw body for signature validation.
 app.post(

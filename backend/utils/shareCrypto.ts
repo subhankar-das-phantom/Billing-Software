@@ -3,19 +3,33 @@ import crypto from 'crypto';
 const ALGORITHM = 'aes-256-gcm';
 
 /**
- * Derive 32-byte key for AES-256-GCM from environment variables.
- * Never hardcodes secrets. Falls back to JWT_SECRET with a console warning in development.
+ * Check if the dedicated SHARE_TOKEN_SECRET is configured.
+ */
+export function isShareSecretConfigured(): boolean {
+  return Boolean(process.env.SHARE_TOKEN_SECRET && process.env.SHARE_TOKEN_SECRET.trim().length > 0);
+}
+
+/**
+ * Derive 32-byte key for AES-256-GCM from SHARE_TOKEN_SECRET.
+ * In production, SHARE_TOKEN_SECRET is strictly mandatory and never falls back to JWT_SECRET or defaults.
+ * In non-production environments only, falls back to a salted development key with a console warning.
  */
 function getEncryptionKey(): Buffer {
-  const secret = process.env.SHARE_TOKEN_SECRET || process.env.JWT_SECRET;
-  if (!secret) {
-    if (process.env.NODE_ENV !== 'production') {
-      console.warn('[SECURITY WARNING] Neither SHARE_TOKEN_SECRET nor JWT_SECRET is set. Using transient fallback.');
+  const secret = process.env.SHARE_TOKEN_SECRET;
+  if (!secret || !secret.trim()) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(
+        '[FATAL SECURITY ERROR] SHARE_TOKEN_SECRET environment variable is mandatory in production. ' +
+        'Public share encryption cannot initialize without a dedicated cryptographic secret.'
+      );
     }
-    // Fallback salt for non-configured local environments
-    return crypto.createHash('sha256').update('bharat-enterprise-billing-share-secret-fallback').digest();
+    console.warn(
+      '[SECURITY WARNING] SHARE_TOKEN_SECRET is not configured in development environment. ' +
+      'Using non-production transient salt key. Configure SHARE_TOKEN_SECRET in your .env file.'
+    );
+    return crypto.createHash('sha256').update('bharat-enterprise-dev-share-token-salt-key-do-not-use-in-prod').digest();
   }
-  return crypto.createHash('sha256').update(secret).digest();
+  return crypto.createHash('sha256').update(secret.trim()).digest();
 }
 
 /**
