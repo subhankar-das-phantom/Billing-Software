@@ -140,7 +140,7 @@
         {
           "type": "header",
           "key": "user-agent",
-          "value": ".*([cC][uU][rR][lL]|[gG][pP][tT][bB][oO][tT]|[cC][lL][aA][uU][dD][eE][bB][oO][tT]|[pP][eE][rR][pP][lL][eE][xX][iI][tT][yY][bB][oO][tT]|[aA][nN][tT][hH][rR][oO][pP][iI][cC]|[gG][oO][oO][gG][lL][eE]-[eE][xX][tT][eE][nN][dD][eE][dD]|[bB][yY][tT][eE][sS][pP][iI][dD][eE][rR]|[cC][oO][hH][eE][rR][eE]|[aA][pP][pP][lL][eE][bB][oO][tT]|[pP][yY][tT][hH][oO][nN]|[sS][cC][rR][aA][pP][yY]|[hH][tT][tT][pP][cC][lL][iI][eE][nN][tT]|[wW][gG][eE][tT]|[aA][iI][oO][hH][tT][tT][pP]|[uU][rR][lL][lL][iI][bB]|[pP][oO][sS][tT][mM][aA][nN]).*"
+          "value": ".*([cC][uU][rR][lL]|[gG][pP][tT][bB][oO][tT]|[cC][hH][aA][tT][gG][pP][tT]-[uU][sS][eE][rR]|[cC][lL][aA][uU][dD][eE][bB][oO][tT]|[pP][eE][rR][pP][lL][eE][xX][iI][tT][yY][bB][oO][tT]|[aA][nN][tT][hH][rR][oO][pP][iI][cC]|[gG][oO][oO][gG][lL][eE]-[eE][xX][tT][eE][nN][dD][eE][dD]|[bB][yY][tT][eE][sS][pP][iI][dD][eE][rR]|[cC][oO][hH][eE][rR][eE]|[aA][pP][pP][lL][eE][bB][oO][tT]|[pP][yY][tT][hH][oO][nN]|[sS][cC][rR][aA][pP][yY]|[hH][tT][tT][pP][cC][lL][iI][eE][nN][tT]|[wW][gG][eE][tT]|[aA][iI][oO][hH][tT][tT][pP]|[uU][rR][lL][lL][iI][bB]|[pP][oO][sS][tT][mM][aA][nN]).*"
         }
       ],
       "destination": "/landing.md"
@@ -151,7 +151,7 @@
         {
           "type": "header",
           "key": "user-agent",
-          "value": ".*([cC][uU][rR][lL]|[gG][pP][tT][bB][oO][tT]|[cC][lL][aA][uU][dD][eE][bB][oO][tT]|[pP][eE][rR][pP][lL][eE][xX][iI][tT][yY][bB][oO][tT]|[aA][nN][tT][hH][rR][oO][pP][iI][cC]|[gG][oO][oO][gG][lL][eE]-[eE][xX][tT][eE][nN][dD][eE][dD]|[bB][yY][tT][eE][sS][pP][iI][dD][eE][rR]|[cC][oO][hH][eE][rR][eE]|[aA][pP][pP][lL][eE][bB][oO][tT]|[pP][yY][tT][hH][oO][nN]|[sS][cC][rR][aA][pP][yY]|[hH][tT][tT][pP][cC][lL][iI][eE][nN][tT]|[wW][gG][eE][tT]|[aA][iI][oO][hH][tT][tT][pP]|[uU][rR][lL][lL][iI][bB]|[pP][oO][sS][tT][mM][aA][nN]).*"
+          "value": ".*([cC][uU][rR][lL]|[gG][pP][tT][bB][oO][tT]|[cC][hH][aA][tT][gG][pP][tT]-[uU][sS][eE][rR]|[cC][lL][aA][uU][dD][eE][bB][oO][tT]|[pP][eE][rR][pP][lL][eE][xX][iI][tT][yY][bB][oO][tT]|[aA][nN][tT][hH][rR][oO][pP][iI][cC]|[gG][oO][oO][gG][lL][eE]-[eE][xX][tT][eE][nN][dD][eE][dD]|[bB][yY][tT][eE][sS][pP][iI][dD][eE][rR]|[cC][oO][hH][eE][rR][eE]|[aA][pP][pP][lL][eE][bB][oO][tT]|[pP][yY][tT][hH][oO][nN]|[sS][cC][rR][aA][pP][yY]|[hH][tT][tT][pP][cC][lL][iI][eE][nN][tT]|[wW][gG][eE][tT]|[aA][iI][oO][hH][tT][tT][pP]|[uU][rR][lL][lL][iI][bB]|[pP][oO][sS][tT][mM][aA][nN]).*"
         }
       ],
       "destination": "/landing.md"
