@@ -4,6 +4,44 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.10.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.10.0) — 2026-09-27 — Multi-Representation Delivery Architecture, Build-Time Static Prerendering & Deterministic Edge Content-Negotiation
+
+### 🏛️ Public Representation Invariant & Zero Public-Marketing Flash Guarantee
+- **Public Representation Invariant**:
+  - Established a formal architectural boundary: every crawler-facing representation is derived strictly from public, non-tenant-scoped content (`/landing`, `/privacy-policy`, `/terms`, `/login`, `/register`).
+  - Crawler edge routing acts purely as a representation/content-negotiation layer (`Markdown` vs `HTML` vs `SPA Shell`), remaining 100% decoupled from backend authorization (`httpOnly` JWT cookies), multi-tenant logical isolation (`tenantId`), and API endpoint security.
+- **Zero Public-Marketing Flash Guarantee**:
+  - Strictly preserved `dist/index.html` as the operational SPA shell containing the clean `#prerender` loading indicator, while isolating pre-rendered marketing DOM strictly to `dist/landing/index.html`.
+  - Guarantees that authenticated enterprise users entering `/` never receive or render public marketing copy as the root application state.
+
+### 🤖 Multi-Representation Delivery Architecture & Edge Routing (`frontend/vercel.json`)
+- **Deterministic Edge Content-Negotiation (`vercel.json`)**:
+  - Configured Vercel CDN edge rewrites to inspect incoming client `User-Agent` headers before falling back to the SPA shell:
+  - **AI & Terminal Crawlers**: Routed `gptbot`, `claudebot`, `perplexitybot`, `anthropic-ai`, `google-extended`, `bytespider`, `cohere-ai`, `applebot-extended`, `curl`, `python-requests`, `scrapy`, `wget`, `aiohttp`, `urllib`, and `postmanruntime` requesting `/` or `/landing` directly to `/landing.md`.
+  - **Search Engine & Social Spiders**: Routed `googlebot`, `bingbot`, `yandex`, `baiduspider`, `duckduckbot`, `slurp`, `twitterbot`, `facebookexternalhit`, `linkedinbot`, `slackbot`, `telegrambot`, and `whatsapp` requesting `/` or `/landing` to `/landing/index.html`.
+  - **Human Browsers**: Retained standard SPA routing to `/index.html` for client-side authentication and routing.
+
+### 📸 Build-Time Static HTML Prerendering Engine (`frontend/scripts/prerender.mjs`, `frontend/package.json`)
+- **Deterministic Headless Snapshotting (`scripts/prerender.mjs`)**:
+  - Created a post-build snapshot script using Puppeteer and `serve-handler` executing over `dist/`.
+  - **Dynamic OS Port Binding**: Bound internal HTTP server to `127.0.0.1:0` with event-driven `'error'` and `'listening'` handlers, dynamically reading `server.address().port` to eliminate CI port collisions.
+  - **Deterministic Ready Contract**: Replaced fragile `networkidle0` with `domcontentloaded` combined with `page.waitForSelector('[data-prerender-ready="true"]')`.
+  - **Motion Flattening**: Emulated `prefers-reduced-motion: reduce` during crawling to ensure Framer Motion `ScrollReveal` sections render at 100% opacity in pre-rendered HTML.
+  - **Stale Snapshot Elimination**: Purges previous route directories (`dist/landing`, `dist/privacy-policy`, etc.) prior to snapshot generation.
+  - **Transparent Degradation Logging**: Explicitly differentiates `✓ Pre-rendering complete (5/5 routes)` from `⚠ Pre-rendering degraded (X/5 routes — failed: [...])` and Chromium launch unavailability, ensuring production CI builds are non-blocking.
+
+### ⚡ Dual-Mode Client Hydration & App Shell Isolation (`frontend/src/main.jsx`)
+- **Dual Client Mounting (`src/main.jsx`)**:
+  - Upgraded React 19 client mounting to detect whether `#root` contains pre-rendered child nodes without `#prerender`.
+  - Routes with pre-rendered static HTML (`/landing`, `/privacy-policy`, etc.) invoke `hydrateRoot()` for immediate visual DOM availability with zero DOM recreation.
+  - Routes with the clean SPA shell (`/index.html`) invoke `createRoot()` for dynamic operational state initialization.
+
+### 🎯 Deterministic Application-Ready Contracts (`LandingPage.jsx`, `PrivacyPolicyPage.jsx`, `TermsPage.jsx`, `LoginPage.jsx`, `RegisterPage.jsx`)
+- **Explicit Ready Attributes**:
+  - Attached `data-prerender-ready="true"` to the root container of all five target public pages, formalizing an explicit contract between the React application and the snapshot engine.
+- **Dependency Hygiene**:
+  - Cleaned unused `enterDemoMode` import in `LoginPage.jsx`, ensuring 0 ESLint warnings on all modified files.
+
 ## [v2.9.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.9.0) — 2026-09-27 — llms.txt v2 Knowledge Engine, Statutory Public Invoice Print Architecture, Dynamic Column Preferences & Distributor Snapshot Authority
 
 ### 🤖 llms.txt v2 Knowledge Engine & Crawlable Static Markdown Architecture (`llms.txt`, `llms-full.txt`, `landing.md`, `frontend/public/docs/*.md`, `vite.config.js`, `index.html`, `vercel.json`)
