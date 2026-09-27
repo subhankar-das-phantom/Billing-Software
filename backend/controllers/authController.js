@@ -538,7 +538,7 @@ const VALID_INVOICE_COLUMNS = new Set([
 
 exports.updatePreferences = async (req, res, next) => {
   try {
-    const { showCalculator, invoiceColumns, enableBatchTracking, themeMode, mobileCardDensity } = req.body;
+    const { showCalculator, invoiceColumns, enableBatchTracking, themeMode, mobileCardDensity, allowPublicInvoicePrint } = req.body;
     
     let user;
     if (req.userRole === 'employee') {
@@ -607,6 +607,16 @@ exports.updatePreferences = async (req, res, next) => {
       // Deduplicate while preserving order
       const deduplicated = [...new Set(invoiceColumns)];
       user.set('preferences.invoiceColumns', deduplicated);
+    }
+
+    if (allowPublicInvoicePrint !== undefined) {
+      if (req.userRole !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Only admins can customize public invoice preferences'
+        });
+      }
+      user.set('preferences.allowPublicInvoicePrint', Boolean(allowPublicInvoicePrint));
     }
 
     await user.save();

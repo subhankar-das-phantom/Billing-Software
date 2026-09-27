@@ -249,8 +249,9 @@ exports.createCreditNote = async (req, res, next) => {
       distributor: adminInfo ? {
         firmName: adminInfo.firmName,
         firmAddress: adminInfo.firmAddress,
-        firmGSTIN: adminInfo.firmGSTIN,
-        firmDL: adminInfo.firmDL
+        firmPhone: adminInfo.firmPhone || adminInfo.phone || '',
+        firmGSTIN: adminInfo.firmGSTIN || '',
+        firmDL: adminInfo.firmDL || ''
       } : undefined,
       items: processedItems,
       totals,

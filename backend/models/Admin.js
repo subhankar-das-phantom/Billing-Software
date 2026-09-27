@@ -64,6 +64,10 @@ const adminSchema = new mongoose.Schema({
     invoiceColumns: {
       type: [String],
       default: ['qty', 'free', 'productName', 'hsn', 'batchNo', 'expiry', 'mrp', 'rate', 'net', 'disc', 'gst', 'amount']
+    },
+    allowPublicInvoicePrint: {
+      type: Boolean,
+      default: false
     }
   },
   paymentInformation: {

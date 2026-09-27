@@ -4,6 +4,50 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.9.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.9.0) — 2026-09-27 — llms.txt v2 Knowledge Engine, Statutory Public Invoice Print Architecture, Dynamic Column Preferences & Distributor Snapshot Authority
+
+### 🤖 llms.txt v2 Knowledge Engine & Crawlable Static Markdown Architecture (`llms.txt`, `llms-full.txt`, `landing.md`, `frontend/public/docs/*.md`, `vite.config.js`, `index.html`, `vercel.json`)
+- **llms.txt v2 Specification Compliance (`llms.txt`, `llms-full.txt`)** — Implemented the current August 2026 `llmstxt.org` specification:
+  - Structured H1 header with single blockquote summary, categorized H2 sections with markdown links, and an optional curated section for deep reference.
+  - Provided complete standalone static markdown knowledge files under `/docs/` (`overview.md`, `architecture.md`, `gst-billing.md`, `inventory.md`, `customer-khata.md`, `payments.md`, `subscriptions.md`, `pricing.md`, `security.md`, `terms.md`, `privacy-policy.md`) and `/landing.md`.
+  - Eliminated SPA client-side hash routing traps for LLM bots, web crawlers, and markdown readers.
+- **Dynamic Domain Resolution & Header Injection (`vite.config.js`, `vercel.json`, `index.html`)**:
+  - Built `dynamicSeoPlugin` in `vite.config.js` to replace `%DOMAIN%` placeholders dynamically on `writeBundle` and via dev server middleware using `VITE_SITE_URL` / `VERCEL_PROJECT_PRODUCTION_URL`.
+  - Added discovery tags to `index.html` (`rel="describedby"` for `/llms.txt`, `rel="alternate"` for `/landing.md`).
+  - Added explicit `Content-Type: text/markdown; charset=utf-8` and CORS headers in `vercel.json`.
+
+### 🖨️ Dedicated Statutory A4 GST Invoice Print Architecture (`PublicInvoicePage.jsx`)
+- **Statutory A4 Document Layout (`PublicInvoicePage.jsx`)**:
+  - Replaced browser `window.print()` screen dumps with a dedicated printable tax invoice sheet (`.invoice-print`, `.invoice-copy`) strictly visible in `@media print` (`hidden print:block`).
+  - Designed with 0.5px thin black borders, pure black typography (`#000000`), distributor letterhead, GSTIN/DL numbers, customer M/s billing block, tax breakdowns, amount in words, round-off, and Authorized Signatory block.
+  - Isolated interactive dark-mode components (`.glass-card`, action bars, footers) with `.no-print`.
+- **High-Visibility Cancelled Invoice Print Indicators (`PublicInvoicePage.jsx`)**:
+  - Added a prominent diagonal watermark stamp (`CANCELLED`, 68px bold, rotated -26deg, dashed border, semi-transparent red) across the center of the printed sheet.
+  - Rendered a top alert banner (`*** VOID / CANCELLED INVOICE — EXCLUDED FROM STATUTORY ACCOUNTS & TAX CREDIT ***`).
+  - Replaced bill type with bold red `STATUS: CANCELLED` in the invoice identity box.
+  - Rendered a contextual alert callout on the interactive dark-mode screen view.
+- **Bill Balance Due Precision (`PublicInvoicePage.jsx`)**:
+  - Renamed "Balance Due" to "Bill Balance Due" across both screen and print views to clearly distinguish bill-specific dues from the customer's total khata ledger balance.
+
+### 🛡️ Distributor Snapshot Authority & Elimination of Hardcoded Fallbacks (`invoiceExportController.ts`, `publicInvoiceSerializer.ts`, `shareService.ts`, `invoiceController.js`, `creditNoteController.js`, `PublicInvoicePage.jsx`)
+- **Distributor Snapshot Integrity (`invoiceExportController.ts`, `publicInvoiceSerializer.ts`, `shareService.ts`)**:
+  - Fixed a critical data leak where public mode and PDF generation fetched live Admin business details (`Admin.findById(tenantId)`) and injected them over the invoice's own snapshot.
+  - Enforced strict priority for `invoice.distributor`: invoices issued without GSTIN or contact phone remain strictly faithful to their issuance record without spurious data pollution.
+  - Completely eliminated hardcoded `'BHARAT ENTERPRISES'` fallback defaults across export and serialization controllers.
+- **Distributor Phone Snapshotting (`invoiceController.js`, `creditNoteController.js`)**:
+  - Enhanced invoice and credit note creation pipelines to snapshot `firmPhone` alongside `firmName`, `firmAddress`, `firmGSTIN`, `firmDL`, and `paymentInformation`.
+- **Dynamic Print Column Visibility (`shareService.ts`, `publicInvoiceSerializer.ts`, `PublicInvoicePage.jsx`)**:
+  - Extracted admin column preferences (`Admin.preferences.invoiceColumns`) and injected them into the public document payload (`publicData.invoiceColumns`).
+  - Dynamically rendered printable table columns (`activePrintColumns`) strictly based on the admin's configured preferences.
+
+### ⚙️ Admin Preferences & Customer Print Governance (`SettingsPage.jsx`, `PublicInvoicePage.jsx`, `Admin.js`, `authController.js`, `shareService.ts`, `publicInvoiceSerializer.ts`, `AuthContext.jsx`)
+- **Public Invoice Print Governance (`SettingsPage.jsx`, `PublicInvoicePage.jsx`, `Admin.js`, `authController.js`)**:
+  - Added the **Public Invoice Printing** preference toggle in Settings, allowing administrators to control whether customers can directly print the invoice from the shared public link.
+  - Defaulting to disabled (`allowPublicInvoicePrint: false`), the customer print button and print DOM elements are omitted until explicitly enabled by an administrator, while maintaining 100% availability for downloading the PDF.
+- **Enterprise Settings Reliability & Batch & FIFO Tracking Toggle (`SettingsPage.jsx`, `AuthContext.jsx`)**:
+  - Hardened `AuthContext` role inference and `isAdmin` resolution so the **Enable Batch & FIFO Tracking** toggle and admin tabs render reliably across pre-seeded and refreshed sessions.
+  - Rendered explicit "Admin Only" badges and disabled state when non-admin users view system-wide settings, ensuring clear visibility without confusion.
+
 ## [v2.8.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.8.0) — 2026-09-26 — Generic Resource Sharing System, Cryptographic Token Security, Public Invoice View & Invoice View Skeleton Overhaul
 
 ### 🚀 Generic Reusable Resource Sharing & Cryptographic Token Architecture (`Share.ts`, `shareService.ts`, `shareCrypto.ts`, `shareController.ts`, `publicShareController.ts`, `shares.ts`, `publicShares.ts`, `publicInvoiceSerializer.ts`, `server.js`)
