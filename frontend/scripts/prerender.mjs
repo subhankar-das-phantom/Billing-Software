@@ -100,4 +100,9 @@ async function run() {
   }
 }
 
-run();
+run().then(() => {
+  process.exit(0);
+}).catch((err) => {
+  console.error('[prerender] Unexpected error:', err);
+  process.exit(0); // Graceful degradation: never fail the build
+});
