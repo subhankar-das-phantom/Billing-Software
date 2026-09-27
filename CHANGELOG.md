@@ -28,6 +28,7 @@ For full release notes with implementation details, see [GitHub Releases](https:
 - **Zero Internal Data Leak Guarantee**: Mathematically stripped internal IDs (`_id`, `tenantId`), creator attributions (`createdBy`), purchase margins, internal costs, and confidential database keys from the PDF generator while maintaining 100% pixel-perfect visual PDF parity.
 
 ### 📸 Strict Deterministic Prerendering & Snapshot Validation Engine (`frontend/scripts/prerender.mjs`, `frontend/src/hooks/usePageMetadata.js`, `frontend/index.html`)
+- **Pre-Boot FOUC Elimination**: Replaced the visible static catalog paragraph and subscription list inside `index.html`'s `#root` with a sleek, centered theme-aware spinner. Real users no longer experience a split-second flash of raw text before React 19 mounts.
 - **Zero Hardcoded Domain Fallback**: Prerender origin resolves strictly from `VITE_FRONTEND_URL` / `VERCEL_PROJECT_PRODUCTION_URL`. In strict production builds, missing configuration throws an immediate fatal error rather than falling back to a hardcoded domain.
 - **Comprehensive Live DOM Verification**: `prerender.mjs` waits for and asserts that `document.title`, `meta[name="description"]`, `link[rel="canonical"]`, `meta[name="robots"]`, and `meta[property="og:url"]` are all verified in the live DOM before capturing snapshots.
 - **Post-Prerender Validation**: Builds fail if snapshots contain `127.0.0.1` or `localhost`. Removed inline origin overwrite script from `index.html`.

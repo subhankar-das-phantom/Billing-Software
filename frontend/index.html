@@ -135,38 +135,9 @@
   </head>
   <body>
     <div id="root">
-      <!-- Pre-render placeholder for FCP — replaced by React on mount -->
-      <!-- AI BROWSING NOTE: This block contains product information for ChatGPT, Gemini, Perplexity, and other
-           AI browsing tools that read page HTML. React replaces this on hydration — real users are unaffected. -->
-      <div id="prerender">
-        <main aria-label="Bharat Enterprise — Billing &amp; GST Invoicing Software" style="font-family:Inter,sans-serif;max-width:860px;margin:0 auto;padding:24px 16px;color:inherit">
-          <h1 style="font-size:1.6rem;margin-bottom:8px">Bharat Enterprise — The Operating System for Modern Indian Distribution</h1>
-          <p>Cloud billing, multi-batch inventory tracking, customer khata ledgers, and GST-ready invoicing for Indian distributors, wholesalers, pharmaceutical traders, and FMCG enterprises.</p>
-          <p><a href="/landing">View full product details</a> | <a href="/register">Start free 14-day trial</a> | <a href="/login">Sign in</a></p>
-          <h2>Subscription Plans &amp; Pricing</h2>
-          <ul>
-            <li><strong>Starter — ₹299/month:</strong> Dashboard, Customer Directory, Product Catalog, GST Invoices &amp; Print, Invoice History, Basic Reports. 14-day free trial.</li>
-            <li><strong>Business — ₹499/month (Most Popular):</strong> All Starter + Supplier Management, Purchase Tracking, Inventory Ledger, Collections &amp; Receipts, Credit Notes, Customer Khata &amp; Ledgers, Manual Journal Entries, Outstanding Balance Tracking. 14-day free trial.</li>
-            <li><strong>Professional — ₹699/month:</strong> All Business + Employee Management &amp; RBAC, Activity Analytics, Admin Audit Logs, GST Reports, Advanced Reporting, Inventory Intelligence. 14-day free trial.</li>
-          </ul>
-          <h2>Tenure Discounts</h2>
-          <ul>
-            <li>Monthly: standard price</li>
-            <li>Quarterly (3 months): 5% off</li>
-            <li>Half-Yearly (6 months): 10% off</li>
-            <li>Annual (12 months): 20% off — e.g. Business plan ₹4,790/year instead of ₹5,988</li>
-          </ul>
-          <h2>Key Features</h2>
-          <ul>
-            <li>GST-Ready Invoicing: CGST/SGST intra-state, IGST inter-state, HSN code mapping, dual-copy print</li>
-            <li>Multi-Batch Inventory: batch numbers, expiry dates, MRP tracking, low-stock alerts, movement ledger</li>
-            <li>Customer Khata: running balance, receipts (Cash/UPI/Cheque/NEFT), exportable statements</li>
-            <li>Supplier Management: GSTIN/DL tracking, purchase entries, procurement history</li>
-            <li>Analytics: daily/monthly sales trends, cash flow, receivables aging</li>
-            <li>Role-Based Access: Admin and Employee roles, audit logs, secure sessions</li>
-          </ul>
-          <p>All plans include a 14-day free trial. Register at <a href="/register">billing-software-dev.vercel.app/register</a></p>
-        </main>
+      <!-- Minimal pre-boot placeholder — replaced synchronously when React mounts -->
+      <div id="prerender" aria-busy="true" aria-label="Loading application">
+        <div class="prerender-spinner"></div>
       </div>
     </div>
     <script type="module" src="/src/main.jsx"></script>
