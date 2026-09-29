@@ -25,7 +25,7 @@ import { InvoicesTableSkeleton } from './InvoicesPageSkeleton';
 import ExportModal from '../../components/Common/Modals/ExportModal';
 import { useToast } from '../../contexts/ToastContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { invalidateCachePattern, useDebounce, useFirstVisit, useMediaQuery, useMotionConfig, useSWR } from '../../hooks';
+import { invalidateCachePattern, useDebounce, useFirstVisit, useMediaQuery, useMotionConfig, useSWR, useQueryAccumulatedList } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 import { VirtualizedList } from '../../components/Common/VirtualizedList';
 import CollapsibleMobileCard from '../../components/Common/Cards/CollapsibleMobileCard';
@@ -76,7 +76,6 @@ export default function InvoicesPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [accumulatedInvoices, setAccumulatedInvoices] = useState([]);
   const observer = useRef(null);
   const [showExportModal, setShowExportModal] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -99,8 +98,6 @@ export default function InvoicesPage() {
   const tableRowVariants = useMemo(() => createTableRowVariants(motionConfig.isMobile, motionConfig.shouldStagger), [motionConfig.isMobile, motionConfig.shouldStagger]);
 
   const currentQueryKey = `${search}-${statusFilter}-${startDate}-${endDate}`;
-  const activeQueryKeyRef = useRef(currentQueryKey);
-
   const [isFetching, setIsFetching] = useState(false);
   const isFetchingRef = useRef(false);
   const pendingPageRef = useRef(null);
@@ -118,7 +115,9 @@ export default function InvoicesPage() {
         page,
         limit: 20,
         prefix: true,
-        fuzzy: true
+        // Invoice number and customer-name prefix matches are authoritative
+        // for the main list; fuzzy remains available to explicit API callers.
+        fuzzy: false
       };
 
       if (search) params.search = search;
@@ -139,11 +138,19 @@ export default function InvoicesPage() {
     { ttl: 5 * 60 * 1000 }
   );
 
-  // Use accumulatedInvoices once populated (after first useEffect run).
-  // Fall back to data.invoices only on the very first render before useEffect seeds the list.
-  const invoices = accumulatedInvoices.length > 0 ? accumulatedInvoices : (data?.invoices || []);
-  const totalMatched = data?.total || 0;
-  const hasMore = data?.hasMore ?? (data?.pages ? page < data.pages : false);
+  const {
+    items: invoices,
+    hasCurrentPageData,
+    updateItems,
+  } = useQueryAccumulatedList({
+    queryKey: currentQueryKey,
+    page,
+    data,
+    itemsKey: 'invoices',
+  });
+  const currentPageData = hasCurrentPageData ? data : null;
+  const totalMatched = currentPageData?.total || 0;
+  const hasMore = currentPageData?.hasMore ?? (currentPageData?.pages ? page < currentPageData.pages : false);
 
   // Keep synchronization refs up-to-date
   hasMoreRef.current = hasMore;
@@ -155,35 +162,17 @@ export default function InvoicesPage() {
     pendingPageRef.current = null;
     isFetchingRef.current = false;
     setIsFetching(false);
-    activeQueryKeyRef.current = currentQueryKey;
   }, [currentQueryKey]);
 
-  // Accumulate invoices as pages arrive (guarded by query provenance)
+  // Release the pagination lock only after the current query's page completes.
   useEffect(() => {
-    if (!data?.invoices) return;
-
-    // Provenance Verification: Drop responses belonging to an obsolete filter generation
-    if (data._queryKey && data._queryKey !== activeQueryKeyRef.current) {
-      return;
-    }
-
-    if (page === 1) {
-      setAccumulatedInvoices(data.invoices);
-    } else {
-      setAccumulatedInvoices(prev => {
-        const existingIds = new Set(prev.map(inv => inv._id));
-        const newInvoices = data.invoices.filter(inv => !existingIds.has(inv._id));
-        return [...prev, ...newInvoices];
-      });
-    }
-
-    // Release lock only after the specific requested page has completed successfully
-    if (pendingPageRef.current !== null && (data._page === pendingPageRef.current || data.page === pendingPageRef.current)) {
+    if (!currentPageData) return;
+    if (pendingPageRef.current !== null && currentPageData._page === pendingPageRef.current) {
       isFetchingRef.current = false;
       setIsFetching(false);
       pendingPageRef.current = null;
     }
-  }, [data, page]);
+  }, [currentPageData]);
 
   // Failure Path: Release lock on request error so infinite scroll is not permanently disabled
   useEffect(() => {
@@ -287,7 +276,7 @@ export default function InvoicesPage() {
     try {
       await invoiceService.updateStatus(invoiceId, nextStatus);
 
-      setAccumulatedInvoices(prev => prev.filter(inv => {
+      updateItems(prev => prev.filter(inv => {
         if (inv._id !== invoiceId) return true;
         if (statusFilter === 'all') return true;
         return nextStatus === statusFilter;

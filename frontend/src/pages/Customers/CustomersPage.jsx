@@ -28,7 +28,7 @@ import ConfirmDialog from '../../components/Common/Dialogs/ConfirmDialog';
 import EnhancedButton from '../../components/Common/Buttons/EnhancedButton';
 import { VirtualizedGrid } from '../../components/Common/VirtualizedList';
 import { useToast } from '../../contexts/ToastContext';
-import { useDebounce, useMotionConfig, useFirstVisit, useSWR, invalidateCachePattern, useTransitionDelay, useMediaQuery, useCustomerFilters } from '../../hooks';
+import { useDebounce, useMotionConfig, useFirstVisit, useSWR, invalidateCachePattern, useTransitionDelay, useMediaQuery, useCustomerFilters, useQueryAccumulatedList } from '../../hooks';
 import CustomerFilterPanel from './CustomerFilterPanel';
 import { useInfiniteScrollSentinel } from '../../utils/scrollUtils';
 
@@ -209,12 +209,14 @@ export default function CustomersPage() {
   const isTabletGrid = useMediaQuery('(min-width: 768px)');
 
   const filterKey = JSON.stringify(apiParams);
-  const activeSWRKeyRef = useRef(filterKey);
-  const swrKey = `customers-${filterKey}-${page}`;
 
   const [isFetching, setIsFetching] = useState(false);
   const isFetchingRef = useRef(false);
   const pendingPageRef = useRef(null);
+  const previousFilterKeyRef = useRef(filterKey);
+  // Avoid fetching the previous page once a new search/filter key is rendered.
+  const activePage = previousFilterKeyRef.current === filterKey ? page : 1;
+  const swrKey = `customers-${filterKey}-${activePage}`;
 
   // State synchronization refs for stable observer
   const hasMoreRef = useRef(false);
@@ -225,57 +227,41 @@ export default function CustomersPage() {
   const { data, isLoading, isValidating, error: swrError, mutate } = useSWR(
     swrKey,
     async () => {
-      const res = await customerService.getCustomers({ ...apiParams, page, limit: 25, includeOutstanding: true });
-      return { ...res, _queryKey: filterKey, _page: page };
+      const res = await customerService.getCustomers({ ...apiParams, page: activePage, limit: 25, includeOutstanding: true });
+      return { ...res, _queryKey: filterKey, _page: activePage };
     },
     { ttl: 5 * 60 * 1000 } // 5 minute cache
   );
 
-  // Seed accumulatedCustomers & dataReady from SWR cache so that
-  // navigating back to this page doesn't flash "Searching customers..."
-  const [accumulatedCustomers, setAccumulatedCustomers] = useState(() => {
-    return data?.customers ?? [];
-  });
-  const [dataReady, setDataReady] = useState(() => {
-    return !!(data?.customers);
+  const {
+    items: customers,
+    hasCurrentPageData: dataReady,
+    clearItems,
+  } = useQueryAccumulatedList({
+    queryKey: filterKey,
+    page: activePage,
+    data,
+    itemsKey: 'customers',
   });
 
+  const currentPageData = dataReady ? data : null;
+
   // Extract customers from SWR response
-  const hasMore = data?.pages ? page < data.pages : false;
+  const hasMore = currentPageData?.pages ? activePage < currentPageData.pages : false;
 
   // Keep synchronization refs up-to-date
   hasMoreRef.current = hasMore;
   isValidatingRef.current = isValidating;
 
-  // Accumulate customers as new pages are loaded (guarded by query provenance)
+  // Release the lock only after the current query's requested page completed.
   useEffect(() => {
-    if (!data?.customers) return;
-
-    // Provenance Verification: Drop responses belonging to an obsolete filter generation
-    if (data._queryKey && data._queryKey !== activeSWRKeyRef.current) {
-      return;
-    }
-
-    if (page === 1) {
-      setAccumulatedCustomers(data.customers);
-    } else {
-      setAccumulatedCustomers(prev => {
-        const existingIds = new Set(prev.map(c => c._id));
-        const newCustomers = data.customers.filter(c => !existingIds.has(c._id));
-        return [...prev, ...newCustomers];
-      });
-    }
-
-    // Release lock only after the specific requested page has completed successfully
-    if (pendingPageRef.current !== null && (data._page === pendingPageRef.current || data.page === pendingPageRef.current)) {
+    if (!currentPageData) return;
+    if (pendingPageRef.current !== null && currentPageData._page === pendingPageRef.current) {
       isFetchingRef.current = false;
       setIsFetching(false);
       pendingPageRef.current = null;
     }
-
-    // Mark that we've received real data for this search term.
-    setDataReady(true);
-  }, [data, page]);
+  }, [currentPageData]);
 
   // Failure Path: Release lock on request error so infinite scroll is not permanently disabled
   useEffect(() => {
@@ -288,12 +274,11 @@ export default function CustomersPage() {
 
   // Reset pagination when filters change.
   useEffect(() => {
+    previousFilterKeyRef.current = filterKey;
     setPage(1);
-    setDataReady(false);
     pendingPageRef.current = null;
     isFetchingRef.current = false;
     setIsFetching(false);
-    activeSWRKeyRef.current = filterKey;
   }, [filterKey]);
 
   // Dedicated load trigger function controlling pagination and synchronous request lock
@@ -301,9 +286,9 @@ export default function CustomersPage() {
     if (isFetchingRef.current || isValidatingRef.current || !hasMoreRef.current) return;
     isFetchingRef.current = true;
     setIsFetching(true);
-    pendingPageRef.current = page + 1;
-    setPage(prev => prev + 1);
-  }, [page]);
+    pendingPageRef.current = activePage + 1;
+    setPage(activePage + 1);
+  }, [activePage]);
   loadNextPageRef.current = loadNextPage;
 
   // Level-triggered reactive infinite scroll sentinel
@@ -311,14 +296,13 @@ export default function CustomersPage() {
     hasMore,
     isFetching,
     isValidating,
-    onLoadMore: loadNextPage
+    onLoadMore: loadNextPage,
+    resetKey: filterKey
   });
 
-  // Extract customers from accumulated state
-  const customers = accumulatedCustomers;
   // Only show full-page loader on the very first load — never during search
   // (PageLoader replaces the entire UI including the search input, eating keystrokes)
-  const loading = isLoading && customers.length === 0 && page === 1 && !search && !searchInput && !isFiltered;
+  const loading = isLoading && customers.length === 0 && activePage === 1 && !search && !searchInput && !isFiltered;
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -379,8 +363,7 @@ export default function CustomersPage() {
       // Invalidate customers cache and revalidate
       invalidateCachePattern('customers');
       setPage(1);
-      setDataReady(false);
-      setAccumulatedCustomers([]);
+    clearItems();
       mutate();
     } catch (err) {
       error(err.message || 'Failed to save customer');
@@ -397,8 +380,7 @@ export default function CustomersPage() {
       // Invalidate customers cache and revalidate
       invalidateCachePattern('customers');
       setPage(1);
-      setDataReady(false);
-      setAccumulatedCustomers([]);
+    clearItems();
       mutate();
     } catch (err) {
       error(err.message || 'Failed to delete customer');
@@ -618,7 +600,7 @@ export default function CustomersPage() {
           !hasMore ? 'hidden pointer-events-none' : ''
         }`}
       >
-        {isFetching || (isValidating && page > 1) ? (
+        {isFetching || (isValidating && activePage > 1) ? (
           <div className="flex items-center glass-card px-6 py-3">
             <Loader2 className="w-5 h-5 text-emerald-400 animate-spin mr-3" />
             <span className="text-sm font-medium text-slate-300">Loading more customers...</span>

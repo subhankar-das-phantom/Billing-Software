@@ -113,12 +113,9 @@ export function useCustomerFilters() {
 
   // Build API params object from current filters
   const apiParams = useMemo(() => {
-    const params = { ...filters };
-    // Always include fuzzy for search
-    if (params.search) {
-      params.fuzzy = 'true';
-    }
-    return params;
+    // Direct contains matching is the default. Fuzzy matching remains
+    // available to callers that explicitly request it via the API contract.
+    return { ...filters };
   }, [filters]);
 
   return {

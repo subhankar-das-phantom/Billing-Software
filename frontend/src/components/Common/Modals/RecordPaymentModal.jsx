@@ -78,6 +78,7 @@ export default function RecordPaymentModal({
   const [customerResults, setCustomerResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [loadingCustomerData, setLoadingCustomerData] = useState(false);
+  const latestCustomerSearchRequest = useRef(0);
 
   // Standalone Dues State
   const [standaloneInvoices, setStandaloneInvoices] = useState([]);
@@ -352,26 +353,35 @@ export default function RecordPaymentModal({
   useEffect(() => {
     if (!isOpen || initialCustomer || selectedCustomer) return;
 
+    const requestId = ++latestCustomerSearchRequest.current;
+    const abortController = new AbortController();
+
     if (!customerSearch || customerSearch.trim().length < 2) {
       setCustomerResults([]);
       setSearchLoading(false);
-      return;
+      return () => abortController.abort();
     }
 
     setSearchLoading(true);
     const timer = setTimeout(async () => {
       try {
-        const res = await customerService.searchCustomers(customerSearch.trim());
+        const res = await customerService.searchCustomers(customerSearch.trim(), {
+          signal: abortController.signal,
+        });
+        if (latestCustomerSearchRequest.current !== requestId) return;
         setCustomerResults(res.customers || []);
       } catch (err) {
-        console.error('Failed to search customers:', err);
-        setCustomerResults([]);
+        if (err?.code === 'ERR_CANCELED' || err?.name === 'CanceledError' || err?.name === 'AbortError') return;
+        if (latestCustomerSearchRequest.current === requestId) setCustomerResults([]);
       } finally {
-        setSearchLoading(false);
+        if (latestCustomerSearchRequest.current === requestId) setSearchLoading(false);
       }
     }, 300);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      abortController.abort();
+    };
   }, [customerSearch, isOpen, initialCustomer, selectedCustomer]);
 
   const handleSelectCustomer = async (cust) => {

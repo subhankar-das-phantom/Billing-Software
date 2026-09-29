@@ -4,6 +4,71 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.9.3](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.9.3) — 2026-09-29 — Auth State Restoration, Query-Provenance Search Hardening & Directory Performance
+
+### 🛡️ Landing Navigation Authentication Restoration & State Isolation (`frontend/src/pages/Landing/components/LandingNav.jsx`, `frontend/src/contexts/AuthContext.jsx`)
+- **Restoration Loading State**: Connected `LandingNav` to `AuthContext` to observe authentication initialization and session verification. While authentication is restoring, the header renders an accessible pulse skeleton instead of prematurely flashing unauthenticated "Login" / "Register" buttons.
+- **Dynamic "Go to Dashboard" Action**: Replaced public login/register CTAs with a direct "Go to Dashboard" button when an authenticated user session is active, delivering smooth navigation between the public marketing root `/` and operational dashboard `/dashboard`.
+- **Functional State Isolation for Mobile Drawer**: Refactored the mobile hamburger toggle to use functional updater state (`setMobileMenuOpen((open) => !open)`) and made mobile navigation clicks independently close the navigation drawer, preventing race conditions and accidental menu re-triggers on touch devices.
+
+### ⚡ Query-Provenance Search Accumulation & Stale Result Immunity (`frontend/src/hooks/useQueryAccumulatedList.js`, `frontend/src/pages/Customers/CustomersPage.jsx`, `frontend/src/pages/Products/ProductsPage.jsx`, `frontend/src/pages/Suppliers/SuppliersPage.jsx`, `frontend/src/pages/Invoices/InvoicesPage.jsx`, `frontend/src/pages/Purchases/PurchasesPage.jsx`)
+- **Universal Query-Provenance Hook (`useQueryAccumulatedList`)**: Introduced a standardized client-side accumulator that tags list pages and cached responses with their exact query provenance (active search term, filter presets, date ranges, and page indices).
+- **Stale SWR Inter-Search Elimination**: Completely eliminated race conditions where previous search or page results temporarily flashed or appended to subsequent searches during SWR revalidation or out-of-order network responses.
+- **Full Operational Directory Rollout**: Replaced legacy accumulator logic across Customers, Products, Suppliers, Invoices, and Purchases directories with `useQueryAccumulatedList`, maintaining uniform behavior across desktop tabular views and virtualized mobile card streams.
+
+### 🔍 Customer Search Relevance Ranking & Direct Match Prioritization (`backend/controllers/customerController.js`, `backend/utils/customerSearchRanking.js`, `frontend/src/pages/Customers/CustomersPage.jsx`, `frontend/src/services/customers/customerService.js`)
+- **Direct-Over-Fuzzy Prioritization**: Removed forced fuzzy search from customer list queries. Restructured aggregation pipelines to rank exact and prefix substring matches ahead of fuzzy fallback matches, ensuring that search queries for specific names or phones return the exact match at rank 0.
+- **Relevance Pipeline Ranking Before Pagination**: Pre-calculated search match scores inside MongoDB aggregation stages (`buildCustomerSearchRankingStages`) prior to `$skip` and `$limit`, guaranteeing consistent, deterministic pagination order without losing high-relevance matches across page boundaries.
+- **Strict Tenant Boundary Preservation**: Ensured `$match: query` (with mandatory `tenantId`) strictly precedes ranking and scoring stages, preserving 100% tenant data boundaries under all search configurations.
+
+### 🎯 Invoice Search Clean Exact Matching & API Compatibility (`frontend/src/services/invoices/invoiceService.js`, `frontend/src/pages/Invoices/InvoicesPage.jsx`)
+- **Exact-Match Default for Operational Invoices**: Disabled fuzzy search by default on the primary operational Invoice directory (`fuzzy: false`), preventing irrelevant invoice results from cluttering search results when operators look up specific invoice numbers or customer names.
+- **API Backward Compatibility**: Preserved the `fuzzy` query parameter on backend `getInvoices` controller and client `invoiceService.getInvoices` method signature for API callers and legacy consumers that explicitly request fuzzy tolerance.
+
+### 🛡️ Modal Search Race Condition Elimination & Cancellation Protection (`frontend/src/components/Common/Modals/RecordPaymentModal.jsx`, `frontend/src/components/ManualEntry/ManualEntryModal.jsx`)
+- **Latest-Request Token Tracking**: Anchored real-time customer and invoice lookup calls in `RecordPaymentModal` and `ManualEntryModal` to incrementing request IDs / latest-request guards.
+- **Out-of-Order Network Drop**: Asynchronous search responses arriving out of order are discarded if a newer search query has already been dispatched, completely preventing slow previous searches from overwriting newer user keystrokes in transaction modals.
+
+### ⚡ High-Concurrency Customer Directory Balance Aggregation & ESR Compound Indexing (`backend/controllers/customerController.js`, `backend/models/Customer.js`, `backend/models/ManualEntry.js`, `backend/scripts/migrateCustomerListIndexes.js`, `backend/package.json`)
+- **Concurrent Aggregation Pipeline Execution**: Replaced sequential queries in `getCustomers` with `Promise.all([customerQuery, Customer.countDocuments(query)])` and concurrent outstanding balance aggregations across Invoices, Credit Opening Balances, and Credit Notes, reducing response latency without changing balance semantics.
+- **Compound B-Tree Index Optimization**: Added ESR-compliant compound indexes:
+  - Customer directory: `{ tenantId: 1, isActive: 1, createdAt: -1 }` on `Customer` model.
+  - Live outstanding opening balance lookup: `{ tenantId: 1, customer: 1, entryType: 1, paymentType: 1 }` on `ManualEntry` model.
+- **Idempotent Migration Script**: Created `backend/scripts/migrateCustomerListIndexes.js` with corresponding npm script `npm run migrate:customer-list-indexes` for non-blocking index deployment.
+
+### 📜 Smooth Scroll & Layout Utility Hardening (`frontend/src/utils/scrollUtils.js`)
+- **Target Header Offset Hardening**: Hardened anchor link scroll offsets in `scrollUtils.js`, verifying DOM element bounds and ensuring smooth scrolling without clipping beneath sticky fixed headers across mobile and desktop viewpoints.
+
+### 📋 Legal & Compliance Invariants
+- **Privacy Policy & Terms Audit**: Audited `PrivacyPolicyPage.jsx` and `TermsPage.jsx`. Auth session restoration on the landing page respects existing user authentication tokens without collecting new user data, modifying roles, altering telemetry, or changing billing terms.
+
+### Files Modified
+- `backend/controllers/customerController.js` — concurrent aggregation pipelines for count and balance calculations, search ranking integration
+- `backend/models/Customer.js` — added compound index `{ tenantId: 1, isActive: 1, createdAt: -1 }`
+- `backend/models/ManualEntry.js` — added compound index `{ tenantId: 1, customer: 1, entryType: 1, paymentType: 1 }`
+- `backend/scripts/migrateCustomerListIndexes.js` — migration script for customer list and balance indexes
+- `backend/package.json` — added `migrate:customer-list-indexes` script
+- `backend/utils/customerSearchRanking.js` — relevance scoring pipeline stages for exact, prefix, and substring matches
+- `frontend/src/contexts/AuthContext.jsx` — session restoration loading state on landing and public routes with stored tokens
+- `frontend/src/pages/Landing/components/LandingNav.jsx` — integrated `useAuth`, restoration skeleton, "Go to Dashboard" CTA, and independent hamburger toggle state
+- `frontend/src/hooks/useQueryAccumulatedList.js` — generic query-provenance list accumulator preventing stale SWR rendering
+- `frontend/src/hooks/index.js` — exported `useQueryAccumulatedList`
+- `frontend/src/hooks/useCustomerFilters.js` — synchronized filter parameters and search terms with query provenance
+- `frontend/src/pages/Customers/CustomersPage.jsx` — migrated to `useQueryAccumulatedList`, removed forced fuzzy parameter
+- `frontend/src/pages/Products/ProductsPage.jsx` — migrated to `useQueryAccumulatedList` with query-provenance guards
+- `frontend/src/pages/Suppliers/SuppliersPage.jsx` — migrated to `useQueryAccumulatedList` with query-provenance guards
+- `frontend/src/pages/Invoices/InvoicesPage.jsx` — migrated to `useQueryAccumulatedList`, disabled fuzzy default on list
+- `frontend/src/pages/Purchases/PurchasesPage.jsx` — migrated to `useQueryAccumulatedList` with query-provenance guards
+- `frontend/src/services/customers/customerService.js` — removed forced fuzzy search default
+- `frontend/src/services/invoices/invoiceService.js` — retained fuzzy parameter compatibility, defaulted primary list to exact search
+- `frontend/src/services/purchaseService.js` — stabilized search query parameter handling
+- `frontend/src/components/Common/Modals/RecordPaymentModal.jsx` — added request-token protection against out-of-order search responses
+- `frontend/src/components/ManualEntry/ManualEntryModal.jsx` — added request-token protection against out-of-order customer search responses
+- `frontend/src/utils/scrollUtils.js` — hardened header offset calculations and smooth scrolling bounds
+- `README.md` — updated version badge to v2.9.3, documented paginated customer directory endpoint
+- `CHANGELOG.md` — documented v2.9.3 release notes and architectural highlights
+
+
 ## [v2.9.2](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.9.2) — 2026-09-27 — Production Hardening, Public Delivery Refinement & Security Governance
 
 ### 🌐 Root Route Static Landing Delivery & Clean Operational Routing (`frontend/vercel.json`, `frontend/src/App.jsx`, `frontend/scripts/prerender.mjs`)

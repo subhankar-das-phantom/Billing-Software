@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
@@ -33,12 +33,12 @@ export default function ManualEntryModal({
   
   const [customers, setCustomers] = useState([]);
   const [customerSearch, setCustomerSearch] = useState('');
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [, setSelectedCustomer] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [searchLoading, setSearchLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  const latestCustomerSearchRequest = useRef(0);
 
   // Reset form when modal opens
   useEffect(() => {
@@ -65,28 +65,35 @@ export default function ManualEntryModal({
     }
   }, [isOpen, preSelectedCustomer]);
 
-  // Search customers
+  // Debounced customer search with cancellation and latest-request protection.
   useEffect(() => {
-    const searchCustomers = async () => {
-      if (customerSearch.length < 2) {
-        setCustomers([]);
-        return;
-      }
-      
-      setSearchLoading(true);
+    const query = customerSearch.trim();
+    const requestId = ++latestCustomerSearchRequest.current;
+    const abortController = new AbortController();
+
+    if (!isOpen || query.length < 2) {
+      setCustomers([]);
+      return () => abortController.abort();
+    }
+
+    const debounce = setTimeout(async () => {
       try {
-        const data = await customerService.searchCustomers(customerSearch);
+        const data = await customerService.searchCustomers(query, {
+          signal: abortController.signal,
+        });
+        if (latestCustomerSearchRequest.current !== requestId) return;
         setCustomers(data.customers || []);
       } catch (err) {
-        console.error('Failed to search customers:', err);
-      } finally {
-        setSearchLoading(false);
+        if (err?.code === 'ERR_CANCELED' || err?.name === 'CanceledError' || err?.name === 'AbortError') return;
+        if (latestCustomerSearchRequest.current === requestId) setCustomers([]);
       }
-    };
+    }, 300);
 
-    const debounce = setTimeout(searchCustomers, 300);
-    return () => clearTimeout(debounce);
-  }, [customerSearch]);
+    return () => {
+      clearTimeout(debounce);
+      abortController.abort();
+    };
+  }, [customerSearch, isOpen]);
 
 
 

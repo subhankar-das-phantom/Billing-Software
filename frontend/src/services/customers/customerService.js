@@ -130,12 +130,13 @@ export const customerService = {
    */
   searchCustomers: async (query, options = {}) => {
     try {
+      const { signal, ...queryOptions } = options;
       const params = { 
         q: query,
-        ...options
+        ...queryOptions
       };
       
-      const response = await api.get('/customers/search', { params });
+      const response = await api.get('/customers/search', { params, signal });
       return response.data;
     } catch (error) {
       throw error;

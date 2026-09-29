@@ -11,6 +11,7 @@
     "seed:showcase": "tsx scripts/seedShowcase.ts",
     "verify:showcase": "tsx scripts/verifyShowcase.ts",
     "migrate:customer-phone-index": "node scripts/migrateCustomerPhoneIndex.js",
+    "migrate:customer-list-indexes": "node scripts/migrateCustomerListIndexes.js",
     "migrate:credit-note-number-index": "node scripts/migrateCreditNoteNumberIndex.js",
     "migrate:invoice-number-index": "node scripts/migrateInvoiceNumberIndex.js",
     "migrate:stock-version": "node scripts/migrateStockVersion.js"

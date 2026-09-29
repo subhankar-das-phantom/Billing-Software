@@ -32,7 +32,8 @@ import {
   useFirstVisit, 
   useMediaQuery, 
   useMotionConfig, 
-  useSWR 
+  useSWR,
+  useQueryAccumulatedList
 } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 import { VirtualizedList } from '../../components/Common/VirtualizedList';
@@ -84,7 +85,6 @@ export default function PurchasesPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [accumulatedPurchases, setAccumulatedPurchases] = useState([]);
   const observer = useRef(null);
   const [showExportModal, setShowExportModal] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -102,8 +102,6 @@ export default function PurchasesPage() {
   const tableRowVariants = useMemo(() => createTableRowVariants(motionConfig.isMobile, motionConfig.shouldStagger), [motionConfig.isMobile, motionConfig.shouldStagger]);
 
   const currentQueryKey = `${search}-${statusFilter}-${startDate}-${endDate}`;
-  const activeQueryKeyRef = useRef(currentQueryKey);
-
   const [isFetching, setIsFetching] = useState(false);
   const isFetchingRef = useRef(false);
   const pendingPageRef = useRef(null);
@@ -140,9 +138,18 @@ export default function PurchasesPage() {
     { ttl: 5 * 60 * 1000 }
   );
 
-  const purchases = accumulatedPurchases.length > 0 ? accumulatedPurchases : (data?.purchases || []);
-  const totalMatched = data?.total || 0;
-  const hasMore = data?.pages ? page < data.pages : false;
+  const {
+    items: purchases,
+    hasCurrentPageData,
+  } = useQueryAccumulatedList({
+    queryKey: currentQueryKey,
+    page,
+    data,
+    itemsKey: 'purchases',
+  });
+  const currentPageData = hasCurrentPageData ? data : null;
+  const totalMatched = currentPageData?.total || 0;
+  const hasMore = currentPageData?.pages ? page < currentPageData.pages : false;
 
   // Keep synchronization refs up-to-date
   hasMoreRef.current = hasMore;
@@ -154,35 +161,17 @@ export default function PurchasesPage() {
     pendingPageRef.current = null;
     isFetchingRef.current = false;
     setIsFetching(false);
-    activeQueryKeyRef.current = currentQueryKey;
   }, [currentQueryKey]);
 
-  // Accumulate purchases as pages arrive (guarded by query provenance)
+  // Release the pagination lock only after the current query's page completes.
   useEffect(() => {
-    if (!data?.purchases) return;
-
-    // Provenance Verification: Drop responses belonging to an obsolete filter generation
-    if (data._queryKey && data._queryKey !== activeQueryKeyRef.current) {
-      return;
-    }
-
-    if (page === 1) {
-      setAccumulatedPurchases(data.purchases);
-    } else {
-      setAccumulatedPurchases(prev => {
-        const existingIds = new Set(prev.map(p => p._id));
-        const newPurchases = data.purchases.filter(p => !existingIds.has(p._id));
-        return [...prev, ...newPurchases];
-      });
-    }
-
-    // Release lock only after the specific requested page has completed successfully
-    if (pendingPageRef.current !== null && (data._page === pendingPageRef.current || data.page === pendingPageRef.current)) {
+    if (!currentPageData) return;
+    if (pendingPageRef.current !== null && currentPageData._page === pendingPageRef.current) {
       isFetchingRef.current = false;
       setIsFetching(false);
       pendingPageRef.current = null;
     }
-  }, [data, page]);
+  }, [currentPageData]);
 
   // Failure Path: Release lock on request error so infinite scroll is not permanently disabled
   useEffect(() => {

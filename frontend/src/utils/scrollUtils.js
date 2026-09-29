@@ -5,7 +5,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
  * Shared utilities for finding scroll parents, infinite scroll thresholds, and root margin constants.
  */
 
-export const INFINITE_SCROLL_ROOT_MARGIN = '600px';
+export const INFINITE_SCROLL_ROOT_MARGIN = '300px';
 export const INFINITE_SCROLL_THRESHOLD = 0;
 
 /**
@@ -47,8 +47,8 @@ export function findScrollParent(node) {
  *    the passive scroll listener before the user hits the bottom.
  * 2. Stuck-state elimination: Removes destructive manual state overwrites that caused
  *    IntersectionObserver to remain dormant until the user scrolled up and down.
- * 3. Immediate post-fetch continuation: When a fetch completes, if the user remains near
- *    the bottom, smoothly queues the next page after layout settlement.
+ * 3. Trigger de-duplication: One intersection/scroll cycle requests at most one page;
+ *    the next page requires a fresh scroll cycle or query key.
  *
  * @param {object} options
  * @param {boolean} options.hasMore - Whether more pages are available on the server.
@@ -56,6 +56,7 @@ export function findScrollParent(node) {
  * @param {boolean} options.isValidating - Whether SWR background revalidation is in progress.
  * @param {Function} options.onLoadMore - Callback to fetch the next page.
  * @param {boolean} [options.enabled=true] - Optional switch to enable/disable (e.g. for inactive tabs).
+ * @param {string|number} [options.resetKey] - Resets the trigger when the query changes.
  * @returns {{ sentinelRef: Function, isIntersecting: boolean, scrollRoot: HTMLElement|null }}
  */
 export function useInfiniteScrollSentinel({
@@ -63,11 +64,14 @@ export function useInfiniteScrollSentinel({
   isFetching,
   isValidating,
   onLoadMore,
-  enabled = true
+  enabled = true,
+  resetKey
 }) {
   const [scrollRoot, setScrollRoot] = useState(null);
   const [isIntersecting, setIsIntersecting] = useState(false);
   const sentinelElementRef = useRef(null);
+  const triggerConsumedRef = useRef(false);
+  const previousResetKeyRef = useRef(resetKey);
 
   const onLoadMoreRef = useRef(onLoadMore);
   onLoadMoreRef.current = onLoadMore;
@@ -80,6 +84,12 @@ export function useInfiniteScrollSentinel({
 
   const isValidatingRef = useRef(isValidating);
   isValidatingRef.current = isValidating;
+
+  useEffect(() => {
+    if (previousResetKeyRef.current === resetKey) return;
+    previousResetKeyRef.current = resetKey;
+    triggerConsumedRef.current = false;
+  }, [resetKey]);
 
   // Stable callback ref: resolves scroll root immediately on mount
   const sentinelRef = useCallback((node) => {
@@ -104,7 +114,7 @@ export function useInfiniteScrollSentinel({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Primary Trigger: IntersectionObserver with generous 600px rootMargin
+  // Primary Trigger: IntersectionObserver with a controlled 300px rootMargin
   useEffect(() => {
     const node = sentinelElementRef.current;
     if (!node || !scrollRoot || !enabled) return;
@@ -113,6 +123,9 @@ export function useInfiniteScrollSentinel({
     const observer = new IntersectionObserver(
       ([entry]) => {
         setIsIntersecting(entry.isIntersecting);
+        if (!entry.isIntersecting) {
+          triggerConsumedRef.current = false;
+        }
       },
       {
         root: isDocRoot ? null : scrollRoot,
@@ -158,9 +171,10 @@ export function useInfiniteScrollSentinel({
 
           const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
 
-          // If within 600px of the bottom during fast scrolling, trigger loadMore
-          if (distanceFromBottom <= 600) {
+          // If within the prefetch margin during fast scrolling, trigger loadMore.
+          if (distanceFromBottom <= 300) {
             if (hasMoreRef.current && !isFetchingRef.current && !isValidatingRef.current) {
+              triggerConsumedRef.current = true;
               onLoadMoreRef.current?.();
             }
           }
@@ -177,29 +191,11 @@ export function useInfiniteScrollSentinel({
   // Reactive Level Trigger: fires when sentinel is intersecting and locks are released
   useEffect(() => {
     if (!enabled) return;
-    if (isIntersecting && hasMore && !isFetching && !isValidating) {
+    if (isIntersecting && hasMore && !isFetching && !isValidating && !triggerConsumedRef.current) {
+      triggerConsumedRef.current = true;
       onLoadMoreRef.current?.();
     }
   }, [isIntersecting, hasMore, isFetching, isValidating, enabled]);
-
-  // Post-Fetch Layout Continuation: if user is still near bottom after items append, queue next page
-  useEffect(() => {
-    if (!enabled || !hasMore || isFetching || isValidating || !scrollRoot) return;
-
-    const timer = setTimeout(() => {
-      if (!scrollRoot) return;
-      const scrollHeight = scrollRoot.scrollHeight;
-      const scrollTop = scrollRoot.scrollTop;
-      const clientHeight = scrollRoot.clientHeight;
-      const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
-
-      if (distanceFromBottom <= 600 && hasMoreRef.current && !isFetchingRef.current && !isValidatingRef.current) {
-        onLoadMoreRef.current?.();
-      }
-    }, 60);
-
-    return () => clearTimeout(timer);
-  }, [isFetching, isValidating, hasMore, enabled, scrollRoot]);
 
   return { sentinelRef, isIntersecting, scrollRoot };
 }
