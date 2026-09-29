@@ -213,14 +213,15 @@ function PublicRoute({ children }) {
 // Root Route: Prerender-safe entry. Frame-0 renders LandingPage matching static snapshot;
 // once mounted and auth is restored, authenticated users transition to /dashboard.
 function RootRoute() {
-  const { user, isAuthRestored } = useAuth();
+  const { user, admin, isAuthRestored } = useAuth();
+  const isAuthenticated = Boolean(user || admin);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isAuthRestored && user) {
+    if (isAuthRestored && isAuthenticated) {
       navigate('/dashboard', { replace: true });
     }
-  }, [isAuthRestored, user, navigate]);
+  }, [isAuthRestored, isAuthenticated, navigate]);
 
   return <LandingPage />;
 }

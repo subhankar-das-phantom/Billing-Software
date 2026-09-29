@@ -38,7 +38,8 @@ export default function LandingNav() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { isDark, toggleTheme } = useTheme();
-  const { user, isAuthRestored } = useAuth();
+  const { user, admin, isAuthRestored } = useAuth();
+  const isAuthenticated = Boolean(user || admin);
   const trialDays = useTrialDaysQuery();
 
   // Handle scroll state for header elevation
@@ -113,10 +114,12 @@ export default function LandingNav() {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-md transition-all duration-200 ${
-        isScrolled || mobileMenuOpen
-          ? 'bg-slate-900/95 border-b border-slate-800/80 shadow-xs'
-          : 'bg-slate-900/70 border-b border-slate-800/40'
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ${
+        mobileMenuOpen
+          ? 'bg-slate-900 border-b border-slate-800 shadow-xs'
+          : isScrolled
+          ? 'bg-slate-900/95 backdrop-blur-md border-b border-slate-800/80 shadow-xs'
+          : 'bg-slate-900/70 backdrop-blur-md border-b border-slate-800/40'
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -165,13 +168,13 @@ export default function LandingNav() {
               aria-label={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             >
               {isDark ? (
-                <Sun className="w-5 h-5 text-amber-400 transition-transform duration-200 hover:rotate-45" />
+                <Sun className="w-5 h-5 text-amber-400 transition-transform duration-200 hover:rotate-45 pointer-events-none" />
               ) : (
-                <Moon className="w-5 h-5 text-slate-400 hover:text-slate-200 transition-transform duration-200 hover:-rotate-12" />
+                <Moon className="w-5 h-5 text-slate-400 hover:text-slate-200 transition-transform duration-200 hover:-rotate-12 pointer-events-none" />
               )}
             </button>
 
-            {isAuthRestored && user ? (
+            {isAuthRestored && isAuthenticated ? (
               <Link
                 to="/dashboard"
                 className="inline-flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-lg shadow-xs hover:shadow-blue-600/25 transition-all duration-150"
@@ -209,9 +212,9 @@ export default function LandingNav() {
               title="Toggle theme"
             >
               {isDark ? (
-                <Sun className="w-5 h-5 text-amber-400" />
+                <Sun className="w-5 h-5 text-amber-400 pointer-events-none" />
               ) : (
-                <Moon className="w-5 h-5 text-slate-400 hover:text-slate-200" />
+                <Moon className="w-5 h-5 text-slate-400 hover:text-slate-200 pointer-events-none" />
               )}
             </button>
 
@@ -219,14 +222,14 @@ export default function LandingNav() {
             <button
               type="button"
               onClick={() => setMobileMenuOpen((open) => !open)}
-              className="p-2.5 rounded-xl text-slate-200 bg-slate-850 hover:bg-slate-800 border border-slate-800 shadow-2xs transition-all focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-95"
+              className="p-2.5 rounded-xl text-slate-200 bg-slate-850 hover:bg-slate-800 border border-slate-800 shadow-2xs transition-all focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-95 touch-manipulation select-none"
               aria-expanded={mobileMenuOpen}
               aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
             >
               {mobileMenuOpen ? (
-                <X className="w-5 h-5 text-slate-100" />
+                <X className="w-5 h-5 text-slate-100 pointer-events-none" />
               ) : (
-                <Menu className="w-5 h-5 text-slate-100" />
+                <Menu className="w-5 h-5 text-slate-100 pointer-events-none" />
               )}
             </button>
           </div>
@@ -236,7 +239,7 @@ export default function LandingNav() {
       {/* Mobile Drawer Navigation (Full screen overlay with pinned footer) */}
       {mobileMenuOpen && (
         <div
-          className="lg:hidden fixed inset-x-0 top-16 sm:top-20 h-[calc(100dvh-4rem)] sm:h-[calc(100dvh-5rem)] bg-slate-900 border-t border-slate-800 shadow-2xl flex flex-col z-50 transition-colors"
+          className="lg:hidden fixed inset-x-0 top-16 sm:top-20 h-[calc(100vh-4rem)] sm:h-[calc(100vh-5rem)] h-[calc(100dvh-4rem)] sm:h-[calc(100dvh-5rem)] bg-slate-900 border-t border-slate-800 shadow-2xl flex flex-col z-50 transition-colors"
           role="dialog"
           aria-modal="true"
           aria-label="Mobile Navigation Drawer"
@@ -272,7 +275,7 @@ export default function LandingNav() {
 
           {/* Pinned Bottom Actions Bar */}
           <div className="shrink-0 p-4 sm:p-6 border-t border-slate-800 bg-slate-900/95 backdrop-blur-md space-y-3">
-            {isAuthRestored && user ? (
+            {isAuthRestored && isAuthenticated ? (
               <Link
                 to="/dashboard"
                 onClick={() => setMobileMenuOpen(false)}
