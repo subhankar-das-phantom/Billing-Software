@@ -35,34 +35,47 @@ const BLOCKED_STATIC_ROUTES = ['/login', '/register'];
 
 const DIST_DIR = path.resolve('dist');
 const SNAPSHOTS_DIR = path.resolve('snapshots');
+const DEFAULT_PRODUCTION_ORIGIN = 'https://billing-software-sigma.vercel.app';
 
-const isStrict = process.env.PRERENDER_STRICT === 'true' || process.env.CI === 'true';
+const isStrict = process.env.PRERENDER_STRICT === 'true';
 
 /**
- * Resolve production origin without hardcoding fallbacks.
- * In strict production builds, missing configuration causes an immediate fatal error.
+ * Resolve production origin.
+ * In strict mode (PRERENDER_STRICT=true), missing configuration causes an immediate fatal error.
+ * In CI or production builds without explicit override, falls back to canonical DEFAULT_PRODUCTION_ORIGIN
+ * to maintain parity with vite.config.js.
  */
 function resolveProductionOrigin() {
-  const origin =
+  const explicitOrigin =
     process.env.VITE_FRONTEND_URL ||
     (process.env.VERCEL_PROJECT_PRODUCTION_URL
       ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-      : null);
+      : (process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : null));
 
-  if (!origin || !origin.trim()) {
-    if (isStrict) {
-      throw new Error(
-        '[prerender] FATAL: Production origin is not configured in strict mode. ' +
-        'Set VITE_FRONTEND_URL or VERCEL_PROJECT_PRODUCTION_URL before building.'
-      );
-    }
-    console.warn(
-      '[prerender] ⚠ Warning: Production origin is not configured. Local origin will be used for dev preview.'
-    );
-    return null;
+  if (explicitOrigin && explicitOrigin.trim()) {
+    return explicitOrigin.trim().replace(/\/+$/, '');
   }
 
-  return origin.trim().replace(/\/+$/, '');
+  if (isStrict) {
+    throw new Error(
+      '[prerender] FATAL: Production origin is not configured in strict mode. ' +
+      'Set VITE_FRONTEND_URL, VERCEL_PROJECT_PRODUCTION_URL, or VERCEL_URL before building.'
+    );
+  }
+
+  if (process.env.CI || process.env.NODE_ENV === 'production') {
+    console.log(
+      `[prerender] ℹ Notice: Production origin defaulting to canonical domain: ${DEFAULT_PRODUCTION_ORIGIN}`
+    );
+    return DEFAULT_PRODUCTION_ORIGIN;
+  }
+
+  console.warn(
+    '[prerender] ⚠ Warning: Production origin is not configured. Local origin will be used for dev preview.'
+  );
+  return null;
 }
 
 async function run() {

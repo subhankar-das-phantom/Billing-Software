@@ -48,4 +48,6 @@ jobs:
 
     - name: Build Frontend
       working-directory: ./frontend
+      env:
+        VITE_FRONTEND_URL: https://billing-software-sigma.vercel.app
       run: npm run build
