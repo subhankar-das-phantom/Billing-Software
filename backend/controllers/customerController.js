@@ -427,7 +427,7 @@ exports.getCustomers = async (req, res, next) => {
     const rawSearch = String(req.query.search || '').trim();
     const useFuzzy = req.query.fuzzy === 'true';
 
-    const customers = rawSearch
+    const customerQuery = rawSearch
       ? await Customer.aggregate([
         { $match: query },
         ...buildCustomerSearchRankingStages({ rawQuery: rawSearch, useFuzzy, sort, skip, limit })
@@ -436,6 +436,10 @@ exports.getCustomers = async (req, res, next) => {
         .sort(sort)
         .skip(skip)
         .limit(limit);
+    const [customers, total] = await Promise.all([
+      customerQuery,
+      Customer.countDocuments(query)
+    ]);
 
     const includeOutstanding = req.query.includeOutstanding === 'true';
     let customersWithOutstanding = customers;
@@ -443,24 +447,23 @@ exports.getCustomers = async (req, res, next) => {
     if (includeOutstanding && customers.length > 0) {
       const customerIds = customers.map(c => c._id);
 
-      const invoiceOutstanding = await Invoice.aggregate([
-        { $match: { tenantId, 'customer._id': { $in: customerIds }, status: { $ne: 'Cancelled' } } },
-        { $project: { customerId: '$customer._id', remaining: { $subtract: ['$totals.netTotal', { $ifNull: ['$paidAmount', 0] }] } } },
-        { $match: { remaining: { $gt: 0 } } },
-        { $group: { _id: '$customerId', total: { $sum: '$remaining' } } }
-      ]);
-
-      const manualOutstanding = await ManualEntry.aggregate([
-        { $match: { tenantId, customer: { $in: customerIds }, entryType: 'opening_balance', paymentType: 'Credit' } },
-        { $project: { customerId: '$customer', remaining: { $subtract: ['$amount', { $ifNull: ['$paidAmount', 0] }] } } },
-        { $match: { remaining: { $gt: 0 } } },
-        { $group: { _id: '$customerId', total: { $sum: '$remaining' } } }
-      ]);
-
-      // Credit note deductions per customer
-      const creditNoteDeductions = await CreditNote.aggregate([
-        { $match: { tenantId, 'customer._id': { $in: customerIds } } },
-        { $group: { _id: '$customer._id', total: { $sum: '$totals.netTotal' } } }
+      const [invoiceOutstanding, manualOutstanding, creditNoteDeductions] = await Promise.all([
+        Invoice.aggregate([
+          { $match: { tenantId, 'customer._id': { $in: customerIds }, status: { $ne: 'Cancelled' } } },
+          { $project: { customerId: '$customer._id', remaining: { $subtract: ['$totals.netTotal', { $ifNull: ['$paidAmount', 0] }] } } },
+          { $match: { remaining: { $gt: 0 } } },
+          { $group: { _id: '$customerId', total: { $sum: '$remaining' } } }
+        ]),
+        ManualEntry.aggregate([
+          { $match: { tenantId, customer: { $in: customerIds }, entryType: 'opening_balance', paymentType: 'Credit' } },
+          { $project: { customerId: '$customer', remaining: { $subtract: ['$amount', { $ifNull: ['$paidAmount', 0] }] } } },
+          { $match: { remaining: { $gt: 0 } } },
+          { $group: { _id: '$customerId', total: { $sum: '$remaining' } } }
+        ]),
+        CreditNote.aggregate([
+          { $match: { tenantId, 'customer._id': { $in: customerIds } } },
+          { $group: { _id: '$customer._id', total: { $sum: '$totals.netTotal' } } }
+        ])
       ]);
 
       const invoiceMap = new Map(invoiceOutstanding.map(row => [row._id.toString(), row.total || 0]));
@@ -474,8 +477,6 @@ exports.getCustomers = async (req, res, next) => {
         return { ...base, calculatedOutstanding: round2(Math.max(0, total)) };
       });
     }
-
-    const total = await Customer.countDocuments(query);
 
     res.status(200).json({
       success: true,

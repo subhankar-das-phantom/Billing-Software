@@ -99,5 +99,7 @@ customerSchema.index({ isActive: 1 });
 customerSchema.index({ tenantId: 1, isActive: 1 });
 customerSchema.index({ tenantId: 1, customerName: 1 });
 customerSchema.index({ tenantId: 1, phone: 1 }, { unique: true });
+// Default paginated customer directory: tenant/status equality then newest first.
+customerSchema.index({ tenantId: 1, isActive: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Customer', customerSchema);

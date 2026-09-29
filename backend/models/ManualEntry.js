@@ -149,5 +149,7 @@ manualEntrySchema.index({ createdAt: -1 });
 manualEntrySchema.index({ tenantId: 1, customer: 1, entryDate: -1 });
 // Customer payment history optimization index
 manualEntrySchema.index({ tenantId: 1, customer: 1, entryType: 1, entryDate: -1 });
+// Live customer outstanding calculation for credit opening balances.
+manualEntrySchema.index({ tenantId: 1, customer: 1, entryType: 1, paymentType: 1 });
 
 module.exports = mongoose.model('ManualEntry', manualEntrySchema);
