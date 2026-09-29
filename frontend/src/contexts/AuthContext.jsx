@@ -74,6 +74,7 @@ export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
 
   const isPublicMarketingRoute = 
+    location.pathname === '/' ||
     location.pathname === '/landing' ||
     location.pathname === '/privacy-policy' ||
     location.pathname === '/terms';
@@ -116,8 +117,16 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(() => (
     hasToken && !localStorage.getItem('admin') && !localStorage.getItem('user')
   ));
+  // Client hydration restoration flag: false on Frame 0 (matching prerendered snapshot),
+  // flips to true in useEffect after mount to safely permit client-side auth switches.
+  const [isAuthRestored, setIsAuthRestored] = useState(false);
   const [toast, setToast] = useState(null);
   const [authTransition, setAuthTransition] = useState(null); // 'login' | 'logout'
+
+  // Mark auth as restored after initial client mount / hydration
+  useEffect(() => {
+    setIsAuthRestored(true);
+  }, []);
 
   // Auto-dismiss toast after 4 seconds
   useEffect(() => {
@@ -405,6 +414,7 @@ export const AuthProvider = ({ children }) => {
         user,
         userRole,
         isAdmin: isAdmin(),
+        isAuthRestored,
         
         // For backward compatibility
         admin, 
@@ -478,6 +488,7 @@ export const useAuth = () => {
       admin: null,
       isAdmin: false,
       loading: false,
+      isAuthRestored: false,
       userRole: null,
       hasPermission: () => false,
       showToast: () => {},

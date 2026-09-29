@@ -38,7 +38,7 @@ export default function LandingNav() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { isDark, toggleTheme } = useTheme();
-  const { user, loading: authLoading } = useAuth();
+  const { user, isAuthRestored } = useAuth();
   const trialDays = useTrialDaysQuery();
 
   // Handle scroll state for header elevation
@@ -123,7 +123,7 @@ export default function LandingNav() {
         <div className="flex items-center justify-between h-16 sm:h-20">
           {/* Brand Logo & Tagline */}
           <Link
-            to="/landing"
+            to="/"
             onClick={() => setMobileMenuOpen(false)}
             className="flex items-center space-x-3 group focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg"
           >
@@ -171,9 +171,7 @@ export default function LandingNav() {
               )}
             </button>
 
-            {authLoading ? (
-              <div className="h-10 w-36 rounded-lg bg-slate-800/50 animate-pulse" aria-label="Restoring session" />
-            ) : user ? (
+            {isAuthRestored && user ? (
               <Link
                 to="/dashboard"
                 className="inline-flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-lg shadow-xs hover:shadow-blue-600/25 transition-all duration-150"
@@ -274,9 +272,7 @@ export default function LandingNav() {
 
           {/* Pinned Bottom Actions Bar */}
           <div className="shrink-0 p-4 sm:p-6 border-t border-slate-800 bg-slate-900/95 backdrop-blur-md space-y-3">
-            {authLoading ? (
-              <div className="h-[92px] rounded-xl bg-slate-800/50 animate-pulse" aria-label="Restoring session" />
-            ) : user ? (
+            {isAuthRestored && user ? (
               <Link
                 to="/dashboard"
                 onClick={() => setMobileMenuOpen(false)}
