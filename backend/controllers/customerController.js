@@ -8,8 +8,9 @@ const { trackActivity, ACTIVITY_TYPES } = require('../utils/activityTracker');
 const mongoose = require('mongoose');
 const getTenantId = require('../utils/getTenantId');
 
-const { escapeRegex, getSearchPattern, buildFuzzyPattern } = require('../utils/searchUtils');
+const { getSearchPattern, buildFuzzyPattern } = require('../utils/searchUtils');
 const { buildCustomerFilter } = require('../utils/queryBuilders/buildCustomerFilter');
+const { buildCustomerSearchRankingStages } = require('../utils/customerSearchRanking');
 
 // Round to 2 decimal places safely (avoids JS floating point drift)
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
@@ -423,11 +424,18 @@ exports.getCustomers = async (req, res, next) => {
 
     const tenantId = getTenantId(req);
     const { filter: query, sort } = buildCustomerFilter(tenantId, req.query);
+    const rawSearch = String(req.query.search || '').trim();
+    const useFuzzy = req.query.fuzzy === 'true';
 
-    const customers = await Customer.find(query)
-      .sort(sort)
-      .skip(skip)
-      .limit(limit);
+    const customers = rawSearch
+      ? await Customer.aggregate([
+        { $match: query },
+        ...buildCustomerSearchRankingStages({ rawQuery: rawSearch, useFuzzy, sort, skip, limit })
+      ])
+      : await Customer.find(query)
+        .sort(sort)
+        .skip(skip)
+        .limit(limit);
 
     const includeOutstanding = req.query.includeOutstanding === 'true';
     let customersWithOutstanding = customers;
@@ -460,7 +468,7 @@ exports.getCustomers = async (req, res, next) => {
       const creditNoteMap = new Map(creditNoteDeductions.map(row => [row._id.toString(), row.total || 0]));
 
       customersWithOutstanding = customers.map(c => {
-        const base = c.toObject();
+        const base = typeof c.toObject === 'function' ? c.toObject() : c;
         const key = c._id.toString();
         const total = (invoiceMap.get(key) || 0) + (manualMap.get(key) || 0) - (creditNoteMap.get(key) || 0);
         return { ...base, calculatedOutstanding: round2(Math.max(0, total)) };
@@ -519,46 +527,21 @@ exports.searchCustomers = async (req, res, next) => {
     }
 
     const tenantId = getTenantId(req);
-    const matchedCustomers = await Customer.find({
-      tenantId,
-      isActive: true,
-      $or: conditions
-    })
-      .sort({ customerName: 1, _id: 1 })
-      .limit(50);
-
-    const normalizedQuery = rawQuery.toLowerCase();
-    const fuzzyRegex = useFuzzy && normalizedQuery.length >= 2
-      ? new RegExp(buildFuzzyPattern(rawQuery), 'i')
-      : null;
-    const standaloneQueryRegex = new RegExp(
-      `(?:^|[^a-z0-9])${escapeRegex(normalizedQuery)}(?=$|[^a-z0-9])`
-    );
-    const scoreCustomer = (customer) => {
-      const name = String(customer.customerName || '').toLowerCase();
-      const primaryName = name.replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim();
-      const parentheticalName = (name.match(/\([^)]*\)/g) || []).join(' ');
-      const directFields = [customer.phone, customer.gstin, customer.address]
-        .filter(Boolean)
-        .map(value => String(value).toLowerCase());
-
-      if (name === normalizedQuery) return 1000;
-      if (name.startsWith(normalizedQuery)) return 900;
-      // A trailing standalone surname/word is a strong customer-name match.
-      if (name.endsWith(` ${normalizedQuery}`)) return 850;
-      // Prefer a standalone word in the primary customer name, e.g. SHANKAR SHAW.
-      if (standaloneQueryRegex.test(primaryName)) return 800;
-      // Parenthetical names are useful aliases, but should rank below the primary name.
-      if (standaloneQueryRegex.test(parentheticalName)) return 700;
-      if (name.includes(normalizedQuery)) return 600;
-      if (directFields.some(value => value.includes(normalizedQuery))) return 300;
-      if (fuzzyRegex && fuzzyRegex.test(name)) return 200;
-      if (fuzzyRegex && directFields.some(value => fuzzyRegex.test(value))) return 190;
-      return 0;
-    };
-    const customers = matchedCustomers
-      .sort((a, b) => scoreCustomer(b) - scoreCustomer(a) || String(a.customerName).localeCompare(String(b.customerName)))
-      .slice(0, 10);
+    const customers = await Customer.aggregate([
+      {
+        $match: {
+          tenantId,
+          isActive: true,
+          $or: conditions
+        }
+      },
+      ...buildCustomerSearchRankingStages({
+        rawQuery,
+        useFuzzy,
+        sort: { customerName: 1, _id: 1 },
+        limit: 10
+      })
+    ]);
 
     let customersWithOutstanding = customers;
     if (customers.length > 0) {
@@ -588,7 +571,7 @@ exports.searchCustomers = async (req, res, next) => {
       const creditNoteMap = new Map(creditNoteDeductions.map(row => [row._id.toString(), row.total || 0]));
 
       customersWithOutstanding = customers.map(c => {
-        const base = c.toObject();
+        const base = typeof c.toObject === 'function' ? c.toObject() : c;
         const key = c._id.toString();
         const total = (invoiceMap.get(key) || 0) + (manualMap.get(key) || 0) - (creditNoteMap.get(key) || 0);
         const liveDue = round2(Math.max(0, total));
