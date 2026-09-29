@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { lazy, Suspense, useEffect } from 'react';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider, useAuth, AdminRoute } from './contexts/AuthContext';
@@ -210,30 +210,18 @@ function PublicRoute({ children }) {
   return children;
 }
 
-// Root Route: Unauthenticated visitors see LandingPage; authenticated sessions route to /dashboard
+// Root Route: Prerender-safe entry. Frame-0 renders LandingPage matching static snapshot;
+// once mounted and auth is restored, authenticated users transition to /dashboard.
 function RootRoute() {
-  const hasToken = typeof window !== 'undefined' ? !!localStorage.getItem('token') : false;
-  if (!hasToken) {
-    return <LandingPage />;
-  }
+  const { user, admin, isAuthRestored } = useAuth();
+  const isAuthenticated = Boolean(user || admin);
+  const navigate = useNavigate();
 
-  const { user, loading } = useAuth();
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white font-bold text-xl flex items-center justify-center shadow-lg shadow-blue-500/20 animate-pulse">
-            B
-          </div>
-          <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mt-1" />
-        </div>
-      </div>
-    );
-  }
-
-  if (user) {
-    return <Navigate to="/dashboard" replace />;
-  }
+  useEffect(() => {
+    if (isAuthRestored && isAuthenticated) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthRestored, isAuthenticated, navigate]);
 
   return <LandingPage />;
 }
