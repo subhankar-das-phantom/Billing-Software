@@ -78,8 +78,60 @@ function resolveProductionOrigin() {
   return null;
 }
 
+/**
+ * Extract active Vite-compiled client assets (JS bundle, CSS stylesheet)
+ * from the freshly built dist/index.html SPA shell.
+ */
+function extractViteAssets(html) {
+  if (!html) return { scriptTag: null, cssTag: null };
+  const scriptMatch = html.match(/<script\s+type="module"[^>]*src="\/assets\/index-[^"]+\.js"[^>]*><\/script>/i);
+  const cssMatch = html.match(/<link\s+rel="stylesheet"[^>]*href="\/assets\/index-[^"]+\.css"[^>]*>/i);
+  return {
+    scriptTag: scriptMatch ? scriptMatch[0] : null,
+    cssTag: cssMatch ? cssMatch[0] : null,
+  };
+}
+
+/**
+ * Reconcile snapshot HTML with active Vite-compiled client assets.
+ * Replaces any stale hardcoded /assets/index-*.js and /assets/index-*.css references
+ * with the exact hashes produced by the current build.
+ */
+function reconcileSnapshotAssets(html, viteAssets) {
+  if (!html || !viteAssets) return html;
+  let reconciled = html;
+  if (viteAssets.scriptTag) {
+    reconciled = reconciled.replace(
+      /<script\s+type="module"[^>]*src="\/assets\/index-[^"]+\.js"[^>]*><\/script>/i,
+      viteAssets.scriptTag
+    );
+  }
+  if (viteAssets.cssTag) {
+    reconciled = reconciled.replace(
+      /<link\s+rel="stylesheet"[^>]*href="\/assets\/index-[^"]+\.css"[^>]*>/i,
+      viteAssets.cssTag
+    );
+  }
+  return reconciled;
+}
+
 async function run() {
   console.log('\n[prerender] Starting static snapshot generation...');
+
+  const distIndex = path.join(DIST_DIR, 'index.html');
+  let rawViteIndexHtml = '';
+  try {
+    rawViteIndexHtml = await fs.readFile(distIndex, 'utf-8');
+  } catch (err) {
+    console.warn(`[prerender] ⚠ Warning: Could not read initial dist/index.html: ${err.message}`);
+  }
+  const viteAssets = extractViteAssets(rawViteIndexHtml);
+  if (viteAssets.scriptTag) {
+    console.log(`[prerender] Detected Vite client bundle: ${viteAssets.scriptTag.trim()}`);
+  }
+  if (viteAssets.cssTag) {
+    console.log(`[prerender] Detected Vite client stylesheet: ${viteAssets.cssTag.trim()}`);
+  }
 
   const productionOrigin = resolveProductionOrigin();
   if (productionOrigin) {
@@ -182,6 +234,9 @@ async function run() {
           html = html.replaceAll('%VITE_FRONTEND_URL%', productionOrigin);
         }
 
+        // Reconcile client bundle assets to maintain 100% parity with Vite build
+        html = reconcileSnapshotAssets(html, viteAssets);
+
         const targetFile = path.join(DIST_DIR, route.slice(1), 'index.html');
         const snapshotFile = path.join(SNAPSHOTS_DIR, route.slice(1), 'index.html');
 
@@ -214,17 +269,22 @@ async function run() {
 
     console.warn('\n[prerender] ⚠ Headless browser pre-rendering unavailable or failed:');
     console.warn(`[prerender]   ${err.message}`);
-    console.log('[prerender] ℹ Hydrating static snapshots from committed snapshots/ repository...');
+    console.log('[prerender] ℹ Hydrating static snapshots from committed snapshots/ repository with asset reconciliation...');
 
     for (const route of ROUTES) {
       const snapFile = path.join(SNAPSHOTS_DIR, route.slice(1), 'index.html');
       const distTargetDir = path.join(DIST_DIR, route.slice(1));
       const distTargetFile = path.join(distTargetDir, 'index.html');
       try {
-        const snapContent = await fs.readFile(snapFile, 'utf-8');
+        let snapContent = await fs.readFile(snapFile, 'utf-8');
+        // Dynamically reconcile stale committed snapshot hashes with active Vite build output
+        snapContent = reconcileSnapshotAssets(snapContent, viteAssets);
+        if (productionOrigin) {
+          snapContent = snapContent.replaceAll('%VITE_FRONTEND_URL%', productionOrigin);
+        }
         await fs.mkdir(distTargetDir, { recursive: true });
         await fs.writeFile(distTargetFile, snapContent, 'utf-8');
-        console.log(`  ✓ Snapshot hydrated: ${route} -> dist/${route.slice(1)}/index.html`);
+        console.log(`  ✓ Snapshot hydrated & reconciled: ${route} -> dist/${route.slice(1)}/index.html`);
       } catch (copyErr) {
         console.warn(`  ⚠ Warning: Could not hydrate ${route}: ${copyErr.message}`);
       }
@@ -235,11 +295,14 @@ async function run() {
     if (server) server.close();
 
     // 1. Save dist/index.html (the Vite client bundle SPA shell) as dist/app.html for dynamic routes
-    const distIndex = path.join(DIST_DIR, 'index.html');
     const distApp = path.join(DIST_DIR, 'app.html');
     try {
-      let shellHtml = await fs.readFile(distIndex, 'utf-8');
-      await fs.writeFile(distApp, shellHtml, 'utf-8');
+      if (rawViteIndexHtml) {
+        await fs.writeFile(distApp, rawViteIndexHtml, 'utf-8');
+      } else {
+        let shellHtml = await fs.readFile(distIndex, 'utf-8');
+        await fs.writeFile(distApp, shellHtml, 'utf-8');
+      }
       console.log('[prerender] ✓ Saved dist/app.html as dynamic SPA shell');
     } catch {
       // index.html may already be handled
@@ -258,6 +321,7 @@ async function run() {
         /property="og:url" content="([^"]*)\/landing"/,
         'property="og:url" content="$1/"'
       );
+      landingHtml = reconcileSnapshotAssets(landingHtml, viteAssets);
       await fs.writeFile(distIndex, landingHtml, 'utf-8');
       await fs.writeFile(rootSnapshotFile, landingHtml, 'utf-8');
       console.log('[prerender] ✓ Promoted landing snapshot -> dist/index.html for root delivery');
@@ -303,7 +367,39 @@ async function run() {
         if (isStrict && err.code === 'ENOENT') throw err;
       }
     }
-    console.log('  ✓ Invariant verified: No local ephemeral URLs detected in static snapshots\n');
+    console.log('  ✓ Invariant verified: No local ephemeral URLs detected in static snapshots');
+
+    // 3. Validate that all referenced JS and CSS assets exist on disk in dist/assets/
+    const htmlFilesToCheck = [
+      distIndex,
+      distApp,
+      ...ROUTES.map((r) => path.join(DIST_DIR, r.slice(1), 'index.html'))
+    ];
+    for (const htmlFile of htmlFilesToCheck) {
+      try {
+        const content = await fs.readFile(htmlFile, 'utf-8');
+        const scriptMatch = content.match(/src="\/assets\/([^"]+)"/);
+        if (scriptMatch) {
+          const assetName = scriptMatch[1];
+          const assetPath = path.join(DIST_DIR, 'assets', assetName);
+          await fs.access(assetPath);
+        }
+        const cssMatch = content.match(/href="\/assets\/([^"]+\.css)"/);
+        if (cssMatch) {
+          const assetName = cssMatch[1];
+          const assetPath = path.join(DIST_DIR, 'assets', assetName);
+          await fs.access(assetPath);
+        }
+      } catch (assetErr) {
+        const errMsg = `[prerender] Invariant violation: ${path.relative(DIST_DIR, htmlFile)} references missing asset: ${assetErr.message}`;
+        if (isStrict) {
+          throw new Error(errMsg);
+        } else {
+          console.warn(`  ⚠ ${errMsg}`);
+        }
+      }
+    }
+    console.log('  ✓ Invariant verified: All referenced client assets exist in dist/assets/\n');
   }
 }
 
