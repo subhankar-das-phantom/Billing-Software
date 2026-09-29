@@ -4,6 +4,21 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.9.4](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.9.4) — 2026-09-30 — CI Build Pipeline Stabilization & Canonical Prerender Fallback
+
+### ⚙️ CI Workflow Environment & Prerender Stabilization (`.github/workflows/ci.yml`, `frontend/scripts/prerender.mjs`)
+- **Explicit CI Target Origin Provisioning**: Configured `VITE_FRONTEND_URL: https://billing-software-sigma.vercel.app` inside the `Build Frontend` step of `.github/workflows/ci.yml`, ensuring Vite bundle generation and static page prerendering receive the canonical production origin in automated GitHub Actions runner environments.
+- **Strict Mode Decoupling**: Decoupled `isStrict` evaluation in `frontend/scripts/prerender.mjs` from generic `process.env.CI === 'true'`. Standard automated CI checks now run safely without premature build crashes, preserving strict assertion enforcement exclusively for explicit release audits (`PRERENDER_STRICT=true`).
+- **Multi-Environment Origin Resolution**: Upgraded `resolveProductionOrigin` in `frontend/scripts/prerender.mjs` to prioritize explicit `VITE_FRONTEND_URL`, followed by Vercel production (`VERCEL_PROJECT_PRODUCTION_URL`), Vercel preview/dev deployments (`VERCEL_URL`), and a safe canonical fallback (`DEFAULT_PRODUCTION_ORIGIN = 'https://billing-software-sigma.vercel.app'`). This aligns prerender logic 100% with `frontend/vite.config.js` and prevents fatal exit crashes across development and staging environments.
+- **Offline Snapshot Hydration Resilience**: Preserved the committed snapshot hydration fallback (`frontend/snapshots/`) so that if headless browser launching encounters runner memory or library restrictions in headless environments, static pages are hydrated seamlessly into `dist/`.
+
+### 📋 Legal & Compliance Invariants
+- **Privacy & Terms Neutrality**: CI build configuration and prerender domain fallbacks do not collect personal data, modify user authentication tokens, alter tenant authorization boundaries, or affect SaaS subscription billing terms.
+
+### Files Modified
+- `.github/workflows/ci.yml` — provided `VITE_FRONTEND_URL` environment variable to `Build Frontend` step
+- `frontend/scripts/prerender.mjs` — decoupled `isStrict` from `CI=true`, added `DEFAULT_PRODUCTION_ORIGIN` fallback and `VERCEL_URL` support
+
 ## [v2.9.3](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.9.3) — 2026-09-29 — Auth State Restoration, Query-Provenance Search Hardening & Directory Performance
 
 ### 🛡️ Landing Navigation Authentication Restoration & State Isolation (`frontend/src/pages/Landing/components/LandingNav.jsx`, `frontend/src/contexts/AuthContext.jsx`)
