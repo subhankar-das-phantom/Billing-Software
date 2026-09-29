@@ -36,6 +36,7 @@ import {
   useMotionConfig, 
   useFirstVisit, 
   useSWR, 
+  useQueryAccumulatedList,
   invalidateCachePattern, 
   useMediaQuery 
 } from '../../hooks';
@@ -173,7 +174,6 @@ export default function SuppliersPage() {
   const [search] = useDebounce(searchInput);
   const [statusFilter, setStatusFilter] = useState('active');
   const [page, setPage] = useState(1);
-  const [accumulatedSuppliers, setAccumulatedSuppliers] = useState([]);
   const observer = useRef(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState(null);
@@ -186,8 +186,6 @@ export default function SuppliersPage() {
   const isMobile = useMediaQuery('(max-width: 640px)');
 
   const currentQueryKey = `${search}-${statusFilter}`;
-  const activeQueryKeyRef = useRef(currentQueryKey);
-
   const [isFetching, setIsFetching] = useState(false);
   const isFetchingRef = useRef(false);
   const pendingPageRef = useRef(null);
@@ -207,9 +205,18 @@ export default function SuppliersPage() {
     { ttl: 5 * 60 * 1000 }
   );
 
-  const suppliers = accumulatedSuppliers.length > 0 ? accumulatedSuppliers : (data?.suppliers || []);
-  const totalCount = data?.total || suppliers.length;
-  const hasMore = data?.pages ? page < data.pages : false;
+  const {
+    items: suppliers,
+    hasCurrentPageData,
+  } = useQueryAccumulatedList({
+    queryKey: currentQueryKey,
+    page,
+    data,
+    itemsKey: 'suppliers',
+  });
+  const currentPageData = hasCurrentPageData ? data : null;
+  const totalCount = currentPageData?.total || suppliers.length;
+  const hasMore = currentPageData?.pages ? page < currentPageData.pages : false;
 
   // Keep synchronization refs up-to-date
   hasMoreRef.current = hasMore;
@@ -221,35 +228,17 @@ export default function SuppliersPage() {
     pendingPageRef.current = null;
     isFetchingRef.current = false;
     setIsFetching(false);
-    activeQueryKeyRef.current = currentQueryKey;
   }, [currentQueryKey]);
 
-  // Accumulate suppliers as pages arrive (guarded by query provenance)
+  // Release the pagination lock only after the current query's page completes.
   useEffect(() => {
-    if (!data?.suppliers) return;
-
-    // Provenance Verification: Drop responses belonging to an obsolete filter generation
-    if (data._queryKey && data._queryKey !== activeQueryKeyRef.current) {
-      return;
-    }
-
-    if (page === 1) {
-      setAccumulatedSuppliers(data.suppliers);
-    } else {
-      setAccumulatedSuppliers(prev => {
-        const existingIds = new Set(prev.map(s => s._id));
-        const newSuppliers = data.suppliers.filter(s => !existingIds.has(s._id));
-        return [...prev, ...newSuppliers];
-      });
-    }
-
-    // Release lock only after the specific requested page has completed successfully
-    if (pendingPageRef.current !== null && (data._page === pendingPageRef.current || data.page === pendingPageRef.current)) {
+    if (!currentPageData) return;
+    if (pendingPageRef.current !== null && currentPageData._page === pendingPageRef.current) {
       isFetchingRef.current = false;
       setIsFetching(false);
       pendingPageRef.current = null;
     }
-  }, [data, page]);
+  }, [currentPageData]);
 
   // Failure Path: Release lock on request error so infinite scroll is not permanently disabled
   useEffect(() => {

@@ -1,4 +1,5 @@
 export { useDebounce } from './useDebounce';
+export { useQueryAccumulatedList } from './useQueryAccumulatedList';
 export { useDeviceType } from './useDeviceType';
 export { useFirstVisit } from './useFirstVisit';
 export { useMotionConfig, useReducedMotion } from './useMotionConfig';

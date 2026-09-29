@@ -18,6 +18,7 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import { useTheme } from '../../../contexts/ThemeContext';
+import { useAuth } from '../../../contexts/AuthContext';
 import { NAV_LINKS, AUTH_ACTIONS } from '../data/navigation';
 import { useTrialDaysQuery } from '../../../features/saas/queries/useSubscriptionPlansQuery';
 
@@ -37,6 +38,7 @@ export default function LandingNav() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { isDark, toggleTheme } = useTheme();
+  const { user, loading: authLoading } = useAuth();
   const trialDays = useTrialDaysQuery();
 
   // Handle scroll state for header elevation
@@ -169,19 +171,33 @@ export default function LandingNav() {
               )}
             </button>
 
-            <Link
-              to={AUTH_ACTIONS.login.href}
-              className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-slate-50 hover:bg-slate-850 rounded-lg transition-colors"
-            >
-              {AUTH_ACTIONS.login.label}
-            </Link>
-            <Link
-              to={AUTH_ACTIONS.register.href}
-              className="inline-flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-lg shadow-xs hover:shadow-blue-600/25 transition-all duration-150"
-            >
-              <span>{AUTH_ACTIONS.register.label}</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
+            {authLoading ? (
+              <div className="h-10 w-36 rounded-lg bg-slate-800/50 animate-pulse" aria-label="Restoring session" />
+            ) : user ? (
+              <Link
+                to="/dashboard"
+                className="inline-flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-lg shadow-xs hover:shadow-blue-600/25 transition-all duration-150"
+              >
+                <span>Go to Dashboard</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            ) : (
+              <>
+                <Link
+                  to={AUTH_ACTIONS.login.href}
+                  className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-slate-50 hover:bg-slate-850 rounded-lg transition-colors"
+                >
+                  {AUTH_ACTIONS.login.label}
+                </Link>
+                <Link
+                  to={AUTH_ACTIONS.register.href}
+                  className="inline-flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-lg shadow-xs hover:shadow-blue-600/25 transition-all duration-150"
+                >
+                  <span>{AUTH_ACTIONS.register.label}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile & Tablet Controls (Visible below lg) */}
@@ -204,7 +220,7 @@ export default function LandingNav() {
             {/* Hamburger / Close Toggle Button */}
             <button
               type="button"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              onClick={() => setMobileMenuOpen((open) => !open)}
               className="p-2.5 rounded-xl text-slate-200 bg-slate-850 hover:bg-slate-800 border border-slate-800 shadow-2xs transition-all focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-95"
               aria-expanded={mobileMenuOpen}
               aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
@@ -258,23 +274,38 @@ export default function LandingNav() {
 
           {/* Pinned Bottom Actions Bar */}
           <div className="shrink-0 p-4 sm:p-6 border-t border-slate-800 bg-slate-900/95 backdrop-blur-md space-y-3">
-            <Link
-              to={AUTH_ACTIONS.login.href}
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-full flex items-center justify-center py-3 px-4 text-sm font-semibold text-slate-200 hover:text-slate-50 bg-slate-850 hover:bg-slate-800 border border-slate-800 rounded-xl transition-colors active:scale-[0.99]"
-            >
-              {AUTH_ACTIONS.login.label}
-            </Link>
+            {authLoading ? (
+              <div className="h-[92px] rounded-xl bg-slate-800/50 animate-pulse" aria-label="Restoring session" />
+            ) : user ? (
+              <Link
+                to="/dashboard"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full flex items-center justify-center space-x-2 py-3 px-4 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-lg shadow-blue-600/30 transition-all active:scale-[0.99]"
+              >
+                <span>Go to Dashboard</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            ) : (
+              <>
+                <Link
+                  to={AUTH_ACTIONS.login.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full flex items-center justify-center py-3 px-4 text-sm font-semibold text-slate-200 hover:text-slate-50 bg-slate-850 hover:bg-slate-800 border border-slate-800 rounded-xl transition-colors active:scale-[0.99]"
+                >
+                  {AUTH_ACTIONS.login.label}
+                </Link>
 
-            <Link
-              to={AUTH_ACTIONS.register.href}
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-full flex items-center justify-center space-x-2 py-3 px-4 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-lg shadow-blue-600/30 transition-all active:scale-[0.99]"
-            >
-              <Sparkles className="w-4 h-4" />
-              <span>{AUTH_ACTIONS.register.label}</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
+                <Link
+                  to={AUTH_ACTIONS.register.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full flex items-center justify-center space-x-2 py-3 px-4 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-lg shadow-blue-600/30 transition-all active:scale-[0.99]"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>{AUTH_ACTIONS.register.label}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </>
+            )}
 
             <p className="text-center text-[11px] text-slate-400">
               {trialDays}-day full access trial • No credit card required

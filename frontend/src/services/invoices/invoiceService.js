@@ -10,9 +10,9 @@ export const invoiceService = {
    * @param {object} params - Query parameters (search, page, limit, status, startDate, endDate)
    * @returns {Promise<{invoices: array, total: number, pages: number}>}
    */
-  getInvoices: async (params = {}) => {
+  getInvoices: async (params = {}, options = {}) => {
     try {
-      const response = await api.get('/invoices', { params });
+      const response = await api.get('/invoices', { params, ...options });
       return response.data;
     } catch (error) {
       throw error;

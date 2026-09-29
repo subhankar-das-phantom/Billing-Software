@@ -113,18 +113,9 @@ export const AuthProvider = ({ children }) => {
       return null;
     }
   });
-  const [loading, setLoading] = useState(() => {
-    const isPublic = typeof window !== 'undefined' && (
-      window.location.pathname === '/landing' ||
-      window.location.pathname === '/privacy-policy' ||
-      window.location.pathname === '/terms' ||
-      window.location.pathname === '/login' ||
-      window.location.pathname === '/register' ||
-      window.location.pathname.startsWith('/login') ||
-      window.location.pathname.startsWith('/register')
-    );
-    return isPublic ? false : hasToken && !localStorage.getItem('admin') && !localStorage.getItem('user');
-  });
+  const [loading, setLoading] = useState(() => (
+    hasToken && !localStorage.getItem('admin') && !localStorage.getItem('user')
+  ));
   const [toast, setToast] = useState(null);
   const [authTransition, setAuthTransition] = useState(null); // 'login' | 'logout'
 
@@ -157,8 +148,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    // On non-blocking routes (marketing + auth pages), never run eager auth checks
-    if (isNonBlockingRoute) {
+    // Public routes without a session stay non-blocking for fast landing-page
+    // paint. A token without a cached user still needs restoration here so
+    // landing navigation never presents logged-out actions as final state.
+    if (isNonBlockingRoute && !hasToken) {
       setLoading(false);
       return;
     }

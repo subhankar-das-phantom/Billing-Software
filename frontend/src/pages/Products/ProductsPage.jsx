@@ -37,7 +37,7 @@ import EnhancedButton from '../../components/Common/Buttons/EnhancedButton';
 import { VirtualizedList } from '../../components/Common/VirtualizedList';
 import ExportModal from '../../components/Common/Modals/ExportModal';
 import { useToast } from '../../contexts/ToastContext';
-import { useDebounce, useMotionConfig, useFirstVisit, useSWR, invalidateCachePattern, useMediaQuery, useTransitionDelay } from '../../hooks';
+import { useDebounce, useMotionConfig, useFirstVisit, useSWR, invalidateCachePattern, useMediaQuery, useTransitionDelay, useQueryAccumulatedList } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 import { useInfiniteScrollSentinel } from '../../utils/scrollUtils';
 
@@ -458,8 +458,6 @@ export default function ProductsPage() {
   const observer = useRef(null);
 
   const currentQueryKey = search || '';
-  const activeQueryKeyRef = useRef(currentQueryKey);
-
   const [isFetching, setIsFetching] = useState(false);
   const isFetchingRef = useRef(false);
   const pendingPageRef = useRef(null);
@@ -479,10 +477,16 @@ export default function ProductsPage() {
     { ttl: 5 * 60 * 1000 } // 5 minute cache
   );
 
-  // Seed from SWR cache so navigating back doesn't flash empty table
-  const [accumulatedProducts, setAccumulatedProducts] = useState(() => {
-    return data?.products ?? [];
+  const {
+    items: products,
+    hasCurrentPageData,
+  } = useQueryAccumulatedList({
+    queryKey: currentQueryKey,
+    page,
+    data,
+    itemsKey: 'products',
   });
+  const currentPageData = hasCurrentPageData ? data : null;
 
   // SWR: Global Stats
   const { data: statsData, mutate: mutateStats } = useSWR(
@@ -491,7 +495,7 @@ export default function ProductsPage() {
     { ttl: 5 * 60 * 1000 } // 5 minute cache
   );
 
-  const hasMore = data?.pages ? page < data.pages : false;
+  const hasMore = currentPageData?.pages ? page < currentPageData.pages : false;
 
   // Keep synchronization refs up-to-date
   hasMoreRef.current = hasMore;
@@ -503,35 +507,17 @@ export default function ProductsPage() {
     pendingPageRef.current = null;
     isFetchingRef.current = false;
     setIsFetching(false);
-    activeQueryKeyRef.current = currentQueryKey;
   }, [currentQueryKey]);
 
-  // Accumulate products as new pages arrive (guarded by query provenance)
+  // Release the pagination lock only after the current query's page completes.
   useEffect(() => {
-    if (!data?.products) return;
-
-    // Provenance Verification: Drop responses belonging to an obsolete filter generation
-    if (data._queryKey && data._queryKey !== activeQueryKeyRef.current) {
-      return;
-    }
-
-    if (page === 1) {
-      setAccumulatedProducts(data.products);
-    } else {
-      setAccumulatedProducts(prev => {
-        const existingIds = new Set(prev.map(p => p._id));
-        const newProducts = data.products.filter(p => !existingIds.has(p._id));
-        return [...prev, ...newProducts];
-      });
-    }
-
-    // Release lock only after the specific requested page has completed successfully
-    if (pendingPageRef.current !== null && (data._page === pendingPageRef.current || data.page === pendingPageRef.current)) {
+    if (!currentPageData) return;
+    if (pendingPageRef.current !== null && currentPageData._page === pendingPageRef.current) {
       isFetchingRef.current = false;
       setIsFetching(false);
       pendingPageRef.current = null;
     }
-  }, [data, page]);
+  }, [currentPageData]);
 
   // Failure Path: Release lock on request error so infinite scroll is not permanently disabled
   useEffect(() => {
@@ -560,8 +546,6 @@ export default function ProductsPage() {
     onLoadMore: loadNextPage
   });
 
-  // Extract products from accumulated state
-  const products = accumulatedProducts;
   const loading = isLoading && products.length === 0 && page === 1;
 
   const handleSearch = (e) => {
@@ -817,7 +801,7 @@ export default function ProductsPage() {
             <div>
               <h2 className="text-xl font-semibold text-slate-100">All Products</h2>
               <p className="text-sm text-slate-400">
-                Showing {filteredProducts.length} of {data?.total || 0} products
+                Showing {filteredProducts.length} of {currentPageData?.total || 0} products
               </p>
             </div>
           </div>

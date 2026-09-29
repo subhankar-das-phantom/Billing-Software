@@ -13,8 +13,8 @@ const invalidatePurchaseCaches = () => {
   queryClient.invalidateQueries({ queryKey: ['inventory-analytics'] });
 };
 
-const getPurchases = async (params = {}) => {
-  const response = await api.get(API_URL, { params });
+const getPurchases = async (params = {}, options = {}) => {
+  const response = await api.get(API_URL, { params, ...options });
   return response.data;
 };
 

@@ -436,14 +436,14 @@ exports.getCustomers = async (req, res, next) => {
       const customerIds = customers.map(c => c._id);
 
       const invoiceOutstanding = await Invoice.aggregate([
-        { $match: { 'customer._id': { $in: customerIds }, status: { $ne: 'Cancelled' } } },
+        { $match: { tenantId, 'customer._id': { $in: customerIds }, status: { $ne: 'Cancelled' } } },
         { $project: { customerId: '$customer._id', remaining: { $subtract: ['$totals.netTotal', { $ifNull: ['$paidAmount', 0] }] } } },
         { $match: { remaining: { $gt: 0 } } },
         { $group: { _id: '$customerId', total: { $sum: '$remaining' } } }
       ]);
 
       const manualOutstanding = await ManualEntry.aggregate([
-        { $match: { customer: { $in: customerIds }, entryType: 'opening_balance', paymentType: 'Credit' } },
+        { $match: { tenantId, customer: { $in: customerIds }, entryType: 'opening_balance', paymentType: 'Credit' } },
         { $project: { customerId: '$customer', remaining: { $subtract: ['$amount', { $ifNull: ['$paidAmount', 0] }] } } },
         { $match: { remaining: { $gt: 0 } } },
         { $group: { _id: '$customerId', total: { $sum: '$remaining' } } }
@@ -487,9 +487,9 @@ exports.getCustomers = async (req, res, next) => {
 // @access  Private
 exports.searchCustomers = async (req, res, next) => {
   try {
-    const { q } = req.query;
+    const rawQuery = String(req.query.q || '').trim();
 
-    if (!q) {
+    if (!rawQuery) {
       return res.status(400).json({
         success: false,
         message: 'Please provide search query'
@@ -498,7 +498,7 @@ exports.searchCustomers = async (req, res, next) => {
 
     const usePrefix = req.query.prefix === 'true';
     const useFuzzy = req.query.fuzzy === 'true';
-    const pattern = getSearchPattern(q, usePrefix);
+    const pattern = getSearchPattern(rawQuery, usePrefix);
     const conditions = [
       { customerName: { $regex: pattern, $options: 'i' } },
       { phone: { $regex: pattern, $options: 'i' } },
@@ -506,8 +506,8 @@ exports.searchCustomers = async (req, res, next) => {
       { address: { $regex: pattern, $options: 'i' } }
     ];
 
-    if (useFuzzy && q.trim().length >= 2) {
-      const fuzzyPattern = buildFuzzyPattern(q);
+    if (useFuzzy && rawQuery.length >= 2) {
+      const fuzzyPattern = buildFuzzyPattern(rawQuery);
       if (fuzzyPattern && fuzzyPattern !== pattern) {
         conditions.push(
           { customerName: { $regex: fuzzyPattern, $options: 'i' } },
@@ -519,11 +519,46 @@ exports.searchCustomers = async (req, res, next) => {
     }
 
     const tenantId = getTenantId(req);
-    const customers = await Customer.find({
+    const matchedCustomers = await Customer.find({
       tenantId,
       isActive: true,
       $or: conditions
-    }).limit(10);
+    })
+      .sort({ customerName: 1, _id: 1 })
+      .limit(50);
+
+    const normalizedQuery = rawQuery.toLowerCase();
+    const fuzzyRegex = useFuzzy && normalizedQuery.length >= 2
+      ? new RegExp(buildFuzzyPattern(rawQuery), 'i')
+      : null;
+    const standaloneQueryRegex = new RegExp(
+      `(?:^|[^a-z0-9])${escapeRegex(normalizedQuery)}(?=$|[^a-z0-9])`
+    );
+    const scoreCustomer = (customer) => {
+      const name = String(customer.customerName || '').toLowerCase();
+      const primaryName = name.replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim();
+      const parentheticalName = (name.match(/\([^)]*\)/g) || []).join(' ');
+      const directFields = [customer.phone, customer.gstin, customer.address]
+        .filter(Boolean)
+        .map(value => String(value).toLowerCase());
+
+      if (name === normalizedQuery) return 1000;
+      if (name.startsWith(normalizedQuery)) return 900;
+      // A trailing standalone surname/word is a strong customer-name match.
+      if (name.endsWith(` ${normalizedQuery}`)) return 850;
+      // Prefer a standalone word in the primary customer name, e.g. SHANKAR SHAW.
+      if (standaloneQueryRegex.test(primaryName)) return 800;
+      // Parenthetical names are useful aliases, but should rank below the primary name.
+      if (standaloneQueryRegex.test(parentheticalName)) return 700;
+      if (name.includes(normalizedQuery)) return 600;
+      if (directFields.some(value => value.includes(normalizedQuery))) return 300;
+      if (fuzzyRegex && fuzzyRegex.test(name)) return 200;
+      if (fuzzyRegex && directFields.some(value => fuzzyRegex.test(value))) return 190;
+      return 0;
+    };
+    const customers = matchedCustomers
+      .sort((a, b) => scoreCustomer(b) - scoreCustomer(a) || String(a.customerName).localeCompare(String(b.customerName)))
+      .slice(0, 10);
 
     let customersWithOutstanding = customers;
     if (customers.length > 0) {
@@ -531,13 +566,13 @@ exports.searchCustomers = async (req, res, next) => {
 
       const [invoiceOutstanding, manualOutstanding, creditNoteDeductions] = await Promise.all([
         Invoice.aggregate([
-          { $match: { 'customer._id': { $in: customerIds }, status: { $ne: 'Cancelled' } } },
+          { $match: { tenantId, 'customer._id': { $in: customerIds }, status: { $ne: 'Cancelled' } } },
           { $project: { customerId: '$customer._id', remaining: { $subtract: ['$totals.netTotal', { $ifNull: ['$paidAmount', 0] }] } } },
           { $match: { remaining: { $gt: 0 } } },
           { $group: { _id: '$customerId', total: { $sum: '$remaining' } } }
         ]),
         ManualEntry.aggregate([
-          { $match: { customer: { $in: customerIds }, entryType: 'opening_balance', paymentType: 'Credit' } },
+          { $match: { tenantId, customer: { $in: customerIds }, entryType: 'opening_balance', paymentType: 'Credit' } },
           { $project: { customerId: '$customer', remaining: { $subtract: ['$amount', { $ifNull: ['$paidAmount', 0] }] } } },
           { $match: { remaining: { $gt: 0 } } },
           { $group: { _id: '$customerId', total: { $sum: '$remaining' } } }
