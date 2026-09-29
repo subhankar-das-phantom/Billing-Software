@@ -239,7 +239,7 @@ export default function LandingNav() {
       {/* Mobile Drawer Navigation (Full screen overlay with pinned footer) */}
       {mobileMenuOpen && (
         <div
-          className="lg:hidden fixed inset-x-0 top-16 sm:top-20 h-[calc(100vh-4rem)] sm:h-[calc(100vh-5rem)] h-[calc(100dvh-4rem)] sm:h-[calc(100dvh-5rem)] bg-slate-900 border-t border-slate-800 shadow-2xl flex flex-col z-50 transition-colors"
+          className="lg:hidden fixed inset-x-0 top-16 sm:top-20 bottom-0 bg-slate-900 border-t border-slate-800 shadow-2xl flex flex-col z-50 overflow-hidden transition-colors"
           role="dialog"
           aria-modal="true"
           aria-label="Mobile Navigation Drawer"
@@ -274,7 +274,7 @@ export default function LandingNav() {
           </div>
 
           {/* Pinned Bottom Actions Bar */}
-          <div className="shrink-0 p-4 sm:p-6 border-t border-slate-800 bg-slate-900/95 backdrop-blur-md space-y-3">
+          <div className="shrink-0 px-4 sm:px-6 pt-3 sm:pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] border-t border-slate-800 bg-slate-900/95 backdrop-blur-md space-y-2.5">
             {isAuthRestored && isAuthenticated ? (
               <Link
                 to="/dashboard"
@@ -289,7 +289,7 @@ export default function LandingNav() {
                 <Link
                   to={AUTH_ACTIONS.login.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-full flex items-center justify-center py-3 px-4 text-sm font-semibold text-slate-200 hover:text-slate-50 bg-slate-850 hover:bg-slate-800 border border-slate-800 rounded-xl transition-colors active:scale-[0.99]"
+                  className="w-full flex items-center justify-center py-2.5 px-4 text-sm font-semibold text-slate-200 hover:text-slate-50 bg-slate-850 hover:bg-slate-800 border border-slate-800 rounded-xl transition-colors active:scale-[0.99]"
                 >
                   {AUTH_ACTIONS.login.label}
                 </Link>
@@ -297,18 +297,18 @@ export default function LandingNav() {
                 <Link
                   to={AUTH_ACTIONS.register.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-full flex items-center justify-center space-x-2 py-3 px-4 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-lg shadow-blue-600/30 transition-all active:scale-[0.99]"
+                  className="w-full flex items-center justify-center space-x-2 py-2.5 px-4 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-lg shadow-blue-600/30 transition-all active:scale-[0.99]"
                 >
                   <Sparkles className="w-4 h-4" />
                   <span>{AUTH_ACTIONS.register.label}</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
+
+                <p className="text-center text-[11px] text-slate-400">
+                  {trialDays}-day full access trial • No credit card required
+                </p>
               </>
             )}
-
-            <p className="text-center text-[11px] text-slate-400">
-              {trialDays}-day full access trial • No credit card required
-            </p>
           </div>
         </div>
       )}
