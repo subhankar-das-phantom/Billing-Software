@@ -1,6 +1,6 @@
 # Bharat Enterprise - Billing & Business Operations Platform
 
-[![GitHub Tag](https://img.shields.io/badge/version-v2.9.2-emerald.svg)](https://github.com/subhankar-das-phantom/Billing-Software/releases)
+[![GitHub Tag](https://img.shields.io/badge/version-v2.9.3-emerald.svg)](https://github.com/subhankar-das-phantom/Billing-Software/releases)
 [![CI](https://github.com/subhankar-das-phantom/Billing-Software/actions/workflows/ci.yml/badge.svg)](https://github.com/subhankar-das-phantom/Billing-Software/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-ISC-blue.svg)](LICENSE)
 
@@ -142,6 +142,7 @@ Access is gated at the API middleware and frontend UI navigation layers:
 
 ### Invoices, Customers & Payments
 - `GET /api/invoices` — Search invoices with server-side filtering
+- `GET /api/customers` — Paginated customer directory with relevance-ranked search and live outstanding balances
 - `POST /api/invoices` — Create invoice with automated or manual batch allocation
 - `POST /api/credit-notes` — Create sales return credit note
 - `GET /api/customers/:id/ledger` — Unified running financial ledger
