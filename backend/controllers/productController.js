@@ -57,15 +57,21 @@ exports.getProducts = async (req, res, next) => {
     const tenant = await Admin.findById(tenantId).select('preferences').lean();
     const enableBatchTracking = tenant?.preferences?.enableBatchTracking === true;
 
-    const products = await Product.aggregate([
+    const productPromise = Product.aggregate([
       { $match: query },
       ...buildEffectiveStockAggregation(tenantId, enableBatchTracking),
       { $sort: { createdAt: -1, _id: -1 } },
       { $skip: skip },
-      { $limit: limit }
+      { $limit: limit },
+      // Strip stockHistory from list responses — each product's full movement
+      // history inflates payloads from ~5KB to 30-80KB for 25 items.
+      { $project: { stockHistory: 0 } }
     ]);
 
-    const total = await Product.countDocuments(query);
+    const [products, total] = await Promise.all([
+      productPromise,
+      Product.countDocuments(query)
+    ]);
 
     res.status(200).json({
       success: true,
