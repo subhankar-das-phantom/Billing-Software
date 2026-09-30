@@ -477,6 +477,14 @@ export default function ProductsPage() {
     { ttl: 5 * 60 * 1000 } // 5 minute cache
   );
 
+  // Track whether any data has ever loaded — used to distinguish initial page
+  // load (show full ProductsPageSkeleton) from search transitions (show inline
+  // loading in the results area only, keeping the page shell mounted).
+  const hasInitialDataRef = useRef(false);
+  if (data && !hasInitialDataRef.current) {
+    hasInitialDataRef.current = true;
+  }
+
   const {
     items: products,
     hasCurrentPageData,
@@ -546,7 +554,10 @@ export default function ProductsPage() {
     onLoadMore: loadNextPage
   });
 
-  const loading = isLoading && products.length === 0 && page === 1;
+  // Initial load: full skeleton only when NO data has ever loaded (first mount)
+  const initialLoading = !hasInitialDataRef.current && isLoading && products.length === 0;
+  // Search transition: data has loaded before, but a new query is pending
+  const searchLoading = hasInitialDataRef.current && isLoading && products.length === 0;
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -727,12 +738,13 @@ export default function ProductsPage() {
     expiringSoon: statsData?.expiringSoon || 0
   };
 
-  if (loading) {
+  if (initialLoading) {
     return <ProductsPageSkeleton />;
   }
 
-  // ✅ FIX #4: Use unique key based on filter state (excluding length to prevent infinite scroll remounts)
-  const tableKey = `products-${filterStock}-${search}`;
+  // ✅ FIX #4: Use unique key based on filter state (excluding search and
+  // length to prevent table remounts during search transitions or infinite scroll)
+  const tableKey = `products-${filterStock}`;
 
   return (
     <motion.div
@@ -893,32 +905,28 @@ export default function ProductsPage() {
         </div>
       </motion.div>
 
-      {/* ✅ FIX #5: Proper AnimatePresence with stable components */}
-      <AnimatePresence>
-        {!transitionReady ? (
-          <div className="glass-card p-12 flex justify-center items-center">
-            <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-          </div>
-        ) : filteredProducts.length === 0 ? (
-          <EmptyProductsState
-            key={`empty-${filterStock}`}
-            search={search}
-            onAddClick={openCreateModal}
-          />
-        ) : (
-          <ProductsTable
-            key={tableKey}
-            filteredProducts={filteredProducts}
-            onEdit={openEditModal}
-            onDelete={(product) => setDeleteDialog({ open: true, product })}
-            formatCurrency={formatCurrency}
-            observerTarget={sentinelRef}
-            hasMore={hasMore}
-            isLoadingMore={isFetching || (isValidating && page > 1)}
-            isDesktop={isDesktop}
-          />
-        )}
-      </AnimatePresence>
+      {!transitionReady ? (
+        <div className="glass-card p-12 flex justify-center items-center">
+          <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+        </div>
+      ) : filteredProducts.length === 0 && !searchLoading ? (
+        <EmptyProductsState
+          search={search}
+          onAddClick={openCreateModal}
+        />
+      ) : (
+        <ProductsTable
+          key={tableKey}
+          filteredProducts={filteredProducts}
+          onEdit={openEditModal}
+          onDelete={(product) => setDeleteDialog({ open: true, product })}
+          formatCurrency={formatCurrency}
+          observerTarget={sentinelRef}
+          hasMore={hasMore || searchLoading}
+          isLoadingMore={searchLoading || isFetching || (isValidating && page > 1)}
+          isDesktop={isDesktop}
+        />
+      )}
 
       {/* Product Modal */}
       <Modal

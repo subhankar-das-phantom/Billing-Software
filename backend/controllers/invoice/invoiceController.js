@@ -338,15 +338,19 @@ exports.getInvoices = async (req, res, next) => {
       const usePrefix = req.query.prefix === 'true';
       const useFuzzy = req.query.fuzzy === 'true';
 
-      const primaryPattern = usePrefix ? `^${escaped}` : escaped;
+      // Invoice numbers always use substring matching so suffix searches
+      // like "0692" find "INV-2026-0692". Customer names respect the prefix
+      // flag (prefix match is useful for name-starts-with lookups).
+      const invoicePattern = escaped;
+      const customerPattern = usePrefix ? `^${escaped}` : escaped;
       const primaryConditions = [
-        { invoiceNumber: { $regex: primaryPattern, $options: 'i' } },
-        { 'customer.customerName': { $regex: primaryPattern, $options: 'i' } }
+        { invoiceNumber: { $regex: invoicePattern, $options: 'i' } },
+        { 'customer.customerName': { $regex: customerPattern, $options: 'i' } }
       ];
 
       if (useFuzzy && search.length >= 2) {
         const fuzzyPattern = buildFuzzyPattern(search);
-        if (fuzzyPattern && fuzzyPattern !== primaryPattern) {
+        if (fuzzyPattern && fuzzyPattern !== invoicePattern) {
           primaryConditions.push(
             { invoiceNumber: { $regex: fuzzyPattern, $options: 'i' } },
             { 'customer.customerName': { $regex: fuzzyPattern, $options: 'i' } }
