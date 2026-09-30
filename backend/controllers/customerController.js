@@ -427,17 +427,17 @@ exports.getCustomers = async (req, res, next) => {
     const rawSearch = String(req.query.search || '').trim();
     const useFuzzy = req.query.fuzzy === 'true';
 
-    const customerQuery = rawSearch
-      ? await Customer.aggregate([
+    const customerPromise = rawSearch
+      ? Customer.aggregate([
         { $match: query },
         ...buildCustomerSearchRankingStages({ rawQuery: rawSearch, useFuzzy, sort, skip, limit })
       ])
-      : await Customer.find(query)
+      : Customer.find(query)
         .sort(sort)
         .skip(skip)
         .limit(limit);
     const [customers, total] = await Promise.all([
-      customerQuery,
+      customerPromise,
       Customer.countDocuments(query)
     ]);
 

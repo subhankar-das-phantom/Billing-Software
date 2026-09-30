@@ -128,6 +128,15 @@ export const AuthProvider = ({ children }) => {
     setIsAuthRestored(true);
   }, []);
 
+  // Clear login transition once the authenticated state that route guards
+  // depend on (user + userRole) has fully committed in React state.
+  // This covers admin, employee, and demo login paths identically.
+  useEffect(() => {
+    if (authTransition === 'login' && user && userRole) {
+      setAuthTransition(null);
+    }
+  }, [authTransition, user, userRole]);
+
   // Auto-dismiss toast after 4 seconds
   useEffect(() => {
     if (toast) {
@@ -246,6 +255,11 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       clearClientCaches();
+      // Signal route guards that a login is in progress — prevents
+      // ProtectedRoute from redirecting during the React state sync window
+      // between token persistence and setUser/setAdmin commit.
+      setAuthTransition('login');
+
       // If logging in with demo account, enter demo mode directly
       if (email?.toLowerCase() === 'admin@bharat.com') {
         startDemoMode();
@@ -291,11 +305,13 @@ export const AuthProvider = ({ children }) => {
           }, 200);
         }
       } else {
+        setAuthTransition(null);
         showToast(data?.message || 'Login failed', 'error');
       }
       
       return data;
     } catch (error) {
+      setAuthTransition(null);
       if (email?.toLowerCase() === 'admin@bharat.com') {
         startDemoMode();
         return { success: true, role: 'admin', admin: DEMO_ADMIN };

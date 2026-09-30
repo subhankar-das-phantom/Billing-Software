@@ -182,7 +182,7 @@ export default function CollectionsPage() {
   const [endDate, setEndDate] = useState('');
   const [selectedMethod, setSelectedMethod] = useState('');
   const [searchInput, setSearchInput] = useState('');
-  const [debouncedSearch] = useDebounce(searchInput, 300);
+  const [debouncedSearch] = useDebounce(searchInput, 400);
   const [page, setPage] = useState(1);
 
   // Modal States

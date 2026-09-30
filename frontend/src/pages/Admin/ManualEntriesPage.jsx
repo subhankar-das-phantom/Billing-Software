@@ -26,7 +26,7 @@ import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator'
 export default function ManualEntriesPage() {
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearch] = useDebounce(searchQuery, 300);
+  const [debouncedSearch] = useDebounce(searchQuery, 400);
   const [filters, setFilters] = useState({
     startDate: '',
     endDate: ''

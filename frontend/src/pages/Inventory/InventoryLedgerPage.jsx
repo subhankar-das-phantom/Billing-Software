@@ -64,7 +64,7 @@ export default function InventoryLedgerPage() {
   const [productResults, setProductResults] = useState([]);
   const [isProductSearchLoading, setIsProductSearchLoading] = useState(false);
   const [showProductDropdown, setShowProductDropdown] = useState(false);
-  const [debouncedProductSearchText] = useDebounce(productSearchText, 300);
+  const [debouncedProductSearchText] = useDebounce(productSearchText, 400);
   const latestProductSearchRequest = useRef(0);
 
   const { showToast } = useToast();

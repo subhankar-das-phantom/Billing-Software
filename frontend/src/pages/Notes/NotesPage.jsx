@@ -53,7 +53,7 @@ export default function NotesPage() {
   
   const motionConfig = useMotionConfig();
   const isFirstVisit = useFirstVisit('notes');
-  const searchDebounce = useDebounce(search, 300);
+  const searchDebounce = useDebounce(search, 400);
 
   // SWR: Instant cached data + background revalidation
   const { data, isLoading, isValidating, mutate } = useSWR(

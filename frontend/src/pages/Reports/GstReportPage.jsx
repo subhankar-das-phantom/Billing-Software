@@ -89,7 +89,7 @@ export default function GstReportPage() {
   const searchRef = useRef(null);
 
   // Debounced product search
-  const [debouncedProductSearch] = useDebounce(productSearch, 300);
+  const [debouncedProductSearch] = useDebounce(productSearch, 400);
 
   // ── Product search effect ──
   useEffect(() => {

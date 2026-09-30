@@ -70,16 +70,10 @@ function PageLoader() {
     location.pathname.startsWith('/share');
 
   if (isPublicRoute) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white font-bold text-xl flex items-center justify-center shadow-lg shadow-blue-500/20 animate-pulse">
-            B
-          </div>
-          <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mt-1" />
-        </div>
-      </div>
-    );
+    // Just a dark background — no spinner. Public pages (login, register,
+    // landing) are eagerly loaded so this only flashes for a frame or two
+    // while the JS bundle initialises. A spinner here is unnecessary noise.
+    return <div className="min-h-screen bg-slate-950" />;
   }
 
   return <AppShellSkeleton />;
@@ -92,10 +86,14 @@ function ProtectedRoute({ children }) {
     return <Navigate to="/landing" replace />;
   }
 
-  const { user, loading, isAdmin, logout } = useAuth();
+  const { user, loading, isAdmin, logout, authTransition } = useAuth();
   const { canAccess, loading: subLoading } = useSubscription();
   
-  if (loading || subLoading || (!user && typeof window !== 'undefined' && (localStorage.getItem('admin') || localStorage.getItem('isDemoMode')))) {
+  // Treat an in-progress login transition as a loading state — the React
+  // state updates (setUser/setAdmin/setUserRole) haven't committed yet but
+  // credentials are already persisted. Showing skeleton prevents a false
+  // redirect back to /login during the synchronization window.
+  if (authTransition === 'login' || loading || subLoading || (!user && typeof window !== 'undefined' && (localStorage.getItem('admin') || localStorage.getItem('user') || localStorage.getItem('isDemoMode')))) {
     return <AppShellSkeleton />;
   }
   
@@ -188,19 +186,13 @@ function PublicRoute({ children }) {
     return children;
   }
 
-  const { user, loading } = useAuth();
+  const { user, loading, authTransition } = useAuth();
   
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white font-bold text-xl flex items-center justify-center shadow-lg shadow-blue-500/20 animate-pulse">
-            B
-          </div>
-          <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mt-1" />
-        </div>
-      </div>
-    );
+  // During loading or a login transition, render children (e.g. LoginPage)
+  // instead of a spinner — the form stays visible while auth resolves.
+  // Once user state commits, the redirect below fires.
+  if (loading || authTransition === 'login') {
+    return children;
   }
   
   if (user) {

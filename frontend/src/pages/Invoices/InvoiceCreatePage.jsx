@@ -210,8 +210,8 @@ export default function InvoiceCreatePage() {
 
   const [customerSearch, setCustomerSearch] = useState("");
   const [productSearch, setProductSearch] = useState("");
-  const [debouncedCustomerSearch] = useDebounce(customerSearch, 300);
-  const [debouncedProductSearch] = useDebounce(productSearch, 300);
+  const [debouncedCustomerSearch] = useDebounce(customerSearch, 400);
+  const [debouncedProductSearch] = useDebounce(productSearch, 400);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [showProductDropdown, setShowProductDropdown] = useState(false);
 
