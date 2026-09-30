@@ -15,12 +15,12 @@ import { useState, useEffect, useRef, useCallback } from 'react';
  *
  * @template T
  * @param {T}      value - The rapidly-changing input value.
- * @param {number} [delay=300] - Debounce window in milliseconds.
+ * @param {number} [delay=400] - Debounce window in milliseconds.
  * @returns {[T, () => void]} A tuple of [debouncedValue, flush].
  *
  * @example
  * const [searchInput, setSearchInput] = useState('');
- * const [debouncedSearch, flushSearch] = useDebounce(searchInput, 300);
+ * const [debouncedSearch, flushSearch] = useDebounce(searchInput, 400);
  *
  * const handleSubmit = (e) => {
  *   e.preventDefault();
@@ -28,7 +28,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
  *   mutate();        // then revalidate SWR
  * };
  */
-export function useDebounce(value, delay = 300) {
+export function useDebounce(value, delay = 400) {
   const [debouncedValue, setDebouncedValue] = useState(value);
   const latestValue = useRef(value);
 

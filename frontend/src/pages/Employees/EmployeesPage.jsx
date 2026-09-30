@@ -646,7 +646,7 @@ const EmployeeCard = ({ employee, onEdit, onResetPassword, onToggleStatus, isMob
 // Main Page Component
 export default function EmployeesPage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearch] = useDebounce(searchTerm, 300);
+  const [debouncedSearch] = useDebounce(searchTerm, 400);
   const [statusFilter, setStatusFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);

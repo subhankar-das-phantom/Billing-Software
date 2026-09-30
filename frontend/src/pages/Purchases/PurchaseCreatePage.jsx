@@ -143,7 +143,7 @@ export default function PurchaseCreatePage() {
 
   // Supplier Search State
   const [supplierSearch, setSupplierSearch] = useState('');
-  const [debouncedSupplierSearch] = useDebounce(supplierSearch, 300);
+  const [debouncedSupplierSearch] = useDebounce(supplierSearch, 400);
   const [supplierResults, setSupplierResults] = useState([]);
   const [isSupplierSearchLoading, setIsSupplierSearchLoading] = useState(false);
   const [showSupplierDropdown, setShowSupplierDropdown] = useState(false);
@@ -153,7 +153,7 @@ export default function PurchaseCreatePage() {
 
   // Product Search State
   const [productSearch, setProductSearch] = useState('');
-  const [debouncedProductSearch] = useDebounce(productSearch, 300);
+  const [debouncedProductSearch] = useDebounce(productSearch, 400);
   const [productResults, setProductResults] = useState([]);
   const [isProductSearchLoading, setIsProductSearchLoading] = useState(false);
   const [showProductDropdown, setShowProductDropdown] = useState(false);
