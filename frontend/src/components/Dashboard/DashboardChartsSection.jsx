@@ -254,8 +254,8 @@ export const DashboardChartsSection = ({
                 data={donutData}
                 cx="50%"
                 cy="50%"
-                innerRadius={50}
-                outerRadius={72}
+                innerRadius={56}
+                outerRadius={76}
                 paddingAngle={3}
                 dataKey="value"
               >
@@ -267,9 +267,12 @@ export const DashboardChartsSection = ({
             </PieChart>
           </ResponsiveContainer>
 
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
-            <span className="text-[10px] uppercase font-medium text-slate-400 tracking-wider">Total</span>
-            <span className="text-sm sm:text-base font-bold text-slate-100">
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center px-1">
+            <span className="text-[10px] uppercase font-semibold text-slate-400 tracking-wider">Total</span>
+            <span 
+              className="text-xs sm:text-[13px] font-bold text-slate-100 font-mono tracking-tight max-w-[105px] truncate block"
+              title={formatCurrency(donutData.reduce((acc, curr) => acc + curr.value, 0))}
+            >
               {formatCurrency(donutData.reduce((acc, curr) => acc + curr.value, 0))}
             </span>
           </div>

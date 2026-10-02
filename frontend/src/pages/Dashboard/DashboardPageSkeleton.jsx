@@ -6,38 +6,43 @@ import { ShimmerBone } from '../../features/salesAnalytics/components/SkeletonCa
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
 const HeroSkeleton = () => (
-  <div className="glass-card p-6 md:p-8 bg-slate-900/80 border border-slate-700/60 rounded-2xl relative overflow-hidden">
-    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-      <div className="space-y-3">
+  <div className="glass-card p-3.5 sm:p-6 md:p-8 bg-slate-900/80 border border-slate-700/60 rounded-xl sm:rounded-2xl relative overflow-hidden">
+    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-6">
+      <div className="space-y-2 sm:space-y-3">
         <div className="flex items-center gap-2">
-          <ShimmerBone className="h-5 w-24 rounded-full" />
-          <ShimmerBone className="h-5 w-36 rounded-full" />
+          <ShimmerBone className="h-4 sm:h-5 w-24 rounded-full" />
+          <ShimmerBone className="h-4 sm:h-5 w-28 sm:w-36 rounded-full" />
         </div>
-        <ShimmerBone className="h-9 w-64 rounded-lg" />
-        <ShimmerBone className="h-4 w-96 rounded" />
+        <ShimmerBone className="h-6 sm:h-9 w-44 sm:w-64 rounded-lg" />
+        <ShimmerBone className="h-3 sm:h-4 w-60 sm:w-96 rounded" />
       </div>
-      <div className="flex items-center gap-3">
-        <ShimmerBone className="h-10 w-64 rounded-xl" />
-        <ShimmerBone className="h-10 w-36 rounded-xl" />
+      <div className="flex items-center gap-2 sm:gap-3">
+        <ShimmerBone className="h-8 sm:h-10 w-48 sm:w-64 rounded-lg sm:rounded-xl" />
+        <ShimmerBone className="h-8 sm:h-10 w-24 sm:w-36 rounded-lg sm:rounded-xl" />
       </div>
     </div>
   </div>
 );
 
 const KPIGridSkeleton = () => (
-  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-3.5 sm:gap-4">
+  <div className="grid grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-2.5 sm:gap-3.5">
     {[1, 2, 3, 4, 5].map((i) => (
-      <div key={i} className="glass-card p-5 bg-slate-900/80 border border-slate-700/60 rounded-2xl space-y-3">
+      <div 
+        key={i} 
+        className={`glass-card p-2.5 sm:p-4 bg-slate-900/80 border border-slate-700/60 rounded-xl space-y-2 sm:space-y-3 ${
+          i === 5 ? 'col-span-2 sm:col-span-1' : ''
+        }`}
+      >
         <div className="flex justify-between items-start">
-          <div className="space-y-2">
-            <ShimmerBone className="h-3 w-20" />
-            <ShimmerBone className="h-7 w-28" />
+          <div className="space-y-1.5">
+            <ShimmerBone className="h-2.5 sm:h-3 w-16 sm:w-20" />
+            <ShimmerBone className="h-5 sm:h-7 w-20 sm:w-28" />
           </div>
-          <ShimmerBone className="w-10 h-10 rounded-xl" />
+          <ShimmerBone className="w-7 h-7 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl shrink-0" />
         </div>
-        <div className="pt-3 border-t border-slate-800 flex justify-between items-center">
-          <ShimmerBone className="h-3 w-16" />
-          <ShimmerBone className="h-4 w-20 rounded-md" />
+        <div className="pt-2 sm:pt-3 border-t border-slate-800 flex justify-between items-center">
+          <ShimmerBone className="h-2.5 sm:h-3 w-12 sm:w-16" />
+          <ShimmerBone className="h-3.5 sm:h-4 w-16 sm:w-20 rounded" />
         </div>
       </div>
     ))}

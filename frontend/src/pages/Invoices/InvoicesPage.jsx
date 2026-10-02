@@ -76,14 +76,16 @@ export default function InvoicesPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const observer = useRef(null);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState({});
   const { success, error } = useToast();
   const navigate = useNavigate();
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const { user } = useAuth();
+
+  const hasActiveFilters = statusFilter !== 'all' || Boolean(startDate) || Boolean(endDate);
 
   // Mobile card density preference with Frame-0 cache pre-seeding
   const storedDensity = typeof window !== 'undefined' ? localStorage.getItem('bharat_mobile_card_density') : null;
@@ -303,10 +305,10 @@ export default function InvoicesPage() {
       variants={pageVariants}
       initial={isFirstVisit ? "hidden" : false}
       animate="visible"
-      className="space-y-12"
+      className="space-y-6 sm:space-y-12"
     >
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* Stats Cards - 2-col on mobile with 3rd card spanning full width */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4">
         {[
           {
             label: 'Total Invoices',
@@ -332,54 +334,184 @@ export default function InvoicesPage() {
             iconColor: 'text-accent-400',
             bgColor: 'bg-accent-500/20'
           }
-        ].map((stat, index) => (
-          <div
-            key={stat.label}
-            className="glass-card p-6 cursor-pointer group transition-transform hover:-translate-y-1 hover:scale-[1.02]"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-400 mb-1">{stat.label}</p>
-                <p className="text-3xl font-bold text-slate-100">
-                  {stat.value}
-                </p>
-              </div>
-              <div className="p-2.5 rounded-lg bg-slate-800 text-slate-400 group-hover:text-slate-200 border border-slate-700/60 transition-colors">
-                <stat.icon className={`w-5 h-5 ${stat.iconColor}`} />
+        ].map((stat, index) => {
+          const isLastOddCard = index === 2;
+          return (
+            <div
+              key={stat.label}
+              className={`glass-card p-3 sm:p-5 lg:p-6 cursor-pointer group transition-transform hover:-translate-y-1 hover:scale-[1.02] ${
+                isLastOddCard ? 'col-span-2 sm:col-span-1' : ''
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="min-w-0 pr-1">
+                  <p className="text-xs lg:text-sm text-slate-400 mb-0.5 sm:mb-1 truncate">{stat.label}</p>
+                  <p className="text-lg sm:text-2xl lg:text-3xl font-bold font-mono text-slate-100">
+                    {stat.value}
+                  </p>
+                </div>
+                <div className="p-2 sm:p-2.5 rounded-lg bg-slate-800 text-slate-400 group-hover:text-slate-200 border border-slate-700/60 transition-colors shrink-0">
+                  <stat.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${stat.iconColor}`} />
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Header with Filters */}
-      <div className="glass-card p-6">
-        <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-slate-800 border border-slate-700/60 rounded-lg text-blue-400">
-              <FileText className="w-5 h-5" />
+      <div className="glass-card p-3.5 sm:p-6">
+        {/* Title Bar */}
+        <div className="flex items-center justify-between gap-3 mb-3 sm:mb-6">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="p-2 sm:p-2.5 bg-slate-800 border border-slate-700/60 rounded-lg text-blue-400 shrink-0">
+              <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-semibold text-slate-100">All Invoices</h2>
+                <h2 className="text-base sm:text-xl font-semibold text-slate-100 truncate">All Invoices</h2>
                 <RefreshIndicator isRefreshing={isValidating} size="sm" />
               </div>
-              <p className="text-sm text-slate-400 mt-1">
+              <p className="text-xs sm:text-sm text-slate-400 mt-0.5 truncate">
                 Showing {invoices.length} of {totalMatched || invoices.length} invoices
               </p>
             </div>
           </div>
 
-          <div>
-            <Link to="/invoices/create" className="btn btn-primary flex items-center gap-2 active:scale-95 transition-transform">
-              <Plus className="w-5 h-5" />
-              New Invoice
-            </Link>
-          </div>
+          <Link to="/invoices/create" className="btn btn-primary text-xs sm:text-sm py-2 px-3 sm:px-4 flex items-center gap-1.5 shrink-0 active:scale-95 transition-transform shadow-xs">
+            <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span>New Invoice</span>
+          </Link>
         </div>
 
-        {/* Search and Filters */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 mt-6">
+        {/* Mobile Search & Action Bar (< sm) */}
+        <div className="sm:hidden space-y-2.5">
+          <div className="flex items-center gap-2">
+            {/* Search Input */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+              <input
+                type="text"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Search invoice # or customer..."
+                className="input pl-9 pr-8 text-xs py-2 w-full"
+              />
+              {searchInput && (
+                <button
+                  type="button"
+                  onClick={() => setSearchInput('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-100 p-1"
+                >
+                  <XCircle className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Filter Toggle */}
+            <button
+              type="button"
+              onClick={() => setShowMobileFilters(!showMobileFilters)}
+              className={`p-2.5 rounded-lg border text-xs flex items-center gap-1.5 transition-colors shrink-0 ${
+                hasActiveFilters
+                  ? 'bg-blue-500/20 text-blue-400 border-blue-500/40 shadow-xs'
+                  : showMobileFilters
+                  ? 'bg-slate-800 text-slate-200 border-slate-600'
+                  : 'bg-slate-800/80 text-slate-400 border-slate-700/80 hover:bg-slate-800'
+              }`}
+              title="Filter invoices"
+              aria-label="Filter invoices"
+            >
+              <Filter className="w-4 h-4" />
+              {hasActiveFilters && (
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+              )}
+            </button>
+
+            {/* Export Button */}
+            <button
+              type="button"
+              onClick={() => setShowExportModal(true)}
+              className="p-2.5 rounded-lg bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600/30 transition-colors shrink-0"
+              title="Export invoices"
+              aria-label="Export invoices"
+            >
+              <Download className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Expandable Mobile Filters */}
+          <AnimatePresence>
+            {showMobileFilters && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.15 }}
+                className="pt-2 border-t border-slate-800 space-y-2.5 overflow-hidden"
+              >
+                <div className="grid grid-cols-1 gap-2">
+                  <div className="relative">
+                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="select pl-9 text-xs py-2 w-full"
+                    >
+                      <option value="all">All Status</option>
+                      <option value="Created">Created</option>
+                      <option value="Printed">Printed</option>
+                      <option value="Cancelled">Cancelled</option>
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="relative">
+                      <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                      <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="input pl-8 text-xs py-1.5 w-full"
+                        aria-label="Filter from date"
+                      />
+                    </div>
+                    <div className="relative">
+                      <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                      <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="input pl-8 text-xs py-1.5 w-full"
+                        aria-label="Filter to date"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {hasActiveFilters && (
+                  <div className="flex justify-end pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStatusFilter('all');
+                        setStartDate('');
+                        setEndDate('');
+                      }}
+                      className="text-xs text-rose-400 hover:text-rose-300 transition-colors flex items-center gap-1 font-medium"
+                    >
+                      <XCircle className="w-3.5 h-3.5" />
+                      Reset filters
+                    </button>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Desktop Search and Filters (>= sm) */}
+        <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 mt-6">
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />

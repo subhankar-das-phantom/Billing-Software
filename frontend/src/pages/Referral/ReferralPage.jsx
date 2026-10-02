@@ -160,41 +160,41 @@ export default function ReferralPage() {
             </div>
           </div>
 
-          {/* Stats Cards */}
-          <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6 flex flex-col justify-center">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-blue-500/10 rounded-lg">
-                  <Users className="w-5 h-5 text-blue-400" />
+          {/* Stats Cards - 2-col on mobile with 3rd card spanning full width */}
+          <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4">
+            <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl sm:rounded-2xl p-3 sm:p-5 lg:p-6 flex flex-col justify-center">
+              <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
+                <div className="p-1.5 sm:p-2 bg-blue-500/10 rounded-lg shrink-0">
+                  <Users className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
                 </div>
-                <h3 className="text-slate-400 font-medium text-sm">Total Signups</h3>
+                <h3 className="text-slate-400 font-medium text-xs sm:text-sm truncate">Signups</h3>
               </div>
-              <p className="text-3xl font-bold text-slate-100 mt-2">{stats?.totalReferred || 0}</p>
+              <p className="text-xl sm:text-3xl font-bold text-slate-100 mt-1 sm:mt-2">{stats?.totalReferred || 0}</p>
             </div>
             
-            <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6 flex flex-col justify-center">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-amber-500/10 rounded-lg">
-                  <Clock className="w-5 h-5 text-amber-400" />
+            <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl sm:rounded-2xl p-3 sm:p-5 lg:p-6 flex flex-col justify-center">
+              <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
+                <div className="p-1.5 sm:p-2 bg-amber-500/10 rounded-lg shrink-0">
+                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
                 </div>
-                <h3 className="text-slate-400 font-medium text-sm">Pending Rewards</h3>
+                <h3 className="text-slate-400 font-medium text-xs sm:text-sm truncate">Pending</h3>
               </div>
-              <p className="text-3xl font-bold text-slate-100 mt-2">{stats?.pending || 0}</p>
-              <p className="text-xs text-slate-500 mt-1">Awaiting first purchase</p>
+              <p className="text-xl sm:text-3xl font-bold text-slate-100 mt-1 sm:mt-2">{stats?.pending || 0}</p>
+              <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1 truncate hidden sm:block">Awaiting first purchase</p>
             </div>
 
-            <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6 flex flex-col justify-center relative overflow-hidden">
+            <div className="col-span-2 sm:col-span-1 bg-slate-800/50 border border-slate-700/50 rounded-xl sm:rounded-2xl p-3 sm:p-5 lg:p-6 flex flex-col justify-center relative overflow-hidden">
               <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl" />
-              <div className="flex items-center gap-3 mb-2 relative z-10">
-                <div className="p-2 bg-emerald-500/10 rounded-lg">
-                  <Award className="w-5 h-5 text-emerald-400" />
+              <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2 relative z-10">
+                <div className="p-1.5 sm:p-2 bg-emerald-500/10 rounded-lg shrink-0">
+                  <Award className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
                 </div>
-                <h3 className="text-slate-400 font-medium text-sm">Days Earned</h3>
+                <h3 className="text-slate-400 font-medium text-xs sm:text-sm truncate">Days Earned</h3>
               </div>
-              <p className="text-3xl font-bold text-emerald-400 mt-2 relative z-10">
+              <p className="text-xl sm:text-3xl font-bold text-emerald-400 mt-1 sm:mt-2 relative z-10">
                 +{(stats?.totalRewarded || 0) * 30}
               </p>
-              <p className="text-xs text-emerald-500/70 mt-1 relative z-10">{stats?.totalRewarded || 0} successful referrals</p>
+              <p className="text-[10px] sm:text-xs text-emerald-500/70 mt-0.5 sm:mt-1 relative z-10 truncate hidden sm:block">{stats?.totalRewarded || 0} successful</p>
             </div>
           </div>
         </div>

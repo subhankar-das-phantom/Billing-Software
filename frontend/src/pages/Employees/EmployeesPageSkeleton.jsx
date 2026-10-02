@@ -20,13 +20,13 @@ const HeaderSkeleton = () => (
 );
 
 const StatCardSkeleton = () => (
-  <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-5">
+  <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-3 sm:p-5">
     <div className="flex items-center justify-between">
-      <div>
-        <ShimmerBone className="h-3.5 w-24 mb-2" />
-        <ShimmerBone className="h-7 w-16" />
+      <div className="min-w-0 pr-1">
+        <ShimmerBone className="h-3.5 w-16 sm:w-24 mb-1 sm:mb-2" />
+        <ShimmerBone className="h-6 sm:h-7 w-12 sm:w-16" />
       </div>
-      <ShimmerBone className="w-12 h-12 rounded-xl" />
+      <ShimmerBone className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl shrink-0" />
     </div>
   </div>
 );
@@ -77,10 +77,12 @@ export const EmployeesPageSkeleton = () => (
   <div className="space-y-6">
     <HeaderSkeleton />
 
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4">
       <StatCardSkeleton />
       <StatCardSkeleton />
-      <StatCardSkeleton />
+      <div className="col-span-2 sm:col-span-1">
+        <StatCardSkeleton />
+      </div>
     </div>
 
     <FilterBarSkeleton />

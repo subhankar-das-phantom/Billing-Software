@@ -37,26 +37,26 @@ const KPICard = ({ title, value, prefix = '', suffix = '', icon: Icon, color, gr
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="glass-card p-5 relative overflow-hidden group"
+      className="glass-card p-3 sm:p-5 relative overflow-hidden group"
     >
       <div className="relative z-10">
-        <div className="flex justify-between items-start mb-4">
-          <p className="text-sm text-slate-400 font-medium">{title}</p>
-          <div className={`p-2 rounded-lg border ${badgeStyle}`}>
-            <Icon className="w-4 h-4" />
+        <div className="flex justify-between items-start mb-2 sm:mb-4">
+          <p className="text-xs sm:text-sm text-slate-400 font-medium truncate pr-1">{title}</p>
+          <div className={`p-1.5 sm:p-2 rounded-lg border ${badgeStyle} shrink-0`}>
+            <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </div>
         </div>
 
         <div className="flex items-baseline gap-1">
-          {prefix && <span className="text-lg font-medium text-slate-400">{prefix}</span>}
-          <div className="text-2xl font-bold text-slate-100 tracking-tight">
+          {prefix && <span className="text-sm sm:text-lg font-medium text-slate-400">{prefix}</span>}
+          <div className="text-lg sm:text-2xl font-bold font-mono text-slate-100 tracking-tight">
             <AnimatedCounter value={value} />
           </div>
-          {suffix && <span className="text-sm font-medium text-slate-400">{suffix}</span>}
+          {suffix && <span className="text-xs sm:text-sm font-medium text-slate-400">{suffix}</span>}
         </div>
 
         {growth !== undefined && (
-          <div className="mt-3">
+          <div className="mt-2 sm:mt-3">
             <GrowthBadge value={growth} label={growthLabel} />
           </div>
         )}
@@ -70,7 +70,7 @@ export const KPICards = ({ filterParams }) => {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4">
         {[1, 2, 3, 4, 5, 6].map(i => <KPICardSkeleton key={i} />)}
       </div>
     );
@@ -95,7 +95,7 @@ export const KPICards = ({ filterParams }) => {
   };
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4">
       <KPICard
         title="Total Revenue"
         value={stats.totalRevenue}

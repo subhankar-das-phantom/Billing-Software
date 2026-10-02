@@ -2,6 +2,7 @@ const Invoice = require('../models/Invoice');
 const Payment = require('../models/Payment');
 const Customer = require('../models/Customer');
 const CreditNote = require('../models/CreditNote');
+const ManualEntry = require('../models/ManualEntry');
 const getTenantId = require('../utils/getTenantId');
 
 // Round to 2 decimal places safely (avoids JS floating point drift)
@@ -231,7 +232,7 @@ exports.getCreditStats = async (req, res, next) => {
     };
 
     // 3 parallel aggregations — replaces 2x Invoice.find() + all JS processing
-    const [invoiceStats, paymentsThisMonth, totalCreditNotes] = await Promise.all([
+    const [invoiceStats, paymentsThisMonth, meThisMonth, totalCreditNotes] = await Promise.all([
       // Single aggregation: outstanding + overdue + unique customers
       Invoice.aggregate([
         { $match: unpaidFilter },
@@ -251,9 +252,15 @@ exports.getCreditStats = async (req, res, next) => {
         }}
       ]),
 
-      // Payments this month (already an aggregation — unchanged)
+      // Payments this month
       Payment.aggregate([
         { $match: { tenantId, paymentDate: { $gte: startOfMonth } } },
+        { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }
+      ]),
+
+      // ManualEntry adjustments this month (payment_adjustment + credit_adjustment)
+      ManualEntry.aggregate([
+        { $match: { tenantId, entryType: { $in: ['payment_adjustment', 'credit_adjustment'] }, entryDate: { $gte: startOfMonth } } },
         { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }
       ]),
 
@@ -268,14 +275,18 @@ exports.getCreditStats = async (req, res, next) => {
     const creditNoteDeduction = totalCreditNotes[0]?.total || 0;
     const adjustedOutstanding = round2(Math.max(0, stats.totalOutstanding - creditNoteDeduction));
 
+    // Combine Payment + ManualEntry for total collections this month
+    const combinedPaymentsTotal = (paymentsThisMonth[0]?.total || 0) + (meThisMonth[0]?.total || 0);
+    const combinedPaymentsCount = (paymentsThisMonth[0]?.count || 0) + (meThisMonth[0]?.count || 0);
+
     res.status(200).json({
       success: true,
       stats: {
         totalOutstanding: adjustedOutstanding,
         overdueAmount: stats.overdueAmount,
         customersWithDues: stats.customerIds.length,
-        paymentsThisMonth: paymentsThisMonth[0]?.total || 0,
-        paymentsThisMonthCount: paymentsThisMonth[0]?.count || 0
+        paymentsThisMonth: combinedPaymentsTotal,
+        paymentsThisMonthCount: combinedPaymentsCount
       }
     });
   } catch (error) {

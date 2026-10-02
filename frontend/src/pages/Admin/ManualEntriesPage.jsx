@@ -127,61 +127,64 @@ export default function ManualEntriesPage() {
       className="space-y-6"
     >
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-accent-500/20 rounded-xl">
-            <Shield className="w-6 h-6 text-accent-400" />
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div className="p-2 sm:p-2.5 bg-accent-500/20 rounded-lg sm:rounded-xl text-accent-400 shrink-0">
+            <Shield className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-100">Manual Entries</h1>
-            <p className="text-slate-400 text-sm">{total} total entries</p>
+          <div className="min-w-0">
+            <h1 className="text-base sm:text-2xl font-bold text-slate-100 truncate">Manual Entries</h1>
+            <p className="text-slate-400 text-xs sm:text-sm truncate">{total} total entries</p>
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
-          <RefreshIndicator isRefreshing={isValidating} size="sm" showText />
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <RefreshIndicator isRefreshing={isValidating} size="sm" showText={false} />
           <motion.button
             onClick={() => mutate()}
-            className="btn btn-secondary"
+            className="p-2 sm:px-3 sm:py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/60 transition-colors"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             disabled={isValidating}
+            title="Refresh entries"
+            aria-label="Refresh entries"
           >
-            <RefreshCw className={`w-4 h-4 ${isValidating ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isValidating ? 'animate-spin' : ''}`} />
           </motion.button>
           <motion.button
             onClick={() => setShowCreateModal(true)}
-            className="btn btn-primary flex items-center gap-2"
+            className="btn btn-primary flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg shrink-0"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            <Plus className="w-4 h-4" />
-            Create Entry
+            <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">Create Entry</span>
+            <span className="sm:hidden">Entry</span>
           </motion.button>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="glass-card p-4">
-        <div className="flex flex-col sm:flex-row gap-4">
+      <div className="glass-card p-3 sm:p-4">
+        <div className="flex items-center gap-2 sm:gap-3">
           {/* Search */}
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
               placeholder="Search by customer name or phone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-10 py-2.5 bg-slate-800/50 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-accent-500 focus:border-transparent"
+              className="w-full pl-9 pr-8 py-2 sm:py-2.5 text-xs sm:text-sm bg-slate-800/50 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-colors"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-100 p-1"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-100 p-1"
                 aria-label="Clear search"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
@@ -189,10 +192,14 @@ export default function ManualEntriesPage() {
           {/* Filter Toggle */}
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`btn ${showFilters ? 'btn-primary' : 'btn-secondary'} flex items-center gap-2`}
+            className={`btn ${showFilters ? 'btn-primary' : 'btn-secondary'} flex items-center gap-1.5 px-3 py-2 sm:py-2.5 text-xs sm:text-sm shrink-0`}
+            aria-expanded={showFilters}
           >
-            <Filter className="w-4 h-4" />
-            Filters
+            <Filter className="w-3.5 h-3.5" />
+            <span>Filters</span>
+            {(filters.startDate || filters.endDate) && (
+              <span className="w-2 h-2 rounded-full bg-blue-400 ring-2 ring-slate-900" />
+            )}
           </button>
         </div>
 
@@ -203,30 +210,44 @@ export default function ManualEntriesPage() {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
               className="overflow-hidden"
             >
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 mt-4 border-t border-slate-700">
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-4 pt-3 sm:pt-4 mt-3 sm:mt-4 border-t border-slate-700/60">
                 {/* Date Range */}
                 <div>
-                  <label className="block text-sm text-slate-400 mb-1">Start Date</label>
+                  <label className="block text-[11px] sm:text-xs text-slate-400 mb-1 font-medium">Start Date</label>
                   <input
                     type="date"
                     value={filters.startDate}
                     onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-100"
+                    className="w-full px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm bg-slate-800 border border-slate-600 rounded-lg text-slate-100 focus:outline-none focus:border-accent-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm text-slate-400 mb-1">End Date</label>
+                  <label className="block text-[11px] sm:text-xs text-slate-400 mb-1 font-medium">End Date</label>
                   <input
                     type="date"
                     value={filters.endDate}
                     onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-100"
+                    className="w-full px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm bg-slate-800 border border-slate-600 rounded-lg text-slate-100 focus:outline-none focus:border-accent-500"
                   />
                 </div>
               </div>
+
+              {(filters.startDate || filters.endDate) && (
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setFilters({ startDate: '', endDate: '' })}
+                    className="text-xs text-blue-400 hover:text-blue-300 font-medium inline-flex items-center gap-1"
+                  >
+                    <X className="w-3 h-3" />
+                    <span>Clear Dates</span>
+                  </button>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

@@ -3,6 +3,10 @@ import { getPreviousPeriod } from '../utils/dateUtils';
 const Invoice = require('../../../../models/Invoice');
 const Payment = require('../../../../models/Payment');
 const CreditNote = require('../../../../models/CreditNote');
+const ManualEntry = require('../../../../models/ManualEntry');
+
+// ManualEntry types that represent actual cash/payment collections
+const COLLECTION_ENTRY_TYPES = ['payment_adjustment', 'credit_adjustment'];
 
 export class SalesAnalyticsService {
   /**
@@ -49,37 +53,33 @@ export class SalesAnalyticsService {
       }
     ]);
 
-    // 3. Current Period Collections (Payments)
-    const currentCollectionsAgg = await Payment.aggregate([
-      { 
-        $match: { 
-          tenantId: tenantObjectId, 
-          paymentDate: { $gte: start, $lte: end }
-        } 
-      },
-      {
-        $group: {
-          _id: null,
-          totalCollections: { $sum: '$amount' }
-        }
-      }
+    // 3. Current Period Collections (Payments + ManualEntry adjustments)
+    const [currentPaymentColAgg, currentMeColAgg] = await Promise.all([
+      Payment.aggregate([
+        { $match: { tenantId: tenantObjectId, paymentDate: { $gte: start, $lte: end } } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]),
+      ManualEntry.aggregate([
+        { $match: { tenantId: tenantObjectId, entryType: { $in: COLLECTION_ENTRY_TYPES }, entryDate: { $gte: start, $lte: end } } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ])
     ]);
 
-    // 4. Previous Period Collections
-    const prevCollectionsAgg = await Payment.aggregate([
-      { 
-        $match: { 
-          tenantId: tenantObjectId, 
-          paymentDate: { $gte: prevRange.start, $lte: prevRange.end }
-        } 
-      },
-      {
-        $group: {
-          _id: null,
-          totalCollections: { $sum: '$amount' }
-        }
-      }
+    // 4. Previous Period Collections (Payments + ManualEntry adjustments)
+    const [prevPaymentColAgg, prevMeColAgg] = await Promise.all([
+      Payment.aggregate([
+        { $match: { tenantId: tenantObjectId, paymentDate: { $gte: prevRange.start, $lte: prevRange.end } } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]),
+      ManualEntry.aggregate([
+        { $match: { tenantId: tenantObjectId, entryType: { $in: COLLECTION_ENTRY_TYPES }, entryDate: { $gte: prevRange.start, $lte: prevRange.end } } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ])
     ]);
+
+    // Combine Payment + ManualEntry collection totals
+    const currentCollectionsAgg = [{ totalCollections: (currentPaymentColAgg[0]?.total || 0) + (currentMeColAgg[0]?.total || 0) }];
+    const prevCollectionsAgg = [{ totalCollections: (prevPaymentColAgg[0]?.total || 0) + (prevMeColAgg[0]?.total || 0) }];
 
     // 5. Total Outstanding (All time, Unpaid/Partially Paid)
     const outstandingAgg = await Invoice.aggregate([
@@ -156,7 +156,7 @@ export class SalesAnalyticsService {
     const end = new Date(`${year}-12-31T23:59:59.999Z`);
     const tenantObjectId = new mongoose.Types.ObjectId(tenantId.toString());
 
-    const [invoiceAgg, paymentAgg] = await Promise.all([
+    const [invoiceAgg, paymentAgg, meAgg] = await Promise.all([
       Invoice.aggregate([
         { 
           $match: { 
@@ -194,6 +194,25 @@ export class SalesAnalyticsService {
           }
         },
         { $sort: { '_id.month': 1 } }
+      ]),
+      ManualEntry.aggregate([
+        {
+          $match: {
+            tenantId: tenantObjectId,
+            entryType: { $in: COLLECTION_ENTRY_TYPES },
+            entryDate: { $gte: start, $lte: end }
+          }
+        },
+        {
+          $group: {
+            _id: {
+              month: { $month: { date: '$entryDate', timezone: 'Asia/Kolkata' } },
+              year: { $year: { date: '$entryDate', timezone: 'Asia/Kolkata' } }
+            },
+            collections: { $sum: '$amount' }
+          }
+        },
+        { $sort: { '_id.month': 1 } }
       ])
     ]);
 
@@ -214,10 +233,18 @@ export class SalesAnalyticsService {
       }
     });
 
+    // Merge Payment + ManualEntry collections into monthly totals
     paymentAgg.forEach((item: any) => {
       const idx = item._id.month - 1;
       if (results[idx]) {
-        results[idx].collections = item.collections;
+        results[idx].collections += item.collections;
+      }
+    });
+
+    meAgg.forEach((item: any) => {
+      const idx = item._id.month - 1;
+      if (results[idx]) {
+        results[idx].collections += item.collections;
       }
     });
 
@@ -231,7 +258,7 @@ export class SalesAnalyticsService {
     const tenantObjectId = new mongoose.Types.ObjectId(tenantId.toString());
 
     // Run both aggregations in parallel
-    const [invoiceAgg, paymentAgg] = await Promise.all([
+    const [invoiceAgg, paymentAgg, meAgg] = await Promise.all([
       Invoice.aggregate([
         { 
           $match: { 
@@ -263,20 +290,47 @@ export class SalesAnalyticsService {
           }
         },
         { $sort: { '_id': 1 } }
+      ]),
+      ManualEntry.aggregate([
+        {
+          $match: {
+            tenantId: tenantObjectId,
+            entryType: { $in: COLLECTION_ENTRY_TYPES },
+            entryDate: { $gte: start, $lte: end }
+          }
+        },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m-%d", date: "$entryDate", timezone: "Asia/Kolkata" } },
+            collections: { $sum: '$amount' }
+          }
+        },
+        { $sort: { '_id': 1 } }
       ])
     ]);
 
-    // Build a map of all dates from both datasets
+    // Build a map of all dates from all datasets
     const dateMap = new Map<string, { revenue: number; invoiceCount: number; collections: number }>();
 
     invoiceAgg.forEach((a: any) => {
       dateMap.set(a._id, { revenue: a.revenue, invoiceCount: a.invoiceCount, collections: 0 });
     });
 
+    // Merge Payment collections
     paymentAgg.forEach((a: any) => {
       const existing = dateMap.get(a._id);
       if (existing) {
-        existing.collections = a.collections;
+        existing.collections += a.collections;
+      } else {
+        dateMap.set(a._id, { revenue: 0, invoiceCount: 0, collections: a.collections });
+      }
+    });
+
+    // Merge ManualEntry collections
+    meAgg.forEach((a: any) => {
+      const existing = dateMap.get(a._id);
+      if (existing) {
+        existing.collections += a.collections;
       } else {
         dateMap.set(a._id, { revenue: 0, invoiceCount: 0, collections: a.collections });
       }
@@ -384,25 +438,28 @@ export class SalesAnalyticsService {
    */
   static async getPaymentTrends(tenantId: mongoose.Types.ObjectId | string, start: Date, end: Date) {
     const tenantObjectId = new mongoose.Types.ObjectId(tenantId.toString());
-    const agg = await Payment.aggregate([
-      { 
-        $match: { 
-          tenantId: tenantObjectId, 
-          paymentDate: { $gte: start, $lte: end }
-        } 
-      },
-      {
-        $group: {
-          _id: '$paymentMethod',
-          amount: { $sum: '$amount' }
-        }
-      },
-      { $sort: { amount: -1 } }
+    const [paymentAgg, meAgg] = await Promise.all([
+      Payment.aggregate([
+        { $match: { tenantId: tenantObjectId, paymentDate: { $gte: start, $lte: end } } },
+        { $group: { _id: '$paymentMethod', amount: { $sum: '$amount' } } }
+      ]),
+      ManualEntry.aggregate([
+        { $match: { tenantId: tenantObjectId, entryType: { $in: COLLECTION_ENTRY_TYPES }, entryDate: { $gte: start, $lte: end } } },
+        { $group: { _id: '$paymentMethod', amount: { $sum: '$amount' } } }
+      ])
     ]);
 
-    return agg.map((a: any) => ({
-      method: a._id,
-      amount: a.amount
-    }));
+    // Merge Payment + ManualEntry by method
+    const methodMap = new Map<string, number>();
+    for (const a of paymentAgg) {
+      methodMap.set(a._id || 'Cash', (methodMap.get(a._id || 'Cash') || 0) + a.amount);
+    }
+    for (const a of meAgg) {
+      methodMap.set(a._id || 'Cash', (methodMap.get(a._id || 'Cash') || 0) + a.amount);
+    }
+
+    return Array.from(methodMap.entries())
+      .map(([method, amount]) => ({ method, amount }))
+      .sort((a, b) => b.amount - a.amount);
   }
 }

@@ -13,13 +13,13 @@ import { ShimmerBone } from '../../features/salesAnalytics/components/SkeletonCa
    Layout: label (top-left) + big number (bottom-left) + icon (right)
    ─────────────────────────────────────────────────────────────────── */
 const StatCardSkeleton = () => (
-  <div className="glass-card p-6">
+  <div className="glass-card p-3 sm:p-5 lg:p-6">
     <div className="flex items-center justify-between">
-      <div>
-        <ShimmerBone className="h-3.5 w-24 mb-3" />
-        <ShimmerBone className="h-8 w-16" />
+      <div className="min-w-0 pr-1">
+        <ShimmerBone className="h-3.5 w-16 sm:w-24 mb-1.5 sm:mb-3" />
+        <ShimmerBone className="h-6 sm:h-8 w-12 sm:w-16" />
       </div>
-      <ShimmerBone className="w-12 h-12 rounded-xl" />
+      <ShimmerBone className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg shrink-0" />
     </div>
   </div>
 );
@@ -29,21 +29,28 @@ const StatCardSkeleton = () => (
    Filter row: search + status + date from + date to + export (5-col lg)
    ─────────────────────────────────────────────────────────────────── */
 const FilterPanelSkeleton = () => (
-  <div className="glass-card p-6">
+  <div className="glass-card p-3.5 sm:p-6">
     {/* Title bar */}
-    <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center mb-6">
-      <div className="flex items-center gap-3">
-        <ShimmerBone className="w-9 h-9 rounded-lg" />
+    <div className="flex flex-row justify-between items-center mb-4 sm:mb-6">
+      <div className="flex items-center gap-2.5 sm:gap-3">
+        <ShimmerBone className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg" />
         <div>
-          <ShimmerBone className="h-5 w-28 mb-2" />
-          <ShimmerBone className="h-3.5 w-48" />
+          <ShimmerBone className="h-4 sm:h-5 w-24 sm:w-28 mb-1.5 sm:mb-2" />
+          <ShimmerBone className="h-3 sm:h-3.5 w-32 sm:w-48" />
         </div>
       </div>
-      <ShimmerBone className="h-10 w-32 rounded-xl" />
+      <ShimmerBone className="h-9 sm:h-10 w-24 sm:w-32 rounded-xl" />
     </div>
 
-    {/* Filter inputs row */}
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 mt-6">
+    {/* Mobile 1-row search & action skeleton */}
+    <div className="flex items-center gap-2 sm:hidden">
+      <ShimmerBone className="h-10 flex-1 rounded-xl" />
+      <ShimmerBone className="h-10 w-10 rounded-xl shrink-0" />
+      <ShimmerBone className="h-10 w-10 rounded-xl shrink-0" />
+    </div>
+
+    {/* Filter inputs row (desktop) */}
+    <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 mt-6">
       <ShimmerBone className="h-10 w-full rounded-lg" />
       <ShimmerBone className="h-10 w-full rounded-lg" />
       <ShimmerBone className="h-10 w-full rounded-lg" />
@@ -186,11 +193,13 @@ const MobileCardsSkeleton = ({ count = 5 }) => (
    ─────────────────────────────────────────────────────────────────── */
 export const InvoicesPageSkeleton = () => (
   <div className="space-y-12">
-    {/* Stats Cards */}
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    {/* Stats Cards - 2-col on mobile with 3rd card spanning full width */}
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4">
       <StatCardSkeleton />
       <StatCardSkeleton />
-      <StatCardSkeleton />
+      <div className="col-span-2 sm:col-span-1">
+        <StatCardSkeleton />
+      </div>
     </div>
 
     {/* Filter Panel */}

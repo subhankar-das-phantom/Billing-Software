@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Package,
@@ -436,6 +436,7 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatCurrency, obs
 );
 
 export default function ProductsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [searchInput, setSearchInput] = useState('');
   const [search, flushSearch] = useDebounce(searchInput);
   const [searchFocused, setSearchFocused] = useState(false);
@@ -452,6 +453,21 @@ export default function ProductsPage() {
   const isFirstVisit = useFirstVisit('products');
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const transitionReady = useTransitionDelay(250, isFirstVisit);
+
+  // Auto-open Add Product modal if deep-linked: ?action=new&name=...
+  useEffect(() => {
+    const action = searchParams.get('action');
+    const name = searchParams.get('name');
+    if (action === 'new' || action === 'add') {
+      setEditingProduct(null);
+      setFormData({
+        ...initialProductState,
+        productName: name ? decodeURIComponent(name) : ''
+      });
+      setModalOpen(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // Infinite Scroll State
   const [page, setPage] = useState(1);
@@ -753,8 +769,8 @@ export default function ProductsPage() {
       animate="visible"
       className="space-y-6"
     >
-      {/* Stats Cards - simplified for mobile performance */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Stats Cards - compact 2x2 grid on mobile for high viewport density */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         {[
           {
             label: 'Total Products',
@@ -788,15 +804,15 @@ export default function ProductsPage() {
           <motion.div
             key={stat.label}
             variants={cardVariants}
-            className="glass-card p-6 cursor-pointer group hover:shadow-lg transition-shadow"
+            className="glass-card p-3 sm:p-5 lg:p-6 cursor-pointer group hover:shadow-lg transition-shadow"
           >
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-400 mb-1">{stat.label}</p>
-                <p className="text-3xl font-bold text-slate-100">{stat.value}</p>
+              <div className="min-w-0 pr-1">
+                <p className="text-[11px] sm:text-xs lg:text-sm text-slate-400 mb-0.5 sm:mb-1 truncate">{stat.label}</p>
+                <p className="text-lg sm:text-2xl lg:text-3xl font-bold font-mono text-slate-100">{stat.value}</p>
               </div>
-              <div className={`p-3 rounded-xl ${stat.bg}`}>
-                <stat.icon className={`w-6 h-6 ${stat.color}`} />
+              <div className={`p-1.5 sm:p-2.5 lg:p-3 rounded-lg sm:rounded-xl shrink-0 ${stat.bg}`}>
+                <stat.icon className={`w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 ${stat.color}`} />
               </div>
             </div>
           </motion.div>
@@ -804,39 +820,42 @@ export default function ProductsPage() {
       </div>
 
       {/* Header & Filters */}
-      <motion.div variants={cardVariants} className="glass-card p-6">
-        <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-slate-800 border border-slate-700/60 rounded-lg text-blue-400">
-              <Package className="w-5 h-5" />
+      <motion.div variants={cardVariants} className="glass-card p-3.5 sm:p-6">
+        <div className="flex flex-row justify-between items-center mb-3 sm:mb-6 gap-2">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 pr-1">
+            <div className="p-2 sm:p-2.5 bg-slate-800 border border-slate-700/60 rounded-lg text-blue-400 shrink-0">
+              <Package className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <h2 className="text-xl font-semibold text-slate-100">All Products</h2>
-              <p className="text-sm text-slate-400">
-                Showing {filteredProducts.length} of {currentPageData?.total || 0} products
+            <div className="min-w-0">
+              <h2 className="text-base sm:text-xl font-semibold text-slate-100 truncate">All Products</h2>
+              <p className="text-xs sm:text-sm text-slate-400 truncate">
+                Showing {filteredProducts.length} of {currentPageData?.total || 0}
               </p>
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               onClick={() => setShowExportModal(true)}
-              className="btn bg-emerald-600 hover:bg-emerald-500 text-white font-semibold flex items-center justify-center gap-2 px-4 shadow-xs border-0 active:scale-[0.98] transition-all"
+              className="p-2 sm:px-4 sm:py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl flex items-center justify-center gap-2 shadow-xs border-0 active:scale-[0.98] transition-all"
+              title="Export Products"
             >
-              <Download className="w-5 h-5" />
+              <Download className="w-4 h-4 sm:w-5 sm:h-5" />
               <span className="hidden sm:inline">Export</span>
             </button>
             <EnhancedButton
               onClick={openCreateModal}
               icon={Plus}
+              className="!px-2.5 !py-2 sm:!px-4 sm:!py-2.5 text-xs sm:text-sm"
             >
-              Add Product
+              <span className="hidden sm:inline">Add Product</span>
+              <span className="sm:hidden">Add</span>
             </EnhancedButton>
           </div>
         </div>
 
         {/* Search & Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-4">
           {/* Search */}
           <form onSubmit={handleSearch} className="flex gap-2">
             <motion.div
@@ -844,7 +863,7 @@ export default function ProductsPage() {
               animate={searchFocused ? { boxShadow: '0 0 0 2px rgba(59,130,246,0.5)' } : { boxShadow: '0 0 0 0px rgba(59,130,246,0)' }}
               transition={{ type: 'spring', stiffness: 400 }}
             >
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-slate-400 pointer-events-none" />
               <input
                 type="text"
                 value={searchInput}
@@ -852,7 +871,7 @@ export default function ProductsPage() {
                 onFocus={() => setSearchFocused(true)}
                 onBlur={() => setSearchFocused(false)}
                 placeholder="Search products..."
-                className="input pl-10 w-full"
+                className="input pl-9 sm:pl-10 w-full text-xs sm:text-sm py-2 sm:py-2.5"
               />
               <AnimatePresence>
                 {searchInput && (
@@ -865,23 +884,23 @@ export default function ProductsPage() {
                     exit={{ opacity: 0, scale: 0 }}
                     whileHover={{ rotate: 90 }}
                   >
-                    <X className="w-4 h-4" />
+                    <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </motion.button>
                 )}
               </AnimatePresence>
             </motion.div>
             <motion.button
               type="submit"
-              className="btn btn-secondary"
+              className="btn btn-secondary px-3 sm:px-4"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              <Search className="w-5 h-5" />
+              <Search className="w-4 h-4 sm:w-5 sm:h-5" />
             </motion.button>
           </form>
 
           {/* Stock Filter */}
-          <div className="flex gap-2">
+          <div className="flex gap-1.5 sm:gap-2">
             {[
               { value: 'all', label: 'All', icon: Package },
               { value: 'low', label: 'Low Stock', icon: AlertTriangle },
@@ -890,15 +909,15 @@ export default function ProductsPage() {
               <motion.button
                 key={value}
                 onClick={() => setFilterStock(value)}
-                className={`flex-1 px-3 py-2 rounded-lg font-medium text-sm transition-all ${filterStock === value
-                  ? 'bg-blue-500 text-white'
+                className={`flex-1 px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg font-medium text-xs sm:text-sm transition-all flex items-center justify-center ${filterStock === value
+                  ? 'bg-blue-500 text-white shadow-xs'
                   : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-100'
                   }`}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
               >
-                <Icon className="w-4 h-4 inline mr-1" />
-                {label}
+                <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 inline mr-1 shrink-0" />
+                <span className="truncate">{label}</span>
               </motion.button>
             ))}
           </div>

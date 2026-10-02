@@ -2195,10 +2195,10 @@ export default function InvoiceCreatePage() {
           {invoiceItems.length > 0 && (
             <>
               <motion.span
-                className="px-3 py-1 bg-blue-500/20 text-blue-400 text-sm rounded-full font-medium"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 400 }}
+                className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-blue-500/15 border border-blue-500/30 text-blue-400 text-xs font-semibold font-mono"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.15 }}
               >
                 {invoiceItems.length}{" "}
                 {invoiceItems.length === 1 ? "item" : "items"}
