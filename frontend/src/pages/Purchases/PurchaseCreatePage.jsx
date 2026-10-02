@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Save, Trash2, ArrowLeft, Search, Truck, Building2, MapPin, Phone,
   Package, FileText, CheckCircle, Calculator, X, Loader2, Plus,
-  CreditCard, Clock, ShoppingCart, AlertTriangle, Calendar, RotateCcw
+  CreditCard, Clock, ShoppingCart, AlertTriangle, Calendar, RotateCcw,
+  ExternalLink
 } from 'lucide-react';
 import purchaseService from '../../services/purchaseService';
 import { supplierService } from '../../services/suppliers/supplierService';
@@ -24,6 +25,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import PurchaseItemMobileCard from './PurchaseItemMobileCard';
 import SupplierFormModal from '../../components/Suppliers/SupplierFormModal';
+import ProductFormModal from '../../components/Products/ProductFormModal';
 
 const createPageVariants = (isMobile, shouldStagger) => ({
   hidden: { opacity: 0 },
@@ -157,6 +159,8 @@ export default function PurchaseCreatePage() {
   const [productResults, setProductResults] = useState([]);
   const [isProductSearchLoading, setIsProductSearchLoading] = useState(false);
   const [showProductDropdown, setShowProductDropdown] = useState(false);
+  const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
+  const [quickAddProductName, setQuickAddProductName] = useState('');
   const latestProductSearchRequest = useRef(0);
   const productSearchContainerRef = useRef(null);
 
@@ -422,6 +426,13 @@ export default function PurchaseCreatePage() {
     if (newSupplier) {
       handleSupplierSelect(newSupplier);
       showToast(`Supplier ${newSupplier.name} added & selected!`, 'success');
+    }
+  };
+
+  const handleQuickProductAdded = (newProduct) => {
+    if (newProduct) {
+      handleProductSelect(newProduct);
+      showToast(`Product "${newProduct.productName}" added & added to purchase items!`, 'success');
     }
   };
 
@@ -854,14 +865,14 @@ export default function PurchaseCreatePage() {
           <div className="p-2.5 bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 rounded-xl text-blue-600 dark:text-blue-400">
             <ShoppingCart className="w-5 h-5" />
           </div>
-          <h2 className="text-lg font-semibold text-slate-100">Add Purchased Items</h2>
+          <h2 className="text-base sm:text-lg font-semibold text-slate-100">Add Purchased Items</h2>
           {items.length > 0 && (
             <>
               <motion.span 
-                className="px-3 py-1 bg-blue-500/20 text-blue-400 text-sm rounded-full font-medium"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 400 }}
+                className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-blue-500/15 border border-blue-500/30 text-blue-400 text-xs font-semibold font-mono"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.15 }}
               >
                 {items.length} {items.length === 1 ? 'item' : 'items'}
               </motion.span>
@@ -916,8 +927,40 @@ export default function PurchaseCreatePage() {
                 )}
 
                 {!isProductSearchLoading && productResults.length === 0 && (
-                  <div className="px-4 py-3 text-sm text-slate-400">
-                    No products found matching "{productSearch}"
+                  <div className="p-4 text-center">
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center mx-auto mb-2.5">
+                      <Package className="w-5 h-5" />
+                    </div>
+                    <p className="text-sm font-semibold text-slate-200 mb-1">
+                      No products found matching "{productSearch}"
+                    </p>
+                    <p className="text-xs text-slate-400 max-w-sm mx-auto mb-3.5 leading-relaxed">
+                      In order to record a purchase for this item, it must first be registered in your product catalog.
+                    </p>
+                    <div className="flex flex-wrap items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowProductDropdown(false);
+                          setQuickAddProductName(productSearch);
+                          setIsAddProductModalOpen(true);
+                        }}
+                        className="btn btn-primary py-1.5 px-3 text-xs inline-flex items-center gap-1.5 font-medium shadow-xs"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Add "{productSearch}" to Catalog</span>
+                      </button>
+                      <a
+                        href={`/products?action=new&name=${encodeURIComponent(productSearch)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn btn-secondary py-1.5 px-3 text-xs inline-flex items-center gap-1 text-slate-300"
+                        title="Open Products Page in new tab"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        <span>Products Page</span>
+                      </a>
+                    </div>
                   </div>
                 )}
 
@@ -1310,6 +1353,14 @@ export default function PurchaseCreatePage() {
         isOpen={isAddSupplierModalOpen}
         onClose={() => setIsAddSupplierModalOpen(false)}
         onSuccess={handleQuickSupplierAdded}
+      />
+
+      {/* Quick Add Product Modal */}
+      <ProductFormModal
+        isOpen={isAddProductModalOpen}
+        onClose={() => setIsAddProductModalOpen(false)}
+        initialName={quickAddProductName}
+        onSuccess={handleQuickProductAdded}
       />
     </motion.div>
   );
