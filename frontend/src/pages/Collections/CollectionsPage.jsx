@@ -577,9 +577,14 @@ export default function CollectionsPage() {
               onClick={() => setShowCloseoutModal(true)}
               className="flex-1 sm:flex-none justify-center flex items-center gap-2 px-3.5 py-2 bg-slate-800 hover:bg-slate-750 text-slate-100 rounded-xl border border-slate-700 text-xs font-semibold transition-colors min-h-[38px]"
               id="collections-closeout-btn"
+              title={
+                datePreset === 'all' || datePreset === 'last7Days' || datePreset === 'thisMonth' || (datePreset === 'custom' && startDate !== endDate)
+                  ? 'Daily Closeout strictly reconciles single days (Today/Yesterday). For multi-day reports, use Export.'
+                  : 'Daily Cashier Closeout & Print'
+              }
             >
               <Printer className="w-4 h-4 text-slate-300" />
-              Daily Closeout & Print
+              <span>Daily Closeout & Print</span>
             </button>
 
             {/* Record Payment Button */}
@@ -1355,9 +1360,28 @@ export default function CollectionsPage() {
       <DailyCloseoutPrintModal
         isOpen={showCloseoutModal}
         onClose={() => setShowCloseoutModal(false)}
-        dateLabel={dateLabel}
-        summary={data.summary}
-        payments={data.payments}
+        initialDate={
+          datePreset === 'yesterday'
+            ? getISTDateStr(1)
+            : datePreset === 'today'
+            ? getISTDateStr(0)
+            : datePreset === 'custom' && startDate === endDate && startDate
+            ? startDate
+            : getISTDateStr(0)
+        }
+        isMultiDay={
+          datePreset === 'all' ||
+          datePreset === 'last7Days' ||
+          datePreset === 'thisMonth' ||
+          (datePreset === 'custom' && startDate !== endDate)
+        }
+        activeScopeLabel={dateLabel}
+        initialSummary={data.summary}
+        initialPayments={data.payments}
+        onOpenExport={() => {
+          setShowCloseoutModal(false);
+          setShowExportModal(true);
+        }}
       />
 
       {/* Shared Export Modal */}
