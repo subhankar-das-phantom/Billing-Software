@@ -238,64 +238,64 @@ export default function NotesPage() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
             <AnimatePresence mode="popLayout">
               {notes.map((note, index) => (
                 <div
                   key={note._id}
-                  className="group relative flex flex-col glass-card h-48 sm:h-64 overflow-hidden border-t-4 transition-all hover:shadow-xl hover:-translate-y-1 cursor-pointer"
+                  className="group relative flex flex-col glass-card h-44 sm:h-64 overflow-hidden border-t-4 transition-all hover:shadow-xl hover:-translate-y-1 cursor-pointer"
                   style={{ borderTopColor: note.color }}
                   onClick={() => openEditModal(note)}
                 >
                 {/* Note Header */}
-                <div className="p-4 sm:p-5 pb-0 flex justify-between items-start gap-2">
-                  <h3 className="font-semibold text-lg text-slate-100 line-clamp-2 leading-tight">
+                <div className="p-3 sm:p-5 pb-0 flex justify-between items-start gap-1.5 sm:gap-2">
+                  <h3 className="font-semibold text-sm sm:text-lg text-slate-100 line-clamp-2 leading-tight">
                     {note.title}
                   </h3>
                   <button
                     onClick={(e) => togglePin(e, note)}
-                    className={`p-1.5 rounded-full transition-colors ${
+                    className={`p-1 sm:p-1.5 rounded-full transition-colors shrink-0 ${
                       note.isPinned 
                         ? 'bg-yellow-500/20 text-yellow-400' 
                         : 'text-slate-500 hover:text-slate-300 opacity-100 lg:opacity-0 lg:group-hover:opacity-100'
                     }`}
                   >
-                    <Pin size={16} className={note.isPinned ? 'fill-current' : ''} />
+                    <Pin size={14} className={`sm:w-4 sm:h-4 ${note.isPinned ? 'fill-current' : ''}`} />
                   </button>
                 </div>
 
                 {/* Note Content */}
-                <div className="p-4 sm:p-5 flex-1 overflow-hidden">
-                  <p className="text-slate-400 text-sm whitespace-pre-wrap line-clamp-4 sm:line-clamp-6">
+                <div className="p-3 sm:p-5 py-1.5 sm:py-3 flex-1 overflow-hidden">
+                  <p className="text-slate-400 text-xs sm:text-sm whitespace-pre-wrap line-clamp-3 sm:line-clamp-6 leading-relaxed">
                     {note.content}
                   </p>
                 </div>
 
                 {/* Note Footer */}
-                <div className="p-4 pt-0 mt-auto flex justify-between items-center opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
-                  <span className="text-xs text-slate-500 flex items-center gap-1">
-                    <Calendar size={12} />
+                <div className="p-3 sm:p-5 pt-0 mt-auto flex justify-between items-center opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                  <span className="text-[10px] sm:text-xs text-slate-500 flex items-center gap-1">
+                    <Calendar size={11} className="sm:w-3 sm:h-3" />
                     {formatDate(note.updatedAt)}
                   </span>
                   
-                  <div className="flex gap-1">
+                  <div className="flex gap-0.5 sm:gap-1">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         openEditModal(note);
                       }}
-                      className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-blue-400 transition-colors"
+                      className="p-1 sm:p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-blue-400 transition-colors"
                     >
-                      <Edit2 size={14} />
+                      <Edit2 size={13} className="sm:w-3.5 sm:h-3.5" />
                     </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         setDeleteDialog({ open: true, note });
                       }}
-                      className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-red-400 transition-colors"
+                      className="p-1 sm:p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-red-400 transition-colors"
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={13} className="sm:w-3.5 sm:h-3.5" />
                     </button>
                   </div>
                 </div>

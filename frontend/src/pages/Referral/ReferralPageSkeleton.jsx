@@ -48,35 +48,35 @@ export const ReferralTopGridSkeleton = () => (
       </div>
     </div>
 
-    {/* 3 KPI Stat Cards */}
-    <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
+    {/* 3 KPI Stat Cards - 2-col on mobile with 3rd card spanning full width */}
+    <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4">
       {/* Signups */}
-      <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6 flex flex-col justify-center space-y-3">
-        <div className="flex items-center gap-3">
-          <ShimmerBone className="w-9 h-9 rounded-lg" />
-          <ShimmerBone className="h-4 w-24 rounded" />
+      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl sm:rounded-2xl p-3 sm:p-5 lg:p-6 flex flex-col justify-center space-y-2 sm:space-y-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <ShimmerBone className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg" />
+          <ShimmerBone className="h-3.5 sm:h-4 w-16 sm:w-24 rounded" />
         </div>
-        <ShimmerBone className="h-9 w-16 rounded-lg" />
+        <ShimmerBone className="h-7 sm:h-9 w-12 sm:w-16 rounded-lg" />
       </div>
 
       {/* Pending */}
-      <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6 flex flex-col justify-center space-y-3">
-        <div className="flex items-center gap-3">
-          <ShimmerBone className="w-9 h-9 rounded-lg" />
-          <ShimmerBone className="h-4 w-28 rounded" />
+      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl sm:rounded-2xl p-3 sm:p-5 lg:p-6 flex flex-col justify-center space-y-2 sm:space-y-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <ShimmerBone className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg" />
+          <ShimmerBone className="h-3.5 sm:h-4 w-16 sm:w-28 rounded" />
         </div>
-        <ShimmerBone className="h-9 w-16 rounded-lg" />
-        <ShimmerBone className="h-3 w-32 rounded" />
+        <ShimmerBone className="h-7 sm:h-9 w-12 sm:w-16 rounded-lg" />
+        <ShimmerBone className="h-3 w-32 rounded hidden sm:block" />
       </div>
 
       {/* Days Earned */}
-      <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6 flex flex-col justify-center space-y-3">
-        <div className="flex items-center gap-3">
-          <ShimmerBone className="w-9 h-9 rounded-lg" />
-          <ShimmerBone className="h-4 w-24 rounded" />
+      <div className="col-span-2 sm:col-span-1 bg-slate-800/50 border border-slate-700/50 rounded-xl sm:rounded-2xl p-3 sm:p-5 lg:p-6 flex flex-col justify-center space-y-2 sm:space-y-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <ShimmerBone className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg" />
+          <ShimmerBone className="h-3.5 sm:h-4 w-20 sm:w-24 rounded" />
         </div>
-        <ShimmerBone className="h-9 w-20 rounded-lg" />
-        <ShimmerBone className="h-3 w-36 rounded" />
+        <ShimmerBone className="h-7 sm:h-9 w-12 sm:w-20 rounded-lg" />
+        <ShimmerBone className="h-3 w-36 rounded hidden sm:block" />
       </div>
     </div>
   </div>

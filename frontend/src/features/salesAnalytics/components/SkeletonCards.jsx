@@ -18,20 +18,20 @@ export const ShimmerBone = ({ className = '', style = {}, children = null, ...pr
    - Growth badge row
    ─────────────────────────────────────────────────────────────────── */
 export const KPICardSkeleton = () => (
-  <div className="glass-card p-5 relative overflow-hidden">
+  <div className="glass-card p-3 sm:p-5 relative overflow-hidden">
     {/* Title row */}
-    <div className="flex justify-between items-start mb-4">
-      <ShimmerBone className="h-4 w-24" />
-      <ShimmerBone className="w-8 h-8 rounded-lg" />
+    <div className="flex justify-between items-start mb-2 sm:mb-4">
+      <ShimmerBone className="h-3 sm:h-4 w-16 sm:w-24" />
+      <ShimmerBone className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg shrink-0" />
     </div>
     {/* Value */}
-    <div className="flex items-baseline gap-1.5">
-      <ShimmerBone className="h-4 w-5" />
-      <ShimmerBone className="h-7 w-28" />
+    <div className="flex items-baseline gap-1 sm:gap-1.5">
+      <ShimmerBone className="h-3 sm:h-4 w-4 sm:w-5" />
+      <ShimmerBone className="h-6 sm:h-7 w-20 sm:w-28" />
     </div>
     {/* Growth badge */}
-    <div className="mt-3">
-      <ShimmerBone className="h-6 w-32 rounded-md" />
+    <div className="mt-2 sm:mt-3">
+      <ShimmerBone className="h-5 sm:h-6 w-24 sm:w-32 rounded-md" />
     </div>
   </div>
 );

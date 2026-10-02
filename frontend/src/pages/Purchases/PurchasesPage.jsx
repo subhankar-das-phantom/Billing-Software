@@ -85,6 +85,23 @@ export default function PurchasesPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [mobileFiltersExpanded, setMobileFiltersExpanded] = useState(false);
+
+  // Active filter count (excluding search)
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (statusFilter !== 'all') count++;
+    if (startDate) count++;
+    if (endDate) count++;
+    return count;
+  }, [statusFilter, startDate, endDate]);
+
+  const handleResetFilters = () => {
+    setStatusFilter('all');
+    setStartDate('');
+    setEndDate('');
+    setMobileFiltersExpanded(false);
+  };
   const observer = useRef(null);
   const [showExportModal, setShowExportModal] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -320,10 +337,10 @@ export default function PurchasesPage() {
       variants={pageVariants}
       initial={isFirstVisit ? "hidden" : false}
       animate="visible"
-      className="p-6 max-w-7xl mx-auto space-y-8"
+      className="p-3 sm:p-6 max-w-7xl mx-auto space-y-6 sm:space-y-8"
     >
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Stats Cards - compact 2x2 grid on mobile */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         {[
           {
             label: 'Total Purchases',
@@ -360,17 +377,17 @@ export default function PurchasesPage() {
         ].map((stat) => (
           <div
             key={stat.label}
-            className="glass-card p-6 cursor-pointer group transition-transform hover:-translate-y-1 hover:scale-[1.02]"
+            className="glass-card p-3 sm:p-5 lg:p-6 cursor-pointer group transition-transform hover:-translate-y-1 hover:scale-[1.02]"
           >
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-400 mb-1">{stat.label}</p>
-                <p className="text-2xl font-bold text-slate-100">
+              <div className="min-w-0 pr-1">
+                <p className="text-[11px] sm:text-xs lg:text-sm text-slate-400 mb-0.5 sm:mb-1 truncate">{stat.label}</p>
+                <p className="text-base sm:text-2xl font-bold font-mono text-slate-100 truncate">
                   {stat.value}
                 </p>
               </div>
-              <div className="p-2.5 rounded-lg bg-slate-800 text-slate-400 group-hover:text-slate-200 border border-slate-700/60 transition-colors">
-                <stat.icon className={`w-5 h-5 ${stat.iconColor}`} />
+              <div className="p-1.5 sm:p-2.5 rounded-lg bg-slate-800 text-slate-400 group-hover:text-slate-200 border border-slate-700/60 transition-colors shrink-0">
+                <stat.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${stat.iconColor}`} />
               </div>
             </div>
           </div>
@@ -378,36 +395,143 @@ export default function PurchasesPage() {
       </div>
 
       {/* Header with Filters */}
-      <div className="glass-card p-6 relative z-10">
-        <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-slate-800 border border-slate-700/60 rounded-lg text-blue-400">
-              <ShoppingBag className="w-5 h-5" />
+      <div className="glass-card p-3.5 sm:p-6 relative z-10">
+        <div className="flex flex-row justify-between items-center mb-3 sm:mb-6 gap-2">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 pr-1">
+            <div className="p-2 sm:p-2.5 bg-slate-800 border border-slate-700/60 rounded-lg text-blue-400 shrink-0">
+              <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl font-semibold text-slate-100">All Purchases</h2>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <h2 className="text-base sm:text-xl font-semibold text-slate-100 truncate">All Purchases</h2>
                 <RefreshIndicator isRefreshing={isValidating} size="sm" />
               </div>
-              <p className="text-sm text-slate-400 mt-1">
-                Showing {purchases.length} of {totalMatched || purchases.length} purchases
+              <p className="text-xs sm:text-sm text-slate-400 mt-0.5 truncate">
+                Showing {purchases.length} of {totalMatched || purchases.length}
               </p>
             </div>
           </div>
 
-          <div>
-            <Link 
-              to="/purchases/new" 
-              className="btn btn-primary flex items-center gap-2 active:scale-95 transition-transform"
-            >
-              <Plus className="w-5 h-5" />
-              New Purchase
-            </Link>
-          </div>
+          <Link 
+            to="/purchases/new" 
+            className="btn btn-primary !px-2.5 !py-2 sm:!px-4 sm:!py-2.5 text-xs sm:text-sm flex items-center gap-1.5 shrink-0 active:scale-95 transition-transform"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">New Purchase</span>
+            <span className="sm:hidden">New</span>
+          </Link>
         </div>
 
-        {/* Search and Filters */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 mt-6">
+        {/* Mobile Single Action Row (< sm) */}
+        <div className="flex items-center gap-2 sm:hidden">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search purchases..."
+              className="input pl-9 w-full text-xs py-2"
+            />
+            {searchInput && (
+              <button
+                type="button"
+                onClick={() => setSearchInput('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-100"
+              >
+                <XCircle className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setMobileFiltersExpanded(prev => !prev)}
+            className={`relative p-2 rounded-xl border transition-all ${
+              mobileFiltersExpanded || activeFiltersCount > 0
+                ? 'bg-blue-600 text-white border-blue-500 shadow-xs'
+                : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 border-slate-700/80'
+            }`}
+            title="Filter options"
+          >
+            <Filter className="w-4 h-4" />
+            {activeFiltersCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-slate-900" />
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowExportModal(true)}
+            className="p-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-xs border-0 active:scale-95 transition-all"
+            title="Export Purchases"
+          >
+            <Download className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Collapsible Mobile Drawer (< sm) */}
+        <AnimatePresence>
+          {mobileFiltersExpanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="sm:hidden overflow-hidden pt-3 space-y-2.5 border-t border-slate-800 mt-3"
+            >
+              <div className="grid grid-cols-1 gap-2">
+                <div className="relative">
+                  <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="select pl-9 w-full text-xs py-2"
+                  >
+                    <option value="all">All Status</option>
+                    <option value="COMPLETED">Completed</option>
+                    <option value="DRAFT">Draft</option>
+                    <option value="CANCELLED">Cancelled</option>
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="relative">
+                    <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="input pl-8 w-full text-xs py-1.5"
+                    />
+                  </div>
+                  <div className="relative">
+                    <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="input pl-8 w-full text-xs py-1.5"
+                    />
+                  </div>
+                </div>
+
+                {activeFiltersCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleResetFilters}
+                    className="text-xs text-rose-400 hover:text-rose-300 font-medium py-1 text-center"
+                  >
+                    Reset filters
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Desktop Search and Filters (>= sm) */}
+        <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 mt-6">
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />

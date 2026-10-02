@@ -740,27 +740,32 @@ export default function EmployeesPage() {
         </motion.button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {statCards.map((stat, index) => (
-          <motion.div
-            key={stat.label}
-            initial={isFirstVisit ? (isMobile ? { opacity: 0 } : { opacity: 0, y: 20 }) : false}
-            animate={{ opacity: 1, y: 0 }}
-            transition={isMobile ? { duration: 0.15 } : { delay: index * 0.1 }}
-            className={`bg-slate-800/50 rounded-xl border border-slate-700 p-5`}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-400">{stat.label}</p>
-                <p className="text-2xl font-bold text-slate-100 mt-1">{stat.value}</p>
+      {/* Stats - 2-col on mobile with 3rd card spanning full width */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4">
+        {statCards.map((stat, index) => {
+          const isLastOddCard = index === 2;
+          return (
+            <motion.div
+              key={stat.label}
+              initial={isFirstVisit ? (isMobile ? { opacity: 0 } : { opacity: 0, y: 20 }) : false}
+              animate={{ opacity: 1, y: 0 }}
+              transition={isMobile ? { duration: 0.15 } : { delay: index * 0.1 }}
+              className={`bg-slate-800/50 rounded-xl border border-slate-700 p-3 sm:p-5 ${
+                isLastOddCard ? 'col-span-2 sm:col-span-1' : ''
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="min-w-0 pr-1">
+                  <p className="text-xs lg:text-sm text-slate-400 truncate">{stat.label}</p>
+                  <p className="text-lg sm:text-xl lg:text-2xl font-bold font-mono text-slate-100 mt-0.5 sm:mt-1 truncate">{stat.value}</p>
+                </div>
+                <div className={`w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-${stat.color}-500/20 flex items-center justify-center shrink-0`}>
+                  <stat.icon className={`text-${stat.color}-400 w-4 h-4 sm:w-6 sm:h-6`} />
+                </div>
               </div>
-              <div className={`w-12 h-12 rounded-xl bg-${stat.color}-500/20 flex items-center justify-center`}>
-                <stat.icon className={`text-${stat.color}-400`} size={24} />
-              </div>
-            </div>
-          </motion.div>
-        ))}
+            </motion.div>
+          );
+        })}
       </div>
 
       {/* Filters */}

@@ -331,10 +331,10 @@ export default function SuppliersPage() {
       variants={containerVariants}
       initial={isFirstVisit ? "hidden" : false}
       animate="visible"
-      className="p-6 max-w-7xl mx-auto space-y-6"
+      className="p-3 sm:p-6 max-w-7xl mx-auto space-y-6"
     >
-      {/* Stats Cards (Matching CustomersPage) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Stats Cards - compact 2x2 grid on mobile */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         {[
           {
             label: 'Total Suppliers',
@@ -371,17 +371,17 @@ export default function SuppliersPage() {
         ].map((stat) => (
           <div
             key={stat.label}
-            className="glass-card p-6 cursor-pointer group transition-transform hover:-translate-y-1 hover:scale-[1.02]"
+            className="glass-card p-3 sm:p-5 lg:p-6 cursor-pointer group transition-transform hover:-translate-y-1 hover:scale-[1.02]"
           >
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-400 mb-1">{stat.label}</p>
-                <p className="text-2xl font-bold text-slate-100">
+              <div className="min-w-0 pr-1">
+                <p className="text-[11px] sm:text-xs lg:text-sm text-slate-400 mb-0.5 sm:mb-1 truncate">{stat.label}</p>
+                <p className="text-base sm:text-2xl font-bold font-mono text-slate-100 truncate">
                   {stat.value}
                 </p>
               </div>
-              <div className="p-2.5 rounded-lg bg-slate-800 text-slate-400 group-hover:text-slate-200 border border-slate-700/60 transition-colors">
-                <stat.icon className={`w-5 h-5 ${stat.iconColor}`} />
+              <div className="p-1.5 sm:p-2.5 rounded-lg bg-slate-800 text-slate-400 group-hover:text-slate-200 border border-slate-700/60 transition-colors shrink-0">
+                <stat.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${stat.iconColor}`} />
               </div>
             </div>
           </div>
@@ -389,19 +389,19 @@ export default function SuppliersPage() {
       </div>
 
       {/* Header with Search and Actions */}
-      <div className="glass-card p-6">
-        <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 rounded-xl text-blue-600 dark:text-blue-400">
-              <Truck className="w-5 h-5" />
+      <div className="glass-card p-3.5 sm:p-6">
+        <div className="flex flex-row justify-between items-center mb-3 sm:mb-6 gap-2">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 pr-1">
+            <div className="p-2 sm:p-2.5 bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 rounded-xl text-blue-600 dark:text-blue-400 shrink-0">
+              <Truck className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl font-semibold text-slate-100">All Suppliers</h2>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <h2 className="text-base sm:text-xl font-semibold text-slate-100 truncate">All Suppliers</h2>
                 <RefreshIndicator isRefreshing={isValidating} size="sm" />
               </div>
-              <p className="text-sm text-slate-400 mt-1">
-                Showing {filteredSuppliers.length} of {totalCount} suppliers
+              <p className="text-xs sm:text-sm text-slate-400 mt-0.5 truncate">
+                Showing {filteredSuppliers.length} of {totalCount}
               </p>
             </div>
           </div>
@@ -411,23 +411,24 @@ export default function SuppliersPage() {
               onClick={openAddModal} 
               variant="primary" 
               icon={Plus}
-              className="active:scale-95 transition-transform"
+              className="!px-2.5 !py-2 sm:!px-4 sm:!py-2.5 text-xs sm:text-sm shrink-0 active:scale-95 transition-transform"
             >
-              Add Supplier
+              <span className="hidden sm:inline">Add Supplier</span>
+              <span className="sm:hidden">Add</span>
             </EnhancedButton>
           )}
         </div>
 
         {/* Search and Status Filters */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-4">
           <div className="relative sm:col-span-2">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-slate-400 pointer-events-none" />
             <input
               type="text"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search by supplier name, contact, phone, GSTIN..."
-              className="input pl-10 w-full"
+              placeholder="Search by name, contact, phone, GSTIN..."
+              className="input pl-9 sm:pl-10 w-full text-xs sm:text-sm py-2 sm:py-2.5"
             />
             <AnimatePresence>
               {searchInput && (
@@ -439,18 +440,18 @@ export default function SuppliersPage() {
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-100"
                   whileHover={{ rotate: 90 }}
                 >
-                  <XCircle className="w-4 h-4" />
+                  <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </motion.button>
               )}
             </AnimatePresence>
           </div>
 
-          <div className="flex items-center gap-2 bg-slate-800/80 p-1 rounded-xl border border-slate-700">
+          <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-800/80 p-1 rounded-xl border border-slate-700">
             {['all', 'active', 'inactive'].map((st) => (
               <button
                 key={st}
                 onClick={() => setStatusFilter(st)}
-                className={`flex-1 py-1.5 text-xs font-semibold rounded-lg capitalize transition-all ${
+                className={`flex-1 py-1 sm:py-1.5 text-[11px] sm:text-xs font-semibold rounded-lg capitalize transition-all ${
                   statusFilter === st
                     ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
                     : 'text-slate-400 hover:text-slate-100'

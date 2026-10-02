@@ -89,8 +89,8 @@ export const DashboardKPIGrid = ({
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-3.5">
-      {kpis.map((kpi) => {
+    <div className="grid grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-2.5 sm:gap-3.5">
+      {kpis.map((kpi, idx) => {
         const Icon = kpi.icon;
         const hasGrowth = kpi.growth !== undefined && kpi.growth !== null;
         const isPositive = (kpi.growth || 0) >= 0;
@@ -99,53 +99,56 @@ export const DashboardKPIGrid = ({
 
         const CardWrapper = kpi.linkTo ? Link : 'div';
         const cardProps = kpi.linkTo ? { to: kpi.linkTo } : {};
+        const isLastOddCard = idx === 4;
 
         return (
           <CardWrapper
             key={kpi.id}
             {...cardProps}
-            className="group bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl p-3.5 sm:p-4 transition-colors block relative overflow-hidden min-w-0"
+            className={`group bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl p-2.5 sm:p-4 transition-colors block relative overflow-hidden min-w-0 ${
+              isLastOddCard ? 'col-span-2 sm:col-span-1' : ''
+            }`}
           >
-            <div className="flex items-start justify-between gap-2 min-w-0">
-              <span className="text-xs font-medium text-slate-400 truncate">
+            <div className="flex items-start justify-between gap-1.5 sm:gap-2 min-w-0">
+              <span className="text-[11px] sm:text-xs font-medium text-slate-400 truncate">
                 {kpi.label}
               </span>
-              <div className="p-2 rounded-lg bg-slate-800 text-slate-400 group-hover:text-slate-200 transition-colors shrink-0">
-                <Icon className={`w-4 h-4 ${kpi.iconColor}`} />
+              <div className="p-1.5 sm:p-2 rounded-lg bg-slate-800 text-slate-400 group-hover:text-slate-200 transition-colors shrink-0">
+                <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${kpi.iconColor}`} />
               </div>
             </div>
 
-            <div className="text-lg sm:text-xl 2xl:text-2xl font-bold text-slate-100 tracking-tight mt-1.5 font-mono truncate" title={kpi.isCurrency ? `₹${kpi.value}` : String(kpi.value)}>
+            <div className="text-base sm:text-xl 2xl:text-2xl font-bold text-slate-100 tracking-tight mt-1 sm:mt-1.5 font-mono truncate" title={kpi.isCurrency ? `₹${kpi.value}` : String(kpi.value)}>
               {kpi.isCurrency ? '₹' : ''}
               <AnimatedCounter value={kpi.value} decimals={kpi.isCurrency ? 2 : 0} />
             </div>
 
-            <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-1.5 text-xs min-w-0">
+            <div className="mt-2 sm:mt-2.5 pt-1.5 sm:pt-2 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-1 text-[10px] sm:text-xs min-w-0">
               {hasGrowth ? (
                 <div className="flex items-center gap-1 font-medium min-w-0 flex-1">
-                  <GrowthIcon className={`w-3.5 h-3.5 ${growthColor} shrink-0`} />
+                  <GrowthIcon className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${growthColor} shrink-0`} />
                   <span className={`${growthColor} font-semibold shrink-0`}>
                     {isPositive ? '+' : ''}{kpi.growth}%
                   </span>
-                  <span className="text-slate-500 text-[11px] truncate max-w-[80px] 2xl:max-w-[95px]" title={kpi.growthLabel}>
+                  <span className="text-slate-500 text-[10px] sm:text-[11px] truncate max-w-[65px] sm:max-w-[80px] 2xl:max-w-[95px]" title={kpi.growthLabel}>
                     {kpi.growthLabel}
                   </span>
                 </div>
               ) : (
-                <span className="text-slate-500 text-[11px] shrink-0">
+                <span className="text-slate-500 text-[10px] sm:text-[11px] shrink-0">
                   Status
                 </span>
               )}
 
               {kpi.badgeText && (
-                <span className={`px-1.5 py-0.5 rounded text-[10px] 2xl:text-[11px] font-medium border truncate max-w-[110px] 2xl:max-w-none shrink-0 ${kpi.badgeColor}`} title={kpi.badgeText}>
+                <span className={`px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] 2xl:text-[11px] font-medium border truncate max-w-[100px] sm:max-w-[110px] 2xl:max-w-none shrink-0 ${kpi.badgeColor}`} title={kpi.badgeText}>
                   {kpi.badgeText}
                 </span>
               )}
             </div>
 
             {kpi.linkTo && (
-              <ArrowUpRight className="w-3.5 h-3.5 text-slate-600 group-hover:text-slate-300 absolute top-3.5 right-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <ArrowUpRight className="w-3.5 h-3.5 text-slate-600 group-hover:text-slate-300 absolute top-2.5 sm:top-3.5 right-2.5 sm:right-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
             )}
           </CardWrapper>
         );

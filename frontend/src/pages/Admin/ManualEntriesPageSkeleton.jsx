@@ -13,25 +13,25 @@ export const ManualEntriesPageSkeleton = () => {
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <ShimmerBone className="w-12 h-12 rounded-xl flex-shrink-0" />
-          <div className="space-y-1.5">
-            <ShimmerBone className="h-7 w-48 rounded-lg" />
-            <ShimmerBone className="h-4 w-28" />
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <ShimmerBone className="w-9 h-9 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex-shrink-0" />
+          <div className="space-y-1">
+            <ShimmerBone className="h-5 sm:h-7 w-36 sm:w-48 rounded-lg" />
+            <ShimmerBone className="h-3.5 sm:h-4 w-20 sm:w-28" />
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <ShimmerBone className="h-10 w-10 rounded-lg" />
-          <ShimmerBone className="h-10 w-36 rounded-lg" />
+        <div className="flex items-center gap-2 shrink-0">
+          <ShimmerBone className="h-9 sm:h-10 w-9 sm:w-10 rounded-lg" />
+          <ShimmerBone className="h-9 sm:h-10 w-20 sm:w-32 rounded-lg" />
         </div>
       </div>
 
       {/* Search & Filters Card */}
-      <div className="glass-card p-4">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <ShimmerBone className="h-11 flex-1 rounded-lg" />
-          <ShimmerBone className="h-11 w-28 rounded-lg" />
+      <div className="glass-card p-3 sm:p-4">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <ShimmerBone className="h-9 sm:h-10 flex-1 rounded-lg" />
+          <ShimmerBone className="h-9 sm:h-10 w-20 sm:w-24 rounded-lg shrink-0" />
         </div>
       </div>
 
