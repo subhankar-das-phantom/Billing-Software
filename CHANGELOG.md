@@ -4,7 +4,11 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
-## [v2.9.8](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.9.8) — 2026-10-03 — Mobile Density Optimization, In-Place Catalog Creation & Strict Single-Day Register Closeout
+## [v2.9.7](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.9.7) — 2026-10-02 — Collections Parity, Mobile Density Optimization, In-Place Catalog Creation & Cashier Closeout
+
+### 📊 Collections & Sales Analytics Parity Integration (`backend/src/modules/salesAnalytics/services/salesAnalyticsService.ts`, `backend/controllers/reportsController.js`)
+- **ManualEntry Collections Aggregation**: Integrated `ManualEntry` records with types `payment_adjustment` and `credit_adjustment` into the collection totals of `salesAnalyticsService.ts` (`getOverview`, `getMonthlySales`, `getDailySales`, `getPaymentTrends`). This reconciles register cash/UPI receipts with the Collections page (`/collections`), resolving historical discrepancies where payments against opening balances were omitted from analytics.
+- **Credit Stats Fallback Parity**: Updated `getCreditStats` in `reportsController.js` to combine `ManualEntry` payment adjustments with monthly payment totals.
 
 ### 📱 Mobile Layout Density & KPI Grid Optimization (`frontend/src/pages/*`, `frontend/src/components/*`)
 - **Operational Header & Filter Compaction**: Restructured headers, count badges, and action bars across Invoices, Products, Purchases, Suppliers, Employees, Notes, Inventory Ledger, Purchase Reports, and Manual Entries into 1-line dense flex layouts. Slashed vertical whitespace by 50–65%, ensuring data tables and operational charts appear immediately above the fold on mobile viewports.
@@ -22,10 +26,17 @@ For full release notes with implementation details, see [GitHub Releases](https:
 - **Zero-CLS Fixed Modal Viewport Height**: Locked modal height to `h-[88vh] max-h-[88vh]`, eliminating vertical layout jumps and centering displacement when switching dates between heavy and empty transaction logs.
 - **DOM Portal Container Guard**: Bound `createPortal(..., document.body)` with SSR/DOM safety checks, eliminating runtime `Target container is not a DOM element` errors.
 
+### 🎨 Cash Flow Breakdown Donut Layout & Typography Tuning (`frontend/src/components/Dashboard/DashboardChartsSection.jsx`)
+- **Expanded Donut Aperture**: Enlarged `innerRadius` from `50` to `56` and `outerRadius` from `72` to `76` in `DashboardChartsSection.jsx`, expanding the inner aperture from 100px to 112px diameter.
+- **Center Currency Typography**: Refactored the center total display with `text-xs sm:text-[13px] font-bold font-mono tracking-tight max-w-[105px] truncate block`, guaranteeing that multi-digit currency amounts (e.g. `₹22,54,087.79`) render cleanly centered without spilling out into the pie segments.
+
 ### 📋 Legal & Compliance Invariants
-- **Privacy Policy & Terms Neutrality**: UI density optimizations, in-place product catalog modals, and cashier print layouts do not collect new user telemetry, modify tenant data isolation boundaries, or alter billing terms.
+- **Privacy Policy & Terms Neutrality**: No personal data collection, telemetry tracking, or pricing changes were introduced. UI density optimizations, in-place product catalog modals, and cashier print layouts do not modify tenant data isolation boundaries or alter billing terms.
 
 ### Files Modified
+- `backend/src/modules/salesAnalytics/services/salesAnalyticsService.ts` — integrated `ManualEntry` aggregation across overview, monthly, daily, and trend analytics
+- `backend/controllers/reportsController.js` — included `ManualEntry` in `getCreditStats` monthly collections calculation
+- `frontend/src/components/Dashboard/DashboardChartsSection.jsx` — expanded donut radius and applied responsive typography to center total
 - `frontend/src/components/Products/ProductFormModal.jsx` — created reusable modal for adding catalog products in-place
 - `frontend/src/pages/Purchases/PurchaseCreatePage.jsx` — integrated `ProductFormModal`, empty-state catalog CTA, and rectangular item badge
 - `frontend/src/pages/Invoices/InvoiceCreatePage.jsx` — converted item counter to rectangular badge
@@ -54,24 +65,6 @@ For full release notes with implementation details, see [GitHub Releases](https:
 - `frontend/src/pages/Dashboard/DashboardPageSkeleton.jsx` — updated skeleton for compacted dashboard
 - `frontend/src/features/salesAnalytics/components/KPICards.jsx` — streamlined sales analytics card typography
 - `frontend/src/features/salesAnalytics/components/SkeletonCards.jsx` — updated analytics skeleton for compacted layout
-
-## [v2.9.7](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.9.7) — 2026-10-02 — Collections Parity, Sales Analytics Manual Entry Integration & Cash Flow Donut Typography
-
-### 📊 Collections & Sales Analytics Parity Integration (`backend/src/modules/salesAnalytics/services/salesAnalyticsService.ts`, `backend/controllers/reportsController.js`)
-- **ManualEntry Collections Aggregation**: Integrated `ManualEntry` records with types `payment_adjustment` and `credit_adjustment` into the collection totals of `salesAnalyticsService.ts` (`getOverview`, `getMonthlySales`, `getDailySales`, `getPaymentTrends`). This reconciles register cash/UPI receipts with the Collections page (`/collections`), resolving historical discrepancies where payments against opening balances were omitted from analytics.
-- **Credit Stats Fallback Parity**: Updated `getCreditStats` in `reportsController.js` to combine `ManualEntry` payment adjustments with monthly payment totals.
-
-### 🎨 Cash Flow Breakdown Donut Layout & Typography Tuning (`frontend/src/components/Dashboard/DashboardChartsSection.jsx`)
-- **Expanded Donut Aperture**: Enlarged `innerRadius` from `50` to `56` and `outerRadius` from `72` to `76` in `DashboardChartsSection.jsx`, expanding the inner aperture from 100px to 112px diameter.
-- **Center Currency Typography**: Refactored the center total display with `text-xs sm:text-[13px] font-bold font-mono tracking-tight max-w-[105px] truncate block`, guaranteeing that multi-digit currency amounts (e.g. `₹22,54,087.79`) render cleanly centered without spilling out into the pie segments.
-
-### 📋 Legal & Compliance Invariants
-- **Privacy Policy & Terms Neutrality**: No personal data collection, telemetry tracking, or pricing changes were introduced.
-
-### Files Modified
-- `backend/src/modules/salesAnalytics/services/salesAnalyticsService.ts` — integrated `ManualEntry` aggregation across overview, monthly, daily, and trend analytics
-- `backend/controllers/reportsController.js` — included `ManualEntry` in `getCreditStats` monthly collections calculation
-- `frontend/src/components/Dashboard/DashboardChartsSection.jsx` — expanded donut radius and applied responsive typography to center total
 
 ## [v2.9.6](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.9.6) — 2026-09-30 — Search UX Stabilization, High-Throughput Aggregation Optimization & Auth Race Elimination
 
