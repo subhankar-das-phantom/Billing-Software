@@ -4,6 +4,24 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.9.7](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.9.7) — 2026-10-02 — Collections Parity, Sales Analytics Manual Entry Integration & Cash Flow Donut Typography
+
+### 📊 Collections & Sales Analytics Parity Integration (`backend/src/modules/salesAnalytics/services/salesAnalyticsService.ts`, `backend/controllers/reportsController.js`)
+- **ManualEntry Collections Aggregation**: Integrated `ManualEntry` records with types `payment_adjustment` and `credit_adjustment` into the collection totals of `salesAnalyticsService.ts` (`getOverview`, `getMonthlySales`, `getDailySales`, `getPaymentTrends`). This reconciles register cash/UPI receipts with the Collections page (`/collections`), resolving historical discrepancies where payments against opening balances were omitted from analytics.
+- **Credit Stats Fallback Parity**: Updated `getCreditStats` in `reportsController.js` to combine `ManualEntry` payment adjustments with monthly payment totals.
+
+### 🎨 Cash Flow Breakdown Donut Layout & Typography Tuning (`frontend/src/components/Dashboard/DashboardChartsSection.jsx`)
+- **Expanded Donut Aperture**: Enlarged `innerRadius` from `50` to `56` and `outerRadius` from `72` to `76` in `DashboardChartsSection.jsx`, expanding the inner aperture from 100px to 112px diameter.
+- **Center Currency Typography**: Refactored the center total display with `text-xs sm:text-[13px] font-bold font-mono tracking-tight max-w-[105px] truncate block`, guaranteeing that multi-digit currency amounts (e.g. `₹22,54,087.79`) render cleanly centered without spilling out into the pie segments.
+
+### 📋 Legal & Compliance Invariants
+- **Privacy Policy & Terms Neutrality**: No personal data collection, telemetry tracking, or pricing changes were introduced.
+
+### Files Modified
+- `backend/src/modules/salesAnalytics/services/salesAnalyticsService.ts` — integrated `ManualEntry` aggregation across overview, monthly, daily, and trend analytics
+- `backend/controllers/reportsController.js` — included `ManualEntry` in `getCreditStats` monthly collections calculation
+- `frontend/src/components/Dashboard/DashboardChartsSection.jsx` — expanded donut radius and applied responsive typography to center total
+
 ## [v2.9.6](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.9.6) — 2026-09-30 — Search UX Stabilization, High-Throughput Aggregation Optimization & Auth Race Elimination
 
 ### 🛡️ Authentication Login Race Elimination & Spinner Removal (`frontend/src/contexts/AuthContext.jsx`, `frontend/src/App.jsx`)
