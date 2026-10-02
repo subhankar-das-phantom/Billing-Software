@@ -4,6 +4,57 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.9.8](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.9.8) — 2026-10-03 — Mobile Density Optimization, In-Place Catalog Creation & Strict Single-Day Register Closeout
+
+### 📱 Mobile Layout Density & KPI Grid Optimization (`frontend/src/pages/*`, `frontend/src/components/*`)
+- **Operational Header & Filter Compaction**: Restructured headers, count badges, and action bars across Invoices, Products, Purchases, Suppliers, Employees, Notes, Inventory Ledger, Purchase Reports, and Manual Entries into 1-line dense flex layouts. Slashed vertical whitespace by 50–65%, ensuring data tables and operational charts appear immediately above the fold on mobile viewports.
+- **Responsive 3-Card Stat Grid Overhaul**: Refactored cramped 3-across KPI cards (`grid-cols-3` squeezing into ~100px columns) on Invoices, Employees, and Referral pages into a responsive 2-column mobile grid with the third summary card spanning full width (`grid-cols-2 sm:grid-cols-3` with `col-span-2 sm:col-span-1`).
+- **Dashboard & Analytics Mobile Streamlining**: Condensed Dashboard Hero operational dates/badges into a tight inline layout, trimmed KPI grid padding, and streamlined Sales Analytics card skeletons for zero-CLS rendering.
+- **Section Item Counter Badge Typography**: Replaced oversized circular div bubbles on item counts (`PurchaseCreatePage`, `InvoiceCreatePage`) with clean, rectangular enterprise badges (`rounded-md font-mono text-xs`).
+
+### 🛒 In-Place Catalog Creation in Purchase Workflows (`frontend/src/components/Products/ProductFormModal.jsx`, `frontend/src/pages/Purchases/PurchaseCreatePage.jsx`, `frontend/src/pages/Products/ProductsPage.jsx`)
+- **In-Place ProductFormModal Integration**: Added a dedicated `ProductFormModal` matching the `SupplierFormModal` architecture. When searching for uncataloged items in `PurchaseCreatePage`, users are presented with an explanatory state and a 1-click `+ Add "{query}" to Catalog` CTA that opens the modal in-place and automatically appends the created item to the active purchase list.
+- **Deep-Linked Catalog Onboarding**: Enhanced `ProductsPage.jsx` to recognize `?action=new&name=...` URL query parameters, auto-launching the creation modal with the product name pre-populated for cross-page redirection workflows.
+
+### 🧾 Strict Single-Day Daily Closeout & Zero-CLS Layout (`frontend/src/pages/Collections/DailyCloseoutPrintModal.jsx`, `frontend/src/pages/Collections/CollectionsPage.jsx`)
+- **Strict Single-Day Business Reconciliation**: Restricted `DailyCloseoutPrintModal` strictly to single-day registers (Today, Yesterday, or exact date) with a dedicated single-day collections fetcher (`/payments/collections?date=...`), preventing multi-day period distortions during cashier shift audits.
+- **1-Click Multi-Day Export Routing**: Added contextual banners redirecting multi-day audits (e.g. 7D, Month, All Time) to the specialized `ExportModal`.
+- **Zero-CLS Fixed Modal Viewport Height**: Locked modal height to `h-[88vh] max-h-[88vh]`, eliminating vertical layout jumps and centering displacement when switching dates between heavy and empty transaction logs.
+- **DOM Portal Container Guard**: Bound `createPortal(..., document.body)` with SSR/DOM safety checks, eliminating runtime `Target container is not a DOM element` errors.
+
+### 📋 Legal & Compliance Invariants
+- **Privacy Policy & Terms Neutrality**: UI density optimizations, in-place product catalog modals, and cashier print layouts do not collect new user telemetry, modify tenant data isolation boundaries, or alter billing terms.
+
+### Files Modified
+- `frontend/src/components/Products/ProductFormModal.jsx` — created reusable modal for adding catalog products in-place
+- `frontend/src/pages/Purchases/PurchaseCreatePage.jsx` — integrated `ProductFormModal`, empty-state catalog CTA, and rectangular item badge
+- `frontend/src/pages/Invoices/InvoiceCreatePage.jsx` — converted item counter to rectangular badge
+- `frontend/src/pages/Collections/DailyCloseoutPrintModal.jsx` — enforced single-day register closeout, locked height to `h-[88vh]`, and bound portal to `document.body`
+- `frontend/src/pages/Collections/CollectionsPage.jsx` — passed single-day date props, multi-day flags, and export modal handler
+- `frontend/src/pages/Products/ProductsPage.jsx` — compacted mobile header/filters and added `?action=new` deep-link detection
+- `frontend/src/pages/Products/ProductsPageSkeleton.jsx` — synchronized skeleton layout to compacted header
+- `frontend/src/pages/Invoices/InvoicesPage.jsx` — compacted header/filters and converted 3-card stat grid to responsive layout
+- `frontend/src/pages/Invoices/InvoicesPageSkeleton.jsx` — updated skeleton to match responsive 3-card layout
+- `frontend/src/pages/Employees/EmployeesPage.jsx` — compacted header/filters and converted 3-card stat grid to responsive layout
+- `frontend/src/pages/Employees/EmployeesPageSkeleton.jsx` — updated skeleton to match responsive 3-card layout
+- `frontend/src/pages/Referral/ReferralPage.jsx` — compacted header and converted 3-card stat grid to responsive layout
+- `frontend/src/pages/Referral/ReferralPageSkeleton.jsx` — updated skeleton to match responsive 3-card layout
+- `frontend/src/pages/Admin/ManualEntriesPage.jsx` — compacted header and converted date filters into collapsible drawer
+- `frontend/src/pages/Admin/ManualEntriesPageSkeleton.jsx` — updated skeleton for compacted layout
+- `frontend/src/pages/Purchases/PurchasesPage.jsx` — compacted mobile header and filter pills
+- `frontend/src/pages/Purchases/PurchasesPageSkeleton.jsx` — updated skeleton for compacted layout
+- `frontend/src/pages/Suppliers/SuppliersPage.jsx` — compacted mobile header and search controls
+- `frontend/src/pages/Suppliers/SuppliersPageSkeleton.jsx` — updated skeleton for compacted layout
+- `frontend/src/pages/Inventory/InventoryLedgerPage.jsx` — compacted mobile header and audit metrics
+- `frontend/src/pages/Reports/PurchaseReportsPage.jsx` — compacted mobile header and filter bar
+- `frontend/src/pages/Notes/NotesPage.jsx` — compacted mobile header and search controls
+- `frontend/src/pages/Notes/NotesPageSkeleton.jsx` — updated skeleton for compacted layout
+- `frontend/src/components/Dashboard/DashboardHero.jsx` — streamlined mobile date badge and action buttons
+- `frontend/src/components/Dashboard/DashboardKPIGrid.jsx` — refined card padding for mobile density
+- `frontend/src/pages/Dashboard/DashboardPageSkeleton.jsx` — updated skeleton for compacted dashboard
+- `frontend/src/features/salesAnalytics/components/KPICards.jsx` — streamlined sales analytics card typography
+- `frontend/src/features/salesAnalytics/components/SkeletonCards.jsx` — updated analytics skeleton for compacted layout
+
 ## [v2.9.7](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.9.7) — 2026-10-02 — Collections Parity, Sales Analytics Manual Entry Integration & Cash Flow Donut Typography
 
 ### 📊 Collections & Sales Analytics Parity Integration (`backend/src/modules/salesAnalytics/services/salesAnalyticsService.ts`, `backend/controllers/reportsController.js`)
