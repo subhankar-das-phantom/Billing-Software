@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, 
@@ -211,6 +211,8 @@ function MobilePrintPreview({ admin, supplier, ledgerData, filters, formatDate }
 export default function SupplierDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const backPath = location.state?.from || '/suppliers';
   const { isAdmin, admin, hasPermission } = useAuth();
   const { showToast } = useToast();
   const ledgerPrintRef = useRef();
@@ -402,7 +404,7 @@ export default function SupplierDetailsPage() {
         <XCircle className="w-16 h-16 text-rose-500 mx-auto mb-4" />
         <h2 className="text-xl font-bold text-slate-100 mb-2">Supplier Not Found</h2>
         <p className="text-sm text-slate-400 mb-6">The requested supplier does not exist or has been removed.</p>
-        <Link to="/suppliers" className="btn btn-primary inline-flex items-center gap-2">
+        <Link to={backPath} className="btn btn-primary inline-flex items-center gap-2">
           <ArrowLeft className="w-4 h-4" />
           Back to Suppliers
         </Link>
@@ -425,7 +427,7 @@ export default function SupplierDetailsPage() {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div className="flex items-center gap-4">
               <button
-                onClick={() => navigate('/suppliers')}
+                onClick={() => navigate(backPath)}
                 className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 transition-colors"
                 title="Back to Suppliers"
               >

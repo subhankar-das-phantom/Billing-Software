@@ -1,5 +1,5 @@
 import { memo, useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
@@ -38,7 +38,8 @@ import {
   useSWR, 
   useQueryAccumulatedList,
   invalidateCachePattern, 
-  useMediaQuery 
+  useMediaQuery,
+  useListFilterParams
 } from '../../hooks';
 import { useInfiniteScrollSentinel } from '../../utils/scrollUtils';
 
@@ -52,13 +53,14 @@ const SupplierCard = memo(function SupplierCard({
   openEditModal,
   setDeleteDialog,
   isAdmin,
-  hasPermission
+  hasPermission,
+  currentPath
 }) {
   const navigate = useNavigate();
 
   return (
     <div
-      onClick={() => navigate(`/suppliers/${supplier._id}`)}
+      onClick={() => navigate(`/suppliers/${supplier._id}`, { state: { from: currentPath } })}
       className={`glass-card p-5 group cursor-pointer transition-all ${
         shouldHover ? 'hover:bg-slate-800/80 hover:-translate-y-1 hover:border-slate-600' : ''
       } ${supplier.isActive === false ? 'opacity-75 grayscale-[0.2] border-rose-500/20' : ''}`}
@@ -170,9 +172,30 @@ const SupplierCard = memo(function SupplierCard({
 });
 
 export default function SuppliersPage() {
-  const [searchInput, setSearchInput] = useState('');
-  const [search] = useDebounce(searchInput);
-  const [statusFilter, setStatusFilter] = useState('active');
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const { params: filterParams, setParam } = useListFilterParams({ search: '', status: 'active' });
+  const urlSearch = filterParams.search;
+  const statusFilter = filterParams.status;
+
+  const [searchInput, setSearchInput] = useState(() => searchParams.get('search') || '');
+  const [search] = useDebounce(searchInput, 300);
+  const lastSyncedSearchRef = useRef(urlSearch);
+
+  // Sync debounced search to URL
+  useEffect(() => {
+    setParam('search', search);
+    lastSyncedSearchRef.current = search;
+  }, [search, setParam]);
+
+  // Sync external URL changes into search input
+  useEffect(() => {
+    if (urlSearch !== lastSyncedSearchRef.current) {
+      lastSyncedSearchRef.current = urlSearch;
+      setSearchInput(urlSearch);
+    }
+  }, [urlSearch]);
+
   const [page, setPage] = useState(1);
   const observer = useRef(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -185,7 +208,7 @@ export default function SuppliersPage() {
   const isFirstVisit = useFirstVisit('suppliers');
   const isMobile = useMediaQuery('(max-width: 640px)');
 
-  const currentQueryKey = `${search}-${statusFilter}`;
+  const currentQueryKey = `${urlSearch}-${statusFilter}`;
   const [isFetching, setIsFetching] = useState(false);
   const isFetchingRef = useRef(false);
   const pendingPageRef = useRef(null);
@@ -199,7 +222,7 @@ export default function SuppliersPage() {
   const { data, isLoading, isValidating, error: swrError, mutate } = useSWR(
     `suppliers-page-${currentQueryKey}-${page}`,
     async () => {
-      const res = await supplierService.getSuppliers({ search, page, limit: 30 });
+      const res = await supplierService.getSuppliers({ search: urlSearch, page, limit: 30 });
       return { ...res, _queryKey: currentQueryKey, _page: page };
     },
     { ttl: 5 * 60 * 1000 }
@@ -436,7 +459,11 @@ export default function SuppliersPage() {
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0 }}
-                  onClick={() => setSearchInput('')}
+                  onClick={() => {
+                    setSearchInput('');
+                    lastSyncedSearchRef.current = '';
+                    setParam('search', '');
+                  }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-100"
                   whileHover={{ rotate: 90 }}
                 >
@@ -450,7 +477,7 @@ export default function SuppliersPage() {
             {['all', 'active', 'inactive'].map((st) => (
               <button
                 key={st}
-                onClick={() => setStatusFilter(st)}
+                onClick={() => setParam('status', st)}
                 className={`flex-1 py-1 sm:py-1.5 text-[11px] sm:text-xs font-semibold rounded-lg capitalize transition-all ${
                   statusFilter === st
                     ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
@@ -501,6 +528,7 @@ export default function SuppliersPage() {
               setDeleteDialog={setDeleteDialog}
               isAdmin={isAdmin}
               hasPermission={hasPermission}
+              currentPath={location.pathname + location.search}
             />
           )}
         />
@@ -516,6 +544,7 @@ export default function SuppliersPage() {
               setDeleteDialog={setDeleteDialog}
               isAdmin={isAdmin}
               hasPermission={hasPermission}
+              currentPath={location.pathname + location.search}
             />
           ))}
         </div>

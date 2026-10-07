@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
@@ -77,6 +77,8 @@ const EMPTY_BATCH_FORM = {
 
 export default function ProductDetailsPage() {
   const { id } = useParams();
+  const location = useLocation();
+  const backPath = location.state?.from || '/products';
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -299,7 +301,7 @@ export default function ProductDetailsPage() {
     return (
       <div className="glass-card p-12 text-center">
         <p className="text-slate-400 mb-6">Product not found</p>
-        <Link to="/products" className="btn btn-primary">Back to Products</Link>
+        <Link to={backPath} className="btn btn-primary">Back to Products</Link>
       </div>
     );
   }
@@ -315,7 +317,7 @@ export default function ProductDetailsPage() {
     >
       {/* Back button + Actions */}
       <motion.div variants={cardVariants} initial={isFirstVisit ? "hidden" : false} animate="visible" className="flex justify-between items-center mb-4">
-        <Link to="/products" className="inline-flex items-center gap-2 text-slate-400 hover:text-slate-100 transition-colors">
+        <Link to={backPath} className="inline-flex items-center gap-2 text-slate-400 hover:text-slate-100 transition-colors">
           <ArrowLeft className="w-4 h-4" />
           Back to Products
         </Link>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   ArrowLeft, 
@@ -46,6 +46,8 @@ const createCardVariants = (isMobile) => ({
 export default function PurchaseDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const backPath = location.state?.from || '/purchases';
   const { showToast } = useToast();
   const { hasPermission, isAdmin } = useAuth();
   const motionConfig = useMotionConfig();
@@ -129,7 +131,7 @@ export default function PurchaseDetailsPage() {
       <div className="p-8 text-center glass-card max-w-lg mx-auto my-12">
         <h2 className="text-xl font-bold text-slate-100 mb-2">Purchase Not Found</h2>
         <p className="text-slate-400 mb-6">The requested purchase record could not be found.</p>
-        <Link to="/purchases" className="btn btn-primary inline-flex items-center gap-2">
+        <Link to={backPath} className="btn btn-primary inline-flex items-center gap-2">
           <ArrowLeft className="w-4 h-4" />
           Back to Purchases
         </Link>
@@ -149,7 +151,7 @@ export default function PurchaseDetailsPage() {
       {/* Back Button */}
       <motion.div variants={cardVariants}>
         <Link
-          to="/purchases"
+          to={backPath}
           className="inline-flex items-center gap-2 text-slate-400 hover:text-slate-100 transition-colors group"
         >
           <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
