@@ -4,6 +4,8 @@
  * Zero internal IDs, profit margins, employee attribution, or tenant internals are exposed.
  */
 
+const { numberToWords } = require('../numberToWords');
+
 export interface IPublicBatchAllocationDTO {
   batchNo: string;
   quantity: number;
@@ -61,6 +63,7 @@ export interface IPublicInvoiceTotalsDTO {
   totalSGST: number;
   roundOff: number;
   netTotal: number;
+  finalTotal: number;
   amountInWords?: string;
 }
 
@@ -88,11 +91,12 @@ export function serializePublicInvoice(
   allowPublicPrint: boolean = false
 ): IPublicInvoiceDTO {
   const isCancelled = invoice.status === 'Cancelled';
-  const netTotal = Number(invoice.totals?.netTotal) || 0;
-  const paidAmount = Number(invoice.paidAmount) || 0;
-  const roundedNet = Math.round(netTotal);
-  const roundOff = Math.round((roundedNet - netTotal) * 100) / 100;
-  const dueAmount = isCancelled ? 0 : Math.max(0, netTotal - paidAmount);
+  const rawNetTotal = Math.round(((Number(invoice.totals?.netTotal) || 0) + Number.EPSILON) * 100) / 100;
+  const paidAmount = Math.round(((Number(invoice.paidAmount) || 0) + Number.EPSILON) * 100) / 100;
+  const finalTotal = Math.round(rawNetTotal);
+  const roundOff = Math.round(((finalTotal - rawNetTotal) + Number.EPSILON) * 100) / 100;
+  const dueAmount = isCancelled ? 0 : Math.max(0, finalTotal - paidAmount);
+  const amountInWords = invoice.totals?.amountInWords || numberToWords(finalTotal);
 
   // Strictly prioritize the invoice's own distributor snapshot over external business details
   const hasInvoiceDist = invoice.distributor && typeof invoice.distributor === 'object' && Boolean(invoice.distributor.firmName);
@@ -187,8 +191,9 @@ export function serializePublicInvoice(
     totalCGST: Number(invoice.totals?.totalCGST) || 0,
     totalSGST: Number(invoice.totals?.totalSGST) || 0,
     roundOff,
-    netTotal,
-    amountInWords: invoice.totals?.amountInWords || ''
+    netTotal: rawNetTotal,
+    finalTotal,
+    amountInWords
   };
 
   return {
@@ -288,7 +293,8 @@ export function adaptPublicDTOToPDFInvoice(publicData: IPublicInvoiceDTO): {
       totalCGST: publicData.totals.totalCGST,
       totalSGST: publicData.totals.totalSGST,
       roundOff: publicData.totals.roundOff,
-      netTotal: publicData.totals.netTotal,
+      netTotal: publicData.totals.finalTotal ?? publicData.totals.netTotal,
+      finalTotal: publicData.totals.finalTotal ?? publicData.totals.netTotal,
       amountInWords: publicData.totals.amountInWords
     },
     paidAmount: publicData.paidAmount

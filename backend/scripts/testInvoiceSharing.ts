@@ -14,7 +14,7 @@ import path from 'path';
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 import mongoose from 'mongoose';
 import { generateRawToken, hashToken, encryptToken, decryptToken } from '../utils/shareCrypto';
-import { serializePublicInvoice } from '../utils/serializers/publicInvoiceSerializer';
+import { serializePublicInvoice, adaptPublicDTOToPDFInvoice } from '../utils/serializers/publicInvoiceSerializer';
 import Share from '../models/Share';
 
 async function runTests() {
@@ -225,6 +225,108 @@ async function runTests() {
   );
   assert(concurrencyPartialIndex !== undefined, 'Partial unique index on { tenantId, resourceType, resourceId } exists for revokedAt: null');
   assert(concurrencyPartialIndex?.[1]?.unique === true, 'Partial index has unique: true constraint (atomic concurrency guard)');
+
+  // ─── Test 8: Public Invoice Rounding & Financial Parity Invariants ────────
+  console.log('\n🔹 8. Public Invoice Rounding & Financial Parity Invariants');
+
+  const baseDistributor = {
+    firmName: 'TEST PHARMA DISTRIBUTOR',
+    firmAddress: '123 Market Street'
+  };
+
+  // Case 8.1: Exact integer (1000.00 -> final = 1000, roundOff = 0)
+  const invExact = serializePublicInvoice(
+    {
+      invoiceNumber: 'INV-ROUND-1',
+      status: 'Created',
+      paidAmount: 0,
+      totals: { netTotal: 1000.0 }
+    },
+    baseDistributor,
+    token1
+  );
+  assert(invExact.totals.netTotal === 1000.0, 'Case 8.1: netTotal preserves raw 1000.00');
+  assert(invExact.totals.finalTotal === 1000.0, 'Case 8.1: finalTotal is 1000.00');
+  assert(invExact.totals.roundOff === 0.0, 'Case 8.1: roundOff is 0.00 for integer net');
+  assert(invExact.dueAmount === 1000.0, 'Case 8.1: dueAmount equals finalTotal (1000.00)');
+
+  // Case 8.2: Positive round-off (999.52 -> final = 1000, roundOff = +0.48)
+  const invPositive = serializePublicInvoice(
+    {
+      invoiceNumber: 'INV-ROUND-2',
+      status: 'Created',
+      paidAmount: 0,
+      totals: { netTotal: 999.52 }
+    },
+    baseDistributor,
+    token1
+  );
+  assert(invPositive.totals.netTotal === 999.52, 'Case 8.2: netTotal preserves raw 999.52');
+  assert(invPositive.totals.finalTotal === 1000.0, 'Case 8.2: finalTotal rounded to 1000.00 (Math.round)');
+  assert(invPositive.totals.roundOff === 0.48, 'Case 8.2: roundOff is +0.48 (1000 - 999.52)');
+  assert(invPositive.dueAmount === 1000.0, 'Case 8.2: dueAmount equals rounded finalTotal (1000.00)');
+
+  // Case 8.3: Negative round-off (999.47 -> final = 999, roundOff = -0.47)
+  const invNegative = serializePublicInvoice(
+    {
+      invoiceNumber: 'INV-ROUND-3',
+      status: 'Created',
+      paidAmount: 0,
+      totals: { netTotal: 999.47 }
+    },
+    baseDistributor,
+    token1
+  );
+  assert(invNegative.totals.netTotal === 999.47, 'Case 8.3: netTotal preserves raw 999.47');
+  assert(invNegative.totals.finalTotal === 999.0, 'Case 8.3: finalTotal rounded to 999.00 (Math.round)');
+  assert(invNegative.totals.roundOff === -0.47, 'Case 8.3: roundOff is -0.47 (999 - 999.47)');
+  assert(invNegative.dueAmount === 999.0, 'Case 8.3: dueAmount equals rounded finalTotal (999.00)');
+
+  // Case 8.4: Paid invoice with rounding (999.47, paid = 200 -> final = 999, due = 799)
+  const invPaid = serializePublicInvoice(
+    {
+      invoiceNumber: 'INV-ROUND-4',
+      status: 'Created',
+      paidAmount: 200.0,
+      totals: { netTotal: 999.47 }
+    },
+    baseDistributor,
+    token1
+  );
+  assert(invPaid.totals.finalTotal === 999.0, 'Case 8.4: finalTotal is 999.00');
+  assert(invPaid.dueAmount === 799.0, 'Case 8.4: dueAmount is accurately computed from finalTotal (999 - 200 = 799)');
+
+  // Case 8.5: Cancelled invoice (due = 0)
+  const invCancelled = serializePublicInvoice(
+    {
+      invoiceNumber: 'INV-ROUND-5',
+      status: 'Cancelled',
+      paidAmount: 0,
+      totals: { netTotal: 999.47 }
+    },
+    baseDistributor,
+    token1
+  );
+  assert(invCancelled.dueAmount === 0, 'Case 8.5: Cancelled invoice dueAmount is strictly 0');
+
+  // Case 8.6: DTO and PDF Adapter agreement on finalTotal and roundOff
+  const { invoice: pdfAdaptedInv } = adaptPublicDTOToPDFInvoice(invNegative);
+  assert(pdfAdaptedInv.totals.netTotal === 999.0, 'Case 8.6: PDF adapter maps netTotal to finalTotal (999.00)');
+  assert(pdfAdaptedInv.totals.roundOff === -0.47, 'Case 8.6: PDF adapter preserves roundOff (-0.47)');
+  assert(Boolean(invNegative.totals.amountInWords && invNegative.totals.amountInWords.length > 0), 'Case 8.6: Amount in words is populated for finalTotal');
+
+  // Case 8.7: Stored amountInWords is preserved verbatim
+  const invStoredWords = serializePublicInvoice(
+    {
+      invoiceNumber: 'INV-ROUND-7',
+      status: 'Created',
+      paidAmount: 0,
+      totals: { netTotal: 999.47, amountInWords: 'Custom Stored Words Only' }
+    },
+    baseDistributor,
+    token1
+  );
+  assert(invStoredWords.totals.amountInWords === 'Custom Stored Words Only', 'Case 8.7: Stored amountInWords is preserved verbatim');
 
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log(`📊 TEST RESULTS: ${passed} PASSED, ${failed} FAILED`);

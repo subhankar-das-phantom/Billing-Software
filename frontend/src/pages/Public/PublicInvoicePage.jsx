@@ -751,7 +751,7 @@ export default function PublicInvoicePage() {
               <div className="flex justify-between text-sm font-bold text-slate-100 pt-2.5 border-t border-slate-700/80">
                 <span>Grand Total</span>
                 <span className="font-mono text-base text-blue-400">
-                  {formatCurrency(totals.netTotal)}
+                  {formatCurrency(totals.finalTotal ?? totals.netTotal)}
                 </span>
               </div>
             </div>
@@ -1011,7 +1011,7 @@ export default function PublicInvoicePage() {
                       <tr className="border-t border-black" style={{ borderTop: '1px solid black' }}>
                         <td className="py-0.5 font-bold">NET:</td>
                         <td className="text-right font-bold text-[13px]">
-                          {formatCurrency(totals.netTotal)}
+                          {formatCurrency(totals.finalTotal ?? totals.netTotal)}
                         </td>
                       </tr>
                     </tbody>
