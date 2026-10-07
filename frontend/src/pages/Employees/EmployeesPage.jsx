@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { Link, useSearchParams, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus,
@@ -21,7 +21,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { employeeService } from '../../services/employees/employeeService';
-import { useMotionConfig, useFirstVisit, useDebounce, useSWR, invalidateCachePattern } from '../../hooks';
+import { useMotionConfig, useFirstVisit, useDebounce, useSWR, invalidateCachePattern, useListFilterParams } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 import { EmployeesPageSkeleton } from './EmployeesPageSkeleton';
 
@@ -528,7 +528,7 @@ const PasswordResetModal = ({ isOpen, onClose, employee, onSave }) => {
 };
 
 // Employee Card Component
-const EmployeeCard = ({ employee, onEdit, onResetPassword, onToggleStatus, isMobile, isFirstVisit }) => {
+const EmployeeCard = ({ employee, onEdit, onResetPassword, onToggleStatus, isMobile, isFirstVisit, currentPath }) => {
   const [toggling, setToggling] = useState(false);
 
   const handleToggle = async () => {
@@ -545,72 +545,75 @@ const EmployeeCard = ({ employee, onEdit, onResetPassword, onToggleStatus, isMob
       initial={isFirstVisit ? (isMobile ? { opacity: 0 } : { opacity: 0, y: 20 }) : false}
       animate={{ opacity: 1, y: 0 }}
       transition={isMobile ? { duration: 0.15 } : { type: 'spring', stiffness: 300 }}
-      className="bg-slate-800/50 rounded-xl border border-slate-700 p-5 hover:border-slate-600 transition-colors"
+      className="bg-slate-800/50 rounded-xl border border-slate-700 p-3.5 sm:p-5 hover:border-slate-600 transition-colors"
     >
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <div className="w-12 h-12 rounded-full bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-lg">
+      <div className="flex items-start justify-between mb-3 sm:mb-4">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 pr-1">
+          <div className="relative shrink-0">
+            <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-full bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-sm sm:text-lg">
               {employee.name?.charAt(0)?.toUpperCase() || 'E'}
             </div>
             {/* Online indicator */}
             {employee.isOnline && (
-              <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-slate-800 animate-pulse" 
+              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 bg-emerald-500 rounded-full border-2 border-slate-800 animate-pulse" 
                     title="Currently online" />
             )}
           </div>
-          <div>
-            <h3 className="font-semibold text-slate-100 flex items-center gap-2">
-              {employee.name}
+          <div className="min-w-0">
+            <h3 className="font-semibold text-sm sm:text-base text-slate-100 flex items-center gap-1.5 sm:gap-2 truncate">
+              <span className="truncate">{employee.name}</span>
               {employee.isOnline && (
-                <span className="text-[10px] px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 rounded font-medium">Online</span>
+                <span className="text-[10px] px-1.5 py-0.2 bg-emerald-500/20 text-emerald-400 rounded font-medium shrink-0">Online</span>
               )}
             </h3>
-            <p className="text-sm text-slate-400">{employee.email}</p>
+            <p className="text-xs sm:text-sm text-slate-400 truncate">{employee.email}</p>
           </div>
         </div>
-        <StatusBadge isActive={employee.isActive} />
+        <div className="shrink-0">
+          <StatusBadge isActive={employee.isActive} />
+        </div>
       </div>
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <div className="bg-slate-900/50 rounded-lg p-3">
-          <p className="text-xs text-slate-500 mb-1">Invoices</p>
-          <p className="text-lg font-semibold text-slate-100">{employee.metrics?.invoicesCreatedCount || 0}</p>
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-3 sm:mb-4">
+        <div className="bg-slate-900/50 rounded-lg p-2 sm:p-3">
+          <p className="text-[10px] sm:text-xs text-slate-500 mb-0.5 sm:mb-1">Invoices</p>
+          <p className="text-sm sm:text-lg font-mono font-semibold text-slate-100">{employee.metrics?.invoicesCreatedCount || 0}</p>
         </div>
-        <div className="bg-slate-900/50 rounded-lg p-3">
-          <p className="text-xs text-slate-500 mb-1">Sales</p>
-          <p className="text-lg font-semibold text-emerald-400">{formatCurrency(employee.metrics?.totalSalesGenerated)}</p>
+        <div className="bg-slate-900/50 rounded-lg p-2 sm:p-3">
+          <p className="text-[10px] sm:text-xs text-slate-500 mb-0.5 sm:mb-1">Sales</p>
+          <p className="text-sm sm:text-lg font-mono font-semibold text-emerald-400">{formatCurrency(employee.metrics?.totalSalesGenerated)}</p>
         </div>
-        <div className="bg-slate-900/50 rounded-lg p-3">
-          <p className="text-xs text-slate-500 mb-1">Payments</p>
-          <p className="text-lg font-semibold text-slate-100">{employee.metrics?.paymentsRecordedCount || 0}</p>
+        <div className="bg-slate-900/50 rounded-lg p-2 sm:p-3">
+          <p className="text-[10px] sm:text-xs text-slate-500 mb-0.5 sm:mb-1">Payments</p>
+          <p className="text-sm sm:text-lg font-mono font-semibold text-slate-100">{employee.metrics?.paymentsRecordedCount || 0}</p>
         </div>
-        <div className="bg-slate-900/50 rounded-lg p-3">
-          <p className="text-xs text-slate-500 mb-1">Last Active</p>
-          <p className="text-sm font-medium text-slate-300">{formatDate(employee.metrics?.lastActivityAt)}</p>
+        <div className="bg-slate-900/50 rounded-lg p-2 sm:p-3">
+          <p className="text-[10px] sm:text-xs text-slate-500 mb-0.5 sm:mb-1">Last Active</p>
+          <p className="text-xs sm:text-sm font-medium text-slate-300 truncate">{formatDate(employee.metrics?.lastActivityAt)}</p>
         </div>
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-2 pt-3 border-t border-slate-700">
+      <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 pt-3 border-t border-slate-700">
         <Link
           to={`/employees/${employee.id || employee._id}`}
-          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-700 transition-colors text-sm"
+          state={{ from: currentPath }}
+          className="flex items-center justify-center gap-1.5 px-3 min-h-[44px] py-2 rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-700 transition-colors text-xs sm:text-sm font-medium sm:flex-1"
         >
           <Eye size={14} />
           View
         </Link>
         <button
           onClick={() => onEdit(employee)}
-          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors text-sm"
+          className="flex items-center justify-center gap-1.5 px-3 min-h-[44px] py-2 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors text-xs sm:text-sm font-medium sm:flex-1"
         >
           <Edit2 size={14} />
           Edit
         </button>
         <button
           onClick={() => onResetPassword(employee)}
-          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 transition-colors text-sm"
+          className="flex items-center justify-center gap-1.5 px-3 min-h-[44px] py-2 rounded-lg bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 transition-colors text-xs sm:text-sm font-medium sm:flex-1"
         >
           <Key size={14} />
           Reset Pass
@@ -618,7 +621,7 @@ const EmployeeCard = ({ employee, onEdit, onResetPassword, onToggleStatus, isMob
         <button
           onClick={handleToggle}
           disabled={toggling}
-          className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm ${
+          className={`flex items-center justify-center gap-1.5 px-3 min-h-[44px] py-2 rounded-lg transition-colors text-xs sm:text-sm font-medium sm:flex-1 ${
             employee.isActive
               ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
               : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
@@ -645,9 +648,30 @@ const EmployeeCard = ({ employee, onEdit, onResetPassword, onToggleStatus, isMob
 
 // Main Page Component
 export default function EmployeesPage() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearch] = useDebounce(searchTerm, 400);
-  const [statusFilter, setStatusFilter] = useState('all');
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const { params: filterParams, setParam } = useListFilterParams({ search: '', status: 'all' });
+  const urlSearch = filterParams.search;
+  const statusFilter = filterParams.status;
+
+  const [searchTerm, setSearchTerm] = useState(() => searchParams.get('search') || '');
+  const [debouncedSearch] = useDebounce(searchTerm, 300);
+  const lastSyncedSearchRef = useRef(urlSearch);
+
+  // Sync debounced search to URL
+  useEffect(() => {
+    setParam('search', debouncedSearch);
+    lastSyncedSearchRef.current = debouncedSearch;
+  }, [debouncedSearch, setParam]);
+
+  // Sync external URL changes into search input
+  useEffect(() => {
+    if (urlSearch !== lastSyncedSearchRef.current) {
+      lastSyncedSearchRef.current = urlSearch;
+      setSearchTerm(urlSearch);
+    }
+  }, [urlSearch]);
+
   const [showModal, setShowModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
@@ -657,8 +681,8 @@ export default function EmployeesPage() {
   const isFirstVisit = useFirstVisit('employees');
 
   const { data, isLoading, isValidating, mutate } = useSWR(
-    `employees-list-${debouncedSearch}-${statusFilter}`,
-    () => employeeService.getEmployees({ search: debouncedSearch, status: statusFilter }),
+    `employees-list-${urlSearch}-${statusFilter}`,
+    () => employeeService.getEmployees({ search: urlSearch, status: statusFilter }),
     { ttl: 30 * 1000 }
   );
 
@@ -782,7 +806,11 @@ export default function EmployeesPage() {
           {searchTerm && (
             <button
               type="button"
-              onClick={() => setSearchTerm('')}
+              onClick={() => {
+                setSearchTerm('');
+                lastSyncedSearchRef.current = '';
+                setParam('search', '');
+              }}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-100 p-1"
               aria-label="Clear search"
             >
@@ -792,7 +820,7 @@ export default function EmployeesPage() {
         </div>
         <select
           value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value)}
+          onChange={e => setParam('status', e.target.value === 'all' ? '' : e.target.value)}
           className="px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 focus:outline-none focus:border-blue-500 transition-colors"
         >
           <option value="all">All Status</option>
@@ -823,6 +851,7 @@ export default function EmployeesPage() {
               onToggleStatus={handleToggleStatus}
               isMobile={isMobile}
               isFirstVisit={isFirstVisit}
+              currentPath={location.pathname + location.search}
             />
           ))}
         </div>
