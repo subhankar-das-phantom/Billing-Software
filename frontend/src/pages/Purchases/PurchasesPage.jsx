@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShoppingBag,
@@ -33,7 +33,8 @@ import {
   useMediaQuery, 
   useMotionConfig, 
   useSWR,
-  useQueryAccumulatedList
+  useQueryAccumulatedList,
+  useListFilterParams
 } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 import { VirtualizedList } from '../../components/Common/VirtualizedList';
@@ -79,12 +80,38 @@ const createTableRowVariants = (isMobile, shouldStagger) => ({
 });
 
 export default function PurchasesPage() {
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const { params: filterParams, setParam, setParams } = useListFilterParams({
+    search: '',
+    status: 'all',
+    startDate: '',
+    endDate: ''
+  });
+  const urlSearch = filterParams.search;
+  const statusFilter = filterParams.status;
+  const startDate = filterParams.startDate;
+  const endDate = filterParams.endDate;
+
   const [page, setPage] = useState(1);
-  const [searchInput, setSearchInput] = useState('');
-  const [search] = useDebounce(searchInput);
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [searchInput, setSearchInput] = useState(() => searchParams.get('search') || '');
+  const [search] = useDebounce(searchInput, 300);
+  const lastSyncedSearchRef = useRef(urlSearch);
+
+  // Sync debounced search to URL
+  useEffect(() => {
+    setParam('search', search);
+    lastSyncedSearchRef.current = search;
+  }, [search, setParam]);
+
+  // Sync external URL changes into search input
+  useEffect(() => {
+    if (urlSearch !== lastSyncedSearchRef.current) {
+      lastSyncedSearchRef.current = urlSearch;
+      setSearchInput(urlSearch);
+    }
+  }, [urlSearch]);
+
   const [mobileFiltersExpanded, setMobileFiltersExpanded] = useState(false);
 
   // Active filter count (excluding search)
@@ -97,9 +124,7 @@ export default function PurchasesPage() {
   }, [statusFilter, startDate, endDate]);
 
   const handleResetFilters = () => {
-    setStatusFilter('all');
-    setStartDate('');
-    setEndDate('');
+    setParams({ status: '', startDate: '', endDate: '' });
     setMobileFiltersExpanded(false);
   };
   const observer = useRef(null);
@@ -118,7 +143,7 @@ export default function PurchasesPage() {
   const cardVariants = useMemo(() => createCardVariants(motionConfig.isMobile), [motionConfig.isMobile]);
   const tableRowVariants = useMemo(() => createTableRowVariants(motionConfig.isMobile, motionConfig.shouldStagger), [motionConfig.isMobile, motionConfig.shouldStagger]);
 
-  const currentQueryKey = `${search}-${statusFilter}-${startDate}-${endDate}`;
+  const currentQueryKey = `${urlSearch}-${statusFilter}-${startDate}-${endDate}`;
   const [isFetching, setIsFetching] = useState(false);
   const isFetchingRef = useRef(false);
   const pendingPageRef = useRef(null);
@@ -137,7 +162,7 @@ export default function PurchasesPage() {
         limit: 20
       };
 
-      if (search) params.search = search;
+      if (urlSearch) params.search = urlSearch;
       if (statusFilter !== 'all') params.status = statusFilter;
       if (startDate) params.startDate = startDate;
       if (endDate) params.endDate = endDate;
@@ -485,7 +510,7 @@ export default function PurchasesPage() {
                   <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                   <select
                     value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
+                    onChange={(e) => setParam('status', e.target.value === 'all' ? '' : e.target.value)}
                     className="select pl-9 w-full text-xs py-2"
                   >
                     <option value="all">All Status</option>
@@ -501,7 +526,7 @@ export default function PurchasesPage() {
                     <input
                       type="date"
                       value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
+                      onChange={(e) => setParam('startDate', e.target.value)}
                       className="input pl-8 w-full text-xs py-1.5"
                     />
                   </div>
@@ -510,7 +535,7 @@ export default function PurchasesPage() {
                     <input
                       type="date"
                       value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
+                      onChange={(e) => setParam('endDate', e.target.value)}
                       className="input pl-8 w-full text-xs py-1.5"
                     />
                   </div>
@@ -548,7 +573,11 @@ export default function PurchasesPage() {
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0 }}
-                  onClick={() => setSearchInput('')}
+                  onClick={() => {
+                    setSearchInput('');
+                    lastSyncedSearchRef.current = '';
+                    setParam('search', '');
+                  }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-100"
                   whileHover={{ rotate: 90 }}
                 >
@@ -563,7 +592,7 @@ export default function PurchasesPage() {
             <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => setParam('status', e.target.value === 'all' ? '' : e.target.value)}
               className="select pl-10 w-full"
             >
               <option value="all">All Status</option>
@@ -579,7 +608,7 @@ export default function PurchasesPage() {
             <input
               type="date"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) => setParam('startDate', e.target.value)}
               className="input pl-10 w-full"
             />
           </div>
@@ -590,7 +619,7 @@ export default function PurchasesPage() {
             <input
               type="date"
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={(e) => setParam('endDate', e.target.value)}
               className="input pl-10 w-full"
             />
           </div>
@@ -673,7 +702,7 @@ export default function PurchasesPage() {
                           }`}
                         >
                           <div 
-                            onClick={() => navigate(`/purchases/${purchase._id}`)} 
+                            onClick={() => navigate(`/purchases/${purchase._id}`, { state: { from: location.pathname + location.search } })} 
                             className={`font-medium cursor-pointer hover:underline ${isCancelled ? 'text-rose-400' : 'text-blue-400 hover:text-blue-300'}`}
                           >
                             <div className="flex items-center gap-2">
@@ -735,7 +764,7 @@ export default function PurchasesPage() {
                           <div className="flex items-center justify-end gap-1.5">
                             <button
                               type="button"
-                              onClick={() => navigate(`/purchases/${purchase._id}`)}
+                              onClick={() => navigate(`/purchases/${purchase._id}`, { state: { from: location.pathname + location.search } })}
                               className="btn btn-secondary py-1 px-2 text-xs inline-flex items-center gap-1 group"
                               title="View details"
                             >
@@ -808,7 +837,7 @@ export default function PurchasesPage() {
                     }`}>
                       {/* Header */}
                       <div 
-                        onClick={() => navigate(`/purchases/${purchase._id}`)} 
+                        onClick={() => navigate(`/purchases/${purchase._id}`, { state: { from: location.pathname + location.search } })} 
                         className="flex justify-between items-start gap-3 cursor-pointer rounded-lg -m-1 p-1 hover:bg-slate-700/30 transition-colors"
                       >
                         <div className="flex gap-3 flex-1">
@@ -861,7 +890,7 @@ export default function PurchasesPage() {
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => navigate(`/purchases/${purchase._id}`)}
+                            onClick={() => navigate(`/purchases/${purchase._id}`, { state: { from: location.pathname + location.search } })}
                             className="btn btn-secondary py-1.5 px-3 text-xs flex items-center gap-1"
                           >
                             <Eye className="w-3.5 h-3.5" />

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Package,
@@ -37,7 +37,7 @@ import EnhancedButton from '../../components/Common/Buttons/EnhancedButton';
 import { VirtualizedList } from '../../components/Common/VirtualizedList';
 import ExportModal from '../../components/Common/Modals/ExportModal';
 import { useToast } from '../../contexts/ToastContext';
-import { useDebounce, useMotionConfig, useFirstVisit, useSWR, invalidateCachePattern, useMediaQuery, useTransitionDelay, useQueryAccumulatedList } from '../../hooks';
+import { useDebounce, useMotionConfig, useFirstVisit, useSWR, invalidateCachePattern, useMediaQuery, useTransitionDelay, useQueryAccumulatedList, useListFilterParams } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 import { useInfiniteScrollSentinel } from '../../utils/scrollUtils';
 
@@ -203,7 +203,7 @@ const EmptyProductsState = ({ search, onAddClick }) => (
 );
 
 // ✅ FIX #2: Separate component for table - simplified for mobile
-const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatCurrency, observerTarget, hasMore, isLoadingMore, isDesktop }) => (
+const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatCurrency, observerTarget, hasMore, isLoadingMore, isDesktop, currentPath }) => (
   <div className="space-y-4">
     {/* Desktop/Tablet Table View */}
     {isDesktop ? (
@@ -235,7 +235,7 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatCurrency, obs
                     return (
                       <div className="grid grid-cols-[minmax(260px,2fr)_120px_180px_120px_100px_150px_130px] items-center px-4 py-3 hover:bg-slate-700/50 transition-colors">
                         <div>
-                          <Link to={`/products/${product._id}`} className="flex items-center gap-3 group">
+                          <Link to={`/products/${product._id}`} state={{ from: currentPath }} className="flex items-center gap-3 group">
                             <div className="p-2 bg-blue-500/20 rounded-lg">
                               <Package className="w-4 h-4 text-blue-400" />
                             </div>
@@ -332,7 +332,7 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatCurrency, obs
           <div className="glass-card p-4 flex flex-col gap-4 relative overflow-hidden">
             {/* Product Info Section */}
             <div className="flex justify-between items-start gap-3">
-              <Link to={`/products/${product._id}`} className="flex gap-3 flex-1 group">
+              <Link to={`/products/${product._id}`} state={{ from: currentPath }} className="flex gap-3 flex-1 group">
                 <div className="p-2.5 bg-blue-500/20 rounded-xl shrink-0 h-fit">
                   <Package className="w-5 h-5 text-blue-400" />
                 </div>
@@ -436,10 +436,17 @@ const ProductsTable = ({ filteredProducts, onEdit, onDelete, formatCurrency, obs
 );
 
 export default function ProductsPage() {
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [searchInput, setSearchInput] = useState('');
-  const [search, flushSearch] = useDebounce(searchInput);
+  const { params: filterParams, setParam } = useListFilterParams({ search: '', stock: 'all' });
+  const urlSearch = filterParams.search;
+  const filterStock = filterParams.stock;
+
+  const [searchInput, setSearchInput] = useState(() => searchParams.get('search') || '');
+  const [debouncedSearch, flushSearch] = useDebounce(searchInput);
   const [searchFocused, setSearchFocused] = useState(false);
+  const lastSyncedSearchRef = useRef(urlSearch);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [formData, setFormData] = useState(initialProductState);
@@ -448,11 +455,24 @@ export default function ProductsPage() {
   const [isExporting, setIsExporting] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, product: null });
   const [stockAdjustment, setStockAdjustment] = useState({ qty: '', reason: 'add' });
-  const [filterStock, setFilterStock] = useState('all');
   const { success, error } = useToast();
   const isFirstVisit = useFirstVisit('products');
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const transitionReady = useTransitionDelay(250, isFirstVisit);
+
+  // Sync debounced search to URL
+  useEffect(() => {
+    setParam('search', debouncedSearch);
+    lastSyncedSearchRef.current = debouncedSearch;
+  }, [debouncedSearch, setParam]);
+
+  // Sync external URL changes (e.g. browser Back/Forward or direct link) into searchInput
+  useEffect(() => {
+    if (urlSearch !== lastSyncedSearchRef.current) {
+      lastSyncedSearchRef.current = urlSearch;
+      setSearchInput(urlSearch);
+    }
+  }, [urlSearch]);
 
   // Auto-open Add Product modal if deep-linked: ?action=new&name=...
   useEffect(() => {
@@ -473,7 +493,7 @@ export default function ProductsPage() {
   const [page, setPage] = useState(1);
   const observer = useRef(null);
 
-  const currentQueryKey = search || '';
+  const currentQueryKey = urlSearch || '';
   const [isFetching, setIsFetching] = useState(false);
   const isFetchingRef = useRef(false);
   const pendingPageRef = useRef(null);
@@ -487,7 +507,7 @@ export default function ProductsPage() {
   const { data, isLoading, isValidating, error: swrError, mutate } = useSWR(
     `products-${currentQueryKey}-${page}`,
     async () => {
-      const res = await productService.getProducts({ search, page, limit: 25 });
+      const res = await productService.getProducts({ search: urlSearch, page, limit: 25 });
       return { ...res, _queryKey: currentQueryKey, _page: page };
     },
     { ttl: 5 * 60 * 1000 } // 5 minute cache
@@ -525,13 +545,13 @@ export default function ProductsPage() {
   hasMoreRef.current = hasMore;
   isValidatingRef.current = isValidating;
 
-  // Reset pagination when debounced search changes
+  // Reset pagination when debounced search or stock filter changes
   useEffect(() => {
     setPage(1);
     pendingPageRef.current = null;
     isFetchingRef.current = false;
     setIsFetching(false);
-  }, [currentQueryKey]);
+  }, [currentQueryKey, filterStock]);
 
   // Release the pagination lock only after the current query's page completes.
   useEffect(() => {
@@ -578,11 +598,15 @@ export default function ProductsPage() {
   const handleSearch = (e) => {
     e.preventDefault();
     flushSearch();
+    setParam('search', searchInput);
+    lastSyncedSearchRef.current = searchInput;
     setPage(1);
   };
 
   const handleClearSearch = () => {
     setSearchInput('');
+    lastSyncedSearchRef.current = '';
+    setParam('search', '');
     setPage(1);
   };
 
@@ -712,7 +736,7 @@ export default function ProductsPage() {
 
     try {
       const params = { format };
-      if (search) params.search = search;
+      if (urlSearch) params.search = urlSearch;
       if (filterStock !== 'all') params.stockFilter = filterStock;
 
       const blob = await productService.exportProducts(params);
@@ -908,7 +932,7 @@ export default function ProductsPage() {
             ].map(({ value, label, icon: Icon }) => (
               <motion.button
                 key={value}
-                onClick={() => setFilterStock(value)}
+                onClick={() => setParam('stock', value === 'all' ? '' : value)}
                 className={`flex-1 px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg font-medium text-xs sm:text-sm transition-all flex items-center justify-center ${filterStock === value
                   ? 'bg-blue-500 text-white shadow-xs'
                   : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-100'
@@ -930,7 +954,7 @@ export default function ProductsPage() {
         </div>
       ) : filteredProducts.length === 0 && !searchLoading ? (
         <EmptyProductsState
-          search={search}
+          search={urlSearch}
           onAddClick={openCreateModal}
         />
       ) : (
@@ -944,6 +968,7 @@ export default function ProductsPage() {
           hasMore={hasMore || searchLoading}
           isLoadingMore={searchLoading || isFetching || (isValidating && page > 1)}
           isDesktop={isDesktop}
+          currentPath={location.pathname + location.search}
         />
       )}
 
@@ -1094,6 +1119,7 @@ export default function ProductsPage() {
                   </div>
                   <Link
                     to={`/products/${editingProduct._id}`}
+                    state={{ from: location.pathname + location.search }}
                     onClick={() => setModalOpen(false)}
                     className="btn btn-secondary flex items-center gap-2 text-sm"
                   >

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileText,
@@ -25,7 +25,7 @@ import { InvoicesTableSkeleton } from './InvoicesPageSkeleton';
 import ExportModal from '../../components/Common/Modals/ExportModal';
 import { useToast } from '../../contexts/ToastContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { invalidateCachePattern, useDebounce, useFirstVisit, useMediaQuery, useMotionConfig, useSWR, useQueryAccumulatedList } from '../../hooks';
+import { invalidateCachePattern, useDebounce, useFirstVisit, useMediaQuery, useMotionConfig, useSWR, useQueryAccumulatedList, useListFilterParams } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 import { VirtualizedList } from '../../components/Common/VirtualizedList';
 import CollapsibleMobileCard from '../../components/Common/Cards/CollapsibleMobileCard';
@@ -70,12 +70,38 @@ const createTableRowVariants = (isMobile, shouldStagger) => ({
 });
 
 export default function InvoicesPage() {
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const { params: filterParams, setParam, setParams } = useListFilterParams({
+    search: '',
+    status: 'all',
+    startDate: '',
+    endDate: ''
+  });
+  const urlSearch = filterParams.search;
+  const statusFilter = filterParams.status;
+  const startDate = filterParams.startDate;
+  const endDate = filterParams.endDate;
+
   const [page, setPage] = useState(1);
-  const [searchInput, setSearchInput] = useState('');
-  const [search] = useDebounce(searchInput);
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [searchInput, setSearchInput] = useState(() => searchParams.get('search') || '');
+  const [search] = useDebounce(searchInput, 300);
+  const lastSyncedSearchRef = useRef(urlSearch);
+
+  // Sync debounced search to URL
+  useEffect(() => {
+    setParam('search', search);
+    lastSyncedSearchRef.current = search;
+  }, [search, setParam]);
+
+  // Sync external URL changes into search input
+  useEffect(() => {
+    if (urlSearch !== lastSyncedSearchRef.current) {
+      lastSyncedSearchRef.current = urlSearch;
+      setSearchInput(urlSearch);
+    }
+  }, [urlSearch]);
+
   const [showExportModal, setShowExportModal] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -99,7 +125,7 @@ export default function InvoicesPage() {
   const cardVariants = useMemo(() => createCardVariants(motionConfig.isMobile), [motionConfig.isMobile]);
   const tableRowVariants = useMemo(() => createTableRowVariants(motionConfig.isMobile, motionConfig.shouldStagger), [motionConfig.isMobile, motionConfig.shouldStagger]);
 
-  const currentQueryKey = `${search}-${statusFilter}-${startDate}-${endDate}`;
+  const currentQueryKey = `${urlSearch}-${statusFilter}-${startDate}-${endDate}`;
   const [isFetching, setIsFetching] = useState(false);
   const isFetchingRef = useRef(false);
   const pendingPageRef = useRef(null);
@@ -122,7 +148,7 @@ export default function InvoicesPage() {
         fuzzy: false
       };
 
-      if (search) params.search = search;
+      if (urlSearch) params.search = urlSearch;
       if (statusFilter !== 'all') params.status = statusFilter;
       if (startDate) params.startDate = startDate;
       if (endDate) params.endDate = endDate;
@@ -400,7 +426,11 @@ export default function InvoicesPage() {
               {searchInput && (
                 <button
                   type="button"
-                  onClick={() => setSearchInput('')}
+                  onClick={() => {
+                    setSearchInput('');
+                    lastSyncedSearchRef.current = '';
+                    setParam('search', '');
+                  }}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-100 p-1"
                 >
                   <XCircle className="w-3.5 h-3.5" />
@@ -455,7 +485,7 @@ export default function InvoicesPage() {
                     <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                     <select
                       value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value)}
+                      onChange={(e) => setParam('status', e.target.value === 'all' ? '' : e.target.value)}
                       className="select pl-9 text-xs py-2 w-full"
                     >
                       <option value="all">All Status</option>
@@ -471,7 +501,7 @@ export default function InvoicesPage() {
                       <input
                         type="date"
                         value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
+                        onChange={(e) => setParam('startDate', e.target.value)}
                         className="input pl-8 text-xs py-1.5 w-full"
                         aria-label="Filter from date"
                       />
@@ -481,7 +511,7 @@ export default function InvoicesPage() {
                       <input
                         type="date"
                         value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
+                        onChange={(e) => setParam('endDate', e.target.value)}
                         className="input pl-8 text-xs py-1.5 w-full"
                         aria-label="Filter to date"
                       />
@@ -494,9 +524,7 @@ export default function InvoicesPage() {
                     <button
                       type="button"
                       onClick={() => {
-                        setStatusFilter('all');
-                        setStartDate('');
-                        setEndDate('');
+                        setParams({ status: '', startDate: '', endDate: '' });
                       }}
                       className="text-xs text-rose-400 hover:text-rose-300 transition-colors flex items-center gap-1 font-medium"
                     >
@@ -530,6 +558,8 @@ export default function InvoicesPage() {
                   exit={{ opacity: 0, scale: 0 }}
                   onClick={() => {
                     setSearchInput('');
+                    lastSyncedSearchRef.current = '';
+                    setParam('search', '');
                   }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-100"
                   whileHover={{ rotate: 90 }}
@@ -545,7 +575,7 @@ export default function InvoicesPage() {
             <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => setParam('status', e.target.value === 'all' ? '' : e.target.value)}
               className="select pl-10 w-full"
             >
               <option value="all">All Status</option>
@@ -561,7 +591,7 @@ export default function InvoicesPage() {
             <input
               type="date"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) => setParam('startDate', e.target.value)}
               className="input pl-10 w-full"
             />
           </div>
@@ -572,7 +602,7 @@ export default function InvoicesPage() {
             <input
               type="date"
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={(e) => setParam('endDate', e.target.value)}
               className="input pl-10 w-full"
             />
           </div>
@@ -726,6 +756,7 @@ export default function InvoicesPage() {
                               <div>
                                 <Link
                                   to={`/invoices/${invoice._id}`}
+                                  state={{ from: location.pathname + location.search }}
                                   className="btn btn-secondary py-1.5 px-3 text-sm inline-flex items-center gap-2 group"
                                 >
                                   <Eye className="w-4 h-4" />
@@ -764,6 +795,7 @@ export default function InvoicesPage() {
                         <div className="flex items-center justify-between gap-2">
                           <Link
                             to={`/invoices/${invoice._id}`}
+                            state={{ from: location.pathname + location.search }}
                             className={`font-semibold text-sm truncate hover:underline ${
                               isCancelled ? 'text-red-400' : 'text-slate-100 hover:text-blue-400'
                             }`}
@@ -831,6 +863,7 @@ export default function InvoicesPage() {
                         </span>
                         <Link
                           to={`/invoices/${invoice._id}`}
+                          state={{ from: location.pathname + location.search }}
                           className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/30 text-xs font-medium transition-colors"
                         >
                           <Eye className="w-3.5 h-3.5" />

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
@@ -91,6 +91,8 @@ const getBatchGroups = (allocations) => {
 
 export default function InvoiceViewPage() {
   const { id } = useParams();
+  const location = useLocation();
+  const backPath = location.state?.from || '/invoices';
   const [updating, setUpdating] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showColumnSettings, setShowColumnSettings] = useState(false);
@@ -427,7 +429,7 @@ export default function InvoiceViewPage() {
           <AlertCircle className="w-10 h-10 text-red-400" />
         </motion.div>
         <p className="text-slate-400 mb-6 text-lg">Invoice not found</p>
-        <Link to="/invoices" className="btn btn-primary inline-flex items-center gap-2">
+        <Link to={backPath} className="btn btn-primary inline-flex items-center gap-2">
           <ArrowLeft className="w-5 h-5" />
           Back to Invoices
         </Link>
@@ -607,7 +609,7 @@ export default function InvoiceViewPage() {
             {/* Left: Back Link & Document Identity */}
             <div className="flex flex-wrap items-center gap-3">
               <Link
-                to="/invoices"
+                to={backPath}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/70 hover:bg-slate-700/80 border border-slate-700/60 text-slate-300 hover:text-slate-100 text-xs font-medium transition-colors"
               >
                 <ArrowLeft className="w-4 h-4 text-slate-400" />

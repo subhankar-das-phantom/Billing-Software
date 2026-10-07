@@ -4,6 +4,52 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.9.8](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.9.8) — 2026-10-08 — Persistent List/Detail Navigation, Public Invoice Rounding Parity, Mobile Density & Customers Workspace Refinement
+
+### 🧭 Persistent List / View State & Detail Return Navigation (`frontend/src/hooks/useListFilterParams.js`, `frontend/src/pages/*`)
+- **Stable URL Filter Parameter Synchronization**: Implemented `useListFilterParams` hook with internal reference protection (`defaultsRef`, `setSearchParamsRef`) guaranteeing stable setter references across renders even when inline default objects are provided.
+- **Universal Search Input Ergonomics**: Retained local state control for all search fields with 300ms debounced URL updates and ref-guarded synchronization, completely eliminating input remounts, focus loss, and cursor jumping.
+- **Seamless 6-Entity Navigation Architecture**: Integrated bidirectional URL state and `location.state.from` return routing across Products (`ProductsPage` ↔ `ProductDetailsPage`), Customers (`CustomersPage` ↔ `CustomerDetailsPage`), Employees (`EmployeesPage` ↔ `EmployeeDetailPage`), Invoices (`InvoicesPage` ↔ `InvoiceViewPage`), Purchases (`PurchasesPage` ↔ `PurchaseDetailsPage`), and Suppliers (`SuppliersPage` ↔ `SupplierDetailsPage`).
+- **Native History & Explicit Back Separation**: Explicit back buttons cleanly return to originating filtered queries, while native browser back and forward actions restore lists and scroll context naturally from browser history.
+
+### 🧾 Public Shared Invoice Rounding & Financial Parity (`backend/utils/serializers/publicInvoiceSerializer.ts`, `frontend/src/pages/Public/PublicInvoicePage.jsx`)
+- **Canonical `finalTotal` Rounding Parity**: Introduced `totals.finalTotal = Math.round(rawNetTotal)` and exact delta calculation `totals.roundOff = Math.round((finalTotal - rawNetTotal) * 100) / 100`, achieving 100% parity with internal `InvoiceViewPage.jsx` calculations while keeping internal invoice view math completely untouched.
+- **Unified Payable Total Across Channels**: Aligned web views, printable A4 sheets, and PDF streaming (`adaptPublicDTOToPDFInvoice`) to display the rounded `finalTotal`.
+- **Accurate Bill Balance Outstanding Calculation**: Updated due calculation `dueAmount = isCancelled ? 0 : Math.max(0, finalTotal - paidAmount)`, ensuring partial payments and settled invoices correctly balance against the rounded payable integer.
+- **Stored Amount in Words Preservation**: Preserved stored `amountInWords` whenever present on internal documents, falling back to Indian numbering word conversion on `finalTotal`.
+- **Comprehensive Automated Verification**: Added 6 canonical test cases in `backend/scripts/testInvoiceSharing.ts` verifying integer invoices (`1000.00` → `1000`, `roundOff: 0.00`), positive round-offs (`999.52` → `1000`, `roundOff: +0.48`), negative round-offs (`999.47` → `999`, `roundOff: -0.47`), paid balances, cancelled invoices, and DTO-PDF adapter consistency.
+
+### 📱 Mobile Employee Card Density Optimization (`frontend/src/pages/Employees/EmployeesPage.jsx`)
+- **Mobile Density Refactoring**: Condensed mobile card padding (`p-3.5 sm:p-5`), avatar dimensions (`w-9 h-9 sm:w-12 sm:h-12`), and metric containers (`p-2 sm:p-3`).
+- **44px Touch Targets in Responsive 2x2 Action Grid**: Converted action buttons on mobile screens to a structured 2x2 grid with `min-h-[44px]` touch targets, eliminating horizontal button squishing and text truncation while preserving the desktop single-row flex layout.
+
+### 🎨 Customers Workspace Architecture & Ergonomics Refinement (`frontend/src/pages/Customers/CustomersPage.jsx`, `frontend/src/pages/Customers/CustomerDetailsPage.jsx`)
+- **Vertical Spacing Reduction**: Tightened root layout whitespace from `space-y-12` to `space-y-6`, eliminating excessive empty space above customer collection cards.
+- **Instant Search Clear Action**: Standardized customer search bar with Lucide `<X />` clear action button.
+- **Originating Filter Scope Inheritance**: Preserved `includeOutstanding: true` and filter states when navigating between list and detail views.
+
+### 📋 Legal & Compliance Invariants
+- **Privacy Policy & Terms Neutrality**: No additional personal data collection, telemetry tracking, or pricing changes were introduced. URL-based filter parameters and rounding parity fixes do not modify tenant data isolation boundaries or alter billing terms.
+
+### Files Modified
+- `backend/utils/serializers/publicInvoiceSerializer.ts` — added `finalTotal` to totals DTO, aligned rounding/due calculations, and updated PDF adapter
+- `backend/scripts/testInvoiceSharing.ts` — added 6 automated test cases covering exact, positive, and negative rounding invariants
+- `frontend/src/hooks/useListFilterParams.js` — created reusable URL filter parameter synchronization hook with ref-guaranteed setter stability
+- `frontend/src/hooks/index.js` — exported `useListFilterParams`
+- `frontend/src/pages/Public/PublicInvoicePage.jsx` — updated web and print views to use `totals.finalTotal ?? totals.netTotal`
+- `frontend/src/pages/Products/ProductsPage.jsx` — wired URL filters, debounced search, and originating state navigation
+- `frontend/src/pages/Products/ProductDetailsPage.jsx` — wired `location.state.from` return navigation
+- `frontend/src/pages/Customers/CustomersPage.jsx` — wired URL filters, tightened layout whitespace, added clear search action, and originating navigation
+- `frontend/src/pages/Customers/CustomerDetailsPage.jsx` — wired `location.state.from` return navigation
+- `frontend/src/pages/Employees/EmployeesPage.jsx` — compacted mobile card composition, 2x2 action grid, and wired URL filters
+- `frontend/src/pages/Employees/EmployeeDetailPage.jsx` — wired `location.state.from` return navigation
+- `frontend/src/pages/Invoices/InvoicesPage.jsx` — wired URL filters and originating navigation
+- `frontend/src/pages/Invoices/InvoiceViewPage.jsx` — wired `location.state.from` return navigation with rounding logic untouched
+- `frontend/src/pages/Purchases/PurchasesPage.jsx` — wired URL filters and originating navigation
+- `frontend/src/pages/Purchases/PurchaseDetailsPage.jsx` — wired `location.state.from` return navigation
+- `frontend/src/pages/Suppliers/SuppliersPage.jsx` — wired URL filters and originating navigation
+- `frontend/src/pages/Suppliers/SupplierDetailsPage.jsx` — wired `location.state.from` return navigation
+
 ## [v2.9.7](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.9.7) — 2026-10-02 — Collections Parity, Mobile Density Optimization, In-Place Catalog Creation & Cashier Closeout
 
 ### 📊 Collections & Sales Analytics Parity Integration (`backend/src/modules/salesAnalytics/services/salesAnalyticsService.ts`, `backend/controllers/reportsController.js`)

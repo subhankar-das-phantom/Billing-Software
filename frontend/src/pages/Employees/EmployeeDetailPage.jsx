@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft,
@@ -66,6 +66,8 @@ const formatDuration = (minutes) => {
 export default function EmployeeDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const backPath = location.state?.from || '/employees';
   const { isMobile } = useMotionConfig();
   const isFirstVisit = useFirstVisit('employee-details');
   
@@ -92,7 +94,7 @@ export default function EmployeeDetailPage() {
       <div className="text-center py-12">
         <p className="text-red-400">{swrError?.message || 'Employee not found'}</p>
         <button 
-          onClick={() => navigate('/employees')}
+          onClick={() => navigate(backPath)}
           className="mt-4 text-blue-400 hover:underline"
         >
           Back to Employees
@@ -136,7 +138,7 @@ export default function EmployeeDetailPage() {
           <motion.button
             whileHover={isMobile ? {} : { scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/employees')}
+            onClick={() => navigate(backPath)}
             className="p-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-slate-100 transition-colors shrink-0"
           >
             <ArrowLeft size={20} />
