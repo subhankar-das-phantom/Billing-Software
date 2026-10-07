@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
@@ -17,7 +17,8 @@ import {
   User,
   CreditCard,
   AlertCircle,
-  SlidersHorizontal
+  SlidersHorizontal,
+  X
 } from 'lucide-react';
 import { customerService } from '../../services/customers/customerService';
 import { formatCurrency, formatPhone } from '../../utils/formatters';
@@ -52,7 +53,8 @@ const CustomerCard = memo(function CustomerCard({
   shouldHover,
   shouldStagger,
   openEditModal,
-  setDeleteDialog
+  setDeleteDialog,
+  currentPath
 }) {
   const theme = getCustomerTheme(customer.theme);
 
@@ -154,6 +156,7 @@ const CustomerCard = memo(function CustomerCard({
           </p>
           <Link
             to={`/customers/${customer._id}`}
+            state={{ from: currentPath }}
             className="text-sm text-blue-400 hover:text-blue-300 inline-flex items-center gap-1 font-medium"
           >
             View Details
@@ -166,6 +169,7 @@ const CustomerCard = memo(function CustomerCard({
 });
 
 export default function CustomersPage() {
+  const location = useLocation();
   // ── Filter state (URL-synced) ─────────────────────────────────
   const {
     filters,
@@ -415,7 +419,7 @@ export default function CustomersPage() {
       initial={isFirstVisit ? { opacity: 0 } : false}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
-      className="space-y-12"
+      className="space-y-6"
     >
       {/* Header */}
       <motion.div
@@ -451,14 +455,14 @@ export default function CustomersPage() {
                 <motion.button
                   type="button"
                   onClick={handleClearSearch}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-100"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-100 p-0.5"
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0 }}
                   whileHover={{ rotate: 90, scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                 >
-                  ✕
+                  <X className="w-4 h-4 text-slate-400 hover:text-slate-100" />
                 </motion.button>
               )}
             </AnimatePresence>
@@ -579,6 +583,7 @@ export default function CustomersPage() {
                 shouldStagger={shouldStaggerCards}
                 openEditModal={openEditModal}
                 setDeleteDialog={setDeleteDialog}
+                currentPath={location.pathname + location.search}
               />
             )}
           />

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useParams, Link, useSearchParams } from 'react-router-dom';
+import { useParams, Link, useSearchParams, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, 
@@ -276,6 +276,8 @@ function MobilePrintPreview({ admin, customer, ledgerData, formatDate }) {
 
 export default function CustomerDetailsPage() {
   const { id } = useParams();
+  const location = useLocation();
+  const backPath = location.state?.from || '/customers';
   const { isAdmin, admin, user } = useAuth();
   const { success, error } = useToast();
   const ledgerPrintRef = useRef();
@@ -531,7 +533,7 @@ export default function CustomerDetailsPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
         >
-          <Link to="/customers" className="btn btn-primary">
+          <Link to={backPath} className="btn btn-primary">
             <ArrowLeft className="w-4 h-4" />
             Back to Customers
           </Link>
@@ -594,7 +596,7 @@ export default function CustomerDetailsPage() {
       {/* Back Button */}
       <motion.div variants={itemVariants}>
         <Link
-          to="/customers"
+          to={backPath}
           className="inline-flex items-center gap-2 text-slate-400 hover:text-slate-100 transition-colors group"
         >
           <motion.div
