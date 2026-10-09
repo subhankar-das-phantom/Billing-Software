@@ -1,4 +1,4 @@
-# 📘 Bharat Enterprise - User Guide (Version 2.10.0)
+# 📘 Bharat Enterprise - User Guide (Version 2.10.1)
 
 > 💡 **Tip:** The system is fully optimized for mobile devices with edge swipe gestures. Swipe right from the left screen edge to open the navigation drawer, and swipe left anywhere to close it.
 

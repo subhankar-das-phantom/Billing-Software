@@ -4,6 +4,30 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.10.1](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.10.1) — 2026-10-10 — Single Compact Half-Sheet Invoice Layout Mode & Multi-Document Print Controls
+
+### 🖨️ Single Compact Half-Sheet Layout Mode (`frontend/src/features/documentPrinting/*`)
+- **1x Half Sheet Workflow Architecture (`InvoiceDocument.jsx`, `documentPrintFormats.js`)**: Introduced dedicated single compact half-sheet mode (`INVOICE_COPY_MODES.HALF = 'half'`) allowing businesses to print a single compact tax invoice (`min-h-[120mm]`, 10px font, 17px header) directly on pre-cut A5 paper or the top half of standard A4 paper without wasting toner on an unwanted second duplicate copy or printing a `"Cut Here"` dashed line divider.
+- **3-Way Interactive Layout Controls (`InvoiceViewPage.jsx`, `PrintFormatSelector.jsx`, `PrintDialog.jsx`)**: Upgraded layout selectors from binary toggles into 3-way segmented switchers (`1x Full Page (A4)`, `2x Half Sheet (A5 Cut)`, and `1x Half Sheet`) across the Tier 2 utility capsule, document preview bar, and modal `PrintDialog`, with persistent `localStorage` synchronization (`invoiceCopyMode`).
+- **Full Backward Compatibility**: Preserved legacy boolean `isSingleCopy` resolution (`isSingleCopy === true` resolving to `'single'`, `false` resolving to `'double'`), ensuring uninterrupted operation for any existing preference stores or consumers.
+- **Continuous Column Alignment (`InvoiceDocument.jsx`)**: Ensured all 12 configurable columns and continuous vertical grid lines (`filler-row`) seamlessly project down to the bottom border in 1x Half Sheet compact layout.
+
+### 📚 Documentation & Technical Specifications
+- **Engineering Guide Overhaul (`frontend/PRINT-POSITIONING-GUIDE.md`)**: Updated the Document Print & Positioning Architecture Guide to document all 3 sheet copy workflows (`1x Full Page (A4)`, `2x Half Sheet (A5 Cut)`, `1x Half Sheet`) alongside thermal POS roll specifications.
+- **User Guide Synchronisation (`docs/USER_GUIDE.md`)**: Updated Section 10.1 with dedicated operational instructions for the `1x Half Sheet` layout mode.
+- **Automated Regression Expansion (`backend/scripts/testInvoicePrintingRegression.ts`)**: Expanded regression test suite to 51 tests asserting `INVOICE_COPY_MODES` canonical exports, `InvoiceDocument` single compact half-sheet rendering invariants, and 3-way selector controls.
+
+### Files Modified
+- `frontend/src/features/documentPrinting/formats/documentPrintFormats.js` — exported canonical `INVOICE_COPY_MODES` constants (`FULL`, `DOUBLE`, `HALF`)
+- `frontend/src/features/documentPrinting/renderers/InvoiceDocument.jsx` — added `copyMode` prop and compact single half-sheet rendering without duplicate copy or divider
+- `frontend/src/features/documentPrinting/components/PrintFormatSelector.jsx` — implemented 3-way segmented control for sheet copy modes
+- `frontend/src/features/documentPrinting/components/PrintDialog.jsx` — wired `copyMode` and `onSelectCopyMode` to live preview canvas and format selector
+- `frontend/src/pages/Invoices/InvoiceViewPage.jsx` — wired 3-way layout switchers on Tier 2 capsule and preview bar, with `localStorage` persistence
+- `frontend/PRINT-POSITIONING-GUIDE.md` — documented the 3 sheet copy modes and positioning rules
+- `docs/USER_GUIDE.md` — updated version header to Version 2.10.1 and documented 1x Half Sheet mode in Section 10.1
+- `backend/scripts/testInvoicePrintingRegression.ts` — added assertions for `INVOICE_COPY_MODES` and 1x Half Sheet layout
+- `README.md` — updated version badge to `v2.10.1`
+
 ## [v2.10.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.10.0) — 2026-10-09 — Multi-Document Format-Aware Printing System, Ledger Pagination Fix & Account Print Preferences
 
 ### 🖨️ Format-Aware Multi-Document Printing Subsystem (`frontend/src/features/documentPrinting/*`)
@@ -13,8 +37,8 @@ For full release notes with implementation details, see [GitHub Releases](https:
   - **Payment Receipts**: A4 (half-fold payment voucher), A5, Thermal 80mm, Thermal 58mm.
   - **Customer & Supplier Ledgers**: A4 & A5 high-density tabular statements.
   - **Daily Closeout Summaries**: A4 & A5 register audit summaries.
-- **A4 / A5 3-Way Sheet Layout Architecture (`InvoiceDocument.jsx`, `documentPrintFormats.js`)**: Upgraded sheet layouts to support three dedicated workflows via `INVOICE_COPY_MODES`: `1x Full Page (A4)` (`min-h-[265mm]`, enterprise full-sheet), `2x Half Sheet (A5 Cut)` (two compact copies on one page with `"Cut Here"` dashed divider), and `1x Half Sheet` (single compact half-sheet copy with `min-h-[120mm]`, no divider, and no second copy for pre-cut A5 paper or compact single-receipt printing).
-- **Interactive 3-Way Layout Switchers (`InvoiceViewPage.jsx`, `PrintFormatSelector.jsx`, `PrintDialog.jsx`)**: Integrated 3-way segmented controls (`1x Full Page (A4)`, `2x Half Sheet (A5 Cut)`, and `1x Half Sheet`) on both the Tier 2 utility capsule and the document preview bar, with persistent `localStorage` synchronization (`invoiceCopyMode`).
+- **Vertical Full-Page A4 Invoice Layout (`InvoiceDocument.jsx`)**: Upgraded single-copy A4 sheet layout into a true vertical full-page enterprise format (`min-h-[265mm]`, generous padding, `flex-1` line-items table, and bottom-pinned amount in words, tax breakdown, and signature block). In double-copy mode, preserved the compact 2-per-page A5 half-cut layout with `"Cut Here"` dashed line divider.
+- **A4 Layout Mode Direct Preview Switcher (`InvoiceViewPage.jsx`, `PrintFormatSelector.jsx`)**: Added instant toggle controls (`1x Full Page (A4)` vs `2x Half Sheet (A5 Cut)`) on the live document preview bar and clarified selector options with touch-friendly controls.
 - **Vertical (Portrait) PDFKit Invoices (`invoiceExportController.ts`, `publicShareController.ts`)**: Switched PDFKit invoice exports and public share PDF downloads from landscape (`layout: 'landscape'`) to portrait (`layout: 'portrait'`). Re-balanced dual party cards (54% left card, 46% right card) to comfortably fit invoice number, dates, and payment status badges with zero text clipping.
 - **Default & None Print Margin Precision (`frontend/src/index.css`, `PrintTransport.js`, `InvoiceDocument.jsx`)**: Preserved standard balanced `@page { size: A4 portrait; margin: 6mm; }` in `PrintTransport.js` so the default browser print dialog margin provides clean, centered 6mm borders without header jamming or bottom clipping. Set `.invoice-copy` to `print:p-0 min-h-[265mm]` and `.print-format-a4` to `max-width: 100% !important; margin: 0 !important;`, ensuring true 0mm edge-to-edge printing when "Margins: None" is selected while fitting comfortably within page boundaries under "Margins: Default".
 - **Continuous Vertical Table Column Extension (`InvoiceDocument.jsx`)**: Resolved the blank white void between line items and totals on shorter invoices. Made items table `height: 100% flex-1 border-collapse` with compact natural data rows (`height: 1px`) and an auto-stretching filler row (`<tr className="filler-row" style={{ height: 'auto' }}>`) that maps over `activeColumns` with `border-r border-black`. Vertical column lines seamlessly extend all the way down to the bottom table border across both single and double copy formats.
