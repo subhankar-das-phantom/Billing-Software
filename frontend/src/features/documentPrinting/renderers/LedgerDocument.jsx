@@ -30,6 +30,7 @@ export default function LedgerDocument({
 
   const metadata = FORMAT_METADATA[format] || FORMAT_METADATA[PRINT_FORMATS.A4];
   const isSupplier = partyType === 'supplier';
+  const isA5 = format === PRINT_FORMATS.A5;
 
   const firm = {
     firmName: admin?.firmName || 'BHARAT ENTERPRISE',

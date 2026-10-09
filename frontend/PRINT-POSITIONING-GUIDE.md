@@ -1,529 +1,188 @@
-# 📄 Invoice Print Positioning Guide
+# 📄 Document Print & Positioning Architecture Guide
+**Bharat Enterprise Billing System (v2.10.0)**
 
-Complete guide to control where and how your invoice prints on A4/A5 paper.
-
----
-
-## 🎯 Quick Summary
-
-Your invoice positioning and print behavior are controlled by **two main files**:
-
-1. **`src/index.css`** (lines 933–1065) — Global print styles, page size, margins, and notification concealment
-2. **`src/pages/Invoices/InvoiceViewPage.jsx`** (lines 893–918) — Printable invoice container (`.invoice-print`)
+Comprehensive engineering guide for document layout, print margins, paper format modes, table column grid extension, and hardware printer positioning across A4 sheets, half-sheet cut vouchers, and continuous thermal receipt rolls.
 
 ---
 
-## 📐 Current Settings
+## 🎯 Architecture Overview
 
-### **Page Settings** (`index.css` lines 934–937)
-```css
-@page {
-  size: A4 portrait;      /* Paper size & orientation */
-  margin: 6mm;            /* Distance from paper edges */
+Document printing is governed by a modular, format-aware subsystem located under **`frontend/src/features/documentPrinting/`**:
+
+```text
+frontend/src/features/documentPrinting/
+├── formats/
+│   └── documentPrintFormats.js      # Canonical format definitions (A4, A5, Thermal 80mm, Thermal 58mm)
+├── transport/
+│   └── PrintTransport.js            # 8-step lifecycle orchestrator & dynamic @page CSS injector
+├── renderers/
+│   ├── InvoiceDocument.jsx          # Full-page A4, 2x half-sheet cut, and thermal roll invoices
+│   ├── LedgerDocument.jsx           # Customer & Supplier ledger statements (isolated terminal summaries)
+│   ├── ReceiptDocument.jsx          # Payment receipt vouchers (A4, A5, Thermal)
+│   ├── CreditNoteDocument.jsx       # Sales return credit note documents
+│   └── DailyCloseoutDocument.jsx    # Cash drawer / register daily audit closeout sheets
+├── primitives/
+│   └── PrintPrimitives.jsx          # Reusable firm headers, party cards, notes, and signatory blocks
+└── components/
+    ├── PrintDialog.jsx              # Unified interactive print modal with real-time scaling
+    └── PrintFormatSelector.jsx      # Format switching radio bar
+```
+
+---
+
+## 📐 Print Margin Engine & Browser Dialog Settings
+
+Positioning is designed around standard **A4 portrait paper (210mm × 297mm)** with dynamic `@page` injection managed by `PrintTransport.js`.
+
+### 1. The `@page` Rule (`PrintTransport.js`)
+```javascript
+function getFormatPageCss(format) {
+  switch (format) {
+    case PRINT_FORMATS.THERMAL_80:
+      return `@page { size: 80mm auto; margin: 2mm; }`;
+    case PRINT_FORMATS.THERMAL_58:
+      return `@page { size: 58mm auto; margin: 2mm; }`;
+    case PRINT_FORMATS.A4:
+    default:
+      return `@page { size: A4 portrait; margin: 6mm; }`;
+  }
 }
 ```
 
-### **Invoice Container** (`InvoiceViewPage.jsx` lines 893–905)
-```jsx
-<motion.div
-  ref={printRef}
-  variants={cardVariants}
-  className="invoice-print bg-white border-2 border-slate-300 shadow-lg"
-  style={{
-    width: '190mm',       /* Invoice width */
-    fontSize: '10px',     /* Base font size */
-    color: '#000000',
-    margin: '0 auto',     /* Centers horizontally */
-    padding: '2mm'        /* Internal spacing */
-  }}
->
+### 2. Browser Print Dialog Margin Modes
+When `window.print()` opens in Chrome, Edge, or Chromium browsers:
+
+| Margin Option in Print Dialog | Resulting Behavior |
+|------------------------------|--------------------|
+| **"Default"** *(Standard)* | Browser applies the stylesheet `@page` margin of **6mm** on all 4 sides. The invoice renders centered with balanced 6mm margins, clean top header offset (~61px down), and comfortable breathing room at the bottom. |
+| **"None"** *(Edge-to-Edge)* | Browser explicitly overrides `@page` and sets margins to **0mm**. Because `.print-format-a4` has `max-width: 100%` and `.invoice-copy` has `print:p-0`, the invoice expands edge-to-edge across the page width with **zero artificial padding**. |
+| **"Minimum"** | Browser applies the hardware printer's mechanical feed limit (~3mm–4mm). |
+| **"Custom"** | Allows the user to drag top, bottom, left, and right margins interactively in the browser preview. |
+
+---
+
+## 📏 Continuous Vertical Table Column Grid Lines
+
+In traditional billing software (Tally, Busy, Marg ERP), invoices with few items do not leave an awkward empty void between the item rows and the footer totals. The column grid lines continue down to the totals box.
+
+### Implementation Architecture (`InvoiceDocument.jsx`)
+1. **100% Height Flex Container**:
+   The table wrapper uses `flex-1 flex flex-col` so it fills all available vertical space between the firm header and bottom totals.
+2. **Table Dimensions**:
+   The `<table>` uses `className="w-full flex-1 border-collapse"` with `style={{ height: '100%', border: '0.5px solid black' }}`.
+3. **Compact Data Rows**:
+   Data rows use `style={{ height: '1px' }}` so the browser table layout engine renders each product row at its minimal natural height without stretching item rows vertically.
+4. **Auto-Stretching Filler Row**:
+   A dedicated filler row is placed at the bottom of `<tbody>`:
+   ```jsx
+   <tr className="filler-row" style={{ height: 'auto' }}>
+     {activeColumns.map((col, i) => (
+       <td
+         key={`filler-${col.key}`}
+         className={`${i < activeColumns.length - 1 ? 'border-r border-black' : ''} p-0`}
+         style={{ width: col.width }}
+       >
+         &nbsp;
+       </td>
+     ))}
+   </tr>
+   ```
+   The browser table engine automatically allocates 100% of remaining vertical height to this row, seamlessly extending every vertical column separator line down to the bottom border of the table.
+
+---
+
+## 📄 Invoice Layout Modes
+
+Invoices support two primary sheet workflows plus thermal POS rolls:
+
+### 1. `1x Full Page (A4)` — Single Enterprise Copy
+- **Container Height**: `min-h-[265mm]` inside the 285mm printable height.
+- **Header**: Dual-column firm identity card and payment details (UPI, A/C, IFSC, DL, GSTIN).
+- **Sub-Header**: 3-column party card (Billed To, GSTIN/DL, Invoice Meta).
+- **Table**: 12 configurable columns with extended vertical column lines.
+- **Footer**: Current Outstanding Dues, Taxable, CGST, SGST, Round Off, Net Payable, Amount in Words, and Authorized Signatory.
+
+### 2. `2x Half Sheet (A5 Cut)` — Double Copy (Customer + Dealer)
+- **Container Height**: Two identical copies with `min-h-[120mm]`.
+- **Divider**: Centered dashed line with `"Cut Here"` indicator.
+- Designed for users who print two copies on one physical A4 sheet and cut the paper in half for the customer and office archive.
+
+### 3. Thermal POS Rolls (80mm & 58mm)
+- **Thermal 80mm**: 3-inch roll format (`@page { size: 80mm auto; margin: 2mm; }`, usable width ~72mm).
+- **Thermal 58mm**: 2-inch roll format (`@page { size: 58mm auto; margin: 2mm; }`, usable width ~50mm).
+- Independent receipt layouts with compact item descriptions (`HSN`, `Batch`, `(+1 Free)`), dashed totals lines, and solid black `#000000` text contrast.
+
+---
+
+## 📊 Canonical 12-Column Layout & PDFKit Parity
+
+Both the browser print sheet (`InvoiceDocument.jsx`) and the server-side PDFKit export engine (`invoiceExportController.ts`, `publicShareController.ts`) share the exact same 12-column canonical sequence:
+
+```text
+1. Qty        — Quantity sold
+2. Fr         — Free / scheme bonus quantity
+3. Product    — Product Name & pack size
+4. HSN        — Harmonized System of Nomenclature code
+5. Batch      — Batch lot number (grouped multi-batch allocation)
+6. Expiry     — Expiry date (MM/YY)
+7. MRP        — Maximum Retail Price
+8. Rate       — Billed unit rate (exclusive of GST)
+9. Net        — GST-inclusive derived rate (Rate × (1 + GST%))
+10. Disc%     — Scheme discount percentage
+11. GST%      — Applicable Goods & Services Tax percentage
+12. Amount    — Final line item payable amount
 ```
+
+---
+
+## 📋 Ledger Statement Printing Architecture (`LedgerDocument.jsx`)
+
+Customer and supplier ledgers support dense, multi-page transactional statements:
+- **Terminal Summary Block**: Summary totals (`TOTAL TRANSACTIONS` and `CLOSING BALANCE`) and signatory blocks are rendered inside a dedicated `.print-final-summary` container outside the data `<table>`. This eliminates browser `tfoot` bugs that cause summary rows to repeat on every printed page.
+- **Format Awareness**: Dynamically evaluates `const isA5 = format === PRINT_FORMATS.A5;` to apply compact `8px` typography for half-sheet statements and `9px` typography for full A4 statements.
 
 ---
 
 ## 🛡️ Print Isolation & UI Concealment (`.no-print`)
 
-The platform enforces a strict **two-layer print isolation defense** to guarantee that printed documents (Invoices, Credit Notes, Customer Ledgers, Supplier Ledgers) contain **only** legitimate business content:
-
-### 1. The Canonical `.no-print` Class
-Any component or element that represents screen-only UI (such as action toolbars, navigation buttons, edit links, or modals) is marked with `no-print`. Inside `index.css`:
-```css
-@media print {
-  .no-print,
-  .no-print * {
-    display: none !important;
-  }
-}
-```
-
-### 2. Automatic Notification & Chrome Concealment
-Even if a notification or alert is active on the screen when `window.print()` is triggered (such as a 5-second "Invoice created successfully!" toast or a "Trial Ending Soon" banner), the global print stylesheet hides it automatically:
+All screen-only UI elements are hidden automatically during print:
 ```css
 @media print {
   .no-print,
   .no-print *,
   .toast-container,
-  .toast,
   .subscription-banner,
   [role="alert"],
-  [role="status"],
   [role="dialog"],
-  [role="listbox"],
-  aside,
-  header,
-  nav,
-  button,
-  .sidebar,
-  .navbar,
-  [class*="backdrop-blur"] {
+  aside, header, nav, button {
     display: none !important;
   }
 }
 ```
 
-This guarantees zero race conditions between UI state and print triggers.
-
----
-
-## 🔧 How to Adjust Positioning
-
-### **1. Change Page Margins** (Distance from paper edges)
-
-Edit `index.css` lines 220:
-
+### Dark Mode Text Contrast Protection
+All printable documents enforce solid `#000000` text on white paper, regardless of whether the user has light mode or dark mode active on their screen:
 ```css
-@page {
-  size: A5 portrait;
-  margin: 5mm;  /* ← Change this */
-}
-```
-
-**Common adjustments:**
-
-| Setting | Effect |
-|---------|--------|
-| `margin: 0;` | No margins (edge-to-edge printing) |
-| `margin: 5mm;` | 5mm on all sides (current) |
-| `margin: 10mm;` | 10mm on all sides (more space) |
-| `margin: 10mm 5mm;` | 10mm top/bottom, 5mm left/right |
-| `margin: 10mm 15mm 5mm 20mm;` | Top, Right, Bottom, Left (TRBL) |
-
-**Examples:**
-
-```css
-/* Start lower on page (more top margin) */
-@page {
-  size: A5 portrait;
-  margin: 15mm 5mm 5mm 5mm;  /* 15mm top, 5mm others */
-}
-
-/* Start further right (more left margin) */
-@page {
-  size: A5 portrait;
-  margin: 5mm 5mm 5mm 15mm;  /* 15mm left, 5mm others */
-}
-
-/* Edge-to-edge printing */
-@page {
-  size: A5 portrait;
-  margin: 0;
+html.dark .invoice-print,
+html.dark .invoice-print *,
+html.dark .invoice-copy {
+  color: #000000 !important;
+  background-color: #ffffff !important;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 }
 ```
 
 ---
 
-### **2. Change Invoice Content Alignment** (Left/Right positioning)
-
-Edit `InvoiceViewPage.jsx` line 246:
-
-```jsx
-style={{ 
-  width: '148mm',
-  fontSize: '8px',
-  color: '#000000',
-  margin: '0 auto',  /* ← Change this for horizontal positioning */
-  padding: '3mm'
-}}
-```
-
-**Horizontal positioning options:**
-
-| Setting | Effect |
-|---------|--------|
-| `margin: '0 auto'` | Center (current) |
-| `margin: '0'` | Align left |
-| `margin: '0 0 0 auto'` | Align right |
-| `margin: '0 0 0 10mm'` | 10mm from left edge |
-| `margin: '0 10mm 0 auto'` | 10mm from right edge |
-
-**Vertical positioning options:**
-
-| Setting | Effect |
-|---------|--------|
-| `marginTop: '0'` | Start at top |
-| `marginTop: '10mm'` | Start 10mm from top |
-| `marginTop: '20mm'` | Start 20mm from top |
-| `marginBottom: '10mm'` | 10mm space at bottom |
-
-**Examples:**
-
-```jsx
-/* Align invoice to the left */
-style={{ 
-  width: '148mm',
-  margin: '0',  /* Left-aligned */
-  padding: '3mm'
-}}
-
-/* Align invoice to the right */
-style={{ 
-  width: '148mm',
-  margin: '0 0 0 auto',  /* Right-aligned */
-  padding: '3mm'
-}}
-
-/* Start 15mm from top, centered */
-style={{ 
-  width: '148mm',
-  margin: '15mm auto 0 auto',  /* 15mm top, centered */
-  padding: '3mm'
-}}
-
-/* Position exactly */
-style={{ 
-  width: '148mm',
-  margin: '10mm 0 0 15mm',  /* 10mm from top, 15mm from left */
-  padding: '3mm'
-}}
-```
-
----
-
-### **3. Change Paper Size & Orientation**
-
-Edit `index.css` line 219:
-
-```css
-@page {
-  size: A5 portrait;  /* ← Change this */
-  margin: 5mm;
-}
-```
-
-**Available paper sizes:**
-
-| Setting | Dimensions | Use Case |
-|---------|-----------|----------|
-| `A5 portrait` | 148mm × 210mm | Current (small bill) |
-| `A5 landscape` | 210mm × 148mm | Wide bill |
-| `A4 portrait` | 210mm × 297mm | Full page bill |
-| `A4 landscape` | 297mm × 210mm | Wide full page |
-| `letter portrait` | 8.5" × 11" | US Letter |
-| `148mm 210mm` | Custom | Exact dimensions |
-
-**Examples:**
-
-```css
-/* Switch to A4 */
-@page {
-  size: A4 portrait;
-  margin: 10mm;
-}
-
-/* Use landscape A5 */
-@page {
-  size: A5 landscape;
-  margin: 5mm;
-}
-
-/* Custom size (thermal printer) */
-@page {
-  size: 80mm 200mm;
-  margin: 2mm;
-}
-```
-
----
-
-### **4. Adjust Invoice Width**
-
-Edit `InvoiceViewPage.jsx` line 242:
-
-```jsx
-style={{ 
-  width: '148mm',  /* ← Change this to match your needs */
-  margin: '0 auto',
-  padding: '3mm'
-}}
-```
-
-**Common widths:**
-
-| Width | Use Case |
-|-------|----------|
-| `148mm` | A5 portrait (current) |
-| `200mm` | A4 with margins |
-| `210mm` | Full A4 width |
-| `80mm` | Thermal printer |
-| `100%` | Fill container |
-
----
-
-### **5. Adjust Internal Padding**
-
-Edit `InvoiceViewPage.jsx` line 247:
-
-```jsx
-style={{ 
-  width: '148mm',
-  margin: '0 auto',
-  padding: '3mm'  /* ← Space inside invoice borders */
-}}
-```
-
-**Padding options:**
-
-| Setting | Effect |
-|---------|--------|
-| `padding: '0'` | No internal spacing |
-| `padding: '3mm'` | 3mm on all sides (current) |
-| `padding: '5mm 10mm'` | 5mm top/bottom, 10mm left/right |
-| `padding: '5mm 10mm 5mm 15mm'` | Top, Right, Bottom, Left |
-
----
-
-## 🎨 Complete Examples
-
-### **Example 1: Center on A4, More Margins**
-
-**index.css:**
-```css
-@media print {
-  @page {
-    size: A4 portrait;
-    margin: 15mm;  /* Larger margins */
-  }
-  
-  .invoice-print {
-    width: 180mm !important;  /* Wider for A4 */
-    background: white !important;
-    color: black !important;
-    font-size: 10px !important;  /* Bigger font */
-  }
-}
-```
-
-**InvoiceViewPage.jsx:**
-```jsx
-style={{ 
-  width: '180mm',      /* Wider invoice */
-  margin: '0 auto',    /* Keep centered */
-  padding: '5mm'       /* More padding */
-}}
-```
-
----
-
-### **Example 2: Align Left, Start Lower**
-
-**index.css:**
-```css
-@media print {
-  @page {
-    size: A5 portrait;
-    margin: 20mm 5mm 5mm 10mm;  /* 20mm top, 10mm left */
-  }
-}
-```
-
-**InvoiceViewPage.jsx:**
-```jsx
-style={{ 
-  width: '148mm',
-  margin: '0',         /* Left-aligned */
-  padding: '3mm'
-}}
-```
-
----
-
-### **Example 3: Right-Aligned with Custom Offset**
-
-**InvoiceViewPage.jsx:**
-```jsx
-style={{ 
-  width: '140mm',            /* Slightly narrower */
-  margin: '5mm 5mm 0 auto',  /* 5mm from top, right-aligned */
-  padding: '3mm'
-}}
-```
-
----
-
-### **Example 4: Thermal Printer (80mm)**
-
-**index.css:**
-```css
-@media print {
-  @page {
-    size: 80mm auto;  /* Auto height for continuous paper */
-    margin: 2mm;
-  }
-  
-  .invoice-print {
-    width: 76mm !important;  /* 80mm - margins */
-    font-size: 7px !important;
-  }
-}
-```
-
-**InvoiceViewPage.jsx:**
-```jsx
-style={{ 
-  width: '76mm',
-  margin: '0',
-  padding: '2mm'
-}}
-```
-
----
-
-## 🧪 Testing Your Changes
-
-### **Step 1: Make Changes**
-Edit `index.css` and/or `InvoiceViewPage.jsx`
-
-### **Step 2: Reload App**
-```bash
-# Your dev server should auto-reload
-# If not, restart it:
-npm run dev
-```
-
-### **Step 3: Test Print**
-1. Open an invoice in your browser (`http://localhost:3000/invoices/{id}`)
-2. Click the **Print** button
-3. In print preview:
-   - Check positioning
-   - Verify margins
-   - Ensure nothing is cut off
-
-### **Step 4: Adjust & Repeat**
-- Too far right? Decrease left margin
-- Too high? Increase top margin
-- Content cut off? Reduce width or increase page margins
-
----
-
-## 📊 Quick Reference Table
-
-| What to Change | File | Line | Setting |
-|---------------|------|------|---------|
-| **Page margins** (from edge) | index.css | 220 | `margin: 5mm;` |
-| **Paper size** | index.css | 219 | `size: A5 portrait;` |
-| **Horizontal align** | InvoiceViewPage.jsx | 246 | `margin: '0 auto'` |
-| **Vertical position** | InvoiceViewPage.jsx | 246 | Add `marginTop` |
-| **Invoice width** | InvoiceViewPage.jsx | 242 | `width: '148mm'` |
-| **Internal spacing** | InvoiceViewPage.jsx | 247 | `padding: '3mm'` |
-| **Font size** | index.css | 228 | `font-size: 9px !important;` |
-
----
-
-## 🎯 Common Scenarios
-
-### **"Start printing lower on the page"**
-```css
-/* Option 1: Increase page top margin */
-@page {
-  margin: 15mm 5mm 5mm 5mm;  /* 15mm from top */
-}
-
-/* Option 2: Add top margin to invoice */
-/* In InvoiceViewPage.jsx: */
-style={{ marginTop: '15mm', ... }}
-```
-
-### **"Move invoice to the right"**
-```css
-/* Option 1: Increase page left margin */
-@page {
-  margin: 5mm 5mm 5mm 15mm;  /* 15mm from left */
-}
-
-/* Option 2: Add left margin to invoice */
-/* In InvoiceViewPage.jsx: */
-style={{ margin: '0 0 0 15mm', ... }}
-```
-
-### **"Make invoice smaller"**
-```jsx
-/* In InvoiceViewPage.jsx: */
-style={{ 
-  width: '130mm',         /* Narrower */
-  fontSize: '7px',        /* Smaller text */
-  padding: '2mm'          /* Less padding */
-}}
-```
-
-### **"Center on A4 instead of A5"**
-```css
-/* In index.css: */
-@page {
-  size: A4 portrait;  /* Change to A4 */
-  margin: 10mm;
-}
-
-/* In InvoiceViewPage.jsx: */
-style={{ 
-  width: '190mm',      /* Wider for A4 */
-  margin: '0 auto'     /* Keep centered */
-}}
-```
-
----
-
-## 🛠️ Troubleshooting
-
-### **Invoice is cut off**
-- **Cause:** Width too large for page
-- **Fix:** Reduce `width` in InvoiceViewPage.jsx or increase page size
-
-### **Too much white space**
-- **Cause:** Margins too large
-- **Fix:** Reduce `margin` in `@page` rule
-
-### **Content not centered**
-- **Cause:** Wrong margin setting
-- **Fix:** Use `margin: '0 auto'` in InvoiceViewPage.jsx
-
-### **Print preview looks different from screen**
-- **Cause:** Browser print settings
-- **Fix:** In print dialog, ensure:
-  - Scale: 100%
-  - Margins: None or Minimum
-  - Background graphics: Enabled (for testing)
-
----
-
-## 📝 Pro Tips
-
-1. **Always test in print preview** before actual printing
-2. **Use millimeters (mm)** for precise positioning
-3. **Keep margins between 5mm-15mm** for safe printing
-4. **Account for printer limitations** (most can't print to edge)
-5. **Test with multiple browsers** (Chrome, Firefox, Edge)
-6. **Save paper settings in printer** for consistency
-
----
-
-## 🚀 Next Steps
-
-1. **Choose your scenario** from examples above
-2. **Edit the files** as shown
-3. **Test in browser** print preview
-4. **Fine-tune** until perfect
-5. **Print** a test page
-
----
-
-Need more help? Check which scenario matches your need and I'll provide exact code!
+## 🔧 Quick Adjustment Reference
+
+| To Change... | Edit File | Property / Setting |
+|-------------|-----------|--------------------|
+| **Default page margins** | `PrintTransport.js` | `@page { size: A4 portrait; margin: 6mm; }` |
+| **Full-page invoice height** | `InvoiceDocument.jsx` | `min-h-[265mm]` on `.invoice-copy` |
+| **Half-sheet cut height** | `InvoiceDocument.jsx` | `min-h-[120mm]` on `.invoice-copy` |
+| **Thermal 80mm roll width** | `index.css` & `PrintTransport.js` | `74mm` in CSS, `80mm auto; margin: 2mm;` in `@page` |
+| **Thermal 58mm roll width** | `index.css` & `PrintTransport.js` | `52mm` in CSS, `58mm auto; margin: 2mm;` in `@page` |
+| **Table filler row style** | `InvoiceDocument.jsx` | `<tr className="filler-row" style={{ height: 'auto' }}>` |
+| **Ledger font size** | `LedgerDocument.jsx` | `fontSize: isA5 ? '8px' : '9px'` |

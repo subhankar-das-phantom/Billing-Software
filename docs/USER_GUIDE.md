@@ -1,4 +1,4 @@
-# 📘 Bharat Enterprise - User Guide (Version 2.0.0)
+# 📘 Bharat Enterprise - User Guide (Version 2.10.0)
 
 > 💡 **Tip:** The system is fully optimized for mobile devices with edge swipe gestures. Swipe right from the left screen edge to open the navigation drawer, and swipe left anywhere to close it.
 
@@ -135,7 +135,61 @@ Admins can create employee logins with granular permission toggles:
 
 ---
 
-## 10. Frequently Asked Questions
+## 10. Format-Aware Document Printing & Layouts
+
+Bharat Enterprise provides an enterprise-grade, format-aware printing and PDF export subsystem tailored for standard laser/inkjet printers and point-of-sale (POS) thermal receipt printers.
+
+### 10.1 Supported Document Formats
+Every commercial document supports specialized layouts:
+- **Invoices**:
+  - **A4 / A5 (1x Full Page)**: Single full-page vertical tax invoice (`min-h-[265mm]`) with firm header, dual buyer/seller boxes, dynamic 12-column line items table, and bottom-pinned totals, tax breakdown, and signature block.
+  - **A4 / A5 (2x Half Sheet)**: Two identical compact invoices printed on a single A4 sheet with a dashed `"Cut Here"` divider line.
+  - **Thermal 80mm**: Standard 3-inch roll format for retail counters with high-contrast black text and condensed summary metrics.
+  - **Thermal 58mm**: Compact 2-inch roll format for ultra-compact POS receipt printers.
+- **Credit Notes**: A4, A5, Thermal 80mm, Thermal 58mm.
+- **Payment Receipts**: A4 (half-fold voucher), A5, Thermal 80mm, Thermal 58mm.
+- **Customer & Supplier Ledgers**: A4 & A5 high-density statements with running balances.
+- **Daily Closeout Summaries**: A4 & A5 register audit summaries.
+
+### 10.2 Printer Margin Settings (Default vs. None)
+When clicking **Print** or pressing `Ctrl + P`, the browser's system print dialog will open:
+- **Margins: Default (Recommended)**: Applies standard 6mm outer padding around the page. Ensures clean breathing room around all four edges with zero header clipping or bottom overflow.
+- **Margins: None**: Applies 0mm margins edge-to-edge. The system automatically expands table borders and extends column grid lines to the bottom edge without creating blank page overflows.
+- **Headers & Footers**: Always uncheck "Headers and Footers" in your browser print dialog to prevent the browser from printing unwanted URLs, dates, or page numbers at the top and bottom.
+
+### 10.3 Column Customization (Sheet Formats)
+On A4/A5 sheet formats, you can customize which table columns appear on your printed invoice:
+1. In the invoice view or print dialog, click **Columns**.
+2. Toggle individual columns on or off:
+   - `Qty` (Quantity)
+   - `Fr` (Free Quantity)
+   - `Product Name`
+   - `HSN` (Harmonized System of Nomenclature code)
+   - `Batch` (Batch Lot Number)
+   - `Expiry` (Expiration Date `MM/YY`)
+   - `MRP` (Maximum Retail Price)
+   - `Rate` (Selling Rate per unit)
+   - `Net` (Tax-inclusive Net Rate)
+   - `Disc%` (Discount percentage)
+   - `GST%` (Applicable GST rate)
+   - `Amount` (Line Item Total)
+3. Columns automatically adjust their widths while maintaining the canonical column sequence. Continuous vertical grid lines extend from the line items down to the totals bar.
+> 💡 *Note: Column toggles apply to Sheet formats (A4/A5). Thermal POS rolls use a fixed, high-density 3-line layout to guarantee legibility on narrow 58mm/80mm thermal paper.*
+
+### 10.4 Customer & Supplier Ledger Printing
+Ledger statements support multi-page printing with running balances:
+- Running debit/credit rows flow cleanly across multiple pages.
+- The summary closing balance, net transaction totals, and authorized signature blocks are placed in an isolated final block that prints strictly once at the end of the statement (no duplicate footers on intermediate pages).
+
+### 10.5 Default Print Preferences
+Administrators can set default paper formats for each document type:
+1. Navigate to **Settings → Printing**.
+2. Select your business's preferred format for each document type (e.g. Invoices → Thermal 80mm, Ledgers → A4).
+3. Changes save instantly and automatically pre-select your preferred layout whenever opening the print dialog.
+
+---
+
+## 11. Frequently Asked Questions
 
 **Q: Can I use the system without batch numbers or expiry dates?**  
 *A:* Yes. Products work seamlessly without batch numbers or expiry dates. The system automatically assigns safe fallbacks ("No Batch") and standard pooled stock logic.
@@ -145,3 +199,4 @@ Admins can create employee logins with granular permission toggles:
 
 **Q: How do referral bonus days work?**  
 *A:* Share your referral code from **Subscription → Referrals**. When a new business registers with your code and activates, bonus subscription days are automatically credited to your account.
+

@@ -4,7 +4,7 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
-## [v2.9.9](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.9.9) — 2026-10-09 — Multi-Document Format-Aware Printing System, Ledger Pagination Fix & Account Print Preferences
+## [v2.10.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.10.0) — 2026-10-09 — Multi-Document Format-Aware Printing System, Ledger Pagination Fix & Account Print Preferences
 
 ### 🖨️ Format-Aware Multi-Document Printing Subsystem (`frontend/src/features/documentPrinting/*`)
 - **Universal Format Architecture**: Designed and implemented modular document renderers supporting independent paper layouts:
@@ -16,13 +16,15 @@ For full release notes with implementation details, see [GitHub Releases](https:
 - **Vertical Full-Page A4 Invoice Layout (`InvoiceDocument.jsx`)**: Upgraded single-copy A4 sheet layout into a true vertical full-page enterprise format (`min-h-[265mm]`, generous padding, `flex-1` line-items table, and bottom-pinned amount in words, tax breakdown, and signature block). In double-copy mode, preserved the compact 2-per-page A5 half-cut layout with `"Cut Here"` dashed line divider.
 - **A4 Layout Mode Direct Preview Switcher (`InvoiceViewPage.jsx`, `PrintFormatSelector.jsx`)**: Added instant toggle controls (`1x Full Page (A4)` vs `2x Half Sheet (A5 Cut)`) on the live document preview bar and clarified selector options with touch-friendly controls.
 - **Vertical (Portrait) PDFKit Invoices (`invoiceExportController.ts`, `publicShareController.ts`)**: Switched PDFKit invoice exports and public share PDF downloads from landscape (`layout: 'landscape'`) to portrait (`layout: 'portrait'`). Re-balanced dual party cards (54% left card, 46% right card) to comfortably fit invoice number, dates, and payment status badges with zero text clipping.
-- **Edge-to-Edge Print Margins & Zero Dead-Space Layout (`frontend/src/index.css`, `PrintTransport.js`)**: Eliminated hardcoded `max-width: 190mm !important; margin: 0 auto !important;` in `.print-format-a4`, replacing it with `width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important;`. Updated `getFormatPageCss(A4)` in `PrintTransport.js` to `@page { size: A4 portrait; margin: 0; }`. Selecting "Margins: None" in browser print dialogs now utilizes 100% of the printable sheet width without unwanted artificial margins.
+- **Default & None Print Margin Precision (`frontend/src/index.css`, `PrintTransport.js`, `InvoiceDocument.jsx`)**: Preserved standard balanced `@page { size: A4 portrait; margin: 6mm; }` in `PrintTransport.js` so the default browser print dialog margin provides clean, centered 6mm borders without header jamming or bottom clipping. Set `.invoice-copy` to `print:p-0 min-h-[265mm]` and `.print-format-a4` to `max-width: 100% !important; margin: 0 !important;`, ensuring true 0mm edge-to-edge printing when "Margins: None" is selected while fitting comfortably within page boundaries under "Margins: Default".
 - **Continuous Vertical Table Column Extension (`InvoiceDocument.jsx`)**: Resolved the blank white void between line items and totals on shorter invoices. Made items table `height: 100% flex-1 border-collapse` with compact natural data rows (`height: 1px`) and an auto-stretching filler row (`<tr className="filler-row" style={{ height: 'auto' }}>`) that maps over `activeColumns` with `border-r border-black`. Vertical column lines seamlessly extend all the way down to the bottom table border across both single and double copy formats.
 - **Canonical 12-Column Alignment Parity in PDFKit Exports (`invoiceExportController.ts`)**: Harmonized PDFKit single invoice export (`drawSingleInvoicePDF`) with sheet invoice print columns, enforcing the exact canonical sequence: `Qty | Fr | Product Name | HSN | Batch | Expiry | MRP | Rate | Net | Disc% | GST% | Amount`. Replaced disparate 14-column layout (`Sr.`, `Taxable`) with unified 12-column structure matching web, print, and public customer PDF downloads.
 - **Shared Interactive `PrintDialog`**: Built unified modal print preview dialog (`PrintDialog.jsx`) featuring instant on-the-fly format switching via `PrintFormatSelector`, high-fidelity responsive preview scaling (`transform: scale(...)`) completely isolated from `@media print`, double-copy toggle for A4 invoices, and print-ready status indication.
 - **8-Step Browser Print Lifecycle (`PrintTransport.js`)**: Robust orchestrator ensuring 100% asset and font readiness via `document.fonts.ready`, dynamic `@page { size: ...; margin: ... }` injection and automatic cleanup on `afterprint`, double `requestAnimationFrame` render stabilization, and cleanup.
 - **Zero Financial Drift**: Presentation renderers strictly consume authoritative server calculations and format numbers to the Indian numbering standard (`en-IN`) down to the exact paisa, guaranteeing zero financial calculation deviation across formats.
 - **Dynamic Text Wrap & Ellipsis Removal**: Multi-line invoice notes, credit note return reasons, payment remarks, and long product names wrap naturally across table cells with zero text truncation or clipping.
+- **Customer & Supplier Ledger Runtime Scope Fix (`LedgerDocument.jsx`)**: Resolved `ReferenceError: isA5 is not defined` triggered during font-size resolution in customer and supplier print renders by defining `const isA5 = format === PRINT_FORMATS.A5;`.
+- **Comprehensive Print Positioning Guide (`frontend/PRINT-POSITIONING-GUIDE.md`)**: Fully overhauled engineering documentation detailing `@page` CSS margin rules, Default (6mm) vs None (0mm) margin behavior, 12-column canonical alignment, continuous vertical grid line rendering (`filler-row`), thermal POS roll mechanics, and hardware troubleshooting.
 
 ### 📄 Customer & Supplier Ledger Summary Pagination Defect Resolution (`frontend/src/index.css`, `frontend/src/pages/Customers/*`, `frontend/src/pages/Suppliers/*`)
 - **Root Cause Fix**: Discovered that browsers repeat CSS `tfoot` elements at the bottom of every printed page when `display: table-footer-group` is active.
@@ -71,22 +73,24 @@ For full release notes with implementation details, see [GitHub Releases](https:
   - Identified and resolved a CSS specificity collision where `html.dark .text-black` was forcibly applying `!text-white` to elements using `.text-black` on white thermal receipts, turning item descriptions, totals, and root text white on a white paper background.
   - Excluded all print and receipt documents from `html.dark .text-black`, added high-specificity rules enforcing `#000000` text across both light and dark themes, and set explicit inline black text colors across thermal item lines, headers, notes, and totals.
 - **Automated Regression Verification (`backend/scripts/testInvoicePrintingRegression.ts`)**:
-  - Expanded regression suite to 38 tests, asserting dynamic column filtering, individual column toggle isolation, batch grouping and UNNAMED filtering, Net rate derivation, round-off formatting, thermal POS independence, CSS page sizing rules, and dark mode print contrast guards.
+  - Expanded regression suite to 47 tests, asserting dynamic column filtering, individual column toggle isolation, batch grouping and UNNAMED filtering, Net rate derivation, round-off formatting, thermal POS independence, CSS page sizing rules, dark mode print contrast guards, 6mm default A4 @page margin, 265mm height, filler-row continuous grid lines, and 12 canonical PDF columns.
 
 ### Files Modified
 - `backend/models/Admin.js` — added `preferences.documentPrintFormats` schema with defaults
 - `backend/controllers/authController.js` — implemented admin authorization, capability matrix enforcement, and partial update merging
+- `backend/controllers/invoiceExportController.ts` — aligned PDFKit single invoice export (`drawSingleInvoicePDF`) to portrait 12-column canonical sequence
+- `backend/controllers/publicShareController.ts` — switched public PDF download to portrait orientation
 - `backend/scripts/testDocumentPrintFormats.ts` — created automated test suite verifying 38 print preference invariants
-- `backend/scripts/testInvoicePrintingRegression.ts` — created automated regression suite verifying 36 column, thermal, legacy layout, and A5 invariants
+- `backend/scripts/testInvoicePrintingRegression.ts` — expanded automated regression suite to 47 tests verifying column, thermal, legacy layout, filler row, margin, and PDF export invariants
 - `frontend/src/index.css` — added format-specific print dimensions, double-print isolation (`body.is-printing-document #root`), A5 190mm horizontal width, and fixed `tfoot` table footer repetition
 - `frontend/src/features/documentPrinting/formats/documentPrintFormats.js` — created authoritative format constants, metadata, capability matrix, and fallback resolver
-- `frontend/src/features/documentPrinting/transport/PrintTransport.js` — created 8-step browser print transport lifecycle orchestrator with print isolation classes and A5 A4-portrait page sizing
+- `frontend/src/features/documentPrinting/transport/PrintTransport.js` — created 8-step browser print transport lifecycle orchestrator with print isolation classes, 6mm A4 margin, and dynamic page sizing
 - `frontend/src/features/documentPrinting/primitives/PrintPrimitives.jsx` — created reusable firm header, party block, notes block, and signatory block primitives
 - `frontend/src/features/documentPrinting/renderers/invoiceColumns.jsx` — established canonical single source of truth for 12 table columns, renderers, and batch allocation grouping
-- `frontend/src/features/documentPrinting/renderers/InvoiceDocument.jsx` — built dynamic 12-column table renderer, restored full legacy layout parity (distributor payment box, 3-column header, batch grouping), independent thermal POS layouts, and horizontal A5 half-sheet single/double copy mode
+- `frontend/src/features/documentPrinting/renderers/InvoiceDocument.jsx` — built dynamic 12-column table renderer with continuous vertical filler row lines, restored full legacy layout parity (distributor payment box, 3-column header, batch grouping), independent thermal POS layouts, 265mm single-copy vertical layout, and A5 half-sheet single/double copy mode
 - `frontend/src/features/documentPrinting/renderers/CreditNoteDocument.jsx` — built A4, A5, Thermal 80mm, and Thermal 58mm credit note renderers with defensive item accessors
 - `frontend/src/features/documentPrinting/renderers/ReceiptDocument.jsx` — built A4, A5, Thermal 80mm, and Thermal 58mm payment receipt renderers
-- `frontend/src/features/documentPrinting/renderers/LedgerDocument.jsx` — built A4 and A5 customer and supplier ledger renderers
+- `frontend/src/features/documentPrinting/renderers/LedgerDocument.jsx` — built A4 and A5 customer and supplier ledger renderers and fixed `isA5` runtime ReferenceError
 - `frontend/src/features/documentPrinting/renderers/CloseoutDocument.jsx` — built A4 and A5 daily closeout renderers
 - `frontend/src/features/documentPrinting/components/PrintFormatSelector.jsx` — created format selection pill group
 - `frontend/src/features/documentPrinting/components/PrintDialog.jsx` — created print preview and execution modal
@@ -97,8 +101,10 @@ For full release notes with implementation details, see [GitHub Releases](https:
 - `frontend/src/pages/Suppliers/SupplierDetailsPage.jsx` — wired format-aware `PrintDialog`, eliminated `<tfoot>` repeating summary, and enabled natural text wrapping
 - `frontend/src/pages/Collections/DailyCloseoutPrintModal.jsx` — wired format-aware `PrintDialog`
 - `frontend/src/pages/Settings/SettingsPage.jsx` — added dedicated Printing tab, moved print formats/public print, added mobile horizontal tab navigation, and optimized mobile text sizes
+- `frontend/PRINT-POSITIONING-GUIDE.md` — comprehensive engineering guide for document layout, print margins, 12-column grid lines, and POS hardware positioning
 - `frontend/scripts/testPrintCapacity.mjs` — empirical capacity test runner using Puppeteer Chromium
-- `README.md` — updated version badge to `v2.9.9`
+- `docs/USER_GUIDE.md` — updated user guide to Version 2.10.0 and added Section 10 on Format-Aware Document Printing, Margins & Columns
+- `README.md` — updated version badge to `v2.10.0` and added release highlights
 
 ## [v2.9.8](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.9.8) — 2026-10-08 — Persistent List/Detail Navigation, Public Invoice Rounding Parity, Mobile Density & Customers Workspace Refinement
 

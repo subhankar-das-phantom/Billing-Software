@@ -102,8 +102,8 @@ function SheetInvoiceCopy({
     <div
       className={`invoice-copy bg-white flex flex-col ${
         isDoubleCopy
-          ? 'text-[10px] p-2 print:p-1 min-h-[120mm]'
-          : 'text-[11px] p-4 sm:p-5 print:p-2 min-h-[285mm]'
+          ? 'text-[10px] p-2 print:p-0 min-h-[120mm]'
+          : 'text-[11px] p-4 sm:p-5 print:p-0 min-h-[265mm]'
       }`}
       style={{
         width: '100%',

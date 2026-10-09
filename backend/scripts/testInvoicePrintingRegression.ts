@@ -102,7 +102,7 @@ function getFormatPageCss(format: string): string {
       return `@page { size: 58mm auto; margin: 2mm; }`;
     case 'A4':
     default:
-      return `@page { size: A4 portrait; margin: 0; }`;
+      return `@page { size: A4 portrait; margin: 6mm; }`;
   }
 }
 
@@ -225,13 +225,13 @@ async function runRegressionSuite() {
 
   const a4PageCss = getFormatPageCss('A4');
   assert(
-    a4PageCss.includes('size: A4 portrait') && a4PageCss.includes('margin: 0'),
-    'A4 / A5 sheet CSS @page rule sets size to A4 portrait with 0 margins'
+    a4PageCss.includes('size: A4 portrait') && a4PageCss.includes('margin: 6mm'),
+    'A4 / A5 sheet CSS @page rule sets size to A4 portrait with 6mm margins'
   );
 
   const legacyA5PageCss = getFormatPageCss('A5');
   assert(
-    legacyA5PageCss.includes('size: A4 portrait') && legacyA5PageCss.includes('margin: 0'),
+    legacyA5PageCss.includes('size: A4 portrait') && legacyA5PageCss.includes('margin: 6mm'),
     'Legacy A5 query defaults gracefully to A4 portrait sheet'
   );
 
@@ -354,8 +354,8 @@ async function runRegressionSuite() {
   const invoiceDocPath = path.join(__dirname, '../../frontend/src/features/documentPrinting/renderers/InvoiceDocument.jsx');
   const invoiceDocCode = fs.readFileSync(invoiceDocPath, 'utf-8');
   assert(
-    invoiceDocCode.includes('min-h-[285mm]'),
-    'SheetInvoiceCopy uses min-h-[285mm] for full-page A4 vertical format'
+    invoiceDocCode.includes('min-h-[265mm]'),
+    'SheetInvoiceCopy uses min-h-[265mm] for full-page A4 vertical format'
   );
   assert(
     invoiceDocCode.includes('filler-row') && invoiceDocCode.includes("height: '100%'"),

@@ -1,10 +1,29 @@
 # Bharat Enterprise - Billing & Business Operations Platform
 
-[![GitHub Tag](https://img.shields.io/badge/version-v2.9.9-emerald.svg)](https://github.com/subhankar-das-phantom/Billing-Software/releases)
+[![GitHub Tag](https://img.shields.io/badge/version-v2.10.0-emerald.svg)](https://github.com/subhankar-das-phantom/Billing-Software/releases)
 [![CI](https://github.com/subhankar-das-phantom/Billing-Software/actions/workflows/ci.yml/badge.svg)](https://github.com/subhankar-das-phantom/Billing-Software/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-ISC-blue.svg)](LICENSE)
 
-A comprehensive, multi-tenant cloud business operations platform optimized for both high-speed desktop workflows and mobile accessibility. Evolved from an invoicing utility into an end-to-end enterprise solution featuring **inward purchasing, dual-mode inventory with automated FIFO & manual batch selection, an immutable stock movement ledger, operational intelligence, granular RBAC, and tiered SaaS subscriptions**.
+A comprehensive, multi-tenant cloud business operations platform optimized for both high-speed desktop workflows and mobile accessibility. Evolved from an invoicing utility into an end-to-end enterprise solution featuring **inward purchasing, dual-mode inventory with automated FIFO & manual batch selection, an immutable stock movement ledger, format-aware multi-document printing, operational intelligence, granular RBAC, and tiered SaaS subscriptions**.
+
+---
+
+## 🚀 Release v2.10.0 — Multi-Document Format-Aware Printing System
+
+Version 2.10.0 introduces a comprehensive format-aware printing and export subsystem supporting laser/inkjet sheets, half-sheet cut vouchers, and continuous POS thermal rolls across all commercial documents.
+
+### 💎 Key Highlights (v2.10.0)
+
+- **Universal Format-Aware Printing Architecture**  
+  Modular document renderers for Invoices, Credit Notes, Payment Receipts, Customer/Supplier Ledgers, and Daily Closeouts supporting A4 (1x full page with `min-h-[265mm]` and 2x half-sheet cut with dashed divider), Thermal 80mm (3-inch roll POS), and Thermal 58mm (2-inch roll POS).
+- **Default & None Print Margin Engine**  
+  Pixel-perfect browser print positioning via balanced `@page { size: A4 portrait; margin: 6mm; }`. Supports both balanced 6mm borders under "Margins: Default" and true 0mm edge-to-edge printing with continuous column extension (`filler-row`) under "Margins: None".
+- **Canonical 12-Column Alignment Parity**  
+  Unified 12-column sequence (`Qty | Fr | Product Name | HSN | Batch | Expiry | MRP | Rate | Net | Disc% | GST% | Amount`) across on-screen previews, browser print sheets, and server-side PDFKit exports (`layout: 'portrait'`).
+- **Account-Level Default Print Preferences**  
+  Admins can configure default print formats per document type under **Settings → Printing**, backed by a strict server-side capability matrix.
+- **Ledger Summary Pagination Defect Resolution**  
+  Eliminated repeating `tfoot` summaries on multi-page ledger statements using isolated `.print-final-summary` containers.
 
 ---
 
