@@ -1,12 +1,13 @@
 /**
  * Format-Aware Enterprise Invoice Document Renderer
- * Supports A4 (Single / Double Copy), A5, Thermal 80mm, Thermal 58mm
+ * Supports A4 (Single / Double Copy), A5 (Horizontal Half-Sheet Single / Double Copy), Thermal 80mm, Thermal 58mm
  * Bharat Enterprise Billing System
  */
 
 import React from 'react';
 import { PRINT_FORMATS, FORMAT_METADATA } from '../formats/documentPrintFormats';
-import { PrintFirmHeader, PrintPartyBlock, PrintNotesBlock, PrintSignatoryBlock } from '../primitives/PrintPrimitives';
+import { PrintNotesBlock, PrintSignatoryBlock } from '../primitives/PrintPrimitives';
+import { resolveActiveColumns, getBatchGroups } from './invoiceColumns';
 
 const formatDate = (dateString) => {
   if (!dateString) return '-';
@@ -23,7 +24,7 @@ const formatCurrency = (val) => {
   return `₹${num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
-/** Defensive item extraction helpers for populated and flat structures */
+/** Defensive item extraction helpers for thermal roll layouts */
 function getInvoiceItemName(item) {
   return (
     item.product?.productName ||
@@ -60,19 +61,6 @@ function getInvoiceItemRate(item) {
   return Number(item.ratePerUnit ?? item.rate ?? 0);
 }
 
-function getInvoiceItemGst(item) {
-  return Number(item.product?.gstPercentage ?? item.gstPercentage ?? item.gstPercent ?? item.gstRate ?? 0);
-}
-
-function getInvoiceItemTaxable(item) {
-  if (item.taxableAmount != null) return Number(item.taxableAmount);
-  if (item.baseAmount != null) return Number(item.baseAmount);
-  const qty = getInvoiceItemQty(item);
-  const rate = getInvoiceItemRate(item);
-  const discount = Number(item.schemeDiscount ?? item.discountPercentage ?? 0);
-  return qty * rate * (1 - discount / 100);
-}
-
 function getInvoiceItemTotal(item) {
   if (item.totalAmount != null) return Number(item.totalAmount);
   if (item.amount != null) return Number(item.amount);
@@ -82,128 +70,199 @@ function getInvoiceItemTotal(item) {
 }
 
 /**
- * Standard Sheet Invoice (A4 and A5)
+ * Standard Sheet Invoice (A4 Full Sheet & A5 Horizontal Half Sheet)
+ * Restores 100% parity with legacy invoice layout and conditional details.
  */
-function SheetInvoiceCopy({ invoice, format = PRINT_FORMATS.A4, admin = null, customerOutstanding = 0, isDoubleCopy = false, copyTitle = null }) {
+function SheetInvoiceCopy({
+  invoice,
+  format = PRINT_FORMATS.A4,
+  admin = null,
+  customerOutstanding = 0,
+  isDoubleCopy = false,
+  copyTitle = null,
+  columns = null,
+  enableBatchTracking = false
+}) {
   const isA5 = format === PRINT_FORMATS.A5;
   const netTotal = Math.round(invoice.totals?.netTotal || 0);
   const rawNet = invoice.totals?.netTotal || 0;
   const roundDiff = netTotal - rawNet;
   const roundSign = roundDiff >= 0 ? `+₹${roundDiff.toFixed(2)}` : `-₹${Math.abs(roundDiff).toFixed(2)}`;
 
-  const firm = {
-    firmName: admin?.firmName || invoice.distributor?.firmName || 'BHARAT ENTERPRISE',
-    firmAddress: admin?.firmAddress || invoice.distributor?.firmAddress || '',
-    firmPhone: admin?.firmPhone || invoice.distributor?.firmPhone || '',
-    firmGSTIN: admin?.firmGSTIN || invoice.distributor?.firmGSTIN || '',
-    firmDL: admin?.firmDL || invoice.distributor?.firmDL || ''
-  };
+  // Resolve dynamic active columns (12 configurable columns)
+  const activeColumns = resolveActiveColumns(columns, { enableBatchTracking });
 
-  const invoiceMeta = {
-    'Invoice No': invoice.invoiceNumber,
-    'Date': formatDate(invoice.invoiceDate),
-    'Bill Type': invoice.paymentType?.toUpperCase() || 'CREDIT'
-  };
+  const firmName = admin?.firmName || invoice.distributor?.firmName || 'BHARAT ENTERPRISES';
+  const firmAddress = admin?.firmAddress || invoice.distributor?.firmAddress || 'Address Line 1, City, State - PIN';
+  const firmPhone = admin?.firmPhone || invoice.distributor?.firmPhone || '';
+  const firmDL = admin?.firmDL || invoice.distributor?.firmDL || '';
+  const firmGSTIN = admin?.firmGSTIN || invoice.distributor?.firmGSTIN || '';
+  const paymentInfo = invoice.distributor?.paymentInformation;
 
   return (
     <div
-      className={`invoice-copy bg-white flex flex-col ${isA5 ? 'text-[9px] p-2 min-h-[110mm]' : isDoubleCopy ? 'text-[10px] p-2 min-h-[125mm]' : 'text-[11px] p-3 min-h-[140mm]'}`}
+      className={`invoice-copy bg-white flex flex-col ${
+        isA5
+          ? 'text-[8.5px] p-2 min-h-[120mm]'
+          : isDoubleCopy
+          ? 'text-[10px] p-2 min-h-[120mm]'
+          : 'text-[11px] p-3 min-h-[140mm]'
+      }`}
       style={{
         width: '100%',
         color: '#000000',
         boxSizing: 'border-box'
       }}
     >
-      {/* Header */}
-      <PrintFirmHeader
-        firm={firm}
-        format={format}
-        documentTitle={invoice.status === 'Cancelled' ? 'TAX INVOICE (CANCELLED)' : 'TAX INVOICE'}
-        subtitle={copyTitle}
-      />
+      {/* ─── Header: Firm Info & Optional Payment Box ───────────────────── */}
+      <div
+        className="grid grid-cols-2 gap-2 border-b border-black pb-1 mb-1"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          borderBottom: '1px solid black',
+          paddingBottom: '4px',
+          marginBottom: '4px'
+        }}
+      >
+        <div className="text-left">
+          <h1
+            className="font-bold mb-0.5 tracking-tight"
+            style={{ fontSize: isA5 ? '15px' : '18px', margin: 0, lineHeight: 1.15 }}
+          >
+            {firmName}
+          </h1>
+          <p className="text-[11px] leading-tight text-gray-800" style={{ margin: '2px 0 0 0' }}>
+            {firmAddress}
+          </p>
+        </div>
+        <div
+          className="flex justify-end text-[11px] leading-tight"
+          style={{ display: 'flex', justifyContent: 'flex-end', textAlign: 'right' }}
+        >
+          {paymentInfo?.enabled && (
+            <div
+              className="text-left border-l border-r border-black px-2 mr-2"
+              style={{
+                borderLeft: '1px solid black',
+                borderRight: '1px solid black',
+                padding: '0 8px',
+                marginRight: '8px',
+                textAlign: 'left'
+              }}
+            >
+              {paymentInfo.upiId && <p style={{ margin: '1px 0' }}>UPI: {paymentInfo.upiId}</p>}
+              {paymentInfo.accountNumber && <p style={{ margin: '1px 0' }}>A/C: {paymentInfo.accountNumber}</p>}
+              {paymentInfo.ifscCode && <p style={{ margin: '1px 0' }}>IFSC: {paymentInfo.ifscCode}</p>}
+            </div>
+          )}
+          <div className="text-left" style={{ textAlign: 'left' }}>
+            {firmPhone && <p style={{ margin: '1px 0' }}>Phone: {firmPhone}</p>}
+            {firmDL && <p style={{ margin: '1px 0' }}>DL No: {firmDL}</p>}
+            {firmGSTIN && <p style={{ margin: '1px 0' }}>GSTIN: {firmGSTIN}</p>}
+          </div>
+        </div>
+      </div>
 
-      {/* Buyer & Invoice Meta */}
-      <PrintPartyBlock
-        party={invoice.customer}
-        title="Billed To"
-        format={format}
-        meta={invoiceMeta}
-      />
+      {/* ─── Buyer & Invoice Details (3-Column Layout) ─────────────────── */}
+      <div
+        className="grid grid-cols-3 gap-2 mb-1 text-[11px]"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr 1fr',
+          marginBottom: '4px'
+        }}
+      >
+        <div>
+          <p className="font-bold mb-0.5">
+            M/s {invoice.customer?.customerName || invoice.customer?.name || 'Walk-in Customer'}
+          </p>
+          <p className="leading-tight text-gray-800">{invoice.customer?.address || 'Address not provided'}</p>
+          <p className="mt-0.5">Ph: {invoice.customer?.phone || '-'}</p>
+        </div>
+        <div
+          className="border-l border-black pl-2"
+          style={{ borderLeft: '1px solid black', paddingLeft: '8px' }}
+        >
+          {invoice.customer?.gstin && <p>GSTIN: {invoice.customer.gstin}</p>}
+          {invoice.customer?.dlNo && <p>DL No: {invoice.customer.dlNo}</p>}
+        </div>
+        <div className="text-right" style={{ textAlign: 'right' }}>
+          <p className="font-bold">Invoice No: {invoice.invoiceNumber || '-'}</p>
+          <p>
+            <span className="font-bold">Date:</span> {formatDate(invoice.invoiceDate)}
+          </p>
+          <p>
+            <span className="font-bold">Bill Type:</span> {invoice.paymentType?.toUpperCase() || 'CREDIT'}
+          </p>
+          {copyTitle && (
+            <p className="font-semibold text-[10px] text-gray-700 uppercase mt-0.5 tracking-wider">
+              {copyTitle}
+            </p>
+          )}
+        </div>
+      </div>
 
-      {/* Line Items Table */}
+      {/* ─── Line Items Table: Configurable Columns ─────────────────────── */}
       <div className="flex-1 mb-1">
-        <table className="w-full border-collapse" style={{ border: '0.5px solid black', fontSize: isA5 ? '8px' : '9px' }}>
+        <table
+          className="w-full border-collapse"
+          style={{ border: '0.5px solid black', fontSize: isA5 ? '8px' : '9px' }}
+        >
           <thead>
             <tr style={{ borderBottom: '0.5px solid black', background: '#f5f5f5' }}>
-              <th className="border-r border-black p-0.5 text-center font-bold" style={{ width: '4%' }}>SN</th>
-              <th className="border-r border-black p-0.5 text-left font-bold" style={{ width: '38%' }}>Item Description</th>
-              <th className="border-r border-black p-0.5 text-center font-bold" style={{ width: '6%' }}>Qty</th>
-              {invoice.items?.some(i => i.freeQuantity > 0) && (
-                <th className="border-r border-black p-0.5 text-center font-bold" style={{ width: '6%' }}>Free</th>
-              )}
-              <th className="border-r border-black p-0.5 text-right font-bold" style={{ width: '10%' }}>Rate</th>
-              <th className="border-r border-black p-0.5 text-center font-bold" style={{ width: '7%' }}>GST%</th>
-              <th className="border-r border-black p-0.5 text-right font-bold" style={{ width: '12%' }}>Taxable</th>
-              <th className="p-0.5 text-right font-bold" style={{ width: '13%' }}>Amount</th>
+              {activeColumns.map((col, i) => (
+                <th
+                  key={col.key}
+                  className={`${i < activeColumns.length - 1 ? 'border-r border-black' : ''} p-0.5 font-bold text-${col.align}`}
+                  style={{ width: col.width }}
+                >
+                  {col.label}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {invoice.items?.map((item, idx) => {
-              const name = getInvoiceItemName(item);
-              const qty = getInvoiceItemQty(item);
-              const rate = getInvoiceItemRate(item);
-              const gst = getInvoiceItemGst(item);
-              const taxable = getInvoiceItemTaxable(item);
-              const total = getInvoiceItemTotal(item);
-              const batchInfo = getInvoiceItemBatchInfo(item);
-              const hsn = getInvoiceItemHsn(item);
-
-              return (
-                <tr key={idx} style={{ borderBottom: idx < invoice.items.length - 1 ? '0.5px solid #ddd' : 'none' }}>
-                  <td className="border-r border-black p-0.5 text-center">{idx + 1}</td>
-                  <td className="border-r border-black p-0.5 font-bold">
-                    <div className="break-words">{name}</div>
-                    {(hsn || batchInfo) && (
-                      <div className="text-[7.5px] font-normal text-gray-600 flex gap-2">
-                        {hsn && <span>HSN: {hsn}</span>}
-                        {batchInfo && <span>{batchInfo}</span>}
-                      </div>
-                    )}
+            {invoice.items?.map((item, index) => (
+              <tr
+                key={index}
+                style={{
+                  borderBottom: index < invoice.items.length - 1 ? '0.5px solid #ddd' : 'none'
+                }}
+              >
+                {activeColumns.map((col, i) => (
+                  <td
+                    key={col.key}
+                    className={`${i < activeColumns.length - 1 ? 'border-r border-black' : ''} p-0.5 font-bold text-${col.align}`}
+                  >
+                    {col.renderCell ? col.renderCell(item) : col.render(item, { enableBatchTracking })}
                   </td>
-                  <td className="border-r border-black p-0.5 text-center font-bold">{qty}</td>
-                  {invoice.items?.some(i => i.freeQuantity > 0) && (
-                    <td className="border-r border-black p-0.5 text-center">{item.freeQuantity || '-'}</td>
-                  )}
-                  <td className="border-r border-black p-0.5 text-right">{rate.toFixed(2)}</td>
-                  <td className="border-r border-black p-0.5 text-center">{gst}%</td>
-                  <td className="border-r border-black p-0.5 text-right">{taxable.toFixed(2)}</td>
-                  <td className="p-0.5 text-right font-bold">{total.toFixed(2)}</td>
-                </tr>
-              );
-            })}
+                ))}
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
 
-      {/* Dynamic Notes */}
+      {/* ─── Dynamic Notes / Remarks ─────────────────────────────────────── */}
       <PrintNotesBlock notes={invoice.notes} label="Notes" format={format} />
 
-      {/* Totals & Signatory */}
+      {/* ─── Summary, Current Dues, Amount in Words & Signatory ──────────── */}
       <div className="mt-auto" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-        <div className="grid grid-cols-2 gap-3 mb-1">
-          <div className="text-[9.5px]">
+        <div className="grid grid-cols-2 gap-2 mb-1">
+          <div className="text-[11px]">
             <p className="font-bold">
-              Current Outstanding: {customerOutstanding > 0 ? formatCurrency(customerOutstanding) : '₹0.00'}
+              Current Dues: {customerOutstanding > 0 ? formatCurrency(customerOutstanding) : '₹0.00'}
             </p>
             <div className="border-t border-black mt-1 pt-0.5">
-              <p className="font-bold mb-0.5 text-[8.5px] uppercase text-gray-600">Amount in Words:</p>
-              <p className="uppercase font-semibold text-[9px] leading-tight">
+              <p className="font-bold mb-0.5">Amount in Words:</p>
+              <p className="uppercase leading-tight font-semibold">
                 {invoice.totals?.amountInWords || 'Rupees Zero Only'}
               </p>
             </div>
           </div>
-          <div>
-            <table className="w-full text-[9.5px]">
+          <div className="text-[11px]">
+            <table className="w-full">
               <tbody>
                 <tr>
                   <td className="py-0">Taxable:</td>
@@ -212,7 +271,9 @@ function SheetInvoiceCopy({ invoice, format = PRINT_FORMATS.A4, admin = null, cu
                 {invoice.totals?.totalDiscount > 0 && (
                   <tr>
                     <td className="py-0">Discount:</td>
-                    <td className="text-right text-red-600">-₹{(Number(invoice.totals?.totalDiscount) || 0).toFixed(2)}</td>
+                    <td className="text-right" style={{ color: '#dc2626' }}>
+                      -₹{(Number(invoice.totals?.totalDiscount) || 0).toFixed(2)}
+                    </td>
                   </tr>
                 )}
                 <tr>
@@ -227,16 +288,26 @@ function SheetInvoiceCopy({ invoice, format = PRINT_FORMATS.A4, admin = null, cu
                   <td className="py-0">Round Off:</td>
                   <td className="text-right">{roundSign}</td>
                 </tr>
-                <tr className="border-t border-black font-bold text-[11px]">
-                  <td className="py-0.5">NET PAYABLE:</td>
-                  <td className="text-right">₹{netTotal}</td>
+                <tr className="border-t border-black">
+                  <td className="py-0.5 font-bold">NET:</td>
+                  <td className="text-right font-bold text-[13px]">₹{netTotal}</td>
                 </tr>
               </tbody>
             </table>
           </div>
         </div>
 
-        <PrintSignatoryBlock rightTitle="Authorized Signatory" format={format} />
+        <div className="border-t border-black pt-1 text-[11px]">
+          <div className="flex justify-between items-end">
+            <div>
+              <p>E & O E</p>
+            </div>
+            <div className="text-center">
+              <div className="h-6"></div>
+              <p className="border-t border-black pt-0.5">Authorized Signatory</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -244,6 +315,7 @@ function SheetInvoiceCopy({ invoice, format = PRINT_FORMATS.A4, admin = null, cu
 
 /**
  * 3-Inch Thermal Roll Invoice (80mm / ~72mm usable width)
+ * Independent POS receipt layout — untouched by sheet column toggles.
  */
 function Thermal80Invoice({ invoice, admin, customerOutstanding }) {
   const netTotal = Math.round(invoice.totals?.netTotal || 0);
@@ -260,7 +332,17 @@ function Thermal80Invoice({ invoice, admin, customerOutstanding }) {
       className="invoice-copy bg-white text-black p-1 font-mono text-[9px]"
       style={{ width: '100%', maxWidth: '74mm', margin: '0 auto', boxSizing: 'border-box' }}
     >
-      <PrintFirmHeader firm={firm} format={PRINT_FORMATS.THERMAL_80} documentTitle="TAX INVOICE" />
+      <div className="text-center pb-1 mb-1 border-b border-black">
+        <h1 className="text-xs font-bold uppercase tracking-tight">{firm.firmName}</h1>
+        {firm.firmAddress && <p className="text-[8.5px] leading-tight mt-0.5">{firm.firmAddress}</p>}
+        <div className="flex justify-center gap-2 text-[8.5px] mt-0.5">
+          {firm.firmPhone && <span>Ph: {firm.firmPhone}</span>}
+          {firm.firmGSTIN && <span>GSTIN: {firm.firmGSTIN}</span>}
+        </div>
+        <div className="mt-1 pt-0.5 border-t border-dashed border-black font-bold uppercase text-[9px]">
+          TAX INVOICE
+        </div>
+      </div>
 
       {/* Metadata */}
       <div className="py-1 border-b border-dashed border-black text-[8.5px] space-y-0.5">
@@ -359,6 +441,7 @@ function Thermal80Invoice({ invoice, admin, customerOutstanding }) {
 
 /**
  * 2-Inch Thermal Roll Invoice (58mm / ~48mm usable width)
+ * Independent POS receipt layout — untouched by sheet column toggles.
  */
 function Thermal58Invoice({ invoice, admin }) {
   const netTotal = Math.round(invoice.totals?.netTotal || 0);
@@ -374,7 +457,14 @@ function Thermal58Invoice({ invoice, admin }) {
       className="invoice-copy bg-white text-black p-0.5 font-mono text-[8px]"
       style={{ width: '100%', maxWidth: '52mm', margin: '0 auto', boxSizing: 'border-box' }}
     >
-      <PrintFirmHeader firm={firm} format={PRINT_FORMATS.THERMAL_58} documentTitle="TAX INVOICE" />
+      <div className="text-center pb-0.5 mb-0.5 border-b border-black">
+        <h1 className="text-[10px] font-bold uppercase tracking-tight">{firm.firmName}</h1>
+        {firm.firmPhone && <p className="text-[7.5px] mt-0.5">Ph: {firm.firmPhone}</p>}
+        {firm.firmGSTIN && <p className="text-[7.5px]">GSTIN: {firm.firmGSTIN}</p>}
+        <div className="mt-0.5 pt-0.5 border-t border-dashed border-black font-bold uppercase text-[8px]">
+          TAX INVOICE
+        </div>
+      </div>
 
       {/* Metadata */}
       <div className="py-0.5 border-b border-dashed border-black text-[7.5px] space-y-0.2">
@@ -437,7 +527,9 @@ export default function InvoiceDocument({
   format = PRINT_FORMATS.A4,
   isSingleCopy = false,
   admin = null,
-  customerOutstanding = 0
+  customerOutstanding = 0,
+  columns = null,
+  enableBatchTracking = false
 }) {
   if (!invoice) return null;
 
@@ -461,8 +553,9 @@ export default function InvoiceDocument({
     );
   }
 
-  // A5 Sheet
+  // A5 Horizontal Half Sheet (A4 Half-Sheet Cut)
   if (format === PRINT_FORMATS.A5) {
+    const isDouble = !isSingleCopy;
     return (
       <div className={`invoice-print print-format-a5 ${metadata.cssClass}`}>
         <SheetInvoiceCopy
@@ -470,13 +563,36 @@ export default function InvoiceDocument({
           format={PRINT_FORMATS.A5}
           admin={admin}
           customerOutstanding={customerOutstanding}
-          isDoubleCopy={false}
+          isDoubleCopy={isDouble}
+          copyTitle={isDouble ? 'Customer Copy' : null}
+          columns={columns}
+          enableBatchTracking={enableBatchTracking}
         />
+
+        {isDouble && (
+          <>
+            <div className="flex items-center my-2" style={{ borderTop: '1px dashed #000' }}>
+              <span className="text-[9px] text-gray-600 mx-auto bg-white px-2" style={{ marginTop: '-10px' }}>
+                Cut Here
+              </span>
+            </div>
+            <SheetInvoiceCopy
+              invoice={invoice}
+              format={PRINT_FORMATS.A5}
+              admin={admin}
+              customerOutstanding={customerOutstanding}
+              isDoubleCopy={true}
+              copyTitle="Dealer Copy"
+              columns={columns}
+              enableBatchTracking={enableBatchTracking}
+            />
+          </>
+        )}
       </div>
     );
   }
 
-  // A4 Sheet (Default) — Preserves 1x Single vs 2x Double Copy
+  // A4 Full Sheet (Default) — Preserves 1x Single vs 2x Double Copy
   const isDouble = !isSingleCopy;
 
   return (
@@ -488,6 +604,8 @@ export default function InvoiceDocument({
         customerOutstanding={customerOutstanding}
         isDoubleCopy={isDouble}
         copyTitle={isDouble ? 'Customer Copy' : null}
+        columns={columns}
+        enableBatchTracking={enableBatchTracking}
       />
 
       {isDouble && (
@@ -504,9 +622,12 @@ export default function InvoiceDocument({
             customerOutstanding={customerOutstanding}
             isDoubleCopy={true}
             copyTitle="Dealer Copy"
+            columns={columns}
+            enableBatchTracking={enableBatchTracking}
           />
         </>
       )}
     </div>
   );
 }
+export { getBatchGroups };

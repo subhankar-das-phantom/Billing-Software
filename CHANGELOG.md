@@ -48,16 +48,34 @@ For full release notes with implementation details, see [GitHub Releases](https:
   - Moved "Default Document Print Formats" and "Public Customer Printing" out of Preferences into a dedicated "Printing" tab alongside driver configuration guidance.
   - Added a mobile-optimized horizontal scrollable tab bar (`lg:hidden`) for 1-tap tab switching without vertical page crowding.
   - Refined typography and card padding across Settings for small screens (`text-xs sm:text-sm`, `p-3.5 sm:p-5`), ensuring comfortable touch targets and zero text truncation.
+- **Dynamic 12-Column Table Customization & Thermal POS Independence (`InvoiceViewPage.jsx`, `InvoiceDocument.jsx`, `invoiceColumns.jsx`)**:
+  - Established canonical single source of truth (`invoiceColumns.jsx`) defining all 12 configurable columns (`Qty`, `Fr`, `Product Name`, `HSN`, `Batch`, `Expiry`, `MRP`, `Rate`, `Net`, `Disc%`, `GST%`, `Amount`).
+  - Passed resolved `activeColumns` and `enableBatchTracking` into `<InvoiceDocument />` for both on-screen previews and `<PrintDialog />`, restoring full functionality to the Printed Columns popover.
+  - Isolated Thermal 80mm and Thermal 58mm formats as dedicated POS receipt layouts; added a clear `Sheet Only` badge and informative notice explaining that column customization applies to Sheet formats (A4/A5).
+- **Full Legacy Layout & Calculations Parity (`InvoiceDocument.jsx`)**:
+  - Restored firm header with optional distributor payment box (`UPI`, `A/C`, `IFSC`) when `distributor.paymentInformation.enabled` is true, along with Phone, DL No, and GSTIN.
+  - Restored authentic 3-column buyer and invoice metadata layout (`M/s Customer`, `GSTIN/DL`, `Invoice No/Date/Bill Type`).
+  - Reconnected multi-batch allocation grouping (`getBatchGroups`), displaying `Batch A (10) + Batch B (5)` and parallel expiry dates (`MM/YY`) when batch tracking is enabled.
+  - Reconnected tax-inclusive Net rate formula `rate * (1 + gst / 100)` with stored `netRate` precedence, exact paise round-off, Current Dues, uppercase Amount in Words, and authorized signatory blocks.
+- **A5 Horizontal (A4 Half-Sheet Cut) Architecture (`PrintTransport.js`, `index.css`, `documentPrintFormats.js`, `PrintFormatSelector.jsx`)**:
+  - Corrected physical A5 bill orientation for standard Indian A4 printers to horizontal landscape cut (**210mm wide × 140–148mm high**, `max-width: 190mm`).
+  - Updated `@page` rule in `PrintTransport.js` for A5 to `@page { size: A4 portrait; margin: 4mm 6mm; }`, ensuring standard A4 printers feed paper without driver mismatch errors.
+  - Supported Single Copy (top half of A4 sheet, leaving the bottom half blank for physical cutting) and Double Copy (two landscape bills on one A4 sheet separated by a dashed `"Cut Here"` line).
+  - Enforced content overflow safety: removed rigid max-heights to ensure large invoices flow naturally across pages without clipping text, notes, or totals.
+- **Automated Regression Verification (`backend/scripts/testInvoicePrintingRegression.ts`)**:
+  - Built comprehensive 36-test regression suite asserting dynamic column filtering, individual column toggle isolation, batch grouping and UNNAMED filtering, Net rate derivation, round-off formatting, thermal POS independence, and CSS page sizing rules.
 
 ### Files Modified
 - `backend/models/Admin.js` — added `preferences.documentPrintFormats` schema with defaults
 - `backend/controllers/authController.js` — implemented admin authorization, capability matrix enforcement, and partial update merging
 - `backend/scripts/testDocumentPrintFormats.ts` — created automated test suite verifying 38 print preference invariants
-- `frontend/src/index.css` — added format-specific print dimensions, double-print isolation (`body.is-printing-document #root`), and fixed `tfoot` table footer repetition
+- `backend/scripts/testInvoicePrintingRegression.ts` — created automated regression suite verifying 36 column, thermal, legacy layout, and A5 invariants
+- `frontend/src/index.css` — added format-specific print dimensions, double-print isolation (`body.is-printing-document #root`), A5 190mm horizontal width, and fixed `tfoot` table footer repetition
 - `frontend/src/features/documentPrinting/formats/documentPrintFormats.js` — created authoritative format constants, metadata, capability matrix, and fallback resolver
-- `frontend/src/features/documentPrinting/transport/PrintTransport.js` — created 8-step browser print transport lifecycle orchestrator with print isolation classes
+- `frontend/src/features/documentPrinting/transport/PrintTransport.js` — created 8-step browser print transport lifecycle orchestrator with print isolation classes and A5 A4-portrait page sizing
 - `frontend/src/features/documentPrinting/primitives/PrintPrimitives.jsx` — created reusable firm header, party block, notes block, and signatory block primitives
-- `frontend/src/features/documentPrinting/renderers/InvoiceDocument.jsx` — built A4, A5, Thermal 80mm, and Thermal 58mm invoice renderers with defensive item accessors
+- `frontend/src/features/documentPrinting/renderers/invoiceColumns.jsx` — established canonical single source of truth for 12 table columns, renderers, and batch allocation grouping
+- `frontend/src/features/documentPrinting/renderers/InvoiceDocument.jsx` — built dynamic 12-column table renderer, restored full legacy layout parity (distributor payment box, 3-column header, batch grouping), independent thermal POS layouts, and horizontal A5 half-sheet single/double copy mode
 - `frontend/src/features/documentPrinting/renderers/CreditNoteDocument.jsx` — built A4, A5, Thermal 80mm, and Thermal 58mm credit note renderers with defensive item accessors
 - `frontend/src/features/documentPrinting/renderers/ReceiptDocument.jsx` — built A4, A5, Thermal 80mm, and Thermal 58mm payment receipt renderers
 - `frontend/src/features/documentPrinting/renderers/LedgerDocument.jsx` — built A4 and A5 customer and supplier ledger renderers

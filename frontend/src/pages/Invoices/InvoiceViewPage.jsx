@@ -46,6 +46,7 @@ import ShareResourceMenu from '../../components/Common/Sharing/ShareResourceMenu
 import PrintDialog from '../../features/documentPrinting/components/PrintDialog';
 import InvoiceDocument from '../../features/documentPrinting/renderers/InvoiceDocument';
 import { resolveDocumentPrintFormat, DOCUMENT_TYPES } from '../../features/documentPrinting/formats/documentPrintFormats';
+import { ALL_INVOICE_COLUMNS, DEFAULT_INVOICE_COLUMNS, resolveActiveColumns, getBatchGroups } from '../../features/documentPrinting/renderers/invoiceColumns';
 
 const roundCurrency = (value) => Math.round(((Number(value) || 0) + Number.EPSILON) * 100) / 100;
 
@@ -74,23 +75,6 @@ const cardVariants = {
   }
 };
 
-
-const getBatchGroups = (allocations) => {
-  const groupsMap = allocations.reduce((acc, alloc) => {
-    const displayName = alloc.batchNo && alloc.batchNo !== 'UNNAMED' ? alloc.batchNo : 'No Batch #';
-    const expiryStr = alloc.expiryDate 
-      ? new Date(alloc.expiryDate).toLocaleDateString('en-IN', { month: '2-digit', year: '2-digit' }) 
-      : '-';
-    
-    const key = `${displayName}|${expiryStr}`;
-    if (!acc[key]) {
-      acc[key] = { name: displayName, expiry: expiryStr, qtys: [] };
-    }
-    acc[key].qtys.push(alloc.quantity);
-    return acc;
-  }, {});
-  return Object.values(groupsMap);
-};
 
 export default function InvoiceViewPage() {
   const { id } = useParams();
@@ -144,59 +128,8 @@ export default function InvoiceViewPage() {
   const { user, admin, updateUserPreferences } = useAuth();
   const enableBatchTracking = user?.preferences?.enableBatchTracking === true;
 
-  // Column definitions
-  const ALL_COLUMNS = [
-    { key: 'qty', label: 'Qty', width: '4%', align: 'center', render: (item) => item.quantitySold ?? item.quantity ?? 0 },
-    { key: 'free', label: 'Fr', width: '3%', align: 'center', render: (item) => item.freeQuantity || 0 },
-    { key: 'productName', label: 'Product Name', width: '33%', align: 'left', render: (item) => item.product?.productName ?? item.productName ?? item.name ?? '-' },
-    { key: 'hsn', label: 'HSN', width: '7%', align: 'center', render: (item) => item.product?.hsnCode ?? item.hsnCode ?? '-' },
-    { key: 'batchNo', label: 'Batch', width: '10%', align: 'center', render: (item) => {
-        if (enableBatchTracking && item.batchAllocations?.length > 0) {
-          const groups = getBatchGroups(item.batchAllocations);
-
-          return (
-            <div className="flex flex-col gap-0.5">
-              {groups.map((g, idx) => {
-                const displayQty = g.name === 'No Batch #' ? g.qtys.join('+') : g.qtys.reduce((sum, q) => sum + q, 0);
-                return (
-                  <span key={idx} className="whitespace-nowrap">
-                    {g.name} ({displayQty})
-                  </span>
-                );
-              })}
-            </div>
-          );
-        }
-        const bNo = item.product?.batchNo ?? item.batchNumber ?? item.batchNo;
-        return bNo && bNo !== 'UNNAMED' ? bNo : 'No Batch #';
-    }},
-    { key: 'expiry', label: 'Expiry', width: '7%', align: 'center', render: (item) => {
-        if (enableBatchTracking && item.batchAllocations?.length > 0) {
-          const groups = getBatchGroups(item.batchAllocations);
-          return (
-            <div className="flex flex-col gap-0.5">
-              {groups.map((g, idx) => (
-                <span key={idx} className="whitespace-nowrap">{g.expiry}</span>
-              ))}
-            </div>
-          );
-        }
-        const expiryRaw = item.product?.expiryDate ?? item.expiryDate ?? null;
-        return expiryRaw ? new Date(expiryRaw).toLocaleDateString('en-IN', { month: '2-digit', year: '2-digit' }) : '-';
-    }},
-    { key: 'mrp', label: 'MRP', width: '8%', align: 'right', render: (item) => (item.product?.newMRP ?? item.mrp ?? item.newMRP)?.toFixed(2) ?? '-' },
-    { key: 'rate', label: 'Rate', width: '7%', align: 'right', render: (item) => ((item.ratePerUnit ?? item.rate) || 0).toFixed(2) },
-    { key: 'net', label: 'Net', width: '7%', align: 'right', render: (item) => { const rate = (item.ratePerUnit ?? item.rate) || 0; const gst = item.product?.gstPercentage ?? item.gstPercentage ?? item.gstRate ?? 0; return (rate * (1 + gst / 100)).toFixed(2); } },
-    { key: 'disc', label: 'Disc%', width: '5%', align: 'center', render: (item) => `${item.schemeDiscount ?? item.discountPercentage ?? 0}%` },
-    { key: 'gst', label: 'GST%', width: '4%', align: 'center', render: (item) => `${item.product?.gstPercentage ?? item.gstPercentage ?? item.gstRate ?? 0}%` },
-    { key: 'amount', label: 'Amount', width: '9%', align: 'right', render: (item) => { const qty = item.quantitySold ?? item.quantity ?? 0; const rate = (item.ratePerUnit ?? item.rate) || 0; return (item.totalAmount != null ? item.totalAmount : qty * rate).toFixed(2); } },
-  ];
-
-  const DEFAULT_INVOICE_COLUMNS = [
-    'qty', 'free', 'productName', 'hsn', 'batchNo',
-    'expiry', 'mrp', 'rate', 'net', 'disc',
-    'gst', 'amount'
-  ];
+  // Single canonical source of truth for column definitions
+  const ALL_COLUMNS = ALL_INVOICE_COLUMNS;
 
   // Clean up legacy localStorage key — DB is the single source of truth
   localStorage.removeItem('invoiceColumns');
@@ -242,7 +175,9 @@ export default function InvoiceViewPage() {
     }, 500);
   };
 
-  const activeColumns = ALL_COLUMNS.filter(c => visibleColumns.includes(c.key));
+  const activeColumns = useMemo(() => {
+    return resolveActiveColumns(visibleColumns, { enableBatchTracking });
+  }, [visibleColumns, enableBatchTracking]);
 
   // 1. Fetch Invoice
   const { data: invoiceData, isLoading: invoiceLoading, mutate: mutateInvoice, isValidating: isInvoiceValidating } = useSWR(
@@ -599,8 +534,14 @@ export default function InvoiceViewPage() {
                 >
                   <SlidersHorizontal className="w-3.5 h-3.5 pointer-events-none text-slate-400" />
                   <span className="pointer-events-none">Columns</span>
-                  <span className="pointer-events-none px-1.5 py-0.2 rounded-full text-[10px] font-semibold bg-blue-500/15 text-blue-400 border border-blue-500/30">
-                    {visibleColumns.length}/{ALL_COLUMNS.length}
+                  <span className={`pointer-events-none px-1.5 py-0.2 rounded-full text-[10px] font-semibold border ${
+                    (previewFormat === 'THERMAL_80' || previewFormat === 'THERMAL_58')
+                      ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                      : 'bg-blue-500/15 text-blue-400 border-blue-500/30'
+                  }`}>
+                    {(previewFormat === 'THERMAL_80' || previewFormat === 'THERMAL_58')
+                      ? 'Sheet Only'
+                      : `${visibleColumns.length}/${ALL_COLUMNS.length}`}
                   </span>
                   <ChevronDown className={`w-3.5 h-3.5 pointer-events-none text-slate-400 transition-transform duration-150 ${showColumnSettings ? 'rotate-180' : ''}`} />
                 </button>
@@ -620,6 +561,16 @@ export default function InvoiceViewPage() {
                         <span className="text-xs font-semibold text-slate-200">Printed Columns</span>
                         <span className="text-[11px] text-slate-400">{visibleColumns.length} visible</span>
                       </div>
+
+                      {(previewFormat === 'THERMAL_80' || previewFormat === 'THERMAL_58') && (
+                        <div className="mb-2.5 p-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-300 flex items-start gap-1.5 leading-snug">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-400" />
+                          <span>
+                            Thermal roll printers use a compact POS receipt layout. Column customization applies to A4 and A5 sheet formats.
+                          </span>
+                        </div>
+                      )}
+
                       <p className="text-[11px] text-slate-400 mb-2.5">
                         Toggle which columns appear on the printed document:
                       </p>
@@ -910,11 +861,11 @@ export default function InvoiceViewPage() {
                   : previewFormat === 'THERMAL_58'
                   ? 'max-w-[52mm] sm:max-w-[260px] p-1.5'
                   : previewFormat === 'A5'
-                  ? 'max-w-[148mm] p-2'
+                  ? 'max-w-[190mm] p-2'
                   : 'max-w-[190mm] p-2'
               }`}
               style={{
-                width: previewFormat === 'THERMAL_80' ? '74mm' : previewFormat === 'THERMAL_58' ? '52mm' : previewFormat === 'A5' ? '148mm' : '190mm',
+                width: previewFormat === 'THERMAL_80' ? '74mm' : previewFormat === 'THERMAL_58' ? '52mm' : previewFormat === 'A5' ? '190mm' : '190mm',
                 color: '#000000',
                 margin: '0 auto'
               }}
@@ -925,6 +876,8 @@ export default function InvoiceViewPage() {
                 isSingleCopy={isSingleCopy}
                 admin={admin}
                 customerOutstanding={customerOutstanding}
+                columns={activeColumns}
+                enableBatchTracking={enableBatchTracking}
               />
             </motion.div>
           </div>
@@ -955,6 +908,8 @@ export default function InvoiceViewPage() {
             isSingleCopy={singleCopy}
             admin={admin}
             customerOutstanding={customerOutstanding}
+            columns={activeColumns}
+            enableBatchTracking={enableBatchTracking}
           />
         )}
       />

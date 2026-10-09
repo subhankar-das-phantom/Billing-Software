@@ -14,7 +14,7 @@ const DYNAMIC_STYLE_ID = 'bharat-dynamic-print-page-style';
 function getFormatPageCss(format) {
   switch (format) {
     case PRINT_FORMATS.A5:
-      return `@page { size: A5 portrait; margin: 5mm; }`;
+      return `@page { size: A4 portrait; margin: 4mm 6mm; }`;
     case PRINT_FORMATS.THERMAL_80:
       return `@page { size: 80mm auto; margin: 2mm; }`;
     case PRINT_FORMATS.THERMAL_58:

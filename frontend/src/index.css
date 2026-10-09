@@ -1592,7 +1592,7 @@ html.light .pp-footer-home:hover {
 
   .print-format-a5 {
     width: 100% !important;
-    max-width: 138mm !important;
+    max-width: 190mm !important;
     margin: 0 auto !important;
     box-sizing: border-box !important;
     font-size: 8.5px !important;

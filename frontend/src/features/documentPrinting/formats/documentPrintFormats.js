@@ -34,13 +34,13 @@ export const FORMAT_METADATA = Object.freeze({
   [PRINT_FORMATS.A5]: {
     id: PRINT_FORMATS.A5,
     label: 'A5 Sheet',
-    sublabel: 'Half Sheet / Compact (148 × 210 mm)',
-    pageWidthMm: 148,
-    contentWidthMm: 134,
+    sublabel: 'A4 Half-Sheet Cut / A5 Landscape (210 × 148 mm)',
+    pageWidthMm: 210,
+    contentWidthMm: 190,
     marginMm: 5,
     cssClass: 'print-format-a5',
     badge: 'Compact',
-    supportsDoubleCopy: false
+    supportsDoubleCopy: true
   },
   [PRINT_FORMATS.THERMAL_80]: {
     id: PRINT_FORMATS.THERMAL_80,
