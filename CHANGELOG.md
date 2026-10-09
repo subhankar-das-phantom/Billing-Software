@@ -4,6 +4,68 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.9.9](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.9.9) — 2026-10-09 — Multi-Document Format-Aware Printing System, Ledger Pagination Fix & Account Print Preferences
+
+### 🖨️ Format-Aware Multi-Document Printing Subsystem (`frontend/src/features/documentPrinting/*`)
+- **Universal Format Architecture**: Designed and implemented modular document renderers supporting independent paper layouts:
+  - **Invoices**: A4 (Standard full-sheet single copy and double-copy split sheet with dashed cut divider), A5 (half-sheet compact landscape/portrait), Thermal 80mm (3-inch roll POS format), and Thermal 58mm (2-inch roll POS format).
+  - **Credit Notes**: A4 (full sheet), A5 (half sheet), Thermal 80mm, Thermal 58mm.
+  - **Payment Receipts**: A4 (half-fold payment voucher), A5, Thermal 80mm, Thermal 58mm.
+  - **Customer & Supplier Ledgers**: A4 & A5 high-density tabular statements.
+  - **Daily Closeout Summaries**: A4 & A5 register audit summaries.
+- **Shared Interactive `PrintDialog`**: Built unified modal print preview dialog (`PrintDialog.jsx`) featuring instant on-the-fly format switching via `PrintFormatSelector`, high-fidelity responsive preview scaling (`transform: scale(...)`) completely isolated from `@media print`, double-copy toggle for A4 invoices, and print-ready status indication.
+- **8-Step Browser Print Lifecycle (`PrintTransport.js`)**: Robust orchestrator ensuring 100% asset and font readiness via `document.fonts.ready`, dynamic `@page { size: ...; margin: ... }` injection and automatic cleanup on `afterprint`, double `requestAnimationFrame` render stabilization, and cleanup.
+- **Zero Financial Drift**: Presentation renderers strictly consume authoritative server calculations and format numbers to the Indian numbering standard (`en-IN`) down to the exact paisa, guaranteeing zero financial calculation deviation across formats.
+- **Dynamic Text Wrap & Ellipsis Removal**: Multi-line invoice notes, credit note return reasons, payment remarks, and long product names wrap naturally across table cells with zero text truncation or clipping.
+
+### 📄 Customer & Supplier Ledger Summary Pagination Defect Resolution (`frontend/src/index.css`, `frontend/src/pages/Customers/*`, `frontend/src/pages/Suppliers/*`)
+- **Root Cause Fix**: Discovered that browsers repeat CSS `tfoot` elements at the bottom of every printed page when `display: table-footer-group` is active.
+- **Single Terminal Summary & Signatures**: Removed `<tfoot>` wrapping around `TOTAL TRANSACTIONS` and `CLOSING BALANCE` rows in `CustomerDetailsPage.jsx` and `SupplierDetailsPage.jsx`. Transferred summary totals and authorized signatory blocks into dedicated `.print-final-summary` containers styled with `break-inside: avoid !important; page-break-inside: avoid !important`.
+- **Global Print CSS Isolation**: Overrode `.print-table tfoot` to `display: table-row-group` in `index.css` to prevent any residual multi-page footer repeating. Verified that running ledger balances continue across page breaks while the final totals and signature blocks print exactly once at the end of the document.
+
+### ⚙️ Account-Level Document Print Preferences & Capability Matrix (`backend/models/Admin.js`, `backend/controllers/authController.js`, `frontend/src/pages/Settings/SettingsPage.jsx`)
+- **Subdocument Schema**: Added `preferences.documentPrintFormats` with enums and standard `'A4'` defaults across all 6 document types.
+- **Strict Capability Matrix & Authorization**: Enforced admin-only authorization (403 for employees), payload type validation (400), unknown document type rejection (400), and capability matrix validation (400) rejecting unsupported format pairings (e.g. thermal formats on multi-column tabular ledgers).
+- **Safe Partial Updates**: Implemented deep merging in `authController.js` ensuring updates to individual document formats preserve untouched formats and unrelated preferences (`themeMode`, `mobileCardDensity`, `enableBatchTracking`).
+- **Automated Regression Suite**: Created `backend/scripts/testDocumentPrintFormats.ts` asserting 38 behavioral invariants covering schema defaults, 403 authorization guards, payload validations, partial update retention, and capability matrix boundaries with 100% pass rate.
+- **Settings Workspace Card**: Integrated high-density "Default Document Print Formats" configuration card in `SettingsPage.jsx` allowing administrators to manage defaults per document type with live feedback.
+
+### 🔬 Empirical Print Capacity Verification Matrix (`frontend/scripts/testPrintCapacity.mjs`)
+- **Puppeteer Headless Chromium Simulation**: Validated page counts and pagination integrity across 1, 5, 10, 15, 25, 50, and 100 line items with wrapped multi-line descriptions and notes.
+- **Capacity Findings**:
+  - A4: 1–25 items fit comfortably on 1 page; 50 items span 2 pages; 100 items span 3 pages.
+  - A5: 1–15 items fit on 1 page; 25–50 items span 2 pages; 100 items span 4 pages.
+  - Thermal 80mm & 58mm: Continuous POS roll layout paginate smoothly across dynamic virtual heights without table overflow.
+- **Hardware Boundary Transparency**: Automated PDF simulations confirm rendering and CSS page definitions; physical printer hardware testing requires connected thermal/laser ESC/POS or CUPS drivers.
+
+### 📋 Legal & Compliance Invariants
+- **Privacy Policy & Terms Neutrality**: Paper format preferences and print rendering components introduce no additional personal data collection, telemetry tracking, or pricing changes.
+
+### Files Modified
+- `backend/models/Admin.js` — added `preferences.documentPrintFormats` schema with defaults
+- `backend/controllers/authController.js` — implemented admin authorization, capability matrix enforcement, and partial update merging
+- `backend/scripts/testDocumentPrintFormats.ts` — created automated test suite verifying 38 print preference invariants
+- `frontend/src/index.css` — added format-specific print dimensions (`.print-format-a4`, `.print-format-a5`, `.print-format-thermal-80`, `.print-format-thermal-58`) and fixed `tfoot` table footer repetition
+- `frontend/src/features/documentPrinting/formats/documentPrintFormats.js` — created authoritative format constants, metadata, capability matrix, and fallback resolver
+- `frontend/src/features/documentPrinting/transport/PrintTransport.js` — created 8-step browser print transport lifecycle orchestrator
+- `frontend/src/features/documentPrinting/primitives/PrintPrimitives.jsx` — created reusable firm header, party block, notes block, and signatory block primitives
+- `frontend/src/features/documentPrinting/renderers/InvoiceDocument.jsx` — built A4 (single & double-copy), A5, Thermal 80mm, and Thermal 58mm invoice renderers
+- `frontend/src/features/documentPrinting/renderers/CreditNoteDocument.jsx` — built A4, A5, Thermal 80mm, and Thermal 58mm credit note renderers
+- `frontend/src/features/documentPrinting/renderers/ReceiptDocument.jsx` — built A4, A5, Thermal 80mm, and Thermal 58mm payment receipt renderers
+- `frontend/src/features/documentPrinting/renderers/LedgerDocument.jsx` — built A4 and A5 customer and supplier ledger renderers
+- `frontend/src/features/documentPrinting/renderers/CloseoutDocument.jsx` — built A4 and A5 daily closeout renderers
+- `frontend/src/features/documentPrinting/components/PrintFormatSelector.jsx` — created format selection pill group
+- `frontend/src/features/documentPrinting/components/PrintDialog.jsx` — created print preview and execution modal
+- `frontend/src/pages/Invoices/InvoiceViewPage.jsx` — wired format-aware `PrintDialog` preserving single/double copy modes
+- `frontend/src/pages/CreditNotes/CreditNoteViewPage.jsx` — wired format-aware `PrintDialog`
+- `frontend/src/components/Common/Modals/PaymentReceiptModal.jsx` — wired format-aware `PrintDialog`
+- `frontend/src/pages/Customers/CustomerDetailsPage.jsx` — wired format-aware `PrintDialog`, eliminated `<tfoot>` repeating summary, and enabled natural text wrapping
+- `frontend/src/pages/Suppliers/SupplierDetailsPage.jsx` — wired format-aware `PrintDialog`, eliminated `<tfoot>` repeating summary, and enabled natural text wrapping
+- `frontend/src/pages/Collections/DailyCloseoutPrintModal.jsx` — wired format-aware `PrintDialog`
+- `frontend/src/pages/Settings/SettingsPage.jsx` — added default document print format management UI
+- `frontend/scripts/testPrintCapacity.mjs` — empirical capacity test runner using Puppeteer Chromium
+- `README.md` — updated version badge to `v2.9.9`
+
 ## [v2.9.8](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.9.8) — 2026-10-08 — Persistent List/Detail Navigation, Public Invoice Rounding Parity, Mobile Density & Customers Workspace Refinement
 
 ### 🧭 Persistent List / View State & Detail Return Navigation (`frontend/src/hooks/useListFilterParams.js`, `frontend/src/pages/*`)
