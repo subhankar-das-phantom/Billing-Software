@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { PRINT_FORMATS, FORMAT_METADATA } from '../formats/documentPrintFormats';
+import { PRINT_FORMATS, FORMAT_METADATA, INVOICE_COPY_MODES } from '../formats/documentPrintFormats';
 import { PrintNotesBlock, PrintSignatoryBlock } from '../primitives/PrintPrimitives';
 import { resolveActiveColumns, getBatchGroups } from './invoiceColumns';
 
@@ -555,6 +555,7 @@ function Thermal58Invoice({ invoice, admin }) {
 export default function InvoiceDocument({
   invoice,
   format = PRINT_FORMATS.A4,
+  copyMode = undefined,
   isSingleCopy = false,
   admin = null,
   customerOutstanding = 0,
@@ -583,8 +584,10 @@ export default function InvoiceDocument({
     );
   }
 
-  // A4 / A5 Sheet (Default) — Preserves 1x Single vs 2x Double Copy
-  const isDouble = !isSingleCopy;
+  // A4 / A5 Sheet (Default) — Supports 1x Full Page (single), 2x Half Sheet (double), and 1x Half Sheet (half)
+  const resolvedMode = copyMode || (isSingleCopy ? INVOICE_COPY_MODES.FULL : INVOICE_COPY_MODES.DOUBLE);
+  const isDouble = resolvedMode === INVOICE_COPY_MODES.DOUBLE;
+  const isSingleHalf = resolvedMode === INVOICE_COPY_MODES.HALF;
 
   return (
     <div className={`invoice-print print-format-a4 ${metadata.cssClass}`}>
@@ -593,7 +596,7 @@ export default function InvoiceDocument({
         format={PRINT_FORMATS.A4}
         admin={admin}
         customerOutstanding={customerOutstanding}
-        isDoubleCopy={isDouble}
+        isDoubleCopy={isDouble || isSingleHalf}
         copyTitle={isDouble ? 'Customer Copy' : null}
         columns={columns}
         enableBatchTracking={enableBatchTracking}

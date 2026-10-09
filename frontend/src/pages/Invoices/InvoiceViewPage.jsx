@@ -45,7 +45,7 @@ import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator'
 import ShareResourceMenu from '../../components/Common/Sharing/ShareResourceMenu';
 import PrintDialog from '../../features/documentPrinting/components/PrintDialog';
 import InvoiceDocument from '../../features/documentPrinting/renderers/InvoiceDocument';
-import { resolveDocumentPrintFormat, DOCUMENT_TYPES } from '../../features/documentPrinting/formats/documentPrintFormats';
+import { resolveDocumentPrintFormat, DOCUMENT_TYPES, INVOICE_COPY_MODES } from '../../features/documentPrinting/formats/documentPrintFormats';
 import { ALL_INVOICE_COLUMNS, DEFAULT_INVOICE_COLUMNS, resolveActiveColumns, getBatchGroups } from '../../features/documentPrinting/renderers/invoiceColumns';
 
 const roundCurrency = (value) => Math.round(((Number(value) || 0) + Number.EPSILON) * 100) / 100;
@@ -114,13 +114,18 @@ export default function InvoiceViewPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const [isSingleCopy, setIsSingleCopy] = useState(() => {
+  const [copyMode, setCopyMode] = useState(() => {
     try {
-      return localStorage.getItem('invoiceCopyMode') === 'single';
+      const saved = localStorage.getItem('invoiceCopyMode');
+      if (saved === 'single' || saved === 'double' || saved === 'half') {
+        return saved;
+      }
+      return 'double';
     } catch {
-      return false;
+      return 'double';
     }
   });
+  const isSingleCopy = copyMode === 'single';
   const printRef = useRef();
   const { success, error } = useToast();
   const isFirstVisit = useFirstVisit('invoice-view');
@@ -325,12 +330,17 @@ export default function InvoiceViewPage() {
     setShowPrintDialog(true);
   };
 
+  const handleSelectCopyMode = (mode) => {
+    setCopyMode(mode);
+    try {
+      localStorage.setItem('invoiceCopyMode', mode);
+    } catch (err) {
+      console.warn('Failed saving copyMode', err);
+    }
+  };
+
   const toggleCopyMode = () => {
-    setIsSingleCopy((prev) => {
-      const next = !prev;
-      localStorage.setItem('invoiceCopyMode', next ? 'single' : 'double');
-      return next;
-    });
+    handleSelectCopyMode(copyMode === 'single' ? 'double' : 'single');
   };
 
   const handleCancelInvoice = async () => {
@@ -495,27 +505,39 @@ export default function InvoiceViewPage() {
               <div className="inline-flex items-center p-0.5 rounded-xl bg-slate-900/90 border border-slate-700/60 shadow-inner">
                 <button
                   type="button"
-                  onClick={() => { if (!isSingleCopy) toggleCopyMode(); }}
+                  onClick={() => handleSelectCopyMode('single')}
                   className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
-                    isSingleCopy
-                      ? 'bg-slate-800 text-slate-100 shadow-xs border border-slate-700/80'
+                    copyMode === 'single'
+                      ? 'bg-blue-600 text-white shadow-xs font-semibold'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
-                  title="Print single copy"
+                  title="Print single full-page A4 copy"
                 >
-                  1x Single
+                  1x Full
                 </button>
                 <button
                   type="button"
-                  onClick={() => { if (isSingleCopy) toggleCopyMode(); }}
+                  onClick={() => handleSelectCopyMode('double')}
                   className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
-                    !isSingleCopy
-                      ? 'bg-blue-600 text-white shadow-xs'
+                    copyMode === 'double'
+                      ? 'bg-blue-600 text-white shadow-xs font-semibold'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
-                  title="Print customer and business copies"
+                  title="Print two compact copies with Cut Here divider"
                 >
                   2x Double
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectCopyMode('half')}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                    copyMode === 'half'
+                      ? 'bg-blue-600 text-white shadow-xs font-semibold'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                  title="Print single compact half-sheet copy"
+                >
+                  1x Half
                 </button>
               </div>
 
@@ -830,32 +852,42 @@ export default function InvoiceViewPage() {
             <div className="flex items-center gap-2 flex-wrap">
               {/* Layout mode toggle when A4 format is selected */}
               {previewFormat === 'A4' && (
-                <div className="flex items-center gap-1 bg-slate-800/80 p-0.5 rounded-lg border border-slate-700/60 mr-1">
+                <div className="flex items-center gap-1 bg-slate-800/80 p-0.5 rounded-lg border border-slate-700/60 mr-1 flex-wrap">
                   <button
                     type="button"
-                    onClick={() => {
-                      if (!isSingleCopy) toggleCopyMode();
-                    }}
+                    onClick={() => handleSelectCopyMode('single')}
                     className={`text-[11px] px-2.5 py-1 rounded-md font-medium transition-all ${
-                      isSingleCopy
+                      copyMode === 'single'
                         ? 'bg-blue-600 text-white shadow-xs font-semibold'
                         : 'text-slate-400 hover:text-slate-200'
                     }`}
+                    title="Single full-page tax invoice"
                   >
                     1x Full Page (A4)
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      if (isSingleCopy) toggleCopyMode();
-                    }}
+                    onClick={() => handleSelectCopyMode('double')}
                     className={`text-[11px] px-2.5 py-1 rounded-md font-medium transition-all ${
-                      !isSingleCopy
+                      copyMode === 'double'
                         ? 'bg-blue-600 text-white shadow-xs font-semibold'
                         : 'text-slate-400 hover:text-slate-200'
                     }`}
+                    title="Two compact copies with Cut Here divider"
                   >
                     2x Half Sheet (A5 Cut)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectCopyMode('half')}
+                    className={`text-[11px] px-2.5 py-1 rounded-md font-medium transition-all ${
+                      copyMode === 'half'
+                        ? 'bg-blue-600 text-white shadow-xs font-semibold'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                    title="Single compact half-sheet invoice"
+                  >
+                    1x Half Sheet
                   </button>
                 </div>
               )}
@@ -902,6 +934,7 @@ export default function InvoiceViewPage() {
               <InvoiceDocument
                 invoice={invoice}
                 format={previewFormat}
+                copyMode={copyMode}
                 isSingleCopy={isSingleCopy}
                 admin={admin}
                 customerOutstanding={customerOutstanding}
@@ -928,13 +961,16 @@ export default function InvoiceViewPage() {
         documentType={DOCUMENT_TYPES.INVOICE}
         title={`Print Tax Invoice ${invoice.invoiceNumber || ''}`}
         initialFormat={previewFormat}
+        copyMode={copyMode}
+        onSelectCopyMode={handleSelectCopyMode}
         isSingleCopy={isSingleCopy}
         onToggleCopyMode={toggleCopyMode}
-        renderDocument={(activeFormat, singleCopy) => (
+        renderDocument={(activeFormat, activeCopyMode) => (
           <InvoiceDocument
             invoice={invoice}
             format={activeFormat}
-            isSingleCopy={singleCopy}
+            copyMode={activeCopyMode}
+            isSingleCopy={activeCopyMode === 'single'}
             admin={admin}
             customerOutstanding={customerOutstanding}
             columns={activeColumns}

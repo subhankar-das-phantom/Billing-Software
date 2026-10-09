@@ -361,6 +361,34 @@ async function runRegressionSuite() {
     invoiceDocCode.includes('filler-row') && invoiceDocCode.includes("height: '100%'"),
     'SheetInvoiceCopy includes expanding filler-row with 100% height to extend vertical column lines'
   );
+  assert(
+    invoiceDocCode.includes('isDoubleHalf = resolvedMode === INVOICE_COPY_MODES.HALF') ||
+    invoiceDocCode.includes('isSingleHalf = resolvedMode === INVOICE_COPY_MODES.HALF'),
+    'InvoiceDocument resolves isSingleHalf for 1x Half Sheet mode'
+  );
+  assert(
+    invoiceDocCode.includes('isDoubleCopy={isDouble || isSingleHalf}'),
+    'InvoiceDocument applies compact half-sheet styling in 1x Half Sheet mode without duplicate copy'
+  );
+
+  const printFormatsPath = path.join(__dirname, '../../frontend/src/features/documentPrinting/formats/documentPrintFormats.js');
+  const printFormatsCode = fs.readFileSync(printFormatsPath, 'utf-8');
+  assert(
+    printFormatsCode.includes('INVOICE_COPY_MODES') &&
+    printFormatsCode.includes("FULL: 'single'") &&
+    printFormatsCode.includes("DOUBLE: 'double'") &&
+    printFormatsCode.includes("HALF: 'half'"),
+    'documentPrintFormats exports canonical INVOICE_COPY_MODES (single, double, half)'
+  );
+
+  const selectorPath = path.join(__dirname, '../../frontend/src/features/documentPrinting/components/PrintFormatSelector.jsx');
+  const selectorCode = fs.readFileSync(selectorPath, 'utf-8');
+  assert(
+    selectorCode.includes('1x Full Page (A4)') &&
+    selectorCode.includes('2x Half Sheet (A5 Cut)') &&
+    selectorCode.includes('1x Half Sheet'),
+    'PrintFormatSelector includes 3-way layout buttons: 1x Full Page, 2x Half Sheet, 1x Half Sheet'
+  );
 
   // Verify Net rate mathematical derivation contract
   const sampleRate = 85.0;
