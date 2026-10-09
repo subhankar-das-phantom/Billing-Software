@@ -68,6 +68,38 @@ const adminSchema = new mongoose.Schema({
     allowPublicInvoicePrint: {
       type: Boolean,
       default: false
+    },
+    documentPrintFormats: {
+      invoice: {
+        type: String,
+        enum: ['A4', 'A5', 'THERMAL_80', 'THERMAL_58'],
+        default: 'A4'
+      },
+      creditNote: {
+        type: String,
+        enum: ['A4', 'A5', 'THERMAL_80', 'THERMAL_58'],
+        default: 'A4'
+      },
+      paymentReceipt: {
+        type: String,
+        enum: ['A4', 'A5', 'THERMAL_80', 'THERMAL_58'],
+        default: 'A4'
+      },
+      customerLedger: {
+        type: String,
+        enum: ['A4', 'A5'],
+        default: 'A4'
+      },
+      supplierLedger: {
+        type: String,
+        enum: ['A4', 'A5'],
+        default: 'A4'
+      },
+      dailyCloseout: {
+        type: String,
+        enum: ['A4', 'A5'],
+        default: 'A4'
+      }
     }
   },
   paymentInformation: {

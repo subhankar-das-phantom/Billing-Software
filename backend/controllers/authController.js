@@ -536,9 +536,43 @@ const VALID_INVOICE_COLUMNS = new Set([
   'mrp', 'rate', 'net', 'disc', 'gst', 'amount'
 ]);
 
+// Authoritative document print format capability matrix
+const DOCUMENT_PRINT_CAPABILITY_MATRIX = {
+  invoice: new Set(['A4', 'A5', 'THERMAL_80', 'THERMAL_58']),
+  creditNote: new Set(['A4', 'A5', 'THERMAL_80', 'THERMAL_58']),
+  paymentReceipt: new Set(['A4', 'A5', 'THERMAL_80', 'THERMAL_58']),
+  customerLedger: new Set(['A4', 'A5']),
+  supplierLedger: new Set(['A4', 'A5']),
+  dailyCloseout: new Set(['A4', 'A5'])
+};
+
+const VALID_DOCUMENT_TYPES = new Set(Object.keys(DOCUMENT_PRINT_CAPABILITY_MATRIX));
+
 exports.updatePreferences = async (req, res, next) => {
   try {
-    const { showCalculator, invoiceColumns, enableBatchTracking, themeMode, mobileCardDensity, allowPublicInvoicePrint } = req.body;
+    const { showCalculator, invoiceColumns, enableBatchTracking, themeMode, mobileCardDensity, allowPublicInvoicePrint, documentPrintFormats } = req.body;
+
+    // Early authorization guards for admin-only preferences
+    if (invoiceColumns !== undefined && req.userRole !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only admins can customize global invoice columns'
+      });
+    }
+
+    if (allowPublicInvoicePrint !== undefined && req.userRole !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only admins can customize public invoice preferences'
+      });
+    }
+
+    if (documentPrintFormats !== undefined && req.userRole !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only admins can customize document print formats'
+      });
+    }
     
     let user;
     if (req.userRole === 'employee') {
@@ -617,6 +651,53 @@ exports.updatePreferences = async (req, res, next) => {
         });
       }
       user.set('preferences.allowPublicInvoicePrint', Boolean(allowPublicInvoicePrint));
+    }
+
+    if (documentPrintFormats !== undefined) {
+      if (req.userRole !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Only admins can customize document print formats'
+        });
+      }
+
+      if (typeof documentPrintFormats !== 'object' || documentPrintFormats === null || Array.isArray(documentPrintFormats)) {
+        return res.status(400).json({
+          success: false,
+          message: 'documentPrintFormats must be an object'
+        });
+      }
+
+      for (const [docType, format] of Object.entries(documentPrintFormats)) {
+        if (!VALID_DOCUMENT_TYPES.has(docType)) {
+          return res.status(400).json({
+            success: false,
+            message: `Unknown document type: "${docType}"`
+          });
+        }
+        const allowedFormats = DOCUMENT_PRINT_CAPABILITY_MATRIX[docType];
+        if (!allowedFormats.has(format)) {
+          return res.status(400).json({
+            success: false,
+            message: `Format "${format}" is not supported for document type "${docType}". Supported formats: ${Array.from(allowedFormats).join(', ')}`
+          });
+        }
+      }
+
+      const currentFormats = (user.preferences && user.preferences.documentPrintFormats)
+        ? (user.preferences.documentPrintFormats.toObject ? user.preferences.documentPrintFormats.toObject() : { ...user.preferences.documentPrintFormats })
+        : {};
+      const mergedFormats = {
+        invoice: 'A4',
+        creditNote: 'A4',
+        paymentReceipt: 'A4',
+        customerLedger: 'A4',
+        supplierLedger: 'A4',
+        dailyCloseout: 'A4',
+        ...currentFormats,
+        ...documentPrintFormats
+      };
+      user.set('preferences.documentPrintFormats', mergedFormats);
     }
 
     await user.save();
