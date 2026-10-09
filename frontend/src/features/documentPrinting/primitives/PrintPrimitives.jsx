@@ -147,7 +147,7 @@ export function PrintNotesBlock({ notes, label = 'Notes / Remarks', format = PRI
   return (
     <div
       className={`${isThermal ? 'text-[8px] my-1 py-1' : 'text-[9px] my-1.5 py-1'} border-t border-dashed border-gray-400`}
-      style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}
+      style={{ pageBreakInside: 'avoid', breakInside: 'avoid', color: '#000000' }}
     >
       <span className="font-bold text-gray-700">{label}: </span>
       <span className="whitespace-pre-wrap break-words">{notes.trim()}</span>
@@ -169,7 +169,7 @@ export function PrintSignatoryBlock({
 
   if (isThermal) {
     return (
-      <div className="mt-2 pt-2 border-t border-black text-center text-[8px]" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+      <div className="mt-2 pt-2 border-t border-black text-center text-[8px]" style={{ pageBreakInside: 'avoid', breakInside: 'avoid', color: '#000000' }}>
         <p className="italic mb-1">E &amp; O E · Thank you for your business!</p>
         <div className="h-6"></div>
         <p className="border-t border-black inline-block px-4 pt-0.5 font-semibold">

@@ -187,12 +187,18 @@ function ThermalCreditNote({ creditNote, format = PRINT_FORMATS.THERMAL_80, admi
 
   return (
     <div
-      className={`invoice-copy bg-white text-black p-1.5 font-mono ${is58 ? 'text-[8px] max-w-[52mm]' : 'text-[9px] max-w-[74mm]'}`}
-      style={{ width: '100%', margin: '0 auto', boxSizing: 'border-box' }}
+      className={`invoice-copy bg-white p-1.5 font-mono ${is58 ? 'text-[8px] max-w-[52mm]' : 'text-[9px] max-w-[74mm]'}`}
+      style={{
+        width: '100%',
+        margin: '0 auto',
+        boxSizing: 'border-box',
+        color: '#000000',
+        backgroundColor: '#ffffff'
+      }}
     >
       <PrintFirmHeader firm={firm} format={format} documentTitle="CREDIT NOTE" />
 
-      <div className="py-1 border-b border-dashed border-black text-[8px] space-y-0.5">
+      <div className="py-1 border-b border-dashed border-black text-[8px] space-y-0.5" style={{ color: '#000000' }}>
         <div className="flex justify-between">
           <span>CN: <strong>{creditNote.creditNoteNumber}</strong></span>
           <span>{formatDate(creditNote.createdAt)}</span>
@@ -204,14 +210,14 @@ function ThermalCreditNote({ creditNote, format = PRINT_FORMATS.THERMAL_80, admi
           To: {creditNote.customer?.customerName || 'Customer'}
         </div>
         {creditNote.reason && (
-          <div className="text-[7.5px] italic text-gray-800 break-words">
+          <div className="text-[7.5px] italic text-gray-800 break-words" style={{ color: '#000000' }}>
             Reason: {creditNote.reason}
           </div>
         )}
       </div>
 
       {/* Items */}
-      <div className="py-1 border-b border-dashed border-black">
+      <div className="py-1 border-b border-dashed border-black" style={{ color: '#000000' }}>
         {creditNote.items?.map((item, idx) => {
           const name = getCNItemName(item);
           const qty = getCNItemQty(item);
@@ -220,10 +226,10 @@ function ThermalCreditNote({ creditNote, format = PRINT_FORMATS.THERMAL_80, admi
 
           return (
             <div key={idx} className="py-0.5 border-b border-gray-100">
-              <div className="font-bold break-words">{name}</div>
-              <div className="flex justify-between text-gray-700 text-[8px]">
+              <div className="font-bold break-words" style={{ color: '#000000' }}>{name}</div>
+              <div className="flex justify-between text-[8px]" style={{ color: '#000000' }}>
                 <span>Return Qty: {qty} × ₹{rate.toFixed(2)}</span>
-                <span className="font-bold text-black">₹{total.toFixed(2)}</span>
+                <span className="font-bold" style={{ color: '#000000' }}>₹{total.toFixed(2)}</span>
               </div>
             </div>
           );

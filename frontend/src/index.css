@@ -588,8 +588,8 @@ html.dark {
     @apply text-slate-400 font-medium;
   }
 
-  /* Fix any black text issues in dark mode only */
-  html.dark .text-black {
+  /* Fix any black text issues in dark mode only (strictly exclude printable documents & receipts) */
+  html.dark .text-black:not(.invoice-print):not(.invoice-print *):not(.invoice-copy):not(.invoice-copy *):not([class*="print-format-"]):not([class*="print-format-"] *) {
     @apply !text-white;
   }
   html.light .text-black {
@@ -1654,19 +1654,34 @@ html.light .pp-footer-home:hover {
   }
 }
 
-/* Force black text in invoice */
+/* Force black text in invoice & receipt documents across all formats, light & dark mode */
+html.dark .invoice-print,
+html.dark .invoice-print *,
+html.dark .invoice-copy,
+html.dark .invoice-copy *,
+html.dark [class*="print-format-"],
+html.dark [class*="print-format-"] *,
+html.light .invoice-print,
+html.light .invoice-print *,
+html.light .invoice-copy,
+html.light .invoice-copy *,
 .invoice-print,
-.invoice-print * {
+.invoice-print *,
+.invoice-copy,
+.invoice-copy *,
+[class*="print-format-"],
+[class*="print-format-"] * {
   color: #000000 !important;
 }
 
-.invoice-print h1,
-.invoice-print h2,
-.invoice-print h3,
-.invoice-print p,
-.invoice-print td,
-.invoice-print th {
-  color: #000000 !important;
+/* Allow explicit red text for negative/discount amounts inside print documents */
+html.dark .invoice-print .text-red-600,
+html.dark .invoice-copy .text-red-600,
+html.light .invoice-print .text-red-600,
+html.light .invoice-copy .text-red-600,
+.invoice-print .text-red-600,
+.invoice-copy .text-red-600 {
+  color: #dc2626 !important;
 }
 
 /* Hero shape entrance — pure CSS, GPU-composited, zero jitter */

@@ -109,12 +109,18 @@ function ThermalReceipt({ payment, format = PRINT_FORMATS.THERMAL_80, admin = nu
 
   return (
     <div
-      className={`invoice-copy bg-white text-black p-1.5 font-mono ${is58 ? 'text-[8px] max-w-[52mm]' : 'text-[9px] max-w-[74mm]'}`}
-      style={{ width: '100%', margin: '0 auto', boxSizing: 'border-box' }}
+      className={`invoice-copy bg-white p-1.5 font-mono ${is58 ? 'text-[8px] max-w-[52mm]' : 'text-[9px] max-w-[74mm]'}`}
+      style={{
+        width: '100%',
+        margin: '0 auto',
+        boxSizing: 'border-box',
+        color: '#000000',
+        backgroundColor: '#ffffff'
+      }}
     >
       <PrintFirmHeader firm={firm} format={format} documentTitle="PAYMENT RECEIPT" />
 
-      <div className="py-1 border-b border-dashed border-black text-[8px] space-y-0.5">
+      <div className="py-1 border-b border-dashed border-black text-[8px] space-y-0.5" style={{ color: '#000000' }}>
         <div className="flex justify-between">
           <span>{displayId}</span>
           <span>{formatDate(payment.paymentDate)}</span>

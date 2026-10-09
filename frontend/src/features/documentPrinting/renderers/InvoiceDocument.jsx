@@ -326,10 +326,17 @@ function Thermal80Invoice({ invoice, admin, customerOutstanding }) {
 
   return (
     <div
-      className="invoice-copy bg-white text-black p-1 font-mono text-[9px]"
-      style={{ width: '100%', maxWidth: '74mm', margin: '0 auto', boxSizing: 'border-box' }}
+      className="invoice-copy bg-white p-1 font-mono text-[9px]"
+      style={{
+        width: '100%',
+        maxWidth: '74mm',
+        margin: '0 auto',
+        boxSizing: 'border-box',
+        color: '#000000',
+        backgroundColor: '#ffffff'
+      }}
     >
-      <div className="text-center pb-1 mb-1 border-b border-black">
+      <div className="text-center pb-1 mb-1 border-b border-black" style={{ color: '#000000' }}>
         <h1 className="text-xs font-bold uppercase tracking-tight">{firm.firmName}</h1>
         {firm.firmAddress && <p className="text-[8.5px] leading-tight mt-0.5">{firm.firmAddress}</p>}
         <div className="flex justify-center gap-2 text-[8.5px] mt-0.5">
@@ -342,7 +349,7 @@ function Thermal80Invoice({ invoice, admin, customerOutstanding }) {
       </div>
 
       {/* Metadata */}
-      <div className="py-1 border-b border-dashed border-black text-[8.5px] space-y-0.5">
+      <div className="py-1 border-b border-dashed border-black text-[8.5px] space-y-0.5" style={{ color: '#000000' }}>
         <div className="flex justify-between">
           <span>Inv: <strong>{invoice.invoiceNumber}</strong></span>
           <span>{formatDate(invoice.invoiceDate)}</span>
@@ -354,7 +361,7 @@ function Thermal80Invoice({ invoice, admin, customerOutstanding }) {
       </div>
 
       {/* Item List */}
-      <div className="py-1 border-b border-dashed border-black">
+      <div className="py-1 border-b border-dashed border-black" style={{ color: '#000000' }}>
         <div className="flex justify-between font-bold border-b border-black pb-0.5 mb-1 text-[8px] uppercase">
           <span style={{ width: '48%' }}>Item</span>
           <span style={{ width: '14%' }} className="text-center">Qty</span>
@@ -378,16 +385,16 @@ function Thermal80Invoice({ invoice, admin, customerOutstanding }) {
 
           return (
             <div key={idx} className="py-1 border-b border-gray-200">
-              <div className="font-bold break-words leading-tight text-[9px] text-black">
+              <div className="font-bold break-words leading-tight text-[9px]" style={{ color: '#000000' }}>
                 {name}
               </div>
-              <div className="flex justify-between text-gray-800 text-[8.5px] mt-0.5">
+              <div className="flex justify-between text-[8.5px] mt-0.5" style={{ color: '#000000' }}>
                 <span style={{ width: '48%' }} className="truncate">
                   {metaString}
                 </span>
                 <span style={{ width: '14%' }} className="text-center font-medium">{qty}</span>
                 <span style={{ width: '18%' }} className="text-right">{rate.toFixed(2)}</span>
-                <span style={{ width: '20%' }} className="text-right font-bold text-black">
+                <span style={{ width: '20%', color: '#000000' }} className="text-right font-bold">
                   {total.toFixed(2)}
                 </span>
               </div>
@@ -397,13 +404,13 @@ function Thermal80Invoice({ invoice, admin, customerOutstanding }) {
       </div>
 
       {/* Totals Summary */}
-      <div className="py-1 border-b border-dashed border-black space-y-0.5 text-[8.5px]">
+      <div className="py-1 border-b border-dashed border-black space-y-0.5 text-[8.5px]" style={{ color: '#000000' }}>
         <div className="flex justify-between">
           <span>Taxable Amount:</span>
           <span>₹{(Number(invoice.totals?.totalTaxable) || 0).toFixed(2)}</span>
         </div>
         {invoice.totals?.totalDiscount > 0 && (
-          <div className="flex justify-between text-red-600">
+          <div className="flex justify-between" style={{ color: '#dc2626' }}>
             <span>Discount:</span>
             <span>-₹{(Number(invoice.totals?.totalDiscount) || 0).toFixed(2)}</span>
           </div>
@@ -416,7 +423,7 @@ function Thermal80Invoice({ invoice, admin, customerOutstanding }) {
           <span>SGST:</span>
           <span>₹{(Number(invoice.totals?.totalSGST) || 0).toFixed(2)}</span>
         </div>
-        <div className="flex justify-between font-bold text-[11px] pt-1 border-t border-black">
+        <div className="flex justify-between font-bold text-[11px] pt-1 border-t border-black" style={{ color: '#000000' }}>
           <span>NET AMOUNT:</span>
           <span>₹{netTotal}</span>
         </div>
@@ -451,10 +458,17 @@ function Thermal58Invoice({ invoice, admin }) {
 
   return (
     <div
-      className="invoice-copy bg-white text-black p-0.5 font-mono text-[8px]"
-      style={{ width: '100%', maxWidth: '52mm', margin: '0 auto', boxSizing: 'border-box' }}
+      className="invoice-copy bg-white p-0.5 font-mono text-[8px]"
+      style={{
+        width: '100%',
+        maxWidth: '52mm',
+        margin: '0 auto',
+        boxSizing: 'border-box',
+        color: '#000000',
+        backgroundColor: '#ffffff'
+      }}
     >
-      <div className="text-center pb-0.5 mb-0.5 border-b border-black">
+      <div className="text-center pb-0.5 mb-0.5 border-b border-black" style={{ color: '#000000' }}>
         <h1 className="text-[10px] font-bold uppercase tracking-tight">{firm.firmName}</h1>
         {firm.firmPhone && <p className="text-[7.5px] mt-0.5">Ph: {firm.firmPhone}</p>}
         {firm.firmGSTIN && <p className="text-[7.5px]">GSTIN: {firm.firmGSTIN}</p>}
@@ -464,7 +478,7 @@ function Thermal58Invoice({ invoice, admin }) {
       </div>
 
       {/* Metadata */}
-      <div className="py-0.5 border-b border-dashed border-black text-[7.5px] space-y-0.2">
+      <div className="py-0.5 border-b border-dashed border-black text-[7.5px] space-y-0.2" style={{ color: '#000000' }}>
         <div className="flex justify-between">
           <span>#{invoice.invoiceNumber}</span>
           <span>{formatDate(invoice.invoiceDate)}</span>
@@ -475,7 +489,7 @@ function Thermal58Invoice({ invoice, admin }) {
       </div>
 
       {/* Items */}
-      <div className="py-0.5 border-b border-dashed border-black">
+      <div className="py-0.5 border-b border-dashed border-black" style={{ color: '#000000' }}>
         {invoice.items?.map((item, idx) => {
           const name = getInvoiceItemName(item);
           const qty = getInvoiceItemQty(item);
@@ -484,10 +498,10 @@ function Thermal58Invoice({ invoice, admin }) {
 
           return (
             <div key={idx} className="py-0.5 border-b border-gray-100">
-              <div className="font-bold break-words text-[8px] text-black leading-tight">{name}</div>
-              <div className="flex justify-between text-gray-800 text-[7.5px] mt-0.5">
+              <div className="font-bold break-words text-[8px] leading-tight" style={{ color: '#000000' }}>{name}</div>
+              <div className="flex justify-between text-[7.5px] mt-0.5" style={{ color: '#000000' }}>
                 <span>{qty} × ₹{rate.toFixed(2)}</span>
-                <span className="font-bold text-black">₹{total.toFixed(2)}</span>
+                <span className="font-bold" style={{ color: '#000000' }}>₹{total.toFixed(2)}</span>
               </div>
             </div>
           );
@@ -495,7 +509,7 @@ function Thermal58Invoice({ invoice, admin }) {
       </div>
 
       {/* Totals */}
-      <div className="py-0.5 border-b border-dashed border-black space-y-0.2 text-[8px]">
+      <div className="py-0.5 border-b border-dashed border-black space-y-0.2 text-[8px]" style={{ color: '#000000' }}>
         <div className="flex justify-between">
           <span>Taxable:</span>
           <span>₹{(Number(invoice.totals?.totalTaxable) || 0).toFixed(2)}</span>
@@ -504,7 +518,7 @@ function Thermal58Invoice({ invoice, admin }) {
           <span>Taxes:</span>
           <span>₹{((Number(invoice.totals?.totalCGST) || 0) + (Number(invoice.totals?.totalSGST) || 0)).toFixed(2)}</span>
         </div>
-        <div className="flex justify-between font-bold text-[10px] pt-0.5 border-t border-black">
+        <div className="flex justify-between font-bold text-[10px] pt-0.5 border-t border-black" style={{ color: '#000000' }}>
           <span>NET:</span>
           <span>₹{netTotal}</span>
         </div>

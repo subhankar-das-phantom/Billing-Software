@@ -61,9 +61,11 @@ For full release notes with implementation details, see [GitHub Releases](https:
   - Removed standalone A5 format from the frontend UI and consolidated all sheet printing into a single, intuitive **"A4 / A5"** format.
   - Retained the double-copy split workflow: users can choose between 1x Single Copy and 2x Double Copy (with a dashed `"Cut Here"` line on standard A4 paper, yielding two landscape half-sheets).
   - Updated format selectors, Settings page badges, preview format bars, and print dialog tips to label the sheet format as **"A4 / A5"**.
-  - Ensured seamless backward compatibility: legacy preferences storing `'A5'` gracefully resolve to `'A4'` with zero crashes or data loss.
+- **Thermal Print Dark Mode Text Contrast Fix (`index.css`, `InvoiceDocument.jsx`, `CreditNoteDocument.jsx`, `ReceiptDocument.jsx`)**:
+  - Identified and resolved a CSS specificity collision where `html.dark .text-black` was forcibly applying `!text-white` to elements using `.text-black` on white thermal receipts, turning item descriptions, totals, and root text white on a white paper background.
+  - Excluded all print and receipt documents from `html.dark .text-black`, added high-specificity rules enforcing `#000000` text across both light and dark themes, and set explicit inline black text colors across thermal item lines, headers, notes, and totals.
 - **Automated Regression Verification (`backend/scripts/testInvoicePrintingRegression.ts`)**:
-  - Built comprehensive 36-test regression suite asserting dynamic column filtering, individual column toggle isolation, batch grouping and UNNAMED filtering, Net rate derivation, round-off formatting, thermal POS independence, and CSS page sizing rules.
+  - Expanded regression suite to 38 tests, asserting dynamic column filtering, individual column toggle isolation, batch grouping and UNNAMED filtering, Net rate derivation, round-off formatting, thermal POS independence, CSS page sizing rules, and dark mode print contrast guards.
 
 ### Files Modified
 - `backend/models/Admin.js` — added `preferences.documentPrintFormats` schema with defaults

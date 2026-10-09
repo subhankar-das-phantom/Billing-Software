@@ -13,6 +13,9 @@
  * 10. Dynamic page CSS injection and cleanup lifecycle
  */
 
+import * as fs from 'fs';
+import * as path from 'path';
+
 const PRINT_FORMATS = {
   A4: 'A4',
   A5: 'A5',
@@ -302,6 +305,19 @@ async function runRegressionSuite() {
   assert(
     distributorWithoutPayment.paymentInformation.enabled === false,
     'Conditional payment details suppressed when enabled: false'
+  );
+
+  // ─── Test 7: Dark Mode Black Text Invariant ─────────────────────────────────
+  console.log('\n🔹 Priority 3: Thermal & Print Dark Mode Text Contrast Guard');
+  const cssPath = path.join(__dirname, '../../frontend/src/index.css');
+  const indexCss = fs.readFileSync(cssPath, 'utf-8');
+  assert(
+    indexCss.includes('html.dark .text-black:not(.invoice-print)'),
+    'CSS protects printable documents and thermal receipts from dark mode text-white inversion'
+  );
+  assert(
+    indexCss.includes('html.dark .invoice-print') && indexCss.includes('color: #000000 !important'),
+    'CSS enforces solid #000000 text on all printable documents in dark mode'
   );
 
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
