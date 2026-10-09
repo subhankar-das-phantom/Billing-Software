@@ -288,6 +288,7 @@ async function runHardeningTests() {
     assert(pdfDistributor.paymentInformation?.upiId === 'bharatdist@upi', 'PDF adapter preserves distributor payment information');
     assert(pdfInvoice.items[0].product.productName === 'Amoxicillin 500mg', 'PDF adapter formats item.product.productName');
     assert(pdfInvoice.items[0].ratePerUnit === 85.0, 'PDF adapter formats item.ratePerUnit');
+    assert(pdfInvoice.items[0].netRate === 85.0, 'PDF adapter formats item.netRate');
     assert(pdfInvoice.items[0].totalAmount === 882.98, 'PDF adapter formats item.totalAmount');
     assert(pdfInvoice.totals.netTotal === 883.0, 'PDF adapter formats totals.netTotal');
     assert(pdfInvoice.totals.amountInWords === 'Rupees Eight Hundred Eighty Three Only', 'PDF adapter formats amountInWords');

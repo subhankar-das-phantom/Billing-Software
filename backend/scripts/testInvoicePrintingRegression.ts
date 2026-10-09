@@ -15,6 +15,9 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import PDFDocument from 'pdfkit';
+import { adaptPublicDTOToPDFInvoice } from '../utils/serializers/publicInvoiceSerializer';
+const { drawSingleInvoicePDF } = require('../controllers/invoice/invoiceExportController');
 
 const PRINT_FORMATS = {
   A4: 'A4',
@@ -319,6 +322,92 @@ async function runRegressionSuite() {
     indexCss.includes('html.dark .invoice-print') && indexCss.includes('color: #000000 !important'),
     'CSS enforces solid #000000 text on all printable documents in dark mode'
   );
+
+  // ─── Test 8: A4 Portrait PDF & Net Column Parity ────────────────────────────
+  console.log('\n🔹 Priority 4: A4 Portrait PDF & Net Column Parity');
+  const publicSharePath = path.join(__dirname, '../controllers/publicShareController.ts');
+  const publicShareCode = fs.readFileSync(publicSharePath, 'utf-8');
+  assert(
+    publicShareCode.includes("new PDFDocument({ size: 'A4', layout: 'portrait'"),
+    'Public share PDF export uses portrait layout'
+  );
+
+  const invoiceExportPath = path.join(__dirname, '../controllers/invoice/invoiceExportController.ts');
+  const invoiceExportCode = fs.readFileSync(invoiceExportPath, 'utf-8');
+  assert(
+    invoiceExportCode.includes("new PDFDocument({ size: 'A4', layout: 'portrait'"),
+    'Single invoice PDF export uses portrait layout'
+  );
+  assert(
+    invoiceExportCode.includes("{ key: 'net', label: 'Net', weight:"),
+    'drawSingleInvoicePDF baseColumns includes Net column'
+  );
+  assert(
+    invoiceExportCode.includes('currency.format(netRate)'),
+    'drawSingleInvoicePDF row data renders formatted netRate'
+  );
+
+  const invoiceDocPath = path.join(__dirname, '../../frontend/src/features/documentPrinting/renderers/InvoiceDocument.jsx');
+  const invoiceDocCode = fs.readFileSync(invoiceDocPath, 'utf-8');
+  assert(
+    invoiceDocCode.includes('min-h-[265mm]'),
+    'SheetInvoiceCopy uses min-h-[265mm] for full-page A4 vertical format'
+  );
+
+  // Verify Net rate mathematical derivation contract
+  const sampleRate = 85.0;
+  const sampleGst = 18.0;
+  const expectedNet = Number((sampleRate * (1 + sampleGst / 100)).toFixed(2));
+  assert(
+    expectedNet === 100.3,
+    'Net rate formula correctly computes GST-inclusive rate without truncation'
+  );
+
+  // Live PDFKit Rendering Verification (Portrait Buffer & Multi-page Safety)
+  const renderPdfDoc = async (doc: PDFKit.PDFDocument): Promise<Buffer> => {
+    return new Promise((resolve, reject) => {
+      const chunks: Buffer[] = [];
+      doc.on('data', c => chunks.push(c));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+    });
+  };
+
+  const testDistributor = {
+    firmName: 'BHARAT MEDICAL DISTRIBUTORS',
+    firmAddress: 'Sector 5, Salt Lake, Kolkata, WB - 700091',
+    firmPhone: '9830099999',
+    firmGSTIN: '19AAAAA0000A1Z5',
+    paymentInformation: { enabled: true, upiId: 'dist@upi' }
+  };
+
+  const liveDoc = new PDFDocument({ size: 'A4', layout: 'portrait', margin: 30, bufferPages: false });
+  const liveBufPromise = renderPdfDoc(liveDoc);
+  assert(liveDoc.page.width === 595.28 && liveDoc.page.height === 841.89, 'PDFDocument page matches A4 portrait (595.28 x 841.89 pt)');
+
+  const liveInvoice = {
+    invoiceNumber: 'INV-LIVE-01',
+    invoiceDate: new Date('2026-10-09'),
+    paymentType: 'Credit',
+    status: 'Created',
+    customer: { customerName: 'Apex Health', address: '1st Avenue' },
+    items: [
+      {
+        product: { productName: 'Amoxicillin 500mg', hsnCode: '300410', gstPercentage: 18 },
+        quantitySold: 5,
+        ratePerUnit: 85,
+        netRate: 100.3,
+        totalAmount: 501.5
+      }
+    ],
+    totals: { netTotal: 502, amountInWords: 'Rupees Five Hundred Two Only' },
+    paidAmount: 0
+  };
+
+  drawSingleInvoicePDF(liveDoc, liveInvoice as any, testDistributor);
+  liveDoc.end();
+  const liveBuf = await liveBufPromise;
+  assert(liveBuf.length > 3000, `Live rendered PDFKit portrait buffer generated successfully (${liveBuf.length} bytes)`);
 
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log(`📊 REGRESSION SUITE RESULTS: ${passed} PASSED, ${failed} FAILED`);

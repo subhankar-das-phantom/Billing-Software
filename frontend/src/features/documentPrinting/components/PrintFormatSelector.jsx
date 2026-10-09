@@ -62,33 +62,33 @@ export default function PrintFormatSelector({
 
       {/* Invoice Copy Mode (A4 / A5) */}
       {showCopyToggle && selectedFormat === PRINT_FORMATS.A4 && onToggleCopyMode && (
-        <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-800/40 border border-slate-700/50 text-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-800/40 border border-slate-700/50 text-xs">
           <div className="flex items-center gap-2 text-slate-300">
-            <Copy className="w-4 h-4 text-blue-400" />
-            <span>A4 / A5 Sheet Layout:</span>
+            <Copy className="w-4 h-4 text-blue-400 shrink-0" />
+            <span>A4 Sheet Layout:</span>
           </div>
-          <div className="flex items-center gap-1 bg-slate-900 p-0.5 rounded-lg border border-slate-700/60">
+          <div className="flex items-center gap-1 bg-slate-900 p-0.5 rounded-lg border border-slate-700/60 self-start sm:self-auto">
             <button
               type="button"
               onClick={() => { if (!isSingleCopy) onToggleCopyMode(); }}
-              className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
+              className={`px-3 py-1.5 rounded-md text-[11px] font-medium transition-all min-h-[32px] sm:min-h-0 ${
                 isSingleCopy
                   ? 'bg-blue-600 text-white shadow-xs font-semibold'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              1x Single
+              1x Full Page (A4)
             </button>
             <button
               type="button"
               onClick={() => { if (isSingleCopy) onToggleCopyMode(); }}
-              className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
+              className={`px-3 py-1.5 rounded-md text-[11px] font-medium transition-all min-h-[32px] sm:min-h-0 ${
                 !isSingleCopy
                   ? 'bg-blue-600 text-white shadow-xs font-semibold'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              2x Double (Cut Line)
+              2x Half Sheet (A5 Cut)
             </button>
           </div>
         </div>

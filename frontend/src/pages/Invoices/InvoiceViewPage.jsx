@@ -827,7 +827,39 @@ export default function InvoiceViewPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Layout mode toggle when A4 format is selected */}
+              {previewFormat === 'A4' && (
+                <div className="flex items-center gap-1 bg-slate-800/80 p-0.5 rounded-lg border border-slate-700/60 mr-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!isSingleCopy) toggleCopyMode();
+                    }}
+                    className={`text-[11px] px-2.5 py-1 rounded-md font-medium transition-all ${
+                      isSingleCopy
+                        ? 'bg-blue-600 text-white shadow-xs font-semibold'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    1x Full Page (A4)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isSingleCopy) toggleCopyMode();
+                    }}
+                    className={`text-[11px] px-2.5 py-1 rounded-md font-medium transition-all ${
+                      !isSingleCopy
+                        ? 'bg-blue-600 text-white shadow-xs font-semibold'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    2x Half Sheet (A5 Cut)
+                  </button>
+                </div>
+              )}
+
               {[
                 { id: 'A4', label: 'A4 / A5' },
                 { id: 'THERMAL_80', label: 'Thermal 80mm' },

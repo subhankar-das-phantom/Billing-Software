@@ -103,7 +103,7 @@ function SheetInvoiceCopy({
       className={`invoice-copy bg-white flex flex-col ${
         isDoubleCopy
           ? 'text-[10px] p-2 min-h-[120mm]'
-          : 'text-[11px] p-3 min-h-[140mm]'
+          : 'text-[11px] p-4 sm:p-5 min-h-[265mm]'
       }`}
       style={{
         width: '100%',
@@ -113,19 +113,19 @@ function SheetInvoiceCopy({
     >
       {/* ─── Header: Firm Info & Optional Payment Box ───────────────────── */}
       <div
-        className="grid grid-cols-2 gap-2 border-b border-black pb-1 mb-1"
+        className={`grid grid-cols-2 gap-2 border-b border-black ${isDoubleCopy ? 'pb-1 mb-1' : 'pb-2 mb-2'}`}
         style={{
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
           borderBottom: '1px solid black',
-          paddingBottom: '4px',
-          marginBottom: '4px'
+          paddingBottom: isDoubleCopy ? '4px' : '8px',
+          marginBottom: isDoubleCopy ? '4px' : '8px'
         }}
       >
         <div className="text-left">
           <h1
             className="font-bold mb-0.5 tracking-tight"
-            style={{ fontSize: '18px', margin: 0, lineHeight: 1.15 }}
+            style={{ fontSize: isDoubleCopy ? '17px' : '22px', margin: 0, lineHeight: 1.15 }}
           >
             {firmName}
           </h1>
@@ -163,11 +163,11 @@ function SheetInvoiceCopy({
 
       {/* ─── Buyer & Invoice Details (3-Column Layout) ─────────────────── */}
       <div
-        className="grid grid-cols-3 gap-2 mb-1 text-[11px]"
+        className={`grid grid-cols-3 gap-2 text-[11px] ${isDoubleCopy ? 'mb-1' : 'mb-2'}`}
         style={{
           display: 'grid',
           gridTemplateColumns: '1fr 1fr 1fr',
-          marginBottom: '4px'
+          marginBottom: isDoubleCopy ? '4px' : '8px'
         }}
       >
         <div>
@@ -201,17 +201,17 @@ function SheetInvoiceCopy({
       </div>
 
       {/* ─── Line Items Table: Configurable Columns ─────────────────────── */}
-      <div className="flex-1 mb-1">
+      <div className={`flex-1 ${isDoubleCopy ? 'mb-1' : 'mb-2'}`}>
         <table
           className="w-full border-collapse"
-          style={{ border: '0.5px solid black', fontSize: '9px' }}
+          style={{ border: '0.5px solid black', fontSize: isDoubleCopy ? '9px' : '10px' }}
         >
           <thead>
             <tr style={{ borderBottom: '0.5px solid black', background: '#f5f5f5' }}>
               {activeColumns.map((col, i) => (
                 <th
                   key={col.key}
-                  className={`${i < activeColumns.length - 1 ? 'border-r border-black' : ''} p-0.5 font-bold text-${col.align}`}
+                  className={`${i < activeColumns.length - 1 ? 'border-r border-black' : ''} ${isDoubleCopy ? 'p-0.5' : 'py-1 px-1.5'} font-bold text-${col.align}`}
                   style={{ width: col.width }}
                 >
                   {col.label}
@@ -224,13 +224,15 @@ function SheetInvoiceCopy({
               <tr
                 key={index}
                 style={{
-                  borderBottom: index < invoice.items.length - 1 ? '0.5px solid #ddd' : 'none'
+                  borderBottom: index < invoice.items.length - 1 ? '0.5px solid #ddd' : 'none',
+                  pageBreakInside: 'avoid',
+                  breakInside: 'avoid'
                 }}
               >
                 {activeColumns.map((col, i) => (
                   <td
                     key={col.key}
-                    className={`${i < activeColumns.length - 1 ? 'border-r border-black' : ''} p-0.5 font-bold text-${col.align}`}
+                    className={`${i < activeColumns.length - 1 ? 'border-r border-black' : ''} ${isDoubleCopy ? 'p-0.5' : 'py-1 px-1.5'} font-bold text-${col.align}`}
                   >
                     {col.renderCell ? col.renderCell(item) : col.render(item, { enableBatchTracking })}
                   </td>
@@ -246,8 +248,8 @@ function SheetInvoiceCopy({
 
       {/* ─── Summary, Current Dues, Amount in Words & Signatory ──────────── */}
       <div className="mt-auto" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-        <div className="grid grid-cols-2 gap-2 mb-1">
-          <div className="text-[11px]">
+        <div className={`grid grid-cols-2 gap-2 ${isDoubleCopy ? 'mb-1' : 'mb-2'}`}>
+          <div className={isDoubleCopy ? 'text-[10px]' : 'text-[11px]'}>
             <p className="font-bold">
               Current Dues: {customerOutstanding > 0 ? formatCurrency(customerOutstanding) : '₹0.00'}
             </p>
@@ -258,7 +260,7 @@ function SheetInvoiceCopy({
               </p>
             </div>
           </div>
-          <div className="text-[11px]">
+          <div className={isDoubleCopy ? 'text-[10px]' : 'text-[11px]'}>
             <table className="w-full">
               <tbody>
                 <tr>
@@ -287,21 +289,21 @@ function SheetInvoiceCopy({
                 </tr>
                 <tr className="border-t border-black">
                   <td className="py-0.5 font-bold">NET:</td>
-                  <td className="text-right font-bold text-[13px]">₹{netTotal}</td>
+                  <td className={`text-right font-bold ${isDoubleCopy ? 'text-[12px]' : 'text-[14px]'}`}>₹{netTotal}</td>
                 </tr>
               </tbody>
             </table>
           </div>
         </div>
 
-        <div className="border-t border-black pt-1 text-[11px]">
+        <div className={`border-t border-black ${isDoubleCopy ? 'pt-1 text-[10px]' : 'pt-2 text-[11px]'}`}>
           <div className="flex justify-between items-end">
             <div>
               <p>E & O E</p>
             </div>
             <div className="text-center">
-              <div className="h-6"></div>
-              <p className="border-t border-black pt-0.5">Authorized Signatory</p>
+              <div className={isDoubleCopy ? 'h-6' : 'h-10'}></div>
+              <p className="border-t border-black pt-0.5 font-semibold">Authorized Signatory</p>
             </div>
           </div>
         </div>

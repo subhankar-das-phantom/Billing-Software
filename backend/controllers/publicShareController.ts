@@ -82,7 +82,7 @@ export const publicShareController = {
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="${invNum}.pdf"`);
 
-        const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 30, bufferPages: false });
+        const doc = new PDFDocument({ size: 'A4', layout: 'portrait', margin: 30, bufferPages: false });
         doc.on('error', next);
         doc.pipe(res);
         drawSingleInvoicePDF(doc, sanitizedInvoice, sanitizedDistributor);
