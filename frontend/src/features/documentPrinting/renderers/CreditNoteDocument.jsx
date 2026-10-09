@@ -20,7 +20,13 @@ const formatDate = (dateString) => {
 
 /** Defensive item extraction helpers for Credit Note */
 function getCNItemName(item) {
-  return item.product?.name || item.productName || item.name || 'Returned Product';
+  return (
+    item.product?.productName ||
+    item.productName ||
+    item.product?.name ||
+    item.name ||
+    'Returned Product'
+  );
 }
 
 function getCNItemQty(item) {

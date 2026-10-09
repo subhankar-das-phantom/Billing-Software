@@ -25,7 +25,31 @@ const formatCurrency = (val) => {
 
 /** Defensive item extraction helpers for populated and flat structures */
 function getInvoiceItemName(item) {
-  return item.product?.name || item.name || item.productName || 'Unknown Product';
+  return (
+    item.product?.productName ||
+    item.productName ||
+    item.product?.name ||
+    item.name ||
+    item.product?.title ||
+    item.title ||
+    'Unknown Product'
+  );
+}
+
+function getInvoiceItemHsn(item) {
+  return item.product?.hsnCode || item.hsnCode || item.hsn || null;
+}
+
+function getInvoiceItemBatchInfo(item) {
+  if (item.batchAllocations?.length > 0) {
+    const valid = item.batchAllocations
+      .map(b => (b.batchNo && b.batchNo !== 'UNNAMED' ? b.batchNo : ''))
+      .filter(Boolean);
+    if (valid.length > 0) return `Batch: ${valid.join(', ')}`;
+  }
+  const bNo = item.product?.batchNo ?? item.batchNumber ?? item.batchNo;
+  if (bNo && bNo !== 'UNNAMED') return `Batch: ${bNo}`;
+  return null;
 }
 
 function getInvoiceItemQty(item) {
@@ -131,15 +155,18 @@ function SheetInvoiceCopy({ invoice, format = PRINT_FORMATS.A4, admin = null, cu
               const gst = getInvoiceItemGst(item);
               const taxable = getInvoiceItemTaxable(item);
               const total = getInvoiceItemTotal(item);
+              const batchInfo = getInvoiceItemBatchInfo(item);
+              const hsn = getInvoiceItemHsn(item);
 
               return (
                 <tr key={idx} style={{ borderBottom: idx < invoice.items.length - 1 ? '0.5px solid #ddd' : 'none' }}>
                   <td className="border-r border-black p-0.5 text-center">{idx + 1}</td>
                   <td className="border-r border-black p-0.5 font-bold">
                     <div className="break-words">{name}</div>
-                    {item.batchAllocations?.length > 0 && (
-                      <div className="text-[7.5px] font-normal text-gray-600">
-                        {item.batchAllocations.map(b => b.batchNo ? `Batch: ${b.batchNo}` : '').filter(Boolean).join(', ')}
+                    {(hsn || batchInfo) && (
+                      <div className="text-[7.5px] font-normal text-gray-600 flex gap-2">
+                        {hsn && <span>HSN: {hsn}</span>}
+                        {batchInfo && <span>{batchInfo}</span>}
                       </div>
                     )}
                   </td>
@@ -261,9 +288,14 @@ function Thermal80Invoice({ invoice, admin, customerOutstanding }) {
           const rate = getInvoiceItemRate(item);
           const total = getInvoiceItemTotal(item);
           const free = item.freeQuantity > 0 ? item.freeQuantity : 0;
-          const batchInfo = item.batchAllocations?.length > 0
-            ? item.batchAllocations.map(b => b.batchNo ? `B:${b.batchNo}` : '').filter(Boolean).join(' ')
-            : (item.product?.batchNo && item.product.batchNo !== 'UNNAMED' ? `B:${item.product.batchNo}` : '');
+          const batchInfo = getInvoiceItemBatchInfo(item);
+          const hsn = getInvoiceItemHsn(item);
+          const metaParts = [
+            hsn ? `HSN:${hsn}` : '',
+            batchInfo ? batchInfo.replace('Batch: ', 'B:') : '',
+            free > 0 ? `(+${free} Free)` : ''
+          ].filter(Boolean);
+          const metaString = metaParts.join(' ');
 
           return (
             <div key={idx} className="py-1 border-b border-gray-200">
@@ -272,8 +304,7 @@ function Thermal80Invoice({ invoice, admin, customerOutstanding }) {
               </div>
               <div className="flex justify-between text-gray-800 text-[8.5px] mt-0.5">
                 <span style={{ width: '48%' }} className="truncate">
-                  {batchInfo}
-                  {free > 0 ? ` (+${free} Free)` : ''}
+                  {metaString}
                 </span>
                 <span style={{ width: '14%' }} className="text-center font-medium">{qty}</span>
                 <span style={{ width: '18%' }} className="text-right">{rate.toFixed(2)}</span>
