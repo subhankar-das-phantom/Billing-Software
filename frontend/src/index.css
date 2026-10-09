@@ -1561,6 +1561,11 @@ html.light .pp-footer-home:hover {
     display: none !important;
   }
 
+  /* When PrintDialog is executing print, hide all other page elements and #root entirely */
+  body.is-printing-document #root {
+    display: none !important;
+  }
+
   /* Full width invoice & ledger document */
   .invoice-print {
     display: block !important;
@@ -1568,11 +1573,8 @@ html.light .pp-footer-home:hover {
     opacity: 1 !important;
     position: relative !important;
     width: 100% !important;
-    max-width: 210mm !important;
     background: white !important;
     color: black !important;
-    font-size: 11px !important;
-    padding: 2mm !important;
     margin: 0 auto !important;
     box-sizing: border-box !important;
     border: none !important;
@@ -1585,6 +1587,7 @@ html.light .pp-footer-home:hover {
     max-width: 190mm !important;
     margin: 0 auto !important;
     box-sizing: border-box !important;
+    font-size: 10px !important;
   }
 
   .print-format-a5 {
@@ -1592,6 +1595,7 @@ html.light .pp-footer-home:hover {
     max-width: 138mm !important;
     margin: 0 auto !important;
     box-sizing: border-box !important;
+    font-size: 8.5px !important;
   }
 
   .print-format-thermal-80 {
@@ -1599,7 +1603,7 @@ html.light .pp-footer-home:hover {
     max-width: 74mm !important;
     margin: 0 auto !important;
     box-sizing: border-box !important;
-    font-size: 10px !important;
+    font-size: 9px !important;
     line-height: 1.25 !important;
   }
 
@@ -1608,7 +1612,7 @@ html.light .pp-footer-home:hover {
     max-width: 52mm !important;
     margin: 0 auto !important;
     box-sizing: border-box !important;
-    font-size: 9px !important;
+    font-size: 8px !important;
     line-height: 1.2 !important;
   }
 
@@ -1616,7 +1620,6 @@ html.light .pp-footer-home:hover {
     display: flex !important;
     flex-direction: column !important;
     visibility: visible !important;
-    padding: 2mm !important;
     background: white !important;
     color: black !important;
   }

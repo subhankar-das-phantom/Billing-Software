@@ -41,28 +41,37 @@ For full release notes with implementation details, see [GitHub Releases](https:
 ### 📋 Legal & Compliance Invariants
 - **Privacy Policy & Terms Neutrality**: Paper format preferences and print rendering components introduce no additional personal data collection, telemetry tracking, or pricing changes.
 
+### 🧾 Thermal Line-Item Resolution, Screen Preview Synchronization & Double-Print Elimination (`frontend/src/*`)
+- **Missing Product Name & Rate 0.00 Root Cause Fix (`InvoiceDocument.jsx`, `CreditNoteDocument.jsx`)**: Line item renderers previously assumed flat properties (`item.productName`, `item.rate`), but Mongoose documents populate `item.product = { name, ... }` and store `item.ratePerUnit` / `item.quantitySold`. Created universal defensive accessors (`getInvoiceItemName`, `getInvoiceItemQty`, `getInvoiceItemRate`, `getInvoiceItemTaxable`, `getInvoiceItemTotal`) ensuring 100% item name, rate, tax, and batch fidelity across all sheet and thermal roll layouts.
+- **Invoice & Credit Note Screen Preview Format Parity (`InvoiceViewPage.jsx`, `CreditNoteViewPage.jsx`)**: Replaced hardcoded static A4 preview components with format-aware `<InvoiceDocument />` / `<CreditNoteDocument />` synchronized to the user's configured default format, accompanied by interactive format switcher buttons (A4, A5, Thermal 80mm, Thermal 58mm) and `Ctrl + P` keyboard shortcut integration.
+- **Double-Print Elimination (`index.css`, `PrintTransport.js`)**: Isolated print portal execution by adding `body.is-printing-document #root { display: none !important; }` in `@media print` and active body tagging in `PrintTransport.js`. Wrapped on-page preview containers with `.no-print` so only the printable portal renders during browser print dialogs.
+- **Dedicated Settings "Printing" Tab & Mobile Typography (`SettingsPage.jsx`)**:
+  - Moved "Default Document Print Formats" and "Public Customer Printing" out of Preferences into a dedicated "Printing" tab alongside driver configuration guidance.
+  - Added a mobile-optimized horizontal scrollable tab bar (`lg:hidden`) for 1-tap tab switching without vertical page crowding.
+  - Refined typography and card padding across Settings for small screens (`text-xs sm:text-sm`, `p-3.5 sm:p-5`), ensuring comfortable touch targets and zero text truncation.
+
 ### Files Modified
 - `backend/models/Admin.js` — added `preferences.documentPrintFormats` schema with defaults
 - `backend/controllers/authController.js` — implemented admin authorization, capability matrix enforcement, and partial update merging
 - `backend/scripts/testDocumentPrintFormats.ts` — created automated test suite verifying 38 print preference invariants
-- `frontend/src/index.css` — added format-specific print dimensions (`.print-format-a4`, `.print-format-a5`, `.print-format-thermal-80`, `.print-format-thermal-58`) and fixed `tfoot` table footer repetition
+- `frontend/src/index.css` — added format-specific print dimensions, double-print isolation (`body.is-printing-document #root`), and fixed `tfoot` table footer repetition
 - `frontend/src/features/documentPrinting/formats/documentPrintFormats.js` — created authoritative format constants, metadata, capability matrix, and fallback resolver
-- `frontend/src/features/documentPrinting/transport/PrintTransport.js` — created 8-step browser print transport lifecycle orchestrator
+- `frontend/src/features/documentPrinting/transport/PrintTransport.js` — created 8-step browser print transport lifecycle orchestrator with print isolation classes
 - `frontend/src/features/documentPrinting/primitives/PrintPrimitives.jsx` — created reusable firm header, party block, notes block, and signatory block primitives
-- `frontend/src/features/documentPrinting/renderers/InvoiceDocument.jsx` — built A4 (single & double-copy), A5, Thermal 80mm, and Thermal 58mm invoice renderers
-- `frontend/src/features/documentPrinting/renderers/CreditNoteDocument.jsx` — built A4, A5, Thermal 80mm, and Thermal 58mm credit note renderers
+- `frontend/src/features/documentPrinting/renderers/InvoiceDocument.jsx` — built A4, A5, Thermal 80mm, and Thermal 58mm invoice renderers with defensive item accessors
+- `frontend/src/features/documentPrinting/renderers/CreditNoteDocument.jsx` — built A4, A5, Thermal 80mm, and Thermal 58mm credit note renderers with defensive item accessors
 - `frontend/src/features/documentPrinting/renderers/ReceiptDocument.jsx` — built A4, A5, Thermal 80mm, and Thermal 58mm payment receipt renderers
 - `frontend/src/features/documentPrinting/renderers/LedgerDocument.jsx` — built A4 and A5 customer and supplier ledger renderers
 - `frontend/src/features/documentPrinting/renderers/CloseoutDocument.jsx` — built A4 and A5 daily closeout renderers
 - `frontend/src/features/documentPrinting/components/PrintFormatSelector.jsx` — created format selection pill group
 - `frontend/src/features/documentPrinting/components/PrintDialog.jsx` — created print preview and execution modal
-- `frontend/src/pages/Invoices/InvoiceViewPage.jsx` — wired format-aware `PrintDialog` preserving single/double copy modes
-- `frontend/src/pages/CreditNotes/CreditNoteViewPage.jsx` — wired format-aware `PrintDialog`
+- `frontend/src/pages/Invoices/InvoiceViewPage.jsx` — wired format-aware `PrintDialog`, synchronized on-screen preview with format switcher, and added Ctrl+P shortcut
+- `frontend/src/pages/CreditNotes/CreditNoteViewPage.jsx` — wired format-aware `PrintDialog` and synchronized on-screen preview with format switcher
 - `frontend/src/components/Common/Modals/PaymentReceiptModal.jsx` — wired format-aware `PrintDialog`
 - `frontend/src/pages/Customers/CustomerDetailsPage.jsx` — wired format-aware `PrintDialog`, eliminated `<tfoot>` repeating summary, and enabled natural text wrapping
 - `frontend/src/pages/Suppliers/SupplierDetailsPage.jsx` — wired format-aware `PrintDialog`, eliminated `<tfoot>` repeating summary, and enabled natural text wrapping
 - `frontend/src/pages/Collections/DailyCloseoutPrintModal.jsx` — wired format-aware `PrintDialog`
-- `frontend/src/pages/Settings/SettingsPage.jsx` — added default document print format management UI
+- `frontend/src/pages/Settings/SettingsPage.jsx` — added dedicated Printing tab, moved print formats/public print, added mobile horizontal tab navigation, and optimized mobile text sizes
 - `frontend/scripts/testPrintCapacity.mjs` — empirical capacity test runner using Puppeteer Chromium
 - `README.md` — updated version badge to `v2.9.9`
 

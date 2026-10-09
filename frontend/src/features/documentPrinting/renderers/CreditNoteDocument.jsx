@@ -18,6 +18,35 @@ const formatDate = (dateString) => {
   });
 };
 
+/** Defensive item extraction helpers for Credit Note */
+function getCNItemName(item) {
+  return item.product?.name || item.productName || item.name || 'Returned Product';
+}
+
+function getCNItemQty(item) {
+  return Number(item.quantityReturned ?? item.quantity ?? 0);
+}
+
+function getCNItemRate(item) {
+  return Number(item.ratePerUnit ?? item.rate ?? 0);
+}
+
+function getCNItemGst(item) {
+  return Number(item.product?.gstPercentage ?? item.gstPercentage ?? item.gstPercent ?? item.gstRate ?? 0);
+}
+
+function getCNItemTaxable(item) {
+  if (item.taxableAmount != null) return Number(item.taxableAmount);
+  return getCNItemQty(item) * getCNItemRate(item);
+}
+
+function getCNItemTotal(item) {
+  if (item.totalAmount != null) return Number(item.totalAmount);
+  const taxable = getCNItemTaxable(item);
+  const gst = getCNItemGst(item);
+  return taxable * (1 + gst / 100);
+}
+
 /**
  * Standard Sheet Layout (A4 & A5)
  */
@@ -80,17 +109,26 @@ function SheetCreditNote({ creditNote, format = PRINT_FORMATS.A4, admin = null }
             </tr>
           </thead>
           <tbody>
-            {creditNote.items?.map((item, idx) => (
-              <tr key={idx} style={{ borderBottom: idx < creditNote.items.length - 1 ? '0.5px solid #ddd' : 'none' }}>
-                <td className="border-r border-black p-0.5 text-center">{idx + 1}</td>
-                <td className="border-r border-black p-0.5 font-bold break-words">{item.productName}</td>
-                <td className="border-r border-black p-0.5 text-center font-bold">{item.quantityReturned}</td>
-                <td className="border-r border-black p-0.5 text-right">{(Number(item.rate) || 0).toFixed(2)}</td>
-                <td className="border-r border-black p-0.5 text-center">{item.gstPercent || 0}%</td>
-                <td className="border-r border-black p-0.5 text-right">{(Number(item.taxableAmount) || 0).toFixed(2)}</td>
-                <td className="p-0.5 text-right font-bold">{(Number(item.totalAmount) || 0).toFixed(2)}</td>
-              </tr>
-            ))}
+            {creditNote.items?.map((item, idx) => {
+              const name = getCNItemName(item);
+              const qty = getCNItemQty(item);
+              const rate = getCNItemRate(item);
+              const gst = getCNItemGst(item);
+              const taxable = getCNItemTaxable(item);
+              const total = getCNItemTotal(item);
+
+              return (
+                <tr key={idx} style={{ borderBottom: idx < creditNote.items.length - 1 ? '0.5px solid #ddd' : 'none' }}>
+                  <td className="border-r border-black p-0.5 text-center">{idx + 1}</td>
+                  <td className="border-r border-black p-0.5 font-bold break-words">{name}</td>
+                  <td className="border-r border-black p-0.5 text-center font-bold">{qty}</td>
+                  <td className="border-r border-black p-0.5 text-right">{rate.toFixed(2)}</td>
+                  <td className="border-r border-black p-0.5 text-center">{gst}%</td>
+                  <td className="border-r border-black p-0.5 text-right">{taxable.toFixed(2)}</td>
+                  <td className="p-0.5 text-right font-bold">{total.toFixed(2)}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -170,15 +208,22 @@ function ThermalCreditNote({ creditNote, format = PRINT_FORMATS.THERMAL_80, admi
 
       {/* Items */}
       <div className="py-1 border-b border-dashed border-black">
-        {creditNote.items?.map((item, idx) => (
-          <div key={idx} className="py-0.5 border-b border-gray-100">
-            <div className="font-bold break-words">{item.productName}</div>
-            <div className="flex justify-between text-gray-700 text-[8px]">
-              <span>Return Qty: {item.quantityReturned} × ₹{(Number(item.rate) || 0).toFixed(0)}</span>
-              <span className="font-bold text-black">₹{(Number(item.totalAmount) || 0).toFixed(2)}</span>
+        {creditNote.items?.map((item, idx) => {
+          const name = getCNItemName(item);
+          const qty = getCNItemQty(item);
+          const rate = getCNItemRate(item);
+          const total = getCNItemTotal(item);
+
+          return (
+            <div key={idx} className="py-0.5 border-b border-gray-100">
+              <div className="font-bold break-words">{name}</div>
+              <div className="flex justify-between text-gray-700 text-[8px]">
+                <span>Return Qty: {qty} × ₹{rate.toFixed(2)}</span>
+                <span className="font-bold text-black">₹{total.toFixed(2)}</span>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Totals */}

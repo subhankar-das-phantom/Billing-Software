@@ -109,6 +109,9 @@ export async function executeBrowserPrint({ format = PRINT_FORMATS.A4, container
     // Step 5: Inject dynamic format-specific page sizing rule
     injectDynamicPageStyle(format);
 
+    // Tag body to isolate print portal and hide #root during print
+    document.body.classList.add('is-printing-document');
+
     // Step 6: Wait for DOM frame synchronization
     await waitForRenderReady();
 
@@ -122,6 +125,7 @@ export async function executeBrowserPrint({ format = PRINT_FORMATS.A4, container
       const handleAfterPrint = () => {
         if (resolved) return;
         resolved = true;
+        document.body.classList.remove('is-printing-document');
         window.removeEventListener('afterprint', handleAfterPrint);
         removeDynamicPageStyle();
         resolve({
@@ -145,6 +149,7 @@ export async function executeBrowserPrint({ format = PRINT_FORMATS.A4, container
       }, 5000);
     });
   } catch (err) {
+    document.body.classList.remove('is-printing-document');
     removeDynamicPageStyle();
     return {
       success: false,

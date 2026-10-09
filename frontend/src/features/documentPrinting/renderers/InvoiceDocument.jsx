@@ -23,6 +23,40 @@ const formatCurrency = (val) => {
   return `₹${num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
+/** Defensive item extraction helpers for populated and flat structures */
+function getInvoiceItemName(item) {
+  return item.product?.name || item.name || item.productName || 'Unknown Product';
+}
+
+function getInvoiceItemQty(item) {
+  return Number(item.quantitySold ?? item.quantity ?? 0);
+}
+
+function getInvoiceItemRate(item) {
+  return Number(item.ratePerUnit ?? item.rate ?? 0);
+}
+
+function getInvoiceItemGst(item) {
+  return Number(item.product?.gstPercentage ?? item.gstPercentage ?? item.gstPercent ?? item.gstRate ?? 0);
+}
+
+function getInvoiceItemTaxable(item) {
+  if (item.taxableAmount != null) return Number(item.taxableAmount);
+  if (item.baseAmount != null) return Number(item.baseAmount);
+  const qty = getInvoiceItemQty(item);
+  const rate = getInvoiceItemRate(item);
+  const discount = Number(item.schemeDiscount ?? item.discountPercentage ?? 0);
+  return qty * rate * (1 - discount / 100);
+}
+
+function getInvoiceItemTotal(item) {
+  if (item.totalAmount != null) return Number(item.totalAmount);
+  if (item.amount != null) return Number(item.amount);
+  const qty = getInvoiceItemQty(item);
+  const rate = getInvoiceItemRate(item);
+  return qty * rate;
+}
+
 /**
  * Standard Sheet Invoice (A4 and A5)
  */
@@ -90,27 +124,36 @@ function SheetInvoiceCopy({ invoice, format = PRINT_FORMATS.A4, admin = null, cu
             </tr>
           </thead>
           <tbody>
-            {invoice.items?.map((item, idx) => (
-              <tr key={idx} style={{ borderBottom: idx < invoice.items.length - 1 ? '0.5px solid #ddd' : 'none' }}>
-                <td className="border-r border-black p-0.5 text-center">{idx + 1}</td>
-                <td className="border-r border-black p-0.5 font-bold">
-                  <div className="break-words">{item.productName || item.name}</div>
-                  {item.batchAllocations?.length > 0 && (
-                    <div className="text-[7.5px] font-normal text-gray-600">
-                      {item.batchAllocations.map(b => b.batchNo ? `Batch: ${b.batchNo}` : '').filter(Boolean).join(', ')}
-                    </div>
+            {invoice.items?.map((item, idx) => {
+              const name = getInvoiceItemName(item);
+              const qty = getInvoiceItemQty(item);
+              const rate = getInvoiceItemRate(item);
+              const gst = getInvoiceItemGst(item);
+              const taxable = getInvoiceItemTaxable(item);
+              const total = getInvoiceItemTotal(item);
+
+              return (
+                <tr key={idx} style={{ borderBottom: idx < invoice.items.length - 1 ? '0.5px solid #ddd' : 'none' }}>
+                  <td className="border-r border-black p-0.5 text-center">{idx + 1}</td>
+                  <td className="border-r border-black p-0.5 font-bold">
+                    <div className="break-words">{name}</div>
+                    {item.batchAllocations?.length > 0 && (
+                      <div className="text-[7.5px] font-normal text-gray-600">
+                        {item.batchAllocations.map(b => b.batchNo ? `Batch: ${b.batchNo}` : '').filter(Boolean).join(', ')}
+                      </div>
+                    )}
+                  </td>
+                  <td className="border-r border-black p-0.5 text-center font-bold">{qty}</td>
+                  {invoice.items?.some(i => i.freeQuantity > 0) && (
+                    <td className="border-r border-black p-0.5 text-center">{item.freeQuantity || '-'}</td>
                   )}
-                </td>
-                <td className="border-r border-black p-0.5 text-center font-bold">{item.quantitySold ?? item.quantity ?? 0}</td>
-                {invoice.items?.some(i => i.freeQuantity > 0) && (
-                  <td className="border-r border-black p-0.5 text-center">{item.freeQuantity || '-'}</td>
-                )}
-                <td className="border-r border-black p-0.5 text-right">{(Number(item.rate) || 0).toFixed(2)}</td>
-                <td className="border-r border-black p-0.5 text-center">{item.gstPercent || 0}%</td>
-                <td className="border-r border-black p-0.5 text-right">{(Number(item.taxableAmount) || 0).toFixed(2)}</td>
-                <td className="p-0.5 text-right font-bold">{(Number(item.totalAmount) || 0).toFixed(2)}</td>
-              </tr>
-            ))}
+                  <td className="border-r border-black p-0.5 text-right">{rate.toFixed(2)}</td>
+                  <td className="border-r border-black p-0.5 text-center">{gst}%</td>
+                  <td className="border-r border-black p-0.5 text-right">{taxable.toFixed(2)}</td>
+                  <td className="p-0.5 text-right font-bold">{total.toFixed(2)}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -187,7 +230,7 @@ function Thermal80Invoice({ invoice, admin, customerOutstanding }) {
 
   return (
     <div
-      className="invoice-copy bg-white text-black p-1.5 font-mono text-[9px]"
+      className="invoice-copy bg-white text-black p-1 font-mono text-[9px]"
       style={{ width: '100%', maxWidth: '74mm', margin: '0 auto', boxSizing: 'border-box' }}
     >
       <PrintFirmHeader firm={firm} format={PRINT_FORMATS.THERMAL_80} documentTitle="TAX INVOICE" />
@@ -207,26 +250,40 @@ function Thermal80Invoice({ invoice, admin, customerOutstanding }) {
       {/* Item List */}
       <div className="py-1 border-b border-dashed border-black">
         <div className="flex justify-between font-bold border-b border-black pb-0.5 mb-1 text-[8px] uppercase">
-          <span style={{ width: '50%' }}>Item</span>
+          <span style={{ width: '48%' }}>Item</span>
           <span style={{ width: '14%' }} className="text-center">Qty</span>
-          <span style={{ width: '16%' }} className="text-right">Rate</span>
+          <span style={{ width: '18%' }} className="text-right">Rate</span>
           <span style={{ width: '20%' }} className="text-right">Total</span>
         </div>
-        {invoice.items?.map((item, idx) => (
-          <div key={idx} className="py-0.5 border-b border-gray-200">
-            <div className="font-bold break-words leading-tight">{item.productName || item.name}</div>
-            <div className="flex justify-between text-gray-700 text-[8px]">
-              <span style={{ width: '50%' }}>
-                {item.freeQuantity > 0 ? `Free: ${item.freeQuantity}` : ''}
-              </span>
-              <span style={{ width: '14%' }} className="text-center">{item.quantitySold ?? item.quantity ?? 0}</span>
-              <span style={{ width: '16%' }} className="text-right">{(Number(item.rate) || 0).toFixed(2)}</span>
-              <span style={{ width: '20%' }} className="text-right font-bold text-black">
-                {(Number(item.totalAmount) || 0).toFixed(2)}
-              </span>
+        {invoice.items?.map((item, idx) => {
+          const name = getInvoiceItemName(item);
+          const qty = getInvoiceItemQty(item);
+          const rate = getInvoiceItemRate(item);
+          const total = getInvoiceItemTotal(item);
+          const free = item.freeQuantity > 0 ? item.freeQuantity : 0;
+          const batchInfo = item.batchAllocations?.length > 0
+            ? item.batchAllocations.map(b => b.batchNo ? `B:${b.batchNo}` : '').filter(Boolean).join(' ')
+            : (item.product?.batchNo && item.product.batchNo !== 'UNNAMED' ? `B:${item.product.batchNo}` : '');
+
+          return (
+            <div key={idx} className="py-1 border-b border-gray-200">
+              <div className="font-bold break-words leading-tight text-[9px] text-black">
+                {name}
+              </div>
+              <div className="flex justify-between text-gray-800 text-[8.5px] mt-0.5">
+                <span style={{ width: '48%' }} className="truncate">
+                  {batchInfo}
+                  {free > 0 ? ` (+${free} Free)` : ''}
+                </span>
+                <span style={{ width: '14%' }} className="text-center font-medium">{qty}</span>
+                <span style={{ width: '18%' }} className="text-right">{rate.toFixed(2)}</span>
+                <span style={{ width: '20%' }} className="text-right font-bold text-black">
+                  {total.toFixed(2)}
+                </span>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Totals Summary */}
@@ -283,7 +340,7 @@ function Thermal58Invoice({ invoice, admin }) {
 
   return (
     <div
-      className="invoice-copy bg-white text-black p-1 font-mono text-[8px]"
+      className="invoice-copy bg-white text-black p-0.5 font-mono text-[8px]"
       style={{ width: '100%', maxWidth: '52mm', margin: '0 auto', boxSizing: 'border-box' }}
     >
       <PrintFirmHeader firm={firm} format={PRINT_FORMATS.THERMAL_58} documentTitle="TAX INVOICE" />
@@ -301,15 +358,22 @@ function Thermal58Invoice({ invoice, admin }) {
 
       {/* Items */}
       <div className="py-0.5 border-b border-dashed border-black">
-        {invoice.items?.map((item, idx) => (
-          <div key={idx} className="py-0.5 border-b border-gray-100">
-            <div className="font-bold break-words">{item.productName || item.name}</div>
-            <div className="flex justify-between text-gray-700">
-              <span>{item.quantitySold ?? item.quantity ?? 0} × ₹{(Number(item.rate) || 0).toFixed(0)}</span>
-              <span className="font-bold text-black">₹{(Number(item.totalAmount) || 0).toFixed(2)}</span>
+        {invoice.items?.map((item, idx) => {
+          const name = getInvoiceItemName(item);
+          const qty = getInvoiceItemQty(item);
+          const rate = getInvoiceItemRate(item);
+          const total = getInvoiceItemTotal(item);
+
+          return (
+            <div key={idx} className="py-0.5 border-b border-gray-100">
+              <div className="font-bold break-words text-[8px] text-black leading-tight">{name}</div>
+              <div className="flex justify-between text-gray-800 text-[7.5px] mt-0.5">
+                <span>{qty} × ₹{rate.toFixed(2)}</span>
+                <span className="font-bold text-black">₹{total.toFixed(2)}</span>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Totals */}

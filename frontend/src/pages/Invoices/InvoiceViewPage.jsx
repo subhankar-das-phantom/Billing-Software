@@ -346,6 +346,24 @@ export default function InvoiceViewPage() {
     return resolveDocumentPrintFormat(user?.preferences || admin?.preferences, DOCUMENT_TYPES.INVOICE);
   }, [user?.preferences, admin?.preferences]);
 
+  const [previewFormat, setPreviewFormat] = useState(configuredFormat);
+
+  useEffect(() => {
+    setPreviewFormat(configuredFormat);
+  }, [configuredFormat]);
+
+  // Intercept Ctrl+P to trigger format-aware PrintDialog
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) {
+        e.preventDefault();
+        setShowPrintDialog(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const handlePrint = () => {
     setShowPrintDialog(true);
   };
@@ -452,154 +470,6 @@ export default function InvoiceViewPage() {
   };
 
   const StatusIcon = statusConfig[invoice.status]?.icon || FileText;
-
-  // Reusable Invoice Copy Component
-  const InvoiceCopy = () => (
-    <div
-      className="invoice-copy bg-white flex flex-col"
-      style={{
-        width: '100%',
-        minHeight: '130mm',
-        fontSize: '12px',
-        color: '#000000',
-        padding: '4mm',
-        boxSizing: 'border-box'
-      }}
-    >
-      {/* Main content wrapper */}
-      <div className="flex flex-col flex-1">
-        {/* Header */}
-        <div className="grid grid-cols-2 gap-2 border-b border-black pb-1 mb-1" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: '1px solid black', paddingBottom: '4px', marginBottom: '4px' }}>
-          <div className="text-left">
-            <h1 className="font-bold mb-0.5" style={{ fontSize: '18px', margin: 0 }}>{admin?.firmName || invoice.distributor?.firmName || 'BHARAT ENTERPRISES'}</h1>
-            <p className="text-[11px] leading-tight" style={{ margin: '2px 0 0 0' }}>{admin?.firmAddress || invoice.distributor?.firmAddress || 'Address Line 1, City, State - PIN'}</p>
-          </div>
-          <div className="flex justify-end text-[11px] leading-tight" style={{ display: 'flex', justifyContent: 'flex-end', textAlign: 'right' }}>
-            {invoice.distributor?.paymentInformation?.enabled && (
-              <div className="text-left border-l border-r border-black px-2 mr-2" style={{ borderLeft: '1px solid black', borderRight: '1px solid black', padding: '0 8px', marginRight: '8px', textAlign: 'left' }}>
-                <p style={{ margin: '1px 0' }}>UPI: {invoice.distributor.paymentInformation.upiId}</p>
-                <p style={{ margin: '1px 0' }}>A/C: {invoice.distributor.paymentInformation.accountNumber}</p>
-                <p style={{ margin: '1px 0' }}>IFSC: {invoice.distributor.paymentInformation.ifscCode}</p>
-              </div>
-            )}
-            <div className="text-left" style={{ textAlign: 'left' }}>
-              <p style={{ margin: '1px 0' }}>Phone: {admin?.firmPhone || invoice.distributor?.firmPhone || 'XXXXXXXXXX'}</p>
-              <p style={{ margin: '1px 0' }}>DL No: {admin?.firmDL || invoice.distributor?.firmDL || user?.firmDL || 'XXXXXXXXXX'}</p>
-              <p style={{ margin: '1px 0' }}>GSTIN: {admin?.firmGSTIN || invoice.distributor?.firmGSTIN || 'XXXXXXXXXXXX'}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Buyer & Invoice Details */}
-        <div className="grid grid-cols-3 gap-2 mb-1 text-[11px]" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', marginBottom: '4px' }}>
-          <div>
-            <p className="font-bold mb-0.5">M/s {invoice.customer?.customerName}</p>
-            <p className="leading-tight">{invoice.customer?.address || 'Address not provided'}</p>
-            <p className="mt-0.5">Ph: {invoice.customer?.phone}</p>
-          </div>
-          <div className="border-l border-black pl-2" style={{ borderLeft: '1px solid black', paddingLeft: '8px' }}>
-            {invoice.customer?.gstin && <p>GSTIN: {invoice.customer.gstin}</p>}
-            {invoice.customer?.dlNo && <p>DL No: {invoice.customer.dlNo}</p>}
-          </div>
-          <div className="text-right" style={{ textAlign: 'right' }}>
-            <p className="font-bold">Invoice No: {invoice.invoiceNumber}</p>
-            <p><span className="font-bold">Date:</span> {formatDate(invoice.invoiceDate)}</p>
-            <p><span className="font-bold">Bill Type:</span> {invoice.paymentType?.toUpperCase() || 'CREDIT'}</p>
-          </div>
-        </div>
-
-        {/* Products Table */}
-        <div className="mb-1">
-          <table className="w-full border-collapse text-[9px]" style={{ border: '0.5px solid black' }}>
-            <thead>
-              <tr style={{ borderBottom: '0.5px solid black' }}>
-                {activeColumns.map((col, i) => (
-                  <th key={col.key} className={`${i < activeColumns.length - 1 ? 'border-r border-black' : ''} p-0.5 font-bold text-${col.align}`} style={{ width: col.width }}>
-                    {col.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {invoice.items?.map((item, index) => (
-                <tr key={index} style={{ borderBottom: index < invoice.items.length - 1 ? '0.5px solid #ddd' : 'none' }}>
-                  {activeColumns.map((col, i) => (
-                    <td key={col.key} className={`${i < activeColumns.length - 1 ? 'border-r border-black' : ''} p-0.5 font-bold text-${col.align}`}>
-                      {col.render(item)}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Summary and Footer */}
-      <div className="mt-auto">
-        <div className="grid grid-cols-2 gap-2 mb-1">
-          <div className="text-[11px]">
-            <p className="font-bold">Current Dues: {customerOutstanding > 0 ? formatCurrency(customerOutstanding) : '₹0.00'}</p>
-            <div className="border-t border-black mt-1 pt-0.5">
-              <p className="font-bold mb-0.5">Amount in Words:</p>
-              <p className="uppercase">{invoice.totals?.amountInWords || 'Rupees Zero Only'}</p>
-            </div>
-          </div>
-          <div className="text-[11px]">
-            <table className="w-full">
-              <tbody>
-                <tr>
-                  <td className="py-0">Taxable:</td>
-                  <td className="text-right font-semibold">₹{invoice.totals?.totalTaxable?.toFixed(2)}</td>
-                </tr>
-                {invoice.totals?.totalDiscount > 0 && (
-                  <tr>
-                    <td className="py-0">Discount:</td>
-                    <td className="text-right" style={{ color: '#dc2626' }}>-₹{invoice.totals?.totalDiscount?.toFixed(2)}</td>
-                  </tr>
-                )}
-                <tr>
-                  <td className="py-0">CGST:</td>
-                  <td className="text-right">₹{invoice.totals?.totalCGST?.toFixed(2)}</td>
-                </tr>
-                <tr>
-                  <td className="py-0">SGST:</td>
-                  <td className="text-right">₹{invoice.totals?.totalSGST?.toFixed(2)}</td>
-                </tr>
-                <tr>
-                  <td className="py-0">Round Off:</td>
-                  <td className="text-right">
-                    {(() => {
-                      const net = invoice.totals?.netTotal || 0;
-                      const rounded = Math.round(net);
-                      const diff = rounded - net;
-                      return diff >= 0 ? `+₹${diff.toFixed(2)}` : `-₹${Math.abs(diff).toFixed(2)}`;
-                    })()}
-                  </td>
-                </tr>
-                <tr className="border-t border-black">
-                  <td className="py-0.5 font-bold">NET:</td>
-                  <td className="text-right font-bold text-[13px]">₹{Math.round(invoice.totals?.netTotal || 0)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="border-t border-black pt-1 text-[11px]">
-          <div className="flex justify-between items-end">
-            <div>
-              <p>E & O E</p>
-            </div>
-            <div className="text-center">
-              <div className="h-6"></div>
-              <p className="border-t border-black pt-0.5">Authorized Signatory</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 
   return (
     <>
@@ -988,33 +858,76 @@ export default function InvoiceViewPage() {
           </motion.div>
         )}
 
-        {/* Invoice Print Area */}
-        <div className="w-full overflow-x-auto pb-4 flex justify-start sm:justify-center">
-          <motion.div
-            ref={printRef}
-            variants={cardVariants}
-            className="invoice-print bg-white border-2 border-slate-300 shadow-lg shrink-0 my-0 sm:mx-auto"
-            style={{
-              width: '190mm',
-              fontSize: '10px',
-              color: '#000000',
-              margin: '0 auto',
-              padding: '2mm'
-            }}
-          >
-            <InvoiceCopy />
+        {/* Invoice Format-Aware Document Preview Area */}
+        <div className="w-full space-y-3 no-print">
+          {/* Format Selection Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-slate-900/80 border border-slate-800 rounded-2xl shadow-lg">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400">
+                <Printer className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-xs sm:text-sm font-semibold text-slate-200">
+                  Document Preview ({previewFormat === 'THERMAL_80' ? 'Thermal 80mm Roll' : previewFormat === 'THERMAL_58' ? 'Thermal 58mm Roll' : previewFormat === 'A5' ? 'A5 Half Sheet' : 'A4 Full Sheet'})
+                </h3>
+                <p className="text-[11px] text-slate-400">
+                  Preview adapts to selected paper format. Click buttons to inspect other formats.
+                </p>
+              </div>
+            </div>
 
-            {!isSingleCopy && (
-              <>
-                <div className="flex items-center my-2" style={{ borderTop: '1px dashed #000' }}>
-                  <span className="text-[9px] text-gray-600 mx-auto bg-white px-2" style={{ marginTop: '-10px' }}>
-                    Cut Here
-                  </span>
-                </div>
-                <InvoiceCopy />
-              </>
-            )}
-          </motion.div>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {[
+                { id: 'A4', label: 'A4 Sheet' },
+                { id: 'A5', label: 'A5 Sheet' },
+                { id: 'THERMAL_80', label: 'Thermal 80mm' },
+                { id: 'THERMAL_58', label: 'Thermal 58mm' }
+              ].map((fmt) => (
+                <button
+                  key={fmt.id}
+                  type="button"
+                  onClick={() => setPreviewFormat(fmt.id)}
+                  className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-all ${
+                    previewFormat === fmt.id
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'bg-slate-800/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                  }`}
+                >
+                  {fmt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Render Active Document Preview */}
+          <div className="w-full overflow-x-auto pb-4 flex justify-start sm:justify-center">
+            <motion.div
+              ref={printRef}
+              variants={cardVariants}
+              className={`bg-white border-2 border-slate-300 shadow-xl shrink-0 my-0 sm:mx-auto ${
+                previewFormat === 'THERMAL_80'
+                  ? 'max-w-[74mm] sm:max-w-[320px] p-2'
+                  : previewFormat === 'THERMAL_58'
+                  ? 'max-w-[52mm] sm:max-w-[260px] p-1.5'
+                  : previewFormat === 'A5'
+                  ? 'max-w-[148mm] p-2'
+                  : 'max-w-[190mm] p-2'
+              }`}
+              style={{
+                width: previewFormat === 'THERMAL_80' ? '74mm' : previewFormat === 'THERMAL_58' ? '52mm' : previewFormat === 'A5' ? '148mm' : '190mm',
+                color: '#000000',
+                margin: '0 auto'
+              }}
+            >
+              <InvoiceDocument
+                invoice={invoice}
+                format={previewFormat}
+                isSingleCopy={isSingleCopy}
+                admin={admin}
+                customerOutstanding={customerOutstanding}
+              />
+            </motion.div>
+          </div>
         </div>
       </motion.div>
       <RecordPaymentModal
@@ -1032,7 +945,7 @@ export default function InvoiceViewPage() {
         onClose={() => setShowPrintDialog(false)}
         documentType={DOCUMENT_TYPES.INVOICE}
         title={`Print Tax Invoice ${invoice.invoiceNumber || ''}`}
-        initialFormat={configuredFormat}
+        initialFormat={previewFormat}
         isSingleCopy={isSingleCopy}
         onToggleCopyMode={toggleCopyMode}
         renderDocument={(activeFormat, singleCopy) => (
