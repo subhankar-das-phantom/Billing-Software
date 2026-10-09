@@ -1,4 +1,4 @@
-# 📘 Bharat Enterprise - User Guide (Version 2.10.0)
+# 📘 Bharat Enterprise - User Guide (Version 2.10.1)
 
 > 💡 **Tip:** The system is fully optimized for mobile devices with edge swipe gestures. Swipe right from the left screen edge to open the navigation drawer, and swipe left anywhere to close it.
 
@@ -144,6 +144,7 @@ Every commercial document supports specialized layouts:
 - **Invoices**:
   - **A4 / A5 (1x Full Page)**: Single full-page vertical tax invoice (`min-h-[265mm]`) with firm header, dual buyer/seller boxes, dynamic 12-column line items table, and bottom-pinned totals, tax breakdown, and signature block.
   - **A4 / A5 (2x Half Sheet)**: Two identical compact invoices printed on a single A4 sheet with a dashed `"Cut Here"` divider line.
+  - **A4 / A5 (1x Half Sheet)**: Single compact half-sheet invoice (`min-h-[120mm]`) without duplicate copy or cut divider line, ideal for pre-cut A5 sheets or compact single-sheet billing.
   - **Thermal 80mm**: Standard 3-inch roll format for retail counters with high-contrast black text and condensed summary metrics.
   - **Thermal 58mm**: Compact 2-inch roll format for ultra-compact POS receipt printers.
 - **Credit Notes**: A4, A5, Thermal 80mm, Thermal 58mm.

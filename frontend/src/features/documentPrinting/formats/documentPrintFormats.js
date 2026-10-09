@@ -10,6 +10,12 @@ export const PRINT_FORMATS = Object.freeze({
   THERMAL_58: 'THERMAL_58'
 });
 
+export const INVOICE_COPY_MODES = Object.freeze({
+  FULL: 'single', // 1x Full Page (A4)
+  DOUBLE: 'double', // 2x Half Sheet (A5 Cut)
+  HALF: 'half' // 1x Half Sheet
+});
+
 export const DOCUMENT_TYPES = Object.freeze({
   INVOICE: 'invoice',
   CREDIT_NOTE: 'creditNote',

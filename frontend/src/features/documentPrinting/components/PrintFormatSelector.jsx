@@ -4,13 +4,15 @@
  */
 
 import React from 'react';
-import { PRINT_FORMATS, FORMAT_METADATA, DOCUMENT_CAPABILITY_MATRIX } from '../formats/documentPrintFormats';
+import { PRINT_FORMATS, FORMAT_METADATA, DOCUMENT_CAPABILITY_MATRIX, INVOICE_COPY_MODES } from '../formats/documentPrintFormats';
 import { FileText, Receipt, Printer, Copy } from 'lucide-react';
 
 export default function PrintFormatSelector({
   documentType,
   selectedFormat,
   onSelectFormat,
+  copyMode = undefined,
+  onSelectCopyMode = null,
   isSingleCopy = false,
   onToggleCopyMode = null,
   showCopyToggle = false
@@ -25,6 +27,16 @@ export default function PrintFormatSelector({
       case PRINT_FORMATS.A4:
       default:
         return Printer;
+    }
+  };
+
+  const activeMode = copyMode || (isSingleCopy ? INVOICE_COPY_MODES.FULL : INVOICE_COPY_MODES.DOUBLE);
+
+  const handleSelectMode = (mode) => {
+    if (onSelectCopyMode) {
+      onSelectCopyMode(mode);
+    } else if (onToggleCopyMode) {
+      onToggleCopyMode();
     }
   };
 
@@ -60,35 +72,49 @@ export default function PrintFormatSelector({
         })}
       </div>
 
-      {/* Invoice Copy Mode (A4 / A5) */}
-      {showCopyToggle && selectedFormat === PRINT_FORMATS.A4 && onToggleCopyMode && (
+      {/* Invoice Sheet Layout Mode (A4 / A5) */}
+      {showCopyToggle && selectedFormat === PRINT_FORMATS.A4 && (onSelectCopyMode || onToggleCopyMode) && (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-800/40 border border-slate-700/50 text-xs">
           <div className="flex items-center gap-2 text-slate-300">
             <Copy className="w-4 h-4 text-blue-400 shrink-0" />
-            <span>A4 Sheet Layout:</span>
+            <span>Sheet Layout:</span>
           </div>
-          <div className="flex items-center gap-1 bg-slate-900 p-0.5 rounded-lg border border-slate-700/60 self-start sm:self-auto">
+          <div className="flex items-center gap-1 bg-slate-900 p-0.5 rounded-lg border border-slate-700/60 self-start sm:self-auto flex-wrap">
             <button
               type="button"
-              onClick={() => { if (!isSingleCopy) onToggleCopyMode(); }}
+              onClick={() => handleSelectMode(INVOICE_COPY_MODES.FULL)}
               className={`px-3 py-1.5 rounded-md text-[11px] font-medium transition-all min-h-[32px] sm:min-h-0 ${
-                isSingleCopy
+                activeMode === INVOICE_COPY_MODES.FULL
                   ? 'bg-blue-600 text-white shadow-xs font-semibold'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
+              title="Single full-page tax invoice"
             >
               1x Full Page (A4)
             </button>
             <button
               type="button"
-              onClick={() => { if (isSingleCopy) onToggleCopyMode(); }}
+              onClick={() => handleSelectMode(INVOICE_COPY_MODES.DOUBLE)}
               className={`px-3 py-1.5 rounded-md text-[11px] font-medium transition-all min-h-[32px] sm:min-h-0 ${
-                !isSingleCopy
+                activeMode === INVOICE_COPY_MODES.DOUBLE
                   ? 'bg-blue-600 text-white shadow-xs font-semibold'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
+              title="Two compact copies with Cut Here divider"
             >
               2x Half Sheet (A5 Cut)
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSelectMode(INVOICE_COPY_MODES.HALF)}
+              className={`px-3 py-1.5 rounded-md text-[11px] font-medium transition-all min-h-[32px] sm:min-h-0 ${
+                activeMode === INVOICE_COPY_MODES.HALF
+                  ? 'bg-blue-600 text-white shadow-xs font-semibold'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+              title="Single compact half-sheet invoice"
+            >
+              1x Half Sheet
             </button>
           </div>
         </div>

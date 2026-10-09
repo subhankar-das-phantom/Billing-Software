@@ -93,7 +93,7 @@ In traditional billing software (Tally, Busy, Marg ERP), invoices with few items
 
 ## 📄 Invoice Layout Modes
 
-Invoices support two primary sheet workflows plus thermal POS rolls:
+Invoices support three sheet workflows plus thermal POS rolls:
 
 ### 1. `1x Full Page (A4)` — Single Enterprise Copy
 - **Container Height**: `min-h-[265mm]` inside the 285mm printable height.
@@ -103,11 +103,16 @@ Invoices support two primary sheet workflows plus thermal POS rolls:
 - **Footer**: Current Outstanding Dues, Taxable, CGST, SGST, Round Off, Net Payable, Amount in Words, and Authorized Signatory.
 
 ### 2. `2x Half Sheet (A5 Cut)` — Double Copy (Customer + Dealer)
-- **Container Height**: Two identical copies with `min-h-[120mm]`.
+- **Container Height**: Two identical compact copies with `min-h-[120mm]`.
 - **Divider**: Centered dashed line with `"Cut Here"` indicator.
 - Designed for users who print two copies on one physical A4 sheet and cut the paper in half for the customer and office archive.
 
-### 3. Thermal POS Rolls (80mm & 58mm)
+### 3. `1x Half Sheet` — Single Compact Copy
+- **Container Height**: Exactly one compact copy with `min-h-[120mm]`.
+- **Divider**: None (no dashed line, no duplicate dealer copy).
+- Designed for businesses printing directly on pre-cut A5 paper or businesses wanting a single compact receipt on standard A4 paper without generating an unneeded duplicate copy.
+
+### 4. Thermal POS Rolls (80mm & 58mm)
 - **Thermal 80mm**: 3-inch roll format (`@page { size: 80mm auto; margin: 2mm; }`, usable width ~72mm).
 - **Thermal 58mm**: 2-inch roll format (`@page { size: 58mm auto; margin: 2mm; }`, usable width ~50mm).
 - Independent receipt layouts with compact item descriptions (`HSN`, `Batch`, `(+1 Free)`), dashed totals lines, and solid black `#000000` text contrast.

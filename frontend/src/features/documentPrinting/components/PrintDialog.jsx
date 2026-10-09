@@ -18,9 +18,11 @@ export default function PrintDialog({
   documentType,
   title = 'Print Document',
   initialFormat = PRINT_FORMATS.A4,
+  copyMode = undefined,
+  onSelectCopyMode = null,
   isSingleCopy = false,
   onToggleCopyMode = null,
-  renderDocument // (activeFormat, isSingleCopy) => ReactNode
+  renderDocument // (activeFormat, copyMode, isSingleCopy) => ReactNode
 }) {
   const [activeFormat, setActiveFormat] = useState(initialFormat);
   const [zoomLevel, setZoomLevel] = useState(1); // 1 = 100%, 0.75 = 75%, etc.
@@ -119,6 +121,8 @@ export default function PrintDialog({
               documentType={documentType}
               selectedFormat={activeFormat}
               onSelectFormat={(fmt) => setActiveFormat(fmt)}
+              copyMode={copyMode}
+              onSelectCopyMode={onSelectCopyMode}
               isSingleCopy={isSingleCopy}
               onToggleCopyMode={onToggleCopyMode}
               showCopyToggle={documentType === 'invoice'}
@@ -158,7 +162,7 @@ export default function PrintDialog({
                 width: '100%'
               }}
             >
-              {renderDocument(activeFormat, isSingleCopy)}
+              {renderDocument(activeFormat, copyMode || (isSingleCopy ? 'single' : 'double'), isSingleCopy)}
             </div>
           </div>
 
@@ -196,7 +200,7 @@ export default function PrintDialog({
 
       {/* ─── Dedicated Printable Root (Strictly Visible in @media print) ─────── */}
       <div ref={printMountRef} className="hidden print:block invoice-print-portal w-full">
-        {renderDocument(activeFormat, isSingleCopy)}
+        {renderDocument(activeFormat, copyMode || (isSingleCopy ? 'single' : 'double'), isSingleCopy)}
       </div>
     </>,
     document.body
