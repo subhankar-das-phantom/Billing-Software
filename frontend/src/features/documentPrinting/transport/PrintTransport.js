@@ -19,7 +19,7 @@ function getFormatPageCss(format) {
       return `@page { size: 58mm auto; margin: 2mm; }`;
     case PRINT_FORMATS.A4:
     default:
-      return `@page { size: A4 portrait; margin: 6mm; }`;
+      return `@page { size: A4 portrait; margin: 0; }`;
   }
 }
 

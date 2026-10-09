@@ -102,8 +102,8 @@ function SheetInvoiceCopy({
     <div
       className={`invoice-copy bg-white flex flex-col ${
         isDoubleCopy
-          ? 'text-[10px] p-2 min-h-[120mm]'
-          : 'text-[11px] p-4 sm:p-5 min-h-[265mm]'
+          ? 'text-[10px] p-2 print:p-1 min-h-[120mm]'
+          : 'text-[11px] p-4 sm:p-5 print:p-2 min-h-[285mm]'
       }`}
       style={{
         width: '100%',
@@ -200,11 +200,15 @@ function SheetInvoiceCopy({
         </div>
       </div>
 
-      {/* ─── Line Items Table: Configurable Columns ─────────────────────── */}
-      <div className={`flex-1 ${isDoubleCopy ? 'mb-1' : 'mb-2'}`}>
+      {/* ─── Line Items Table: Configurable Columns & Continuous Vertical Lines ─ */}
+      <div className={`flex-1 flex flex-col ${isDoubleCopy ? 'mb-1' : 'mb-2'}`}>
         <table
-          className="w-full border-collapse"
-          style={{ border: '0.5px solid black', fontSize: isDoubleCopy ? '9px' : '10px' }}
+          className="w-full flex-1 border-collapse"
+          style={{
+            border: '0.5px solid black',
+            fontSize: isDoubleCopy ? '9px' : '10px',
+            height: '100%'
+          }}
         >
           <thead>
             <tr style={{ borderBottom: '0.5px solid black', background: '#f5f5f5' }}>
@@ -224,7 +228,8 @@ function SheetInvoiceCopy({
               <tr
                 key={index}
                 style={{
-                  borderBottom: index < invoice.items.length - 1 ? '0.5px solid #ddd' : 'none',
+                  height: '1px',
+                  borderBottom: '0.5px solid #ddd',
                   pageBreakInside: 'avoid',
                   breakInside: 'avoid'
                 }}
@@ -239,6 +244,18 @@ function SheetInvoiceCopy({
                 ))}
               </tr>
             ))}
+            {/* Expanding filler row to continue vertical column lines down to the bottom border */}
+            <tr className="filler-row" style={{ height: 'auto' }}>
+              {activeColumns.map((col, i) => (
+                <td
+                  key={`filler-${col.key}`}
+                  className={`${i < activeColumns.length - 1 ? 'border-r border-black' : ''} p-0`}
+                  style={{ width: col.width }}
+                >
+                  &nbsp;
+                </td>
+              ))}
+            </tr>
           </tbody>
         </table>
       </div>

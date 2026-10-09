@@ -515,20 +515,18 @@ function drawSingleInvoicePDF(doc: PDFKit.PDFDocument, invoice: IInvoice, distri
 
   // 3. TABLE COLUMNS (Sum mathematically guaranteed to equal contentWidth)
   const baseColumns = [
-    { key: 'sr', label: 'Sr.', weight: 18, align: 'center' as const },
-    { key: 'desc', label: 'Item Description', weight: 112, align: 'left' as const },
-    { key: 'hsn', label: 'HSN', weight: 36, align: 'center' as const },
-    { key: 'batch', label: 'Batch', weight: 46, align: 'center' as const },
-    { key: 'expiry', label: 'Expiry', weight: 32, align: 'center' as const },
-    { key: 'qty', label: 'Qty', weight: 26, align: 'right' as const },
+    { key: 'qty', label: 'Qty', weight: 24, align: 'right' as const },
     { key: 'free', label: 'Fr', weight: 18, align: 'right' as const },
+    { key: 'desc', label: 'Product Name', weight: 125, align: 'left' as const },
+    { key: 'hsn', label: 'HSN', weight: 36, align: 'center' as const },
+    { key: 'batch', label: 'Batch', weight: 48, align: 'center' as const },
+    { key: 'expiry', label: 'Expiry', weight: 32, align: 'center' as const },
     { key: 'mrp', label: 'MRP', weight: 36, align: 'right' as const },
     { key: 'rate', label: 'Rate', weight: 36, align: 'right' as const },
     { key: 'net', label: 'Net', weight: 36, align: 'right' as const },
     { key: 'disc', label: 'Disc%', weight: 28, align: 'center' as const },
-    { key: 'gst', label: 'GST%', weight: 28, align: 'center' as const },
-    { key: 'taxable', label: 'Taxable', weight: 42, align: 'right' as const },
-    { key: 'total', label: 'Total', weight: 44, align: 'right' as const }
+    { key: 'gst', label: 'GST%', weight: 26, align: 'center' as const },
+    { key: 'total', label: 'Amount', weight: 45, align: 'right' as const }
   ];
 
   const totalWeight = baseColumns.reduce((sum, col) => sum + col.weight, 0);
@@ -550,7 +548,7 @@ function drawSingleInvoicePDF(doc: PDFKit.PDFDocument, invoice: IInvoice, distri
   const drawHeader = () => {
     const y = doc.y;
     doc.rect(pageLeft, y, tableWidth, headerHeight).fill('#0f766e');
-    doc.font('Helvetica-Bold').fontSize(6.5).fillColor('#ffffff');
+    doc.font('Helvetica-Bold').fontSize(7).fillColor('#ffffff');
     let x = pageLeft;
     columns.forEach((col) => {
       const padX = col.width < 30 ? 2 : 3;
@@ -571,7 +569,7 @@ function drawSingleInvoicePDF(doc: PDFKit.PDFDocument, invoice: IInvoice, distri
       doc.rect(pageLeft, y, tableWidth, rowHeight).fill('#f8fafc');
     }
 
-    doc.font('Helvetica').fontSize(6.5).fillColor('#0f172a');
+    doc.font('Helvetica').fontSize(7).fillColor('#0f172a');
 
     const pName = item.product?.productName ?? item.productName ?? item.name ?? '-';
     const pack = item.product?.pack ?? item.pack ?? '';
@@ -614,19 +612,17 @@ function drawSingleInvoicePDF(doc: PDFKit.PDFDocument, invoice: IInvoice, distri
       : (rate * (1 + gst / 100));
 
     const row = [
-      String(index + 1),
+      String(qty),
+      free > 0 ? String(free) : '0',
       descText,
       hsn,
       batch,
       expiry,
-      String(qty),
-      free > 0 ? String(free) : '-',
       mrp ? currency.format(Number(mrp) || 0) : '-',
       currency.format(rate),
       currency.format(netRate),
-      disc > 0 ? `${disc.toFixed(1)}%` : '-',
+      disc > 0 ? `${disc.toFixed(1)}%` : '0%',
       `${gst}%`,
-      currency.format(taxable),
       currency.format(total)
     ];
 

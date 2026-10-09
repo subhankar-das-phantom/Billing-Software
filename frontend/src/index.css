@@ -1584,10 +1584,18 @@ html.light .pp-footer-home:hover {
   /* Format-Specific Scoped Document Containers */
   .print-format-a4 {
     width: 100% !important;
-    max-width: 190mm !important;
-    margin: 0 auto !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
     box-sizing: border-box !important;
     font-size: 10px !important;
+  }
+
+  .print-format-a4 .invoice-copy {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
   }
 
   .print-format-a5 {
