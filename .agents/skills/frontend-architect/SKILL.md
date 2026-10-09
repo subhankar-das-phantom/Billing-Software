@@ -30,10 +30,14 @@ This skill ensures that all UI development in the Bharat Enterprise platform adh
    - **Mandatory 2-Decimal Precision**: Always pass `decimals={2}` to animated counters or formatters displaying currency (`<AnimatedCounter target={value} decimals={2} />`).
    - **Indian Numbering Standard (`en-IN`)**: Format all monetary figures using the Indian numbering system (`Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })`) so thousand/lakh separators render correctly (`₹1,23,456.78`).
    - **Visual & Query Parity**: Ensure that values rendered in customer/supplier profile headers match the live transactional sum from tables and ledgers down to the exact paisa.
-4. **Mobile-First Responsiveness**:
+4. **Mobile-First Responsiveness & 2x2 Action Grids**:
    - Every banner, card, and modal header must stack cleanly on small viewports: `flex-col sm:flex-row`.
-   - Touch targets must be minimum 44px on mobile: buttons should use `w-full sm:w-auto`.
+   - **44px Touch Targets**: Mobile interactive buttons and action rows must enforce a minimum 44px touch target height (`min-h-[44px]`), preventing mis-taps.
+   - **Responsive 2x2 Action Grid**: Cards containing 3 or 4 action buttons (e.g. View, Edit, Reset Password, Toggle Status) must convert from desktop horizontal flex (`sm:flex sm:items-center sm:gap-2`) into a structured 2x2 grid on mobile (`grid grid-cols-2 gap-2 sm:flex sm:items-center`). Never squeeze 4 action buttons into a single cramped row on mobile viewports.
+   - **High-Density Mobile Card Composition**: Keep mobile padding tight and punchy (`p-3.5 sm:p-5`), scale avatars proportionately (`w-9 h-9 sm:w-12 sm:h-12`), and format metrics inside compact grid cells (`p-2 sm:p-3`, `text-[10px] sm:text-xs` labels, `text-sm sm:text-lg` values with `font-mono`).
    - Absolute dismiss buttons must have padding buffers to avoid text clipping.
+5. **Workspace Layout Spacing & Vertical Whitespace Discipline**:
+   - **Dense, High-Clarity Root Spacing (`space-y-6`)**: Standardize top-level vertical container spacing to `space-y-6` (or `space-y-6 sm:space-y-8`). Strictly prohibit sparse `space-y-12` margins that waste vertical screen real estate and push collection cards or tables below the viewport fold.
 
 ---
 
@@ -108,9 +112,57 @@ This skill ensures that all UI development in the Bharat Enterprise platform adh
      - **Remote Network Search**: Standard 300ms debounce (`useDebounce(searchTerm, 300)`).
      - **Local In-Memory Filter**: 250ms debounce.
 2. **Ergonomic Clear (`X`) Buttons**:
-   - Every search input must render an instant clear button (`X` icon with `p-0.5 text-slate-400 hover:text-slate-200`) whenever the query is non-empty.
+   - Every search input must render an instant clear button (Lucide `<X className="w-4 h-4 text-slate-400 hover:text-slate-100" />` with `p-0.5` or `p-1`) whenever the query is non-empty.
 3. **Contextual Fallback Actions in Empty States**:
    - When a search produces 0 results inside a bounded scope (e.g. today's date), provide an actionable 1-click fallback button: *"No payments matching '{search}' in {dateLabel}. [Search All Dates]"*.
+
+---
+
+## 🧭 Persistent List / Detail Navigation Architecture & URL Synchronization
+
+1. **URL-Backed Filter Parameter Synchronization (`useListFilterParams`)**:
+   - Filter state across table and card collection pages must synchronize with URL search parameters using `useListFilterParams` (`src/hooks/useListFilterParams.js`).
+   - **Internal Reference Protection**: Callers often provide inline default objects (e.g. `useListFilterParams({ search: '', status: 'all' })`). To prevent infinite render loops and unstable callback recreation:
+     - Stabilize default values using a `defaultsRef` backed by shallow equality comparison (`shallowEqual`).
+     - Stabilize `setSearchParams` via `setSearchParamsRef` so that setters (`setParam`, `setParams`, `resetParams`) maintain 100% identity stability across renders (`useCallback(..., [])`).
+2. **Universal Ref-Guarded Debounced Search Synchronization**:
+   - Search inputs must decouple local typing state from the debounced URL parameter:
+     ```javascript
+     const { params: filterParams, setParam } = useListFilterParams({ search: '', status: 'all' });
+     const urlSearch = filterParams.search;
+     const [searchTerm, setSearchTerm] = useState(() => searchParams.get('search') || '');
+     const [debouncedSearch] = useDebounce(searchTerm, 300);
+     const lastSyncedSearchRef = useRef(urlSearch);
+
+     // Sync debounced search to URL
+     useEffect(() => {
+       setParam('search', debouncedSearch);
+       lastSyncedSearchRef.current = debouncedSearch;
+     }, [debouncedSearch, setParam]);
+
+     // Sync external URL back/forward changes into local search input
+     useEffect(() => {
+       if (urlSearch !== lastSyncedSearchRef.current) {
+         lastSyncedSearchRef.current = urlSearch;
+         setSearchTerm(urlSearch);
+       }
+     }, [urlSearch]);
+     ```
+   - **Eliminate Focus Loss & Cursor Jumping**: Never bind controlled inputs directly to asynchronous URL state. Maintaining local `searchTerm` coupled with the `lastSyncedSearchRef` guard guarantees smooth 60fps typing without focus drops, input remounting, or cursor resets.
+   - **Instant Clear Action (`X`)**: Always synchronize clear buttons to immediately reset local state, update `lastSyncedSearchRef.current = ''`, and invoke `setParam('search', '')`.
+3. **Seamless Bidirectional Return Routing (`location.state.from`)**:
+   - **List Pages**: When navigating from a collection or table to an entity detail view, pass the current path and query string:
+     ```jsx
+     const currentPath = location.pathname + location.search;
+     <Link to={`/entities/${entity._id}`} state={{ from: currentPath }}>View Details</Link>
+     ```
+   - **Detail Pages**: In detail views, extract originating navigation state:
+     ```jsx
+     const location = useLocation();
+     const backPath = location.state?.from || '/entities';
+     ```
+   - Wire explicit Back buttons and `<ArrowLeft>` actions to `navigate(backPath)`.
+   - **Separation of Concerns**: Explicit Back buttons cleanly return to the originating filtered query with zero lost state, while native browser back and forward actions preserve natural history entries and scroll restoration.
 
 ---
 
@@ -157,6 +209,21 @@ This skill ensures that all UI development in the Bharat Enterprise platform adh
 
 ---
 
+## 🧾 Public Document Financial Rounding & Invariant Parity
+
+1. **Canonical Payable `finalTotal` Alignment**:
+   - Customer-visible public invoice views (`PublicInvoicePage.jsx`), printable sheets, and PDF previews must always display the canonical rounded payable integer: `totals.finalTotal ?? totals.netTotal`.
+2. **Accurate Payable Due Calculation**:
+   - Never compute outstanding bill balance against unrounded net totals. Due balance must bind to `finalTotal`:
+     ```javascript
+     const dueAmount = isCancelled ? 0 : Math.max(0, finalTotal - paidAmount);
+     ```
+   - This ensures settled or partially paid invoices balance exactly against the rounded total with zero residual paise discrepancies.
+3. **Preservation of Stored Representations**:
+   - Public views and printouts must prioritize pre-computed internal document values (e.g. `totals.amountInWords`) before falling back to word converters.
+
+---
+
 ## 🛡️ Frontend Bug Prevention Checklist
 
 Before completing any frontend code change, verify that:
@@ -170,6 +237,11 @@ Before completing any frontend code change, verify that:
 - [ ] **Header Refresh Indicator**: Pages utilizing background revalidation include `<RefreshIndicator isRefreshing={isValidating} size="sm" showText />` in their header.
 - [ ] **AST Identifier & Import Integrity**: All referenced JSX tags (e.g. `<RefreshIndicator />`) and identifiers are explicitly imported and declared. No duplicate `useState` declarations left behind from legacy code.
 - [ ] **Universal Search Debouncing**: All search inputs use `useDebounce` (250–300ms) and include an `X` clear button.
+- [ ] **Persistent List/Detail Filter Navigation**: Collection and table lists synchronize URL filter parameters via `useListFilterParams`, pass `state={{ from: currentPath }}` to detail views, and detail pages route explicit back buttons to `location.state?.from || fallback`.
+- [ ] **Ref-Guarded Search Input Ergonomics**: Search inputs decouple local state from debounced URL state using `lastSyncedSearchRef` guards, eliminating cursor jumping, input remounts, and focus loss.
+- [ ] **Mobile Card Density & 2x2 Action Grids**: Multi-action buttons on mobile convert to a structured 2x2 grid (`grid-cols-2 gap-2 sm:flex`) with `min-h-[44px]` touch targets, compact card padding (`p-3.5 sm:p-5`), and mono-spaced metrics.
+- [ ] **Workspace Layout Spacing (`space-y-6`)**: Container spacing uses dense `space-y-6`, avoiding excessive `space-y-12` vertical padding.
+- [ ] **Public Invoice Rounding & Payable Parity**: Public views and printouts render rounded `totals.finalTotal`, calculate `dueAmount` against `finalTotal`, and preserve stored `amountInWords`.
 - [ ] **No Event Double-Triggers**: Never attach handlers to both `onMouseDown` and `onClick`. Use `onMouseDown` only for `e.preventDefault()` (focus retention) and `onClick` for action execution.
 - [ ] **Atomic Deduplication in Updaters**: Multi-click or fast typing cannot insert duplicate rows. Functional `setItems(prev => ...)` must check `prev.some(...)`.
 - [ ] **Defensive Memoized Sorting**: Any list displayed to the user is explicitly wrapped in `useMemo` with an explicit sorting comparator (`(b.value - a.value)`).
