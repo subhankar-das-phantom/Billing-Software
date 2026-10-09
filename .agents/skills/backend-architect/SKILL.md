@@ -138,3 +138,27 @@ paymentSchema.index({ tenantId: 1, 'invoiceSnapshot.invoiceNumber': 1 });
   }
   ```
 - Expose an authenticated endpoint (`PUT /api/auth/preferences`) that allows both Admins and non-admin Employees to persist personal UI preferences (theme mode) across devices without granting employees permissions to alter tenant-wide billing/invoice configuration.
+
+### 10. Public DTO Serializers & Canonical Financial Rounding Parity
+- **Customer-Visible DTO Protection**:
+  - When serializing entities for public consumption (e.g. `publicInvoiceSerializer.ts`), strip all internal IDs, margins, employee attributions, and tenant configurations.
+- **Canonical Financial Rounding Formulas**:
+  - Never allow public serializer calculations to drift from internal billing math:
+    ```typescript
+    const rawNetTotal = Math.round(((Number(invoice.totals?.netTotal) || 0) + Number.EPSILON) * 100) / 100;
+    const paidAmount = Math.round(((Number(invoice.paidAmount) || 0) + Number.EPSILON) * 100) / 100;
+    const finalTotal = Math.round(rawNetTotal);
+    const roundOff = Math.round(((finalTotal - rawNetTotal) + Number.EPSILON) * 100) / 100;
+    const dueAmount = isCancelled ? 0 : Math.max(0, finalTotal - paidAmount);
+    const amountInWords = invoice.totals?.amountInWords || numberToWords(finalTotal);
+    ```
+- **PDF Stream Adapter Parity (`adaptPublicDTOToPDFInvoice`)**:
+  - DTO-to-PDF adapters that feed binary PDF stream engines must consume `finalTotal` for both `totals.netTotal` and `totals.finalTotal`. This guarantees 100% visual and mathematical parity between web views, print stylesheets, and binary PDF streaming.
+- **Mandatory Automated Serializer Regression Suites**:
+  - Every public serializer must be backed by an automated verification script (e.g. `backend/scripts/testInvoiceSharing.ts`) verifying:
+    1. Integer totals (`1000.00` → `1000`, `roundOff: 0.00`).
+    2. Positive round-offs (`999.52` → `1000`, `roundOff: +0.48`).
+    3. Negative round-offs (`999.47` → `999`, `roundOff: -0.47`).
+    4. Settled invoices balance cleanly to zero due.
+    5. Cancelled invoices evaluate to zero due regardless of recorded payments.
+    6. PDF adapter mapping produces identical `roundOff`, `netTotal`, and `finalTotal`.

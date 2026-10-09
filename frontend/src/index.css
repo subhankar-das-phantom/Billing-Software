@@ -588,8 +588,8 @@ html.dark {
     @apply text-slate-400 font-medium;
   }
 
-  /* Fix any black text issues in dark mode only */
-  html.dark .text-black {
+  /* Fix any black text issues in dark mode only (strictly exclude printable documents & receipts) */
+  html.dark .text-black:not(.invoice-print):not(.invoice-print *):not(.invoice-copy):not(.invoice-copy *):not([class*="print-format-"]):not([class*="print-format-"] *) {
     @apply !text-white;
   }
   html.light .text-black {
@@ -1478,16 +1478,23 @@ html.light .pp-footer-home:hover {
     display: table-header-group;
   }
 
+  /* Prevent table footer from repeating on every page during multi-page print */
   .print-table tfoot {
-    display: table-footer-group;
+    display: table-row-group;
+  }
+
+  .print-final-summary {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    width: 100%;
   }
 }
 
 
-/* Invoice & Ledger Print Styles for A4 */
+/* Invoice & Ledger Print Styles */
 @media print {
+  /* Default fallback page rule; dynamically overridden by active print format */
   @page {
-    size: A4 portrait;
     margin: 6mm;
   }
 
@@ -1554,6 +1561,11 @@ html.light .pp-footer-home:hover {
     display: none !important;
   }
 
+  /* When PrintDialog is executing print, hide all other page elements and #root entirely */
+  body.is-printing-document #root {
+    display: none !important;
+  }
+
   /* Full width invoice & ledger document */
   .invoice-print {
     display: block !important;
@@ -1561,22 +1573,61 @@ html.light .pp-footer-home:hover {
     opacity: 1 !important;
     position: relative !important;
     width: 100% !important;
-    max-width: 210mm !important;
     background: white !important;
     color: black !important;
-    font-size: 11px !important;
-    padding: 2mm !important;
     margin: 0 auto !important;
     box-sizing: border-box !important;
     border: none !important;
     box-shadow: none !important;
   }
 
+  /* Format-Specific Scoped Document Containers */
+  .print-format-a4 {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    font-size: 10px !important;
+  }
+
+  .print-format-a4 .invoice-copy {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .print-format-a5 {
+    width: 100% !important;
+    max-width: 190mm !important;
+    margin: 0 auto !important;
+    box-sizing: border-box !important;
+    font-size: 8.5px !important;
+  }
+
+  .print-format-thermal-80 {
+    width: 74mm !important;
+    max-width: 74mm !important;
+    margin: 0 auto !important;
+    box-sizing: border-box !important;
+    font-size: 9px !important;
+    line-height: 1.25 !important;
+  }
+
+  .print-format-thermal-58 {
+    width: 52mm !important;
+    max-width: 52mm !important;
+    margin: 0 auto !important;
+    box-sizing: border-box !important;
+    font-size: 8px !important;
+    line-height: 1.2 !important;
+  }
+
   .invoice-copy {
     display: flex !important;
     flex-direction: column !important;
     visibility: visible !important;
-    padding: 2mm !important;
     background: white !important;
     color: black !important;
   }
@@ -1611,19 +1662,34 @@ html.light .pp-footer-home:hover {
   }
 }
 
-/* Force black text in invoice */
+/* Force black text in invoice & receipt documents across all formats, light & dark mode */
+html.dark .invoice-print,
+html.dark .invoice-print *,
+html.dark .invoice-copy,
+html.dark .invoice-copy *,
+html.dark [class*="print-format-"],
+html.dark [class*="print-format-"] *,
+html.light .invoice-print,
+html.light .invoice-print *,
+html.light .invoice-copy,
+html.light .invoice-copy *,
 .invoice-print,
-.invoice-print * {
+.invoice-print *,
+.invoice-copy,
+.invoice-copy *,
+[class*="print-format-"],
+[class*="print-format-"] * {
   color: #000000 !important;
 }
 
-.invoice-print h1,
-.invoice-print h2,
-.invoice-print h3,
-.invoice-print p,
-.invoice-print td,
-.invoice-print th {
-  color: #000000 !important;
+/* Allow explicit red text for negative/discount amounts inside print documents */
+html.dark .invoice-print .text-red-600,
+html.dark .invoice-copy .text-red-600,
+html.light .invoice-print .text-red-600,
+html.light .invoice-copy .text-red-600,
+.invoice-print .text-red-600,
+.invoice-copy .text-red-600 {
+  color: #dc2626 !important;
 }
 
 /* Hero shape entrance — pure CSS, GPU-composited, zero jitter */

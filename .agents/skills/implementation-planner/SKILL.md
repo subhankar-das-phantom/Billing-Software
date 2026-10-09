@@ -30,6 +30,10 @@ This skill guides the agent through requirements analysis, architectural impact 
   - **Check Table Column Defensive Shapes & Method Safety**: Do table renderers call `.toFixed()`, `.slice()`, or `.charAt()` directly on potentially flat, undefined, or unpopulated fields without nullish coalescing `??` fallbacks?
   - **Check Mock Data Parity & Isolation**: Do mock handlers synchronize both root `entity.*` and `summary.*` fields to avoid split KPI counts on detail pages? Are mock collections isolated per entity ID, and do they supply relationship IDs (`invoiceId`, `invoice: { _id, invoiceNumber }`) for deep-links?
   - **Check for Identifier & Import Integrity**: Are all JSX components (e.g. `RefreshIndicator`) and external helpers explicitly imported with zero duplicate `useState` holdovers?
+  - **Check for List/Detail Navigation & Filter Persistence**: Does navigating to detail views discard filter/search parameters upon returning? Do collection cards pass `state={{ from: currentPath }}`, do detail pages route explicit back buttons to `location.state?.from || fallback`, and do search inputs prevent cursor jumping and focus loss via `lastSyncedSearchRef` guards?
+  - **Check for Public Serializer & Financial Parity**: Do public DTO serializers, printable views, and PDF stream adapters compute canonical `finalTotal`, `roundOff`, and `dueAmount` with 100% mathematical parity against internal billing views? Are public serializers backed by automated regression tests?
+  - **Check for Mobile Card Density & Action Squishing**: Do mobile cards squish multi-action button rows horizontally instead of converting to a structured 2x2 grid (`grid grid-cols-2 gap-2 sm:flex`) with `min-h-[44px]` touch targets and compact padding?
+  - **Check Workspace Layout Spacing**: Does the page container waste vertical screen space with sparse `space-y-12` margins instead of dense, high-clarity `space-y-6` spacing?
 - **DO NOT** execute file edits, write code, or execute mutating scripts during this stage.
 
 ### Step 2: Formulate the Implementation Plan Artifact

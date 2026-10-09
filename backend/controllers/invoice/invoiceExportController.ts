@@ -131,9 +131,10 @@ function drawCell(
   options: PDFKit.Mixins.TextOptions = {}
 ) {
   doc.rect(x, y, width, height).stroke('#cbd5e1');
-  doc.text(text, x + 4, y + 5, {
-    width: width - 8,
-    height: height - 8,
+  const padX = width < 30 ? 2 : 3;
+  doc.text(text, x + padX, y + 5, {
+    width: width - (padX * 2),
+    height: height - 6,
     ellipsis: true,
     ...options
   });
@@ -409,7 +410,7 @@ function drawSingleInvoicePDF(doc: PDFKit.PDFDocument, invoice: IInvoice, distri
   // 2. DUAL BALANCED PARTY CARDS
   const partyCardHeight = 64;
   const partyGap = 8;
-  const leftCardWidth = Math.floor(contentWidth * 0.60);
+  const leftCardWidth = Math.floor(contentWidth * 0.54);
   const rightCardWidth = contentWidth - leftCardWidth - partyGap;
   const rightCardX = pageLeft + leftCardWidth + partyGap;
 
@@ -458,71 +459,74 @@ function drawSingleInvoicePDF(doc: PDFKit.PDFDocument, invoice: IInvoice, distri
      .fillAndStroke('#f8fafc', '#cbd5e1');
 
   const metaRowH = 15;
+  const metaLabelW = 72;
+  const metaValX = rightCardX + 10 + metaLabelW;
+  const metaValueW = rightCardWidth - metaLabelW - 14;
+
   doc
     .font('Helvetica-Bold')
     .fontSize(7.5)
     .fillColor('#475569')
-    .text('Invoice No:', rightCardX + 10, currentY + 4, { width: 75 });
+    .text('Invoice No:', rightCardX + 10, currentY + 4, { width: metaLabelW });
   doc
     .font('Helvetica-Bold')
     .fontSize(8.5)
     .fillColor('#0f172a')
-    .text(safeText(invoice.invoiceNumber, '-'), rightCardX + 85, currentY + 4, { width: rightCardWidth - 95 });
+    .text(safeText(invoice.invoiceNumber, '-'), metaValX, currentY + 4, { width: metaValueW, ellipsis: true });
 
   doc
     .font('Helvetica-Bold')
     .fontSize(7.5)
     .fillColor('#475569')
-    .text('Date:', rightCardX + 10, currentY + 4 + metaRowH, { width: 75 });
+    .text('Date:', rightCardX + 10, currentY + 4 + metaRowH, { width: metaLabelW });
   doc
     .font('Helvetica')
     .fontSize(7.5)
     .fillColor('#0f172a')
-    .text(formatDate(invoice.invoiceDate), rightCardX + 85, currentY + 4 + metaRowH, { width: rightCardWidth - 95 });
+    .text(formatDate(invoice.invoiceDate), metaValX, currentY + 4 + metaRowH, { width: metaValueW, ellipsis: true });
 
   doc
     .font('Helvetica-Bold')
     .fontSize(7.5)
     .fillColor('#475569')
-    .text('Payment Mode:', rightCardX + 10, currentY + 4 + metaRowH * 2, { width: 75 });
+    .text('Payment Mode:', rightCardX + 10, currentY + 4 + metaRowH * 2, { width: metaLabelW });
   doc
     .font('Helvetica')
     .fontSize(7.5)
     .fillColor('#0f172a')
-    .text(safeText(invoice.paymentType, 'Credit').toUpperCase(), rightCardX + 85, currentY + 4 + metaRowH * 2, { width: rightCardWidth - 95 });
+    .text(safeText(invoice.paymentType, 'Credit').toUpperCase(), metaValX, currentY + 4 + metaRowH * 2, { width: metaValueW, ellipsis: true });
 
   const netDue = Math.max(0, (Number(invoice.totals?.netTotal) || 0) - (Number(invoice.paidAmount) || 0));
   doc
     .font('Helvetica-Bold')
     .fontSize(7.5)
     .fillColor('#475569')
-    .text('Status:', rightCardX + 10, currentY + 4 + metaRowH * 3, { width: 75 });
+    .text('Status:', rightCardX + 10, currentY + 4 + metaRowH * 3, { width: metaLabelW });
   const statusColor = isCancelled ? '#dc2626' : (netDue <= 0 ? '#0f766e' : '#b45309');
   const statusText = isCancelled ? 'CANCELLED' : (netDue <= 0 ? 'PAID' : `PAYMENT DUE (${formatCurrency(netDue)})`);
   doc
     .font('Helvetica-Bold')
     .fontSize(7.5)
     .fillColor(statusColor)
-    .text(statusText, rightCardX + 85, currentY + 4 + metaRowH * 3, { width: rightCardWidth - 95 });
+    .text(statusText, metaValX, currentY + 4 + metaRowH * 3, { width: metaValueW, ellipsis: true });
 
   currentY += partyCardHeight + 6;
   doc.y = currentY;
 
   // 3. TABLE COLUMNS (Sum mathematically guaranteed to equal contentWidth)
   const baseColumns = [
-    { key: 'sr', label: 'Sr.', weight: 24, align: 'center' as const },
-    { key: 'desc', label: 'Item Description', weight: 168, align: 'left' as const },
-    { key: 'hsn', label: 'HSN', weight: 52, align: 'center' as const },
-    { key: 'batch', label: 'Batch', weight: 64, align: 'center' as const },
-    { key: 'expiry', label: 'Expiry', weight: 46, align: 'center' as const },
-    { key: 'qty', label: 'Qty', weight: 40, align: 'right' as const },
-    { key: 'free', label: 'Fr', weight: 28, align: 'right' as const },
-    { key: 'mrp', label: 'MRP', weight: 52, align: 'right' as const },
-    { key: 'rate', label: 'Rate', weight: 52, align: 'right' as const },
-    { key: 'disc', label: 'Disc%', weight: 40, align: 'center' as const },
-    { key: 'gst', label: 'GST%', weight: 42, align: 'center' as const },
-    { key: 'taxable', label: 'Taxable', weight: 75, align: 'right' as const },
-    { key: 'total', label: 'Total', weight: 78, align: 'right' as const }
+    { key: 'qty', label: 'Qty', weight: 24, align: 'right' as const },
+    { key: 'free', label: 'Fr', weight: 18, align: 'right' as const },
+    { key: 'desc', label: 'Product Name', weight: 125, align: 'left' as const },
+    { key: 'hsn', label: 'HSN', weight: 36, align: 'center' as const },
+    { key: 'batch', label: 'Batch', weight: 48, align: 'center' as const },
+    { key: 'expiry', label: 'Expiry', weight: 32, align: 'center' as const },
+    { key: 'mrp', label: 'MRP', weight: 36, align: 'right' as const },
+    { key: 'rate', label: 'Rate', weight: 36, align: 'right' as const },
+    { key: 'net', label: 'Net', weight: 36, align: 'right' as const },
+    { key: 'disc', label: 'Disc%', weight: 28, align: 'center' as const },
+    { key: 'gst', label: 'GST%', weight: 26, align: 'center' as const },
+    { key: 'total', label: 'Amount', weight: 45, align: 'right' as const }
   ];
 
   const totalWeight = baseColumns.reduce((sum, col) => sum + col.weight, 0);
@@ -538,16 +542,17 @@ function drawSingleInvoicePDF(doc: PDFKit.PDFDocument, invoice: IInvoice, distri
   });
 
   const tableWidth = contentWidth;
-  const headerHeight = 20;
-  const rowHeight = 20;
+  const headerHeight = 18;
+  const rowHeight = 18;
 
   const drawHeader = () => {
     const y = doc.y;
     doc.rect(pageLeft, y, tableWidth, headerHeight).fill('#0f766e');
-    doc.font('Helvetica-Bold').fontSize(7.5).fillColor('#ffffff');
+    doc.font('Helvetica-Bold').fontSize(7).fillColor('#ffffff');
     let x = pageLeft;
     columns.forEach((col) => {
-      doc.text(col.label, x + 3, y + 6, { width: col.width - 6, align: col.align });
+      const padX = col.width < 30 ? 2 : 3;
+      doc.text(col.label, x + padX, y + 5, { width: col.width - (padX * 2), align: col.align });
       x += col.width;
     });
     doc.y = y + headerHeight;
@@ -602,20 +607,22 @@ function drawSingleInvoicePDF(doc: PDFKit.PDFDocument, invoice: IInvoice, distri
     const gst = Number(item.product?.gstPercentage ?? item.gstPercentage ?? item.gstRate) || 0;
     const taxable = Number(item.taxableAmount ?? (qty * rate)) || 0;
     const total = Number(item.totalAmount ?? (taxable * (1 + gst / 100))) || 0;
+    const netRate = item.netRate != null && !isNaN(Number(item.netRate))
+      ? Number(item.netRate)
+      : (rate * (1 + gst / 100));
 
     const row = [
-      String(index + 1),
+      String(qty),
+      free > 0 ? String(free) : '0',
       descText,
       hsn,
       batch,
       expiry,
-      String(qty),
-      free > 0 ? String(free) : '-',
       mrp ? currency.format(Number(mrp) || 0) : '-',
       currency.format(rate),
-      disc > 0 ? `${disc.toFixed(1)}%` : '-',
+      currency.format(netRate),
+      disc > 0 ? `${disc.toFixed(1)}%` : '0%',
       `${gst}%`,
-      currency.format(taxable),
       currency.format(total)
     ];
 
@@ -631,7 +638,7 @@ function drawSingleInvoicePDF(doc: PDFKit.PDFDocument, invoice: IInvoice, distri
   ensureSpace(doc, 130);
   doc.moveDown(0.5);
 
-  const totalsWidth = 270;
+  const totalsWidth = 260;
   const totalsX = pageLeft + contentWidth - totalsWidth;
   const leftBoxWidth = contentWidth - totalsWidth - 10;
   const totalsStartY = doc.y;
@@ -648,15 +655,15 @@ function drawSingleInvoicePDF(doc: PDFKit.PDFDocument, invoice: IInvoice, distri
     .font('Helvetica-Bold')
     .fontSize(7)
     .fillColor('#475569')
-    .text('AMOUNT IN WORDS', pageLeft + 10, totalsStartY + 4, { width: leftBoxWidth - 20 });
+    .text('AMOUNT IN WORDS', pageLeft + 8, totalsStartY + 4, { width: leftBoxWidth - 16 });
 
   const words = invoice.totals?.amountInWords || 'Rupees Zero Only';
   doc
     .font('Helvetica-Bold')
-    .fontSize(8)
+    .fontSize(7.5)
     .fillColor('#0f172a')
-    .text(words.toUpperCase(), pageLeft + 10, totalsStartY + 22, {
-      width: leftBoxWidth - 20
+    .text(words.toUpperCase(), pageLeft + 8, totalsStartY + 20, {
+      width: leftBoxWidth - 16
     });
 
   // Terms & Conditions
@@ -664,13 +671,13 @@ function drawSingleInvoicePDF(doc: PDFKit.PDFDocument, invoice: IInvoice, distri
     .font('Helvetica-Bold')
     .fontSize(7)
     .fillColor('#64748b')
-    .text('Terms & Conditions:', pageLeft + 10, totalsStartY + 52, { width: leftBoxWidth - 20 });
+    .text('Terms & Conditions:', pageLeft + 8, totalsStartY + 50, { width: leftBoxWidth - 16 });
   doc
     .font('Helvetica')
-    .fontSize(6.5)
+    .fontSize(6)
     .fillColor('#475569')
-    .text('1. Goods once sold will not be taken back without valid batch verification.\n2. Subject to local jurisdiction only.\n3. Discrepancy if any should be notified within 24 hours of receipt.', pageLeft + 10, totalsStartY + 64, {
-      width: leftBoxWidth - 20,
+    .text('1. Goods once sold will not be taken back without valid batch verification.\n2. Subject to local jurisdiction only.\n3. Discrepancy if any should be notified within 24 hours of receipt.', pageLeft + 8, totalsStartY + 62, {
+      width: leftBoxWidth - 16,
       lineGap: 2
     });
 
@@ -685,7 +692,9 @@ function drawSingleInvoicePDF(doc: PDFKit.PDFDocument, invoice: IInvoice, distri
   ];
 
   let currentTotalsY = totalsStartY;
-  const totalsRowH = 18;
+  const totalsRowH = 17;
+  const labelColW = 125;
+  const valColW = totalsWidth - labelColW;
 
   totals.forEach(([label, value]) => {
     const isNet = label === 'Grand Total';
@@ -698,19 +707,19 @@ function drawSingleInvoicePDF(doc: PDFKit.PDFDocument, invoice: IInvoice, distri
     if (isRound && numVal === 0) return;
 
     if (isNet) {
-      doc.rect(totalsX, currentTotalsY, totalsWidth, 22)
+      doc.rect(totalsX, currentTotalsY, totalsWidth, 20)
          .fillAndStroke('#ecfdf5', '#0f766e');
       doc
         .font('Helvetica-Bold')
-        .fontSize(9.5)
+        .fontSize(9)
         .fillColor('#0f766e');
-      drawCell(doc, 'Net Amount Payable', totalsX, currentTotalsY, 135, 22, { align: 'left' });
-      drawCell(doc, formatCurrency(numVal), totalsX + 135, currentTotalsY, totalsWidth - 135, 22, { align: 'right' });
-      currentTotalsY += 22;
+      drawCell(doc, 'Net Amount Payable', totalsX, currentTotalsY, labelColW, 20, { align: 'left' });
+      drawCell(doc, formatCurrency(numVal), totalsX + labelColW, currentTotalsY, valColW, 20, { align: 'right' });
+      currentTotalsY += 20;
     } else {
       doc
         .font('Helvetica')
-        .fontSize(7.5)
+        .fontSize(7)
         .fillColor(isDisc ? '#dc2626' : '#0f172a');
       const formattedVal = isDisc
         ? `-₹${currency.format(numVal)}`
@@ -718,14 +727,14 @@ function drawSingleInvoicePDF(doc: PDFKit.PDFDocument, invoice: IInvoice, distri
           ? (numVal >= 0 ? `+₹${currency.format(numVal)}` : `-₹${currency.format(Math.abs(numVal))}`)
           : formatCurrency(numVal);
 
-      drawCell(doc, String(label), totalsX, currentTotalsY, 135, totalsRowH, { align: 'left' });
-      drawCell(doc, formattedVal, totalsX + 135, currentTotalsY, totalsWidth - 135, totalsRowH, { align: 'right' });
+      drawCell(doc, String(label), totalsX, currentTotalsY, labelColW, totalsRowH, { align: 'left' });
+      drawCell(doc, formattedVal, totalsX + labelColW, currentTotalsY, valColW, totalsRowH, { align: 'right' });
       currentTotalsY += totalsRowH;
     }
   });
 
   // Signatory Box
-  const signY = Math.max(totalsStartY + leftBoxHeight, currentTotalsY) + 10;
+  const signY = Math.max(totalsStartY + leftBoxHeight, currentTotalsY) + 8;
   doc
     .font('Helvetica-Bold')
     .fontSize(7.5)
@@ -737,9 +746,9 @@ function drawSingleInvoicePDF(doc: PDFKit.PDFDocument, invoice: IInvoice, distri
 
   doc
     .font('Helvetica')
-    .fontSize(7)
+    .fontSize(6.5)
     .fillColor('#64748b')
-    .text('Authorized Signatory', totalsX, signY + 28, {
+    .text('Authorized Signatory', totalsX, signY + 24, {
       width: totalsWidth,
       align: 'center'
     });
@@ -875,7 +884,7 @@ exports.generateSingleInvoicePDF = async (req: AuthenticatedRequest, res: Respon
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=invoice_${invoice.invoiceNumber || req.params.id}.pdf`);
 
-    const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 30, bufferPages: false });
+    const doc = new PDFDocument({ size: 'A4', layout: 'portrait', margin: 30, bufferPages: false });
     doc.on('error', next);
     doc.pipe(res);
     drawSingleInvoicePDF(doc, invoice, distributor);

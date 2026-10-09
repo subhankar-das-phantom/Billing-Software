@@ -43,6 +43,10 @@ import { authService } from '../../services/auth/authService';
 import { useSWR, useFirstVisit, invalidateCachePattern } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 import ShareResourceMenu from '../../components/Common/Sharing/ShareResourceMenu';
+import PrintDialog from '../../features/documentPrinting/components/PrintDialog';
+import InvoiceDocument from '../../features/documentPrinting/renderers/InvoiceDocument';
+import { resolveDocumentPrintFormat, DOCUMENT_TYPES } from '../../features/documentPrinting/formats/documentPrintFormats';
+import { ALL_INVOICE_COLUMNS, DEFAULT_INVOICE_COLUMNS, resolveActiveColumns, getBatchGroups } from '../../features/documentPrinting/renderers/invoiceColumns';
 
 const roundCurrency = (value) => Math.round(((Number(value) || 0) + Number.EPSILON) * 100) / 100;
 
@@ -72,29 +76,13 @@ const cardVariants = {
 };
 
 
-const getBatchGroups = (allocations) => {
-  const groupsMap = allocations.reduce((acc, alloc) => {
-    const displayName = alloc.batchNo && alloc.batchNo !== 'UNNAMED' ? alloc.batchNo : 'No Batch #';
-    const expiryStr = alloc.expiryDate 
-      ? new Date(alloc.expiryDate).toLocaleDateString('en-IN', { month: '2-digit', year: '2-digit' }) 
-      : '-';
-    
-    const key = `${displayName}|${expiryStr}`;
-    if (!acc[key]) {
-      acc[key] = { name: displayName, expiry: expiryStr, qtys: [] };
-    }
-    acc[key].qtys.push(alloc.quantity);
-    return acc;
-  }, {});
-  return Object.values(groupsMap);
-};
-
 export default function InvoiceViewPage() {
   const { id } = useParams();
   const location = useLocation();
   const backPath = location.state?.from || '/invoices';
   const [updating, setUpdating] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
   const [showColumnSettings, setShowColumnSettings] = useState(false);
   const [showManageMenu, setShowManageMenu] = useState(false);
   const columnSettingsRef = useRef(null);
@@ -140,59 +128,8 @@ export default function InvoiceViewPage() {
   const { user, admin, updateUserPreferences } = useAuth();
   const enableBatchTracking = user?.preferences?.enableBatchTracking === true;
 
-  // Column definitions
-  const ALL_COLUMNS = [
-    { key: 'qty', label: 'Qty', width: '4%', align: 'center', render: (item) => item.quantitySold ?? item.quantity ?? 0 },
-    { key: 'free', label: 'Fr', width: '3%', align: 'center', render: (item) => item.freeQuantity || 0 },
-    { key: 'productName', label: 'Product Name', width: '33%', align: 'left', render: (item) => item.product?.productName ?? item.productName ?? item.name ?? '-' },
-    { key: 'hsn', label: 'HSN', width: '7%', align: 'center', render: (item) => item.product?.hsnCode ?? item.hsnCode ?? '-' },
-    { key: 'batchNo', label: 'Batch', width: '10%', align: 'center', render: (item) => {
-        if (enableBatchTracking && item.batchAllocations?.length > 0) {
-          const groups = getBatchGroups(item.batchAllocations);
-
-          return (
-            <div className="flex flex-col gap-0.5">
-              {groups.map((g, idx) => {
-                const displayQty = g.name === 'No Batch #' ? g.qtys.join('+') : g.qtys.reduce((sum, q) => sum + q, 0);
-                return (
-                  <span key={idx} className="whitespace-nowrap">
-                    {g.name} ({displayQty})
-                  </span>
-                );
-              })}
-            </div>
-          );
-        }
-        const bNo = item.product?.batchNo ?? item.batchNumber ?? item.batchNo;
-        return bNo && bNo !== 'UNNAMED' ? bNo : 'No Batch #';
-    }},
-    { key: 'expiry', label: 'Expiry', width: '7%', align: 'center', render: (item) => {
-        if (enableBatchTracking && item.batchAllocations?.length > 0) {
-          const groups = getBatchGroups(item.batchAllocations);
-          return (
-            <div className="flex flex-col gap-0.5">
-              {groups.map((g, idx) => (
-                <span key={idx} className="whitespace-nowrap">{g.expiry}</span>
-              ))}
-            </div>
-          );
-        }
-        const expiryRaw = item.product?.expiryDate ?? item.expiryDate ?? null;
-        return expiryRaw ? new Date(expiryRaw).toLocaleDateString('en-IN', { month: '2-digit', year: '2-digit' }) : '-';
-    }},
-    { key: 'mrp', label: 'MRP', width: '8%', align: 'right', render: (item) => (item.product?.newMRP ?? item.mrp ?? item.newMRP)?.toFixed(2) ?? '-' },
-    { key: 'rate', label: 'Rate', width: '7%', align: 'right', render: (item) => ((item.ratePerUnit ?? item.rate) || 0).toFixed(2) },
-    { key: 'net', label: 'Net', width: '7%', align: 'right', render: (item) => { const rate = (item.ratePerUnit ?? item.rate) || 0; const gst = item.product?.gstPercentage ?? item.gstPercentage ?? item.gstRate ?? 0; return (rate * (1 + gst / 100)).toFixed(2); } },
-    { key: 'disc', label: 'Disc%', width: '5%', align: 'center', render: (item) => `${item.schemeDiscount ?? item.discountPercentage ?? 0}%` },
-    { key: 'gst', label: 'GST%', width: '4%', align: 'center', render: (item) => `${item.product?.gstPercentage ?? item.gstPercentage ?? item.gstRate ?? 0}%` },
-    { key: 'amount', label: 'Amount', width: '9%', align: 'right', render: (item) => { const qty = item.quantitySold ?? item.quantity ?? 0; const rate = (item.ratePerUnit ?? item.rate) || 0; return (item.totalAmount != null ? item.totalAmount : qty * rate).toFixed(2); } },
-  ];
-
-  const DEFAULT_INVOICE_COLUMNS = [
-    'qty', 'free', 'productName', 'hsn', 'batchNo',
-    'expiry', 'mrp', 'rate', 'net', 'disc',
-    'gst', 'amount'
-  ];
+  // Single canonical source of truth for column definitions
+  const ALL_COLUMNS = ALL_INVOICE_COLUMNS;
 
   // Clean up legacy localStorage key — DB is the single source of truth
   localStorage.removeItem('invoiceColumns');
@@ -238,7 +175,9 @@ export default function InvoiceViewPage() {
     }, 500);
   };
 
-  const activeColumns = ALL_COLUMNS.filter(c => visibleColumns.includes(c.key));
+  const activeColumns = useMemo(() => {
+    return resolveActiveColumns(visibleColumns, { enableBatchTracking });
+  }, [visibleColumns, enableBatchTracking]);
 
   // 1. Fetch Invoice
   const { data: invoiceData, isLoading: invoiceLoading, mutate: mutateInvoice, isValidating: isInvoiceValidating } = useSWR(
@@ -338,8 +277,30 @@ export default function InvoiceViewPage() {
   const isValidating = isInvoiceValidating || isCNValidating;
 
 
+  const configuredFormat = useMemo(() => {
+    return resolveDocumentPrintFormat(user?.preferences || admin?.preferences, DOCUMENT_TYPES.INVOICE);
+  }, [user?.preferences, admin?.preferences]);
+
+  const [previewFormat, setPreviewFormat] = useState(configuredFormat);
+
+  useEffect(() => {
+    setPreviewFormat(configuredFormat);
+  }, [configuredFormat]);
+
+  // Intercept Ctrl+P to trigger format-aware PrintDialog
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) {
+        e.preventDefault();
+        setShowPrintDialog(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const handlePrint = () => {
-    window.print();
+    setShowPrintDialog(true);
   };
 
   const handleMarkPrinted = async () => {
@@ -361,7 +322,7 @@ export default function InvoiceViewPage() {
   };
 
   const handleDownload = () => {
-    window.print();
+    setShowPrintDialog(true);
   };
 
   const toggleCopyMode = () => {
@@ -444,154 +405,6 @@ export default function InvoiceViewPage() {
   };
 
   const StatusIcon = statusConfig[invoice.status]?.icon || FileText;
-
-  // Reusable Invoice Copy Component
-  const InvoiceCopy = () => (
-    <div
-      className="invoice-copy bg-white flex flex-col"
-      style={{
-        width: '100%',
-        minHeight: '130mm',
-        fontSize: '12px',
-        color: '#000000',
-        padding: '4mm',
-        boxSizing: 'border-box'
-      }}
-    >
-      {/* Main content wrapper */}
-      <div className="flex flex-col flex-1">
-        {/* Header */}
-        <div className="grid grid-cols-2 gap-2 border-b border-black pb-1 mb-1" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: '1px solid black', paddingBottom: '4px', marginBottom: '4px' }}>
-          <div className="text-left">
-            <h1 className="font-bold mb-0.5" style={{ fontSize: '18px', margin: 0 }}>{admin?.firmName || invoice.distributor?.firmName || 'BHARAT ENTERPRISES'}</h1>
-            <p className="text-[11px] leading-tight" style={{ margin: '2px 0 0 0' }}>{admin?.firmAddress || invoice.distributor?.firmAddress || 'Address Line 1, City, State - PIN'}</p>
-          </div>
-          <div className="flex justify-end text-[11px] leading-tight" style={{ display: 'flex', justifyContent: 'flex-end', textAlign: 'right' }}>
-            {invoice.distributor?.paymentInformation?.enabled && (
-              <div className="text-left border-l border-r border-black px-2 mr-2" style={{ borderLeft: '1px solid black', borderRight: '1px solid black', padding: '0 8px', marginRight: '8px', textAlign: 'left' }}>
-                <p style={{ margin: '1px 0' }}>UPI: {invoice.distributor.paymentInformation.upiId}</p>
-                <p style={{ margin: '1px 0' }}>A/C: {invoice.distributor.paymentInformation.accountNumber}</p>
-                <p style={{ margin: '1px 0' }}>IFSC: {invoice.distributor.paymentInformation.ifscCode}</p>
-              </div>
-            )}
-            <div className="text-left" style={{ textAlign: 'left' }}>
-              <p style={{ margin: '1px 0' }}>Phone: {admin?.firmPhone || invoice.distributor?.firmPhone || 'XXXXXXXXXX'}</p>
-              <p style={{ margin: '1px 0' }}>DL No: {admin?.firmDL || invoice.distributor?.firmDL || user?.firmDL || 'XXXXXXXXXX'}</p>
-              <p style={{ margin: '1px 0' }}>GSTIN: {admin?.firmGSTIN || invoice.distributor?.firmGSTIN || 'XXXXXXXXXXXX'}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Buyer & Invoice Details */}
-        <div className="grid grid-cols-3 gap-2 mb-1 text-[11px]" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', marginBottom: '4px' }}>
-          <div>
-            <p className="font-bold mb-0.5">M/s {invoice.customer?.customerName}</p>
-            <p className="leading-tight">{invoice.customer?.address || 'Address not provided'}</p>
-            <p className="mt-0.5">Ph: {invoice.customer?.phone}</p>
-          </div>
-          <div className="border-l border-black pl-2" style={{ borderLeft: '1px solid black', paddingLeft: '8px' }}>
-            {invoice.customer?.gstin && <p>GSTIN: {invoice.customer.gstin}</p>}
-            {invoice.customer?.dlNo && <p>DL No: {invoice.customer.dlNo}</p>}
-          </div>
-          <div className="text-right" style={{ textAlign: 'right' }}>
-            <p className="font-bold">Invoice No: {invoice.invoiceNumber}</p>
-            <p><span className="font-bold">Date:</span> {formatDate(invoice.invoiceDate)}</p>
-            <p><span className="font-bold">Bill Type:</span> {invoice.paymentType?.toUpperCase() || 'CREDIT'}</p>
-          </div>
-        </div>
-
-        {/* Products Table */}
-        <div className="mb-1">
-          <table className="w-full border-collapse text-[9px]" style={{ border: '0.5px solid black' }}>
-            <thead>
-              <tr style={{ borderBottom: '0.5px solid black' }}>
-                {activeColumns.map((col, i) => (
-                  <th key={col.key} className={`${i < activeColumns.length - 1 ? 'border-r border-black' : ''} p-0.5 font-bold text-${col.align}`} style={{ width: col.width }}>
-                    {col.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {invoice.items?.map((item, index) => (
-                <tr key={index} style={{ borderBottom: index < invoice.items.length - 1 ? '0.5px solid #ddd' : 'none' }}>
-                  {activeColumns.map((col, i) => (
-                    <td key={col.key} className={`${i < activeColumns.length - 1 ? 'border-r border-black' : ''} p-0.5 font-bold text-${col.align}`}>
-                      {col.render(item)}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Summary and Footer */}
-      <div className="mt-auto">
-        <div className="grid grid-cols-2 gap-2 mb-1">
-          <div className="text-[11px]">
-            <p className="font-bold">Current Dues: {customerOutstanding > 0 ? formatCurrency(customerOutstanding) : '₹0.00'}</p>
-            <div className="border-t border-black mt-1 pt-0.5">
-              <p className="font-bold mb-0.5">Amount in Words:</p>
-              <p className="uppercase">{invoice.totals?.amountInWords || 'Rupees Zero Only'}</p>
-            </div>
-          </div>
-          <div className="text-[11px]">
-            <table className="w-full">
-              <tbody>
-                <tr>
-                  <td className="py-0">Taxable:</td>
-                  <td className="text-right font-semibold">₹{invoice.totals?.totalTaxable?.toFixed(2)}</td>
-                </tr>
-                {invoice.totals?.totalDiscount > 0 && (
-                  <tr>
-                    <td className="py-0">Discount:</td>
-                    <td className="text-right" style={{ color: '#dc2626' }}>-₹{invoice.totals?.totalDiscount?.toFixed(2)}</td>
-                  </tr>
-                )}
-                <tr>
-                  <td className="py-0">CGST:</td>
-                  <td className="text-right">₹{invoice.totals?.totalCGST?.toFixed(2)}</td>
-                </tr>
-                <tr>
-                  <td className="py-0">SGST:</td>
-                  <td className="text-right">₹{invoice.totals?.totalSGST?.toFixed(2)}</td>
-                </tr>
-                <tr>
-                  <td className="py-0">Round Off:</td>
-                  <td className="text-right">
-                    {(() => {
-                      const net = invoice.totals?.netTotal || 0;
-                      const rounded = Math.round(net);
-                      const diff = rounded - net;
-                      return diff >= 0 ? `+₹${diff.toFixed(2)}` : `-₹${Math.abs(diff).toFixed(2)}`;
-                    })()}
-                  </td>
-                </tr>
-                <tr className="border-t border-black">
-                  <td className="py-0.5 font-bold">NET:</td>
-                  <td className="text-right font-bold text-[13px]">₹{Math.round(invoice.totals?.netTotal || 0)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="border-t border-black pt-1 text-[11px]">
-          <div className="flex justify-between items-end">
-            <div>
-              <p>E & O E</p>
-            </div>
-            <div className="text-center">
-              <div className="h-6"></div>
-              <p className="border-t border-black pt-0.5">Authorized Signatory</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 
   return (
     <>
@@ -721,8 +534,14 @@ export default function InvoiceViewPage() {
                 >
                   <SlidersHorizontal className="w-3.5 h-3.5 pointer-events-none text-slate-400" />
                   <span className="pointer-events-none">Columns</span>
-                  <span className="pointer-events-none px-1.5 py-0.2 rounded-full text-[10px] font-semibold bg-blue-500/15 text-blue-400 border border-blue-500/30">
-                    {visibleColumns.length}/{ALL_COLUMNS.length}
+                  <span className={`pointer-events-none px-1.5 py-0.2 rounded-full text-[10px] font-semibold border ${
+                    (previewFormat === 'THERMAL_80' || previewFormat === 'THERMAL_58')
+                      ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                      : 'bg-blue-500/15 text-blue-400 border-blue-500/30'
+                  }`}>
+                    {(previewFormat === 'THERMAL_80' || previewFormat === 'THERMAL_58')
+                      ? 'Sheet Only'
+                      : `${visibleColumns.length}/${ALL_COLUMNS.length}`}
                   </span>
                   <ChevronDown className={`w-3.5 h-3.5 pointer-events-none text-slate-400 transition-transform duration-150 ${showColumnSettings ? 'rotate-180' : ''}`} />
                 </button>
@@ -742,6 +561,16 @@ export default function InvoiceViewPage() {
                         <span className="text-xs font-semibold text-slate-200">Printed Columns</span>
                         <span className="text-[11px] text-slate-400">{visibleColumns.length} visible</span>
                       </div>
+
+                      {(previewFormat === 'THERMAL_80' || previewFormat === 'THERMAL_58') && (
+                        <div className="mb-2.5 p-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-300 flex items-start gap-1.5 leading-snug">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-400" />
+                          <span>
+                            Thermal roll printers use a compact POS receipt layout. Column customization applies to A4 / A5 sheet formats.
+                          </span>
+                        </div>
+                      )}
+
                       <p className="text-[11px] text-slate-400 mb-2.5">
                         Toggle which columns appear on the printed document:
                       </p>
@@ -980,33 +809,107 @@ export default function InvoiceViewPage() {
           </motion.div>
         )}
 
-        {/* Invoice Print Area */}
-        <div className="w-full overflow-x-auto pb-4 flex justify-start sm:justify-center">
-          <motion.div
-            ref={printRef}
-            variants={cardVariants}
-            className="invoice-print bg-white border-2 border-slate-300 shadow-lg shrink-0 my-0 sm:mx-auto"
-            style={{
-              width: '190mm',
-              fontSize: '10px',
-              color: '#000000',
-              margin: '0 auto',
-              padding: '2mm'
-            }}
-          >
-            <InvoiceCopy />
+        {/* Invoice Format-Aware Document Preview Area */}
+        <div className="w-full space-y-3 no-print">
+          {/* Format Selection Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-slate-900/80 border border-slate-800 rounded-2xl shadow-lg">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400">
+                <Printer className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-xs sm:text-sm font-semibold text-slate-200">
+                  Document Preview ({previewFormat === 'THERMAL_80' ? 'Thermal 80mm Roll' : previewFormat === 'THERMAL_58' ? 'Thermal 58mm Roll' : 'A4 / A5 Sheet'})
+                </h3>
+                <p className="text-[11px] text-slate-400">
+                  Preview adapts to selected paper format. Click buttons to inspect other formats.
+                </p>
+              </div>
+            </div>
 
-            {!isSingleCopy && (
-              <>
-                <div className="flex items-center my-2" style={{ borderTop: '1px dashed #000' }}>
-                  <span className="text-[9px] text-gray-600 mx-auto bg-white px-2" style={{ marginTop: '-10px' }}>
-                    Cut Here
-                  </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Layout mode toggle when A4 format is selected */}
+              {previewFormat === 'A4' && (
+                <div className="flex items-center gap-1 bg-slate-800/80 p-0.5 rounded-lg border border-slate-700/60 mr-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!isSingleCopy) toggleCopyMode();
+                    }}
+                    className={`text-[11px] px-2.5 py-1 rounded-md font-medium transition-all ${
+                      isSingleCopy
+                        ? 'bg-blue-600 text-white shadow-xs font-semibold'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    1x Full Page (A4)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isSingleCopy) toggleCopyMode();
+                    }}
+                    className={`text-[11px] px-2.5 py-1 rounded-md font-medium transition-all ${
+                      !isSingleCopy
+                        ? 'bg-blue-600 text-white shadow-xs font-semibold'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    2x Half Sheet (A5 Cut)
+                  </button>
                 </div>
-                <InvoiceCopy />
-              </>
-            )}
-          </motion.div>
+              )}
+
+              {[
+                { id: 'A4', label: 'A4 / A5' },
+                { id: 'THERMAL_80', label: 'Thermal 80mm' },
+                { id: 'THERMAL_58', label: 'Thermal 58mm' }
+              ].map((fmt) => (
+                <button
+                  key={fmt.id}
+                  type="button"
+                  onClick={() => setPreviewFormat(fmt.id)}
+                  className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-all ${
+                    previewFormat === fmt.id
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'bg-slate-800/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                  }`}
+                >
+                  {fmt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Render Active Document Preview */}
+          <div className="w-full overflow-x-auto pb-4 flex justify-start sm:justify-center">
+            <motion.div
+              ref={printRef}
+              variants={cardVariants}
+              className={`bg-white border-2 border-slate-300 shadow-xl shrink-0 my-0 sm:mx-auto ${
+                previewFormat === 'THERMAL_80'
+                  ? 'max-w-[74mm] sm:max-w-[320px] p-2'
+                  : previewFormat === 'THERMAL_58'
+                  ? 'max-w-[52mm] sm:max-w-[260px] p-1.5'
+                  : 'max-w-[190mm] p-2'
+              }`}
+              style={{
+                width: previewFormat === 'THERMAL_80' ? '74mm' : previewFormat === 'THERMAL_58' ? '52mm' : '190mm',
+                color: '#000000',
+                margin: '0 auto'
+              }}
+            >
+              <InvoiceDocument
+                invoice={invoice}
+                format={previewFormat}
+                isSingleCopy={isSingleCopy}
+                admin={admin}
+                customerOutstanding={customerOutstanding}
+                columns={activeColumns}
+                enableBatchTracking={enableBatchTracking}
+              />
+            </motion.div>
+          </div>
         </div>
       </motion.div>
       <RecordPaymentModal
@@ -1018,6 +921,26 @@ export default function InvoiceViewPage() {
         manualEntries={[]}
         preSelectedInvoice={invoiceForPayment}
         creditNotes={creditNotes}
+      />
+      <PrintDialog
+        isOpen={showPrintDialog}
+        onClose={() => setShowPrintDialog(false)}
+        documentType={DOCUMENT_TYPES.INVOICE}
+        title={`Print Tax Invoice ${invoice.invoiceNumber || ''}`}
+        initialFormat={previewFormat}
+        isSingleCopy={isSingleCopy}
+        onToggleCopyMode={toggleCopyMode}
+        renderDocument={(activeFormat, singleCopy) => (
+          <InvoiceDocument
+            invoice={invoice}
+            format={activeFormat}
+            isSingleCopy={singleCopy}
+            admin={admin}
+            customerOutstanding={customerOutstanding}
+            columns={activeColumns}
+            enableBatchTracking={enableBatchTracking}
+          />
+        )}
       />
     </>
   );

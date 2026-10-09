@@ -36,6 +36,51 @@ import { useToast } from '../../contexts/ToastContext';
 import { authService } from '../../services/auth/authService';
 import { useMotionConfig } from '../../hooks';
 import SettingsPageSkeleton from './SettingsPageSkeleton';
+import { 
+  PRINT_FORMATS, 
+  DOCUMENT_TYPES, 
+  DOCUMENT_CAPABILITY_MATRIX, 
+  FORMAT_METADATA 
+} from '../../features/documentPrinting/formats/documentPrintFormats';
+
+const DOCUMENT_CONFIG_LIST = [
+  {
+    id: DOCUMENT_TYPES.INVOICE,
+    label: 'Sales Invoices',
+    desc: 'Tax invoices, bills, and multi-copy prints',
+    icon: FileText
+  },
+  {
+    id: DOCUMENT_TYPES.CREDIT_NOTE,
+    label: 'Credit Notes',
+    desc: 'Sales returns & credit adjustments',
+    icon: FileText
+  },
+  {
+    id: DOCUMENT_TYPES.PAYMENT_RECEIPT,
+    label: 'Payment Receipts',
+    desc: 'Customer payments & collection vouchers',
+    icon: CreditCard
+  },
+  {
+    id: DOCUMENT_TYPES.CUSTOMER_LEDGER,
+    label: 'Customer Ledger',
+    desc: 'Customer transaction statement & account ledger',
+    icon: Building2
+  },
+  {
+    id: DOCUMENT_TYPES.SUPPLIER_LEDGER,
+    label: 'Supplier Ledger',
+    desc: 'Supplier purchase & payment statement',
+    icon: Building2
+  },
+  {
+    id: DOCUMENT_TYPES.DAILY_CLOSEOUT,
+    label: 'Daily Closeout',
+    desc: 'Daily register audit & collection summary',
+    icon: Calculator
+  }
+];
 
 export default function SettingsPage() {
   const { user, userRole, isAdmin, admin, updateAdmin, updateUserPreferences } = useAuth();
@@ -83,7 +128,15 @@ export default function SettingsPage() {
     showCalculator: true,
     enableBatchTracking: false,
     allowPublicInvoicePrint: false,
-    mobileCardDensity: typeof window !== 'undefined' ? (localStorage.getItem('bharat_mobile_card_density') || 'compact') : 'compact'
+    mobileCardDensity: typeof window !== 'undefined' ? (localStorage.getItem('bharat_mobile_card_density') || 'compact') : 'compact',
+    documentPrintFormats: {
+      invoice: 'A4',
+      creditNote: 'A4',
+      paymentReceipt: 'A4',
+      customerLedger: 'A4',
+      supplierLedger: 'A4',
+      dailyCloseout: 'A4'
+    }
   });
   const [preferencesLoading, setPreferencesLoading] = useState(false);
 
@@ -122,7 +175,15 @@ export default function SettingsPage() {
         showCalculator: currentPrefs.showCalculator !== false,
         enableBatchTracking: currentPrefs.enableBatchTracking === true,
         allowPublicInvoicePrint: currentPrefs.allowPublicInvoicePrint === true,
-        mobileCardDensity: currentPrefs.mobileCardDensity || 'compact'
+        mobileCardDensity: currentPrefs.mobileCardDensity || 'compact',
+        documentPrintFormats: {
+          invoice: currentPrefs.documentPrintFormats?.invoice || 'A4',
+          creditNote: currentPrefs.documentPrintFormats?.creditNote || 'A4',
+          paymentReceipt: currentPrefs.documentPrintFormats?.paymentReceipt || 'A4',
+          customerLedger: currentPrefs.documentPrintFormats?.customerLedger || 'A4',
+          supplierLedger: currentPrefs.documentPrintFormats?.supplierLedger || 'A4',
+          dailyCloseout: currentPrefs.documentPrintFormats?.dailyCloseout || 'A4'
+        }
       });
     }
   }, [user, admin, isUserAdmin, activeThemeMode]);
@@ -266,6 +327,45 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSelectDocumentPrintFormat = async (docType, format) => {
+    if (!isUserAdmin) return;
+    const currentDocFormat = preferences.documentPrintFormats?.[docType] || 'A4';
+    if (currentDocFormat === format) return;
+
+    const previousFormats = { ...preferences.documentPrintFormats };
+    const updatedFormats = {
+      ...preferences.documentPrintFormats,
+      [docType]: format
+    };
+
+    setPreferences(prev => ({
+      ...prev,
+      documentPrintFormats: updatedFormats
+    }));
+    updateUserPreferences({ documentPrintFormats: updatedFormats });
+    setPreferencesLoading(true);
+
+    try {
+      const result = await authService.updatePreferences({
+        documentPrintFormats: { [docType]: format }
+      });
+      if (result.success) {
+        showSuccess(`Default print format for ${DOCUMENT_CONFIG_LIST.find(d => d.id === docType)?.label || docType} set to ${format}`);
+      } else {
+        throw new Error(result.message || 'Failed to update document print format');
+      }
+    } catch (err) {
+      setPreferences(prev => ({
+        ...prev,
+        documentPrintFormats: previousFormats
+      }));
+      updateUserPreferences({ documentPrintFormats: previousFormats });
+      showError(err.message || 'Failed to update print format preference');
+    } finally {
+      setPreferencesLoading(false);
+    }
+  };
+
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
 
@@ -305,6 +405,7 @@ export default function SettingsPage() {
   const tabs = [
     ...(isUserAdmin ? [{ id: 'general', label: 'General', icon: Building2, desc: 'Business details' }] : []),
     ...(isUserAdmin ? [{ id: 'subscription', label: 'Subscription', icon: Crown, desc: 'Plan & Billing' }] : []),
+    ...(isUserAdmin ? [{ id: 'printing', label: 'Printing', icon: Printer, desc: 'Document formats & print styles' }] : []),
     { id: 'preferences', label: 'Preferences', icon: Palette, desc: 'App customization' },
     { id: 'security', label: 'Security', icon: Shield, desc: 'Password & auth' }
   ];
@@ -565,30 +666,30 @@ export default function SettingsPage() {
 
   const renderPreferencesTab = () => (
     <div className="space-y-6">
-      <div className="mb-6">
-        <h2 className="text-xl font-bold text-slate-100 mb-1">User Preferences</h2>
-        <p className="text-slate-400 text-sm">Customize your dashboard and application experience.</p>
+      <div className="mb-4 sm:mb-6">
+        <h2 className="text-lg sm:text-xl font-bold text-slate-100 mb-1">User Preferences</h2>
+        <p className="text-slate-400 text-xs sm:text-sm">Customize your dashboard appearance and application experience.</p>
       </div>
 
-      <div className="bg-slate-900/60 backdrop-blur-2xl border border-white/5 rounded-2xl p-6 lg:p-8 shadow-2xl relative overflow-hidden">
+      <div className="bg-slate-900/60 backdrop-blur-2xl border border-white/5 rounded-2xl p-4 sm:p-6 lg:p-8 shadow-2xl relative overflow-hidden">
         {/* Decorative ambient gradient */}
         <div className="absolute top-0 left-0 -ml-20 -mt-20 w-64 h-64 bg-fuchsia-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="space-y-6 relative z-10">
+        <div className="space-y-4 sm:space-y-6 relative z-10">
           
           {/* Appearance / Theme Mode Selector */}
-          <div className="p-5 bg-slate-950/40 rounded-2xl border border-white/5 space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-amber-500/10 rounded-xl shadow-[0_0_15px_rgba(245,158,11,0.1)]">
-                <Palette className="w-6 h-6 text-amber-400" />
+          <div className="p-3.5 sm:p-5 bg-slate-950/40 rounded-xl sm:rounded-2xl border border-white/5 space-y-3 sm:space-y-4">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="p-2.5 sm:p-3 bg-amber-500/10 rounded-xl shadow-[0_0_15px_rgba(245,158,11,0.1)] shrink-0">
+                <Palette className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400" />
               </div>
               <div>
-                <h3 className="font-semibold text-slate-100 text-base">Interface Appearance</h3>
-                <p className="text-sm text-slate-400 mt-0.5">Select your preferred visual theme across devices and sessions.</p>
+                <h3 className="font-semibold text-slate-100 text-sm sm:text-base">Interface Appearance</h3>
+                <p className="text-xs sm:text-sm text-slate-400 mt-0.5">Select your preferred visual theme across devices and sessions.</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 pt-1">
               {[
                 { id: 'dark', label: 'Dark Mode', desc: 'Sleek slate contrast', icon: Moon, activeBorder: 'border-blue-500/80 bg-blue-500/10 text-blue-400' },
                 { id: 'light', label: 'Light Mode', desc: 'Crisp daylight canvas', icon: Sun, activeBorder: 'border-amber-500/80 bg-amber-500/10 text-amber-400' },
@@ -602,21 +703,21 @@ export default function SettingsPage() {
                     type="button"
                     onClick={() => handleSelectThemeMode(item.id)}
                     disabled={preferencesLoading}
-                    className={`flex items-center gap-3.5 p-3.5 rounded-xl border text-left transition-all duration-200 cursor-pointer ${
+                    className={`flex items-center gap-3 p-2.5 sm:p-3.5 rounded-xl border text-left transition-all duration-200 cursor-pointer ${
                       isSelected
                         ? `${item.activeBorder} shadow-sm`
                         : 'border-white/5 bg-slate-900/40 text-slate-400 hover:text-slate-200 hover:border-white/10 hover:bg-slate-900/80'
                     }`}
                   >
-                    <div className={`p-2 rounded-lg ${isSelected ? 'bg-white/10' : 'bg-slate-800'}`}>
-                      <IconComponent className="w-5 h-5" />
+                    <div className={`p-2 rounded-lg shrink-0 ${isSelected ? 'bg-white/10' : 'bg-slate-800'}`}>
+                      <IconComponent className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
                     <div>
-                      <div className="text-sm font-semibold text-slate-100 flex items-center gap-1.5">
+                      <div className="text-xs sm:text-sm font-semibold text-slate-100 flex items-center gap-1.5">
                         {item.label}
                         {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />}
                       </div>
-                      <div className="text-xs text-slate-400">{item.desc}</div>
+                      <div className="text-[11px] sm:text-xs text-slate-400">{item.desc}</div>
                     </div>
                   </button>
                 );
@@ -625,30 +726,30 @@ export default function SettingsPage() {
           </div>
 
           {/* Mobile Card Density Selector */}
-          <div className="p-5 bg-slate-950/40 rounded-2xl border border-white/5 space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-emerald-500/10 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.1)]">
-                <Smartphone className="w-6 h-6 text-emerald-400" />
+          <div className="p-3.5 sm:p-5 bg-slate-950/40 rounded-xl sm:rounded-2xl border border-white/5 space-y-3 sm:space-y-4">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="p-2.5 sm:p-3 bg-emerald-500/10 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.1)] shrink-0">
+                <Smartphone className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-400" />
               </div>
               <div>
-                <h3 className="font-semibold text-slate-100 text-base">Mobile Card View</h3>
-                <p className="text-sm text-slate-400 mt-0.5">Choose how bills and transactions appear on your mobile screen.</p>
+                <h3 className="font-semibold text-slate-100 text-sm sm:text-base">Mobile Card View</h3>
+                <p className="text-xs sm:text-sm text-slate-400 mt-0.5">Choose how bills and transactions appear on your mobile screen.</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 pt-1">
               {[
                 { 
                   id: 'compact', 
                   label: 'Compact (Recommended)', 
-                  desc: 'Clean summary cards. Tap the arrow to see more details.', 
+                  desc: 'Clean summary cards. Tap arrow to expand.', 
                   icon: Minimize2, 
                   activeBorder: 'border-emerald-500/80 bg-emerald-500/10 text-emerald-400' 
                 },
                 { 
                   id: 'expanded', 
                   label: 'Expanded', 
-                  desc: 'Shows all information on every card at once.', 
+                  desc: 'Shows all information on cards at once.', 
                   icon: Maximize2, 
                   activeBorder: 'border-blue-500/80 bg-blue-500/10 text-blue-400' 
                 }
@@ -661,21 +762,21 @@ export default function SettingsPage() {
                     type="button"
                     onClick={() => handleSelectMobileCardDensity(item.id)}
                     disabled={preferencesLoading}
-                    className={`flex items-center gap-3.5 p-3.5 rounded-xl border text-left transition-all duration-200 cursor-pointer ${
+                    className={`flex items-center gap-3 p-2.5 sm:p-3.5 rounded-xl border text-left transition-all duration-200 cursor-pointer ${
                       isSelected
                         ? `${item.activeBorder} shadow-sm`
                         : 'border-white/5 bg-slate-900/40 text-slate-400 hover:text-slate-200 hover:border-white/10 hover:bg-slate-900/80'
                     }`}
                   >
-                    <div className={`p-2 rounded-lg ${isSelected ? 'bg-white/10' : 'bg-slate-800'}`}>
-                      <IconComponent className="w-5 h-5" />
+                    <div className={`p-2 rounded-lg shrink-0 ${isSelected ? 'bg-white/10' : 'bg-slate-800'}`}>
+                      <IconComponent className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
                     <div>
-                      <div className="text-sm font-semibold text-slate-100 flex items-center gap-1.5">
+                      <div className="text-xs sm:text-sm font-semibold text-slate-100 flex items-center gap-1.5">
                         {item.label}
                         {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
                       </div>
-                      <div className="text-xs text-slate-400">{item.desc}</div>
+                      <div className="text-[11px] sm:text-xs text-slate-400">{item.desc}</div>
                     </div>
                   </button>
                 );
@@ -684,14 +785,14 @@ export default function SettingsPage() {
           </div>
 
           {/* Custom Pill Toggle for Calculator */}
-          <div className="flex items-start sm:items-center justify-between p-5 bg-slate-950/40 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-fuchsia-500/10 rounded-xl shadow-[0_0_15px_rgba(217,70,239,0.1)]">
-                <Calculator className="w-6 h-6 text-fuchsia-400" />
+          <div className="flex items-start sm:items-center justify-between p-3.5 sm:p-5 bg-slate-950/40 rounded-xl sm:rounded-2xl border border-white/5 hover:border-white/10 transition-colors gap-3 sm:gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="p-2.5 sm:p-3 bg-fuchsia-500/10 rounded-xl shadow-[0_0_15px_rgba(217,70,239,0.1)] shrink-0">
+                <Calculator className="w-5 h-5 sm:w-6 sm:h-6 text-fuchsia-400" />
               </div>
               <div>
-                <h3 className="font-semibold text-slate-100 text-base">Floating Calculator</h3>
-                <p className="text-sm text-slate-400 mt-0.5 max-w-sm">Keep a handy calculator accessible at all times on the bottom right of your screen.</p>
+                <h3 className="font-semibold text-slate-100 text-sm sm:text-base">Floating Calculator</h3>
+                <p className="text-xs sm:text-sm text-slate-400 mt-0.5 max-w-sm">Keep a handy calculator accessible at all times on the bottom right of your screen.</p>
               </div>
             </div>
             
@@ -712,61 +813,22 @@ export default function SettingsPage() {
             </button>
           </div>
 
-          {/* Custom Pill Toggle for Public Invoice Printing */}
-          <div className="flex items-start sm:items-center justify-between p-5 bg-slate-950/40 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-emerald-500/10 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.1)]">
-                <Printer className="w-6 h-6 text-emerald-400" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-semibold text-slate-100 text-base">Public Invoice Printing</h3>
-                  {!isUserAdmin && (
-                    <span className="px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase bg-slate-800 text-slate-400 border border-slate-700/60 rounded-md">
-                      Admin Only
-                    </span>
-                  )}
-                </div>
-                <p className="text-sm text-slate-400 mt-0.5 max-w-sm">Allow customers viewing the public invoice link to print the invoice.</p>
-              </div>
-            </div>
-            
-            <button 
-              onClick={handleTogglePublicPrint}
-              disabled={preferencesLoading || !isUserAdmin}
-              title={!isUserAdmin ? "Only administrators can configure public invoice printing" : "Toggle customer print button on public invoice"}
-              className={`relative inline-flex h-7 w-14 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-opacity-75 disabled:opacity-50 ${
-                !isUserAdmin ? 'disabled:cursor-not-allowed' : 'disabled:cursor-wait'
-              } ${
-                preferences.allowPublicInvoicePrint ? 'bg-emerald-500' : 'bg-slate-700'
-              }`}
-            >
-              <span className="sr-only">Toggle Public Invoice Printing</span>
-              <span
-                aria-hidden="true"
-                className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg ring-0 transition duration-300 ease-in-out ${
-                  preferences.allowPublicInvoicePrint ? 'translate-x-7' : 'translate-x-0'
-                }`}
-              />
-            </button>
-          </div>
-
           {/* Custom Pill Toggle for Batch & FIFO Tracking */}
-          <div className="flex items-start sm:items-center justify-between p-5 bg-slate-950/40 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-blue-500/10 rounded-xl shadow-[0_0_15px_rgba(59,130,246,0.1)]">
-                <FileText className="w-6 h-6 text-blue-400" />
+          <div className="flex items-start sm:items-center justify-between p-3.5 sm:p-5 bg-slate-950/40 rounded-xl sm:rounded-2xl border border-white/5 hover:border-white/10 transition-colors gap-3 sm:gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="p-2.5 sm:p-3 bg-blue-500/10 rounded-xl shadow-[0_0_15px_rgba(59,130,246,0.1)] shrink-0">
+                <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="font-semibold text-slate-100 text-base">Enable Batch & FIFO Tracking</h3>
+                  <h3 className="font-semibold text-slate-100 text-sm sm:text-base">Enable Batch & FIFO Tracking</h3>
                   {!isUserAdmin && (
                     <span className="px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase bg-slate-800 text-slate-400 border border-slate-700/60 rounded-md">
                       Admin Only
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-slate-400 mt-0.5 max-w-sm">Use comprehensive batch management, expiry tracking, and FIFO or Manual allocation for inventory.</p>
+                <p className="text-xs sm:text-sm text-slate-400 mt-0.5 max-w-sm">Use comprehensive batch management, expiry tracking, and FIFO allocation for inventory.</p>
               </div>
             </div>
             
@@ -791,17 +853,164 @@ export default function SettingsPage() {
           </div>
 
           {/* Placeholder for future preferences */}
-          <div className="flex items-start sm:items-center justify-between p-5 bg-slate-950/40 rounded-2xl border border-white/5 opacity-50 cursor-not-allowed">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-slate-800 rounded-xl">
-                <Bell className="w-6 h-6 text-slate-400" />
+          <div className="flex items-start sm:items-center justify-between p-3.5 sm:p-5 bg-slate-950/40 rounded-xl sm:rounded-2xl border border-white/5 opacity-50 cursor-not-allowed gap-3 sm:gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="p-2.5 sm:p-3 bg-slate-800 rounded-xl shrink-0">
+                <Bell className="w-5 h-5 sm:w-6 sm:h-6 text-slate-400" />
               </div>
               <div>
-                <h3 className="font-semibold text-slate-100 text-base">Email Notifications</h3>
-                <p className="text-sm text-slate-400 mt-0.5 max-w-sm">Receive daily summaries and alerts. (Coming Soon)</p>
+                <h3 className="font-semibold text-slate-100 text-sm sm:text-base">Email Notifications</h3>
+                <p className="text-xs sm:text-sm text-slate-400 mt-0.5 max-w-sm">Receive daily transaction summaries and stock alerts. (Coming Soon)</p>
               </div>
             </div>
-            <div className="h-7 w-14 rounded-full bg-slate-800" />
+            <div className="h-7 w-14 rounded-full bg-slate-800 shrink-0" />
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderPrintingTab = () => (
+    <div className="space-y-6">
+      <div className="mb-4 sm:mb-6">
+        <h2 className="text-lg sm:text-xl font-bold text-slate-100 mb-1">Printing & Document Formats</h2>
+        <p className="text-slate-400 text-xs sm:text-sm">Configure default paper dimensions, receipt styles, and public customer printing.</p>
+      </div>
+
+      <div className="bg-slate-900/60 backdrop-blur-2xl border border-white/5 rounded-2xl p-4 sm:p-6 lg:p-8 shadow-2xl relative overflow-hidden">
+        {/* Ambient gradient */}
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="space-y-4 sm:space-y-6 relative z-10">
+
+          {/* Default Document Print Formats */}
+          <div className="p-3.5 sm:p-5 bg-slate-950/40 rounded-xl sm:rounded-2xl border border-white/5 space-y-3 sm:space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="p-2.5 sm:p-3 bg-sky-500/10 rounded-xl shadow-[0_0_15px_rgba(14,165,233,0.1)] shrink-0">
+                  <Printer className="w-5 h-5 sm:w-6 sm:h-6 text-sky-400" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-slate-100 text-sm sm:text-base">Default Document Print Formats</h3>
+                    {!isUserAdmin && (
+                      <span className="px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase bg-slate-800 text-slate-400 border border-slate-700/60 rounded-md">
+                        Admin Only
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
+                    Configure default paper sizes and print styles for each document type across your firm.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+              {DOCUMENT_CONFIG_LIST.map((doc) => {
+                const currentFormat = preferences.documentPrintFormats?.[doc.id] || 'A4';
+                const allowedFormats = DOCUMENT_CAPABILITY_MATRIX[doc.id] || ['A4'];
+                const DocIcon = doc.icon;
+
+                return (
+                  <div
+                    key={doc.id}
+                    className="p-3 sm:p-3.5 bg-slate-900/40 rounded-xl border border-white/5 flex flex-col justify-between gap-2.5 sm:gap-3"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="p-1.5 rounded-lg bg-slate-800/80 text-slate-300 shrink-0">
+                          <DocIcon className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-xs sm:text-sm font-semibold text-slate-200 block truncate">{doc.label}</span>
+                          <span className="text-[11px] sm:text-xs text-slate-400 line-clamp-1">{doc.desc}</span>
+                        </div>
+                      </div>
+                      <span className="text-[10px] sm:text-[11px] font-medium px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700/50 shrink-0">
+                        {FORMAT_METADATA[currentFormat]?.label || currentFormat}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5 pt-1 border-t border-white/5">
+                      {allowedFormats.map((fmtKey) => {
+                        const meta = FORMAT_METADATA[fmtKey];
+                        const isSelected = currentFormat === fmtKey || (fmtKey === 'A4' && currentFormat === 'A5');
+                        return (
+                          <button
+                            key={fmtKey}
+                            type="button"
+                            disabled={!isUserAdmin || preferencesLoading}
+                            onClick={() => handleSelectDocumentPrintFormat(doc.id, fmtKey)}
+                            className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-all ${
+                              isSelected
+                                ? 'bg-sky-500/20 text-sky-300 border border-sky-500/50 shadow-xs'
+                                : 'bg-slate-800/50 text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-transparent'
+                            } ${!isUserAdmin ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+                          >
+                            {meta?.label || fmtKey}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Public Customer Invoice Printing */}
+          <div className="flex items-start sm:items-center justify-between p-3.5 sm:p-5 bg-slate-950/40 rounded-xl sm:rounded-2xl border border-white/5 hover:border-white/10 transition-colors gap-3 sm:gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="p-2.5 sm:p-3 bg-emerald-500/10 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.1)] shrink-0">
+                <Printer className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-400" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold text-slate-100 text-sm sm:text-base">Public Customer Invoice Printing</h3>
+                  {!isUserAdmin && (
+                    <span className="px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase bg-slate-800 text-slate-400 border border-slate-700/60 rounded-md">
+                      Admin Only
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs sm:text-sm text-slate-400 mt-0.5 max-w-sm">Allow customers viewing the shared public link to print the invoice directly.</p>
+              </div>
+            </div>
+            
+            <button 
+              onClick={handleTogglePublicPrint}
+              disabled={preferencesLoading || !isUserAdmin}
+              title={!isUserAdmin ? "Only administrators can configure public invoice printing" : "Toggle customer print button on public invoice"}
+              className={`relative inline-flex h-7 w-14 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-opacity-75 disabled:opacity-50 ${
+                !isUserAdmin ? 'disabled:cursor-not-allowed' : 'disabled:cursor-wait'
+              } ${
+                preferences.allowPublicInvoicePrint ? 'bg-emerald-500' : 'bg-slate-700'
+              }`}
+            >
+              <span className="sr-only">Toggle Public Invoice Printing</span>
+              <span
+                aria-hidden="true"
+                className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg ring-0 transition duration-300 ease-in-out ${
+                  preferences.allowPublicInvoicePrint ? 'translate-x-7' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Thermal Printer Hardware Guidance Notice */}
+          <div className="p-3.5 sm:p-5 bg-sky-950/20 border border-sky-800/40 rounded-xl sm:rounded-2xl space-y-2">
+            <div className="flex items-center gap-2 text-sky-400 font-semibold text-xs sm:text-sm">
+              <Printer className="w-4 h-4 shrink-0" />
+              <span>Recommended Thermal Printer Configuration</span>
+            </div>
+            <ul className="text-[11px] sm:text-xs text-slate-300 space-y-1 list-disc list-inside">
+              <li>In the browser print dialog (<span className="font-mono text-sky-300">Ctrl + P</span>), set <strong>Margins</strong> to <strong>None</strong> or <strong>Minimum</strong>.</li>
+              <li>Set <strong>Scale</strong> to <strong>100%</strong> (Default) for sharp receipts without font blur.</li>
+              <li>Select the Paper Size matching your roll: <strong>80mm (Receipt)</strong> or <strong>58mm</strong>.</li>
+              <li>Uncheck <strong>Headers and Footers</strong> to remove unwanted URL and timestamp stamps.</li>
+            </ul>
           </div>
 
         </div>
@@ -995,15 +1204,37 @@ export default function SettingsPage() {
   return (
     <div className="max-w-[1400px] mx-auto min-h-[calc(100vh-8rem)] flex flex-col">
       {/* Page Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold text-slate-100 tracking-tight">Settings</h1>
-        <p className="text-slate-400 mt-2">Manage your account, preferences, and security settings.</p>
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-100 tracking-tight">Settings</h1>
+        <p className="text-slate-400 text-xs sm:text-sm mt-1 sm:mt-2">Manage your account, preferences, and printing configuration.</p>
+      </div>
+
+      {/* Mobile Horizontal Tabs Pill Bar */}
+      <div className="lg:hidden flex items-center gap-1.5 p-1.5 bg-slate-900/80 border border-slate-800 rounded-xl overflow-x-auto no-scrollbar mb-6">
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.id;
+          const TabIcon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap shrink-0 ${
+                isActive
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+              }`}
+            >
+              <TabIcon className="w-3.5 h-3.5" />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8 flex-1">
         
-        {/* Sidebar Navigation */}
-        <div className="lg:w-72 flex-shrink-0">
+        {/* Sidebar Navigation (Desktop) */}
+        <div className="hidden lg:block lg:w-72 flex-shrink-0">
           <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-2xl p-3 shadow-xl sticky top-24">
             <nav className="flex flex-col gap-1">
               {tabs.map((tab) => {
@@ -1051,6 +1282,7 @@ export default function SettingsPage() {
         <div className="flex-1 min-w-0">
           {activeTab === 'general' && renderGeneralTab()}
           {activeTab === 'subscription' && renderSubscriptionTab()}
+          {activeTab === 'printing' && renderPrintingTab()}
           {activeTab === 'preferences' && renderPreferencesTab()}
           {activeTab === 'security' && renderSecurityTab()}
         </div>

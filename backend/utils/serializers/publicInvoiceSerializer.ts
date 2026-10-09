@@ -279,6 +279,7 @@ export function adaptPublicDTOToPDFInvoice(publicData: IPublicInvoiceDTO): {
       quantitySold: item.quantity,
       freeQuantity: item.freeQuantity,
       ratePerUnit: item.rate,
+      netRate: item.netRate,
       mrp: item.mrp,
       schemeDiscount: item.discountPercentage,
       taxableAmount: item.taxableAmount,

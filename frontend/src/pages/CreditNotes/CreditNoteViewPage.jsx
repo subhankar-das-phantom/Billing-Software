@@ -19,6 +19,9 @@ import { useToast } from '../../contexts/ToastContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSWR, useFirstVisit } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
+import PrintDialog from '../../features/documentPrinting/components/PrintDialog';
+import CreditNoteDocument from '../../features/documentPrinting/renderers/CreditNoteDocument';
+import { resolveDocumentPrintFormat, DOCUMENT_TYPES } from '../../features/documentPrinting/formats/documentPrintFormats';
 
 const pageVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -51,6 +54,30 @@ export default function CreditNoteViewPage() {
   );
 
   const creditNote = creditNoteData?.creditNote || creditNoteData;
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
+
+  const configuredFormat = resolveDocumentPrintFormat(
+    user?.preferences || admin?.preferences,
+    DOCUMENT_TYPES.CREDIT_NOTE
+  );
+
+  const [previewFormat, setPreviewFormat] = useState(configuredFormat);
+
+  useEffect(() => {
+    setPreviewFormat(configuredFormat);
+  }, [configuredFormat]);
+
+  // Intercept Ctrl+P to trigger format-aware PrintDialog
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) {
+        e.preventDefault();
+        setShowPrintDialog(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   useEffect(() => {
     if (creditNote) {
@@ -60,7 +87,7 @@ export default function CreditNoteViewPage() {
     }
   }, [creditNote]);
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => setShowPrintDialog(true);
 
   if (loading) return <CreditNoteViewPageSkeleton />;
   if (!creditNote) {
@@ -79,142 +106,6 @@ export default function CreditNoteViewPage() {
     );
   }
 
-  // Reusable Credit Note Print Copy
-  const CreditNoteCopy = () => (
-    <div
-      className="invoice-copy bg-white flex flex-col"
-      style={{
-        width: '100%',
-        minHeight: '100mm',
-        fontSize: '10px',
-        color: '#000000',
-        padding: '4mm',
-        boxSizing: 'border-box'
-      }}
-    >
-      <div className="flex flex-col flex-1">
-        {/* Header */}
-        <div className="border-b-2 border-black pb-1 mb-1">
-          <div className="grid grid-cols-2 gap-2">
-            <div className="text-left">
-              <h1 className="font-bold mb-0.5" style={{ fontSize: '14px' }}>
-                {admin?.firmName || creditNote.distributor?.firmName || 'BHARAT ENTERPRISES'}
-              </h1>
-              <p className="text-[9px] leading-tight">
-                {admin?.firmAddress || creditNote.distributor?.firmAddress || 'North Bazar, Andal, Paschim Bardhaman, 713321 (W.B.)'}
-              </p>
-            </div>
-            <div className="text-right text-[9px] leading-tight">
-              <p>Phone: {admin?.firmPhone || creditNote.distributor?.firmPhone || '+918906830790'}</p>
-              <p>DL No: {admin?.firmDL || creditNote.distributor?.firmDL || user?.firmDL || 'XXXXXXXXXX'}</p>
-              <p>GSTIN: {admin?.firmGSTIN || creditNote.distributor?.firmGSTIN || '19BHVPG9900N1ZG'}</p>
-            </div>
-          </div>
-          <div className="text-center mt-1">
-            <span className="font-bold text-[12px] border border-black px-3 py-0.5">
-              CREDIT NOTE
-            </span>
-          </div>
-        </div>
-
-        {/* Buyer & Credit Note Details */}
-        <div className="grid grid-cols-3 gap-2 mb-1 text-[9px]">
-          <div>
-            <p className="font-bold mb-0.5">M/s {creditNote.customer?.customerName}</p>
-            <p className="leading-tight">{creditNote.customer?.address || ''}</p>
-            <p className="mt-0.5">Ph: {creditNote.customer?.phone}</p>
-          </div>
-          <div className="border-l border-black pl-2">
-            {creditNote.customer?.gstin && <p>GSTIN: {creditNote.customer.gstin}</p>}
-          </div>
-          <div className="text-right">
-            <p><span className="font-bold">Credit Note No:</span> {creditNote.creditNoteNumber}</p>
-            <p><span className="font-bold">Date:</span> {formatDate(creditNote.createdAt)}</p>
-            <p><span className="font-bold">Against Invoice:</span> {creditNote.invoiceNumber}</p>
-            {creditNote.reason && <p><span className="font-bold">Reason:</span> {creditNote.reason}</p>}
-          </div>
-        </div>
-
-        {/* Items Table */}
-        <div className="mb-1">
-          <table className="w-full border-collapse text-[8px]" style={{ border: '0.5px solid black' }}>
-            <thead>
-              <tr style={{ borderBottom: '0.5px solid black' }}>
-                <th className="border-r border-black p-0.5 text-center font-bold" style={{ width: '5%' }}>SN</th>
-                <th className="border-r border-black p-0.5 text-left font-bold" style={{ width: '35%' }}>Product Name</th>
-                <th className="border-r border-black p-0.5 text-center font-bold" style={{ width: '8%' }}>Qty</th>
-                <th className="border-r border-black p-0.5 text-right font-bold" style={{ width: '10%' }}>Rate</th>
-                <th className="border-r border-black p-0.5 text-center font-bold" style={{ width: '6%' }}>GST%</th>
-                <th className="border-r border-black p-0.5 text-right font-bold" style={{ width: '10%' }}>Taxable</th>
-                <th className="border-r border-black p-0.5 text-right font-bold" style={{ width: '8%' }}>CGST</th>
-                <th className="border-r border-black p-0.5 text-right font-bold" style={{ width: '8%' }}>SGST</th>
-                <th className="p-0.5 text-right font-bold" style={{ width: '10%' }}>Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {creditNote.items?.map((item, index) => (
-                <tr key={index} style={{ borderBottom: index < creditNote.items.length - 1 ? '0.5px solid #ddd' : 'none' }}>
-                  <td className="border-r border-black p-0.5 text-center">{index + 1}</td>
-                  <td className="border-r border-black p-0.5 font-bold">{item.productName}</td>
-                  <td className="border-r border-black p-0.5 text-center font-bold">{item.quantityReturned}</td>
-                  <td className="border-r border-black p-0.5 text-right">{item.rate?.toFixed(2)}</td>
-                  <td className="border-r border-black p-0.5 text-center">{item.gstPercent}%</td>
-                  <td className="border-r border-black p-0.5 text-right">{item.taxableAmount?.toFixed(2)}</td>
-                  <td className="border-r border-black p-0.5 text-right">{item.cgstAmount?.toFixed(2)}</td>
-                  <td className="border-r border-black p-0.5 text-right">{item.sgstAmount?.toFixed(2)}</td>
-                  <td className="p-0.5 text-right font-bold">{item.totalAmount?.toFixed(2)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Summary and Footer */}
-      <div className="mt-auto">
-        <div className="grid grid-cols-2 gap-2 mb-1">
-          <div className="text-[9px]">
-            <p className="text-[8px] mt-1">This is a system-generated Credit Note as per GST Section 34.</p>
-            <p className="text-[8px]">Stock has been restored to inventory.</p>
-          </div>
-          <div className="text-[9px]">
-            <table className="w-full">
-              <tbody>
-                <tr>
-                  <td className="py-0">Taxable:</td>
-                  <td className="text-right font-semibold">₹{creditNote.totals?.totalTaxable?.toFixed(2)}</td>
-                </tr>
-                <tr>
-                  <td className="py-0">CGST:</td>
-                  <td className="text-right">₹{creditNote.totals?.totalCGST?.toFixed(2)}</td>
-                </tr>
-                <tr>
-                  <td className="py-0">SGST:</td>
-                  <td className="text-right">₹{creditNote.totals?.totalSGST?.toFixed(2)}</td>
-                </tr>
-                <tr className="border-t border-black">
-                  <td className="py-0.5 font-bold">CREDIT TOTAL:</td>
-                  <td className="text-right font-bold text-[11px]">₹{creditNote.totals?.netTotal?.toFixed(2)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="border-t border-black pt-1 text-[9px]">
-          <div className="flex justify-between items-end">
-            <div>
-              <p>E & O E</p>
-            </div>
-            <div className="text-center">
-              <div className="h-6"></div>
-              <p className="border-t border-black pt-0.5">Authorized Signatory</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 
   return (
     <>
@@ -390,24 +281,87 @@ export default function CreditNoteViewPage() {
         )}
       </motion.div>
 
-      {/* Credit Note Print Area */}
-      <div className="flex justify-center">
-        <motion.div
-          ref={printRef}
-          variants={cardVariants}
-          className="invoice-print bg-white border-2 border-slate-300 shadow-lg"
-          style={{
-            width: '190mm',
-            fontSize: '8px',
-            color: '#000000',
-            margin: '0 auto',
-            padding: '2mm'
-          }}
-        >
-          <CreditNoteCopy />
-        </motion.div>
-      </div>
-    </motion.div>
+        {/* Credit Note Format-Aware Document Preview Area */}
+        <div className="w-full space-y-3 no-print">
+          {/* Format Selection Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-slate-900/80 border border-slate-800 rounded-2xl shadow-lg">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 bg-amber-500/10 rounded-xl text-amber-400">
+                <Printer className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-xs sm:text-sm font-semibold text-slate-200">
+                  Document Preview ({previewFormat === 'THERMAL_80' ? 'Thermal 80mm Roll' : previewFormat === 'THERMAL_58' ? 'Thermal 58mm Roll' : 'A4 / A5 Sheet'})
+                </h3>
+                <p className="text-[11px] text-slate-400">
+                  Preview adapts to selected paper format. Click buttons to inspect other formats.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {[
+                { id: 'A4', label: 'A4 / A5' },
+                { id: 'THERMAL_80', label: 'Thermal 80mm' },
+                { id: 'THERMAL_58', label: 'Thermal 58mm' }
+              ].map((fmt) => (
+                <button
+                  key={fmt.id}
+                  type="button"
+                  onClick={() => setPreviewFormat(fmt.id)}
+                  className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-all ${
+                    previewFormat === fmt.id
+                      ? 'bg-amber-600 text-white shadow-sm'
+                      : 'bg-slate-800/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                  }`}
+                >
+                  {fmt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Render Active Document Preview */}
+          <div className="w-full overflow-x-auto pb-4 flex justify-start sm:justify-center">
+            <motion.div
+              ref={printRef}
+              variants={cardVariants}
+              className={`bg-white border-2 border-slate-300 shadow-xl shrink-0 my-0 sm:mx-auto ${
+                previewFormat === 'THERMAL_80'
+                  ? 'max-w-[74mm] sm:max-w-[320px] p-2'
+                  : previewFormat === 'THERMAL_58'
+                  ? 'max-w-[52mm] sm:max-w-[260px] p-1.5'
+                  : 'max-w-[190mm] p-2'
+              }`}
+              style={{
+                width: previewFormat === 'THERMAL_80' ? '74mm' : previewFormat === 'THERMAL_58' ? '52mm' : '190mm',
+                color: '#000000',
+                margin: '0 auto'
+              }}
+            >
+              <CreditNoteDocument
+                creditNote={creditNote}
+                format={previewFormat}
+                admin={admin}
+              />
+            </motion.div>
+          </div>
+        </div>
+      </motion.div>
+      <PrintDialog
+        isOpen={showPrintDialog}
+        onClose={() => setShowPrintDialog(false)}
+        documentType={DOCUMENT_TYPES.CREDIT_NOTE}
+        title={`Print Credit Note ${creditNote.creditNoteNumber || ''}`}
+        initialFormat={previewFormat}
+        renderDocument={(activeFormat) => (
+          <CreditNoteDocument
+            creditNote={creditNote}
+            format={activeFormat}
+            admin={admin}
+          />
+        )}
+      />
     </>
   );
 }

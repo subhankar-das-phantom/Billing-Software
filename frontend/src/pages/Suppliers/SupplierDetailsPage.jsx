@@ -38,6 +38,9 @@ import { useToast } from '../../contexts/ToastContext';
 import { invalidateCachePattern, useMotionConfig, useFirstVisit, useMediaQuery, useSWR } from '../../hooks';
 import { VirtualizedList } from '../../components/Common/VirtualizedList';
 import SupplierDetailsPageSkeleton from './SupplierDetailsPageSkeleton';
+import PrintDialog from '../../features/documentPrinting/components/PrintDialog';
+import LedgerDocument from '../../features/documentPrinting/renderers/LedgerDocument';
+import { resolveDocumentPrintFormat, DOCUMENT_TYPES } from '../../features/documentPrinting/formats/documentPrintFormats';
 
 /* ─────────────────────────────────────────────────────────────
    Shared content for the printable A4 supplier ledger (matches CustomerDetailsPage pattern)
@@ -121,7 +124,7 @@ function PrintSupplierLedgerContent({ admin, supplier, ledgerData, filters, form
               <td style={{ border: '1px solid #000', padding: '3px', fontWeight: entry.credit > 0 ? 'bold' : 'normal' }}>{entry.type}</td>
               <td style={{ border: '1px solid #000', padding: '3px' }}>{entry.ref}</td>
               <td style={{ border: '1px solid #000', padding: '3px' }}>{entry.supplierInvoiceNumber && entry.supplierInvoiceNumber !== '-' ? entry.supplierInvoiceNumber : ''}</td>
-              <td style={{ border: '1px solid #000', padding: '3px', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{entry.description || '-'}</td>
+              <td style={{ border: '1px solid #000', padding: '3px', wordBreak: 'break-word', whiteSpace: 'normal' }}>{entry.description || '-'}</td>
               <td style={{ border: '1px solid #000', padding: '3px', textAlign: 'right' }}>
                 {entry.debit > 0 ? entry.debit.toFixed(2) : ''}
               </td>
@@ -134,29 +137,35 @@ function PrintSupplierLedgerContent({ admin, supplier, ledgerData, filters, form
             </tr>
           ))}
         </tbody>
-        <tfoot>
-          <tr style={{ fontWeight: 'bold', background: '#fafafa', borderTop: '2px solid #000', borderBottom: '1px solid #ccc' }}>
-            <td colSpan="5" style={{ border: '1px solid #000', padding: '4px', textAlign: 'right' }}>TOTAL TRANSACTIONS</td>
-            <td style={{ border: '1px solid #000', padding: '4px', textAlign: 'right', opacity: 0.7 }}>
-              {(summary.totalDebit || 0).toFixed(2)}
-            </td>
-            <td style={{ border: '1px solid #000', padding: '4px', textAlign: 'right', opacity: 0.7 }}>
-              {(summary.totalCredit || 0).toFixed(2)}
-            </td>
-            <td style={{ border: '1px solid #000', padding: '4px', textAlign: 'right', opacity: 0.7 }}>-</td>
-          </tr>
-          <tr style={{ borderTop: '2px solid #000', fontWeight: 'bold', background: '#f0f0f0', fontSize: '10px' }}>
-            <td colSpan="7" style={{ border: '1px solid #000', padding: '6px', textAlign: 'right' }}>CLOSING BALANCE:</td>
-            <td style={{ border: '1px solid #000', padding: '6px', textAlign: 'right' }}>
-              {Math.abs(summary.closingBalance || 0).toFixed(2)}{' '}
-              {(summary.closingBalance || 0) >= 0 ? '(Cr)' : '(Dr)'}
-            </td>
-          </tr>
-        </tfoot>
       </table>
 
+      {/* Standalone Final Summary Block (outside <table> to prevent pagination repetition) */}
+      <div className="print-final-summary" style={{ pageBreakInside: 'avoid', breakInside: 'avoid', marginTop: '-1px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '9px', border: '1px solid #000' }}>
+          <tbody>
+            <tr style={{ fontWeight: 'bold', background: '#fafafa', borderBottom: '1px solid #000' }}>
+              <td style={{ border: '1px solid #000', padding: '4px', textAlign: 'right', width: '70%' }}>TOTAL TRANSACTIONS</td>
+              <td style={{ border: '1px solid #000', padding: '4px', textAlign: 'right', width: '10%', opacity: 0.8 }}>
+                {(summary.totalDebit || 0).toFixed(2)}
+              </td>
+              <td style={{ border: '1px solid #000', padding: '4px', textAlign: 'right', width: '10%', opacity: 0.8 }}>
+                {(summary.totalCredit || 0).toFixed(2)}
+              </td>
+              <td style={{ border: '1px solid #000', padding: '4px', textAlign: 'right', width: '10%', opacity: 0.8 }}>-</td>
+            </tr>
+            <tr style={{ fontWeight: 'bold', background: '#f0f0f0', fontSize: '10px' }}>
+              <td colSpan="3" style={{ border: '1px solid #000', padding: '6px', textAlign: 'right', width: '90%' }}>CLOSING BALANCE:</td>
+              <td style={{ border: '1px solid #000', padding: '6px', textAlign: 'right', width: '10%' }}>
+                {Math.abs(summary.closingBalance || 0).toFixed(2)}{' '}
+                {(summary.closingBalance || 0) >= 0 ? '(Cr)' : '(Dr)'}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
       {/* Footer */}
-      <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
+      <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', fontSize: '9px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
         <div>
           <p>E &amp; O E</p>
           <p style={{ marginTop: '4px', fontStyle: 'italic' }}>This is a computer-generated ledger statement.</p>
@@ -293,10 +302,14 @@ export default function SupplierDetailsPage() {
     }
   }, [activeTab, id, ledgerFilters.startDate, ledgerFilters.endDate, ledgerFilters.sortOrder]);
 
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
+  const configuredFormat = resolveDocumentPrintFormat(
+    user?.preferences || admin?.preferences,
+    DOCUMENT_TYPES.SUPPLIER_LEDGER
+  );
+
   const handlePrintLedger = () => {
-    document.title = `Ledger_${supplier?.name?.replace(/\s+/g, '_') || 'Supplier'}`;
-    window.print();
-    setTimeout(() => { document.title = 'Bharat Enterprise - Billing System'; }, 1000);
+    setShowPrintDialog(true);
   };
 
   const handleReactivate = async () => {
@@ -1195,6 +1208,24 @@ export default function SupplierDetailsPage() {
           </div>
         </div>
       )}
+
+      <PrintDialog
+        isOpen={showPrintDialog}
+        onClose={() => setShowPrintDialog(false)}
+        documentType={DOCUMENT_TYPES.SUPPLIER_LEDGER}
+        title={`Print Supplier Ledger: ${supplier?.name || ''}`}
+        initialFormat={configuredFormat}
+        renderDocument={(activeFormat) => (
+          <LedgerDocument
+            party={supplier}
+            partyType="supplier"
+            ledgerEntries={ledgerData.ledger || []}
+            summary={ledgerData.summary || {}}
+            format={activeFormat}
+            admin={admin}
+          />
+        )}
+      />
     </>
   );
 }

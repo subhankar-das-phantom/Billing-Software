@@ -21,6 +21,7 @@ This document governs all agent operations, architectural decisions, coding patt
   - Never truncate paise using `Math.round()` or hardcoded `decimals={0}` on financial KPI cards, summary counters, or debt totals. Truncating paise creates false discrepancies between header summary cards and underlying ledgers.
   - Pass `decimals={2}` to animated counters (`<AnimatedCounter target={value} decimals={2} />`) and format all monetary figures using the Indian numbering standard (`'en-IN'`, e.g. `₹1,23,456.78`).
   - Maintain 100% visual parity down to the exact paisa between entity profile summary counters, table rows, and ledger statements.
+  - **Public Shared Document Financial Parity**: Public views (`PublicInvoicePage.jsx`), printable sheets, and PDF stream adapters must display canonical rounded payable integer `totals.finalTotal ?? totals.netTotal`, calculate bill due balances against `finalTotal` (`dueAmount = isCancelled ? 0 : Math.max(0, finalTotal - paidAmount)`), and preserve stored `amountInWords`.
 - **Zero-CLS Layout Stability & Anti-Lag**:
   - **Forbid `height: 'auto'` Spring Physics**: Never animate `height: 'auto'` with spring physics on sticky top banners (e.g. subscription alerts). It triggers 60 frames of continuous layout recalculations (CLS thrashing) across Recharts SVG graphs and cards below. Use GPU-accelerated opacity & subtle Y-translation (`duration: 0.15s, ease: [0.16, 1, 0.3, 1]`) with `will-change: transform, opacity`.
   - **Instant Frame-0 Pre-Seeding**: Pre-seed global banner states synchronously from `localStorage` (`cached_subscription`) on mount to eliminate delayed 300ms pop-in layout shifts. Persist dismissals in `sessionStorage`.
@@ -35,7 +36,14 @@ This document governs all agent operations, architectural decisions, coding patt
   - Every search input throughout the application (Collections, Customer lookups, Employee directories, Manual Entries, Logs, Analytics) must be debounced (250–300ms).
   - Every search bar must render an instant clear (`X`) button when non-empty.
   - Empty search states must provide contextual 1-click fallback actions (e.g. *"Search All Dates"*).
-- **Mobile-First & Touch-Aware**: Responsive breakpoints (`sm:`, `md:`, `lg:`), minimum 44px touch targets on mobile, edge-swipe gestures, full-width modal/banner buttons on small screens.
+- **Persistent List / Detail Navigation Architecture & URL Synchronization**:
+  - Filter state across table and card collection pages must synchronize with URL search parameters using `useListFilterParams` (`src/hooks/useListFilterParams.js`), stabilizing defaults (`defaultsRef` + `shallowEqual`) and `setSearchParamsRef` to guarantee stable callback identity and prevent infinite render cascades with inline object defaults.
+  - Decouple local search input state from debounced URL state using `lastSyncedSearchRef` guards, eliminating focus loss, input remounting, and cursor jumping.
+  - Pass originating return state `state={{ from: currentPath }}` to detail `<Link>` elements, routing explicit detail Back buttons to `location.state?.from || fallback` while preserving natural browser back/forward and scroll restoration.
+- **Mobile-First & Touch-Aware**:
+  - Responsive breakpoints (`sm:`, `md:`, `lg:`), minimum 44px touch targets on mobile, edge-swipe gestures, full-width modal/banner buttons on small screens.
+  - **Mobile Card Density & Structured 2x2 Action Grids**: Multi-action rows (3-4 buttons) must convert from desktop horizontal flex into a structured 2x2 grid on mobile (`grid grid-cols-2 gap-2 sm:flex sm:items-center`) with `min-h-[44px]` touch targets, eliminating horizontal button squishing and text truncation. Mobile card padding must be compact (`p-3.5 sm:p-5`), avatars scaled (`w-9 h-9 sm:w-12 sm:h-12`), and metrics rendered inside compact cells (`p-2 sm:p-3` with `font-mono`).
+- **Workspace Layout Spacing Discipline**: Standardize top-level vertical container spacing to `space-y-6` (or `space-y-6 sm:space-y-8`), prohibiting sparse `space-y-12` margins that waste vertical screen space.
 - **Mobile Modal Navigation & Back-Trap Elimination**: Never trap mobile users in modal dialogs. Modals must include a sticky mobile header with `<ArrowLeft>` back button, sticky bottom dismiss bar, backdrop tap dismissal, and `Escape` keyboard shortcuts.
 - **Horizontal Scroll Capsule Affordance**: Hidden scrollbars on pill/capsule strips must incorporate `ScrollAffordanceContainer` with visual edge gradient fades, dynamic overflow detection via `ResizeObserver`, and clickable left/right slide chevrons.
 - **Export Period Scope Inheritance**: Export dialogs must inherit active page filters (`defaultPreset`, `initialDateRange`), compute date ranges with timezone-immune UTC arithmetic anchored to IST (`Asia/Kolkata`), and provide live scope feedback.
@@ -73,6 +81,10 @@ This document governs all agent operations, architectural decisions, coding patt
   - Filter and sort in pipeline or in memory with strict mathematical tie-breakers before slicing. Never rely on MongoDB's natural storage order from `.find().lean()`.
 - **Compound B-Tree Indexing**: Order compound indexes by **Equality → Sort → Range** (ESR rule): `{ tenantId: 1, isActive: 1, createdAt: -1 }`. Add indexes for high-throughput activity audits (`{ user: 1, userModel: 1, isActive: 1, lastActivityAt: -1 }`) and transactional searches (`{ tenantId: 1, referenceNumber: 1 }`).
 - **Export Engine Formatting & Safeguards**: Format integer count metrics with zero decimals (`format: 'integer'`), auto-detect `Number.isInteger(num)` for `'number'` formats, enforce 404 guards when matching zero records, and bound all-time queries within the 365-day safety ceiling.
+- **Public DTO Serializers & Canonical Financial Rounding Parity**:
+  - When serializing entities for public endpoints (`publicInvoiceSerializer.ts`), calculate canonical `finalTotal = Math.round(rawNetTotal)`, `roundOff = Math.round((finalTotal - rawNetTotal) * 100) / 100`, and `dueAmount = isCancelled ? 0 : Math.max(0, finalTotal - paidAmount)`.
+  - PDF stream adapters (`adaptPublicDTOToPDFInvoice`) must consume canonical rounded fields to ensure web, print, and PDF binary streams produce 100% identical totals.
+  - Public serializers must be backed by automated regression tests verifying integer, positive round-off, negative round-off, partial payments, and cancellation states.
 
 ### 4. Strict Release & Versioning Lifecycle
 - **Step 1 — Changelog First & Version Discipline**: Document changes under `## [vX.Y.Z](url)` in `CHANGELOG.md` with release date, categorized highlights, and specific file modifications. During an active development milestone on `dev`, do NOT invent new version headers (`v2.6.1`, `v2.6.2`) for intermediate fixes or sub-tasks before a production merge has occurred; group ongoing work under the milestone version. Maintain a strict **1:1 invariant between changelog headers and git tags** (zero untagged releases).

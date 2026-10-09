@@ -22,6 +22,9 @@ import {
 import { formatCurrency, formatDate, formatPaymentTime } from '../../../utils/formatters';
 import { amountToWords } from '../../../utils/calculations';
 import { useAuth } from '../../../contexts/AuthContext';
+import PrintDialog from '../../../features/documentPrinting/components/PrintDialog';
+import ReceiptDocument from '../../../features/documentPrinting/renderers/ReceiptDocument';
+import { resolveDocumentPrintFormat, DOCUMENT_TYPES } from '../../../features/documentPrinting/formats/documentPrintFormats';
 
 const METHOD_ICONS = {
   'Cash': Banknote,
@@ -65,8 +68,11 @@ export default function PaymentReceiptModal({ isOpen, onClose, payment }) {
     setTimeout(() => setCopiedField(null), 2000);
   };
 
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
+  const configuredFormat = resolveDocumentPrintFormat(admin?.preferences, DOCUMENT_TYPES.PAYMENT_RECEIPT);
+
   const handlePrint = () => {
-    window.print();
+    setShowPrintDialog(true);
   };
 
   const firmName = admin?.firmName || admin?.name || 'Bharat Enterprise';
@@ -318,54 +324,21 @@ export default function PaymentReceiptModal({ isOpen, onClose, payment }) {
         </motion.div>
       </div>
 
-      {/* Printable Receipt Layout (strictly visible in @media print) */}
-      <div className="hidden print:block invoice-print p-6 text-black bg-white w-full max-w-[210mm]">
-        <div className="text-center pb-4 border-b border-black">
-          <h1 className="text-xl font-bold uppercase">{firmName}</h1>
-          {firmGstin && <p className="text-xs">GSTIN: {firmGstin}</p>}
-          {firmAddress && <p className="text-xs">{firmAddress}</p>}
-          {firmPhone && <p className="text-xs">Phone: {firmPhone}</p>}
-          <h2 className="text-sm font-bold uppercase tracking-wider mt-2 bg-gray-100 py-1 inline-block px-4 border border-gray-400">
-            Payment Receipt Voucher
-          </h2>
-        </div>
-
-        <div className="py-4 grid grid-cols-2 gap-4 text-xs border-b border-black">
-          <div>
-            <p><strong>Receipt / Payment ID:</strong> {displayId}</p>
-            <p><strong>Date & Time:</strong> {displayDate} at {displayTime}</p>
-            <p><strong>Payment Mode:</strong> {payment.paymentMethod || 'Cash'}</p>
-            {payment.referenceNumber && <p><strong>UTR / Cheque Ref:</strong> {payment.referenceNumber}</p>}
-          </div>
-          <div className="text-right">
-            <p><strong>Received From:</strong> {payment.customer?.name || 'Walk-in Customer'}</p>
-            {payment.customer?.phone && <p><strong>Phone:</strong> {payment.customer.phone}</p>}
-            <p><strong>Settled Against:</strong> {payment.invoice?.invoiceNumber || (payment.entryType ? 'Manual Adjustment' : 'Account Settlement')}</p>
-            <p><strong>Recorded By:</strong> {payment.recordedBy?.name || 'Admin'}</p>
-          </div>
-        </div>
-
-        <div className="py-6 text-center my-4 border border-gray-400 bg-gray-50">
-          <span className="text-xs uppercase tracking-wider font-semibold">Total Amount Received</span>
-          <p className="text-3xl font-bold mt-1">{formatCurrency(payment.amount)}</p>
-          <p className="text-xs italic mt-1 font-medium">{amountToWords(payment.amount)}</p>
-        </div>
-
-        {payment.notes && (
-          <div className="text-xs py-2">
-            <p><strong>Remarks / Notes:</strong> {payment.notes}</p>
-          </div>
+      <PrintDialog
+        isOpen={showPrintDialog}
+        onClose={() => setShowPrintDialog(false)}
+        documentType={DOCUMENT_TYPES.PAYMENT_RECEIPT}
+        title={`Print Voucher ${displayId}`}
+        initialFormat={configuredFormat}
+        renderDocument={(activeFormat) => (
+          <ReceiptDocument
+            payment={payment}
+            format={activeFormat}
+            admin={admin}
+            amountInWords={amountToWords(payment.amount)}
+          />
         )}
-
-        <div className="pt-12 mt-8 border-t border-gray-300 flex justify-between text-xs">
-          <div>
-            <p className="border-t border-black pt-1 w-40 text-center">Customer Signature</p>
-          </div>
-          <div className="text-right">
-            <p className="border-t border-black pt-1 w-40 text-center ml-auto">Authorized Cashier</p>
-          </div>
-        </div>
-      </div>
+      />
     </>,
     document.body
   );
