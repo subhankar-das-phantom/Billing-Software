@@ -90,8 +90,6 @@ function resolveActiveColumns(columnsInput: any, { enableBatchTracking = false }
 
 function getFormatPageCss(format: string): string {
   switch (format) {
-    case 'A5':
-      return `@page { size: A4 portrait; margin: 4mm 6mm; }`;
     case 'THERMAL_80':
       return `@page { size: 80mm auto; margin: 2mm; }`;
     case 'THERMAL_58':
@@ -216,19 +214,19 @@ async function runRegressionSuite() {
   const positiveRoundSign = positiveDiff >= 0 ? `+₹${positiveDiff.toFixed(2)}` : `-₹${Math.abs(positiveDiff).toFixed(2)}`;
   assert(positiveRoundSign === '+₹0.40', `Positive round off correctly formatted: ${positiveRoundSign}`);
 
-  // ─── Test 4: A5 Horizontal Half-Sheet Architecture ──────────────────────────
-  console.log('\n🔹 Priority 4: A5 Horizontal Half-Sheet (A4 Cut) Architecture');
-
-  const a5PageCss = getFormatPageCss('A5');
-  assert(
-    a5PageCss.includes('size: A4 portrait') && a5PageCss.includes('margin: 4mm 6mm'),
-    'A5 CSS @page rule sets size to A4 portrait with 4mm 6mm margins'
-  );
+  // ─── Test 4: A4 / A5 Unified Sheet Architecture ──────────────────────────
+  console.log('\n🔹 Priority 4: A4 / A5 Unified Sheet Architecture');
 
   const a4PageCss = getFormatPageCss('A4');
   assert(
     a4PageCss.includes('size: A4 portrait') && a4PageCss.includes('margin: 6mm'),
-    'A4 CSS @page rule sets size to A4 portrait with 6mm margins'
+    'A4 / A5 sheet CSS @page rule sets size to A4 portrait with 6mm margins'
+  );
+
+  const legacyA5PageCss = getFormatPageCss('A5');
+  assert(
+    legacyA5PageCss.includes('size: A4 portrait') && legacyA5PageCss.includes('margin: 6mm'),
+    'Legacy A5 query defaults gracefully to A4 portrait sheet'
   );
 
   const thermal80PageCss = getFormatPageCss('THERMAL_80');

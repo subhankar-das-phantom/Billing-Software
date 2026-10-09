@@ -5,7 +5,7 @@
 
 export const PRINT_FORMATS = Object.freeze({
   A4: 'A4',
-  A5: 'A5',
+  A5: 'A4', // Deprecated: unified into A4 (A4 / A5)
   THERMAL_80: 'THERMAL_80',
   THERMAL_58: 'THERMAL_58'
 });
@@ -22,24 +22,25 @@ export const DOCUMENT_TYPES = Object.freeze({
 export const FORMAT_METADATA = Object.freeze({
   [PRINT_FORMATS.A4]: {
     id: PRINT_FORMATS.A4,
-    label: 'A4 Sheet',
-    sublabel: 'Standard Office / Laser (210 × 297 mm)',
+    label: 'A4 / A5',
+    sublabel: 'Standard Sheet / Half Cut (210 × 297 mm)',
     pageWidthMm: 210,
     contentWidthMm: 190,
     marginMm: 6,
     cssClass: 'print-format-a4',
-    badge: 'Standard',
+    badge: 'Sheet',
     supportsDoubleCopy: true
   },
-  [PRINT_FORMATS.A5]: {
-    id: PRINT_FORMATS.A5,
-    label: 'A5 Sheet',
-    sublabel: 'A4 Half-Sheet Cut / A5 Landscape (210 × 148 mm)',
+  // Backward compatibility alias for legacy 'A5' preference reads
+  A5: {
+    id: 'A4',
+    label: 'A4 / A5',
+    sublabel: 'Standard Sheet / Half Cut (210 × 297 mm)',
     pageWidthMm: 210,
     contentWidthMm: 190,
-    marginMm: 5,
-    cssClass: 'print-format-a5',
-    badge: 'Compact',
+    marginMm: 6,
+    cssClass: 'print-format-a4',
+    badge: 'Sheet',
     supportsDoubleCopy: true
   },
   [PRINT_FORMATS.THERMAL_80]: {
@@ -69,33 +70,27 @@ export const FORMAT_METADATA = Object.freeze({
 export const DOCUMENT_CAPABILITY_MATRIX = Object.freeze({
   [DOCUMENT_TYPES.INVOICE]: [
     PRINT_FORMATS.A4,
-    PRINT_FORMATS.A5,
     PRINT_FORMATS.THERMAL_80,
     PRINT_FORMATS.THERMAL_58
   ],
   [DOCUMENT_TYPES.CREDIT_NOTE]: [
     PRINT_FORMATS.A4,
-    PRINT_FORMATS.A5,
     PRINT_FORMATS.THERMAL_80,
     PRINT_FORMATS.THERMAL_58
   ],
   [DOCUMENT_TYPES.PAYMENT_RECEIPT]: [
     PRINT_FORMATS.A4,
-    PRINT_FORMATS.A5,
     PRINT_FORMATS.THERMAL_80,
     PRINT_FORMATS.THERMAL_58
   ],
   [DOCUMENT_TYPES.CUSTOMER_LEDGER]: [
-    PRINT_FORMATS.A4,
-    PRINT_FORMATS.A5
+    PRINT_FORMATS.A4
   ],
   [DOCUMENT_TYPES.SUPPLIER_LEDGER]: [
-    PRINT_FORMATS.A4,
-    PRINT_FORMATS.A5
+    PRINT_FORMATS.A4
   ],
   [DOCUMENT_TYPES.DAILY_CLOSEOUT]: [
-    PRINT_FORMATS.A4,
-    PRINT_FORMATS.A5
+    PRINT_FORMATS.A4
   ]
 });
 
@@ -110,6 +105,9 @@ export const DOCUMENT_CAPABILITY_MATRIX = Object.freeze({
 export function resolveDocumentPrintFormat(preferences, documentType) {
   const allowed = DOCUMENT_CAPABILITY_MATRIX[documentType] || [PRINT_FORMATS.A4];
   const configured = preferences?.documentPrintFormats?.[documentType];
+  if (configured === 'A5') {
+    return PRINT_FORMATS.A4;
+  }
   if (configured && allowed.includes(configured)) {
     return configured;
   }

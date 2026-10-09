@@ -1,6 +1,6 @@
 /**
  * Format-Aware Enterprise Invoice Document Renderer
- * Supports A4 (Single / Double Copy), A5 (Horizontal Half-Sheet Single / Double Copy), Thermal 80mm, Thermal 58mm
+ * Supports A4 / A5 Sheet (Single / Double Copy), Thermal 80mm, Thermal 58mm
  * Bharat Enterprise Billing System
  */
 
@@ -70,7 +70,7 @@ function getInvoiceItemTotal(item) {
 }
 
 /**
- * Standard Sheet Invoice (A4 Full Sheet & A5 Horizontal Half Sheet)
+ * Standard Sheet Invoice (A4 / A5 Sheet)
  * Restores 100% parity with legacy invoice layout and conditional details.
  */
 function SheetInvoiceCopy({
@@ -83,7 +83,6 @@ function SheetInvoiceCopy({
   columns = null,
   enableBatchTracking = false
 }) {
-  const isA5 = format === PRINT_FORMATS.A5;
   const netTotal = Math.round(invoice.totals?.netTotal || 0);
   const rawNet = invoice.totals?.netTotal || 0;
   const roundDiff = netTotal - rawNet;
@@ -102,9 +101,7 @@ function SheetInvoiceCopy({
   return (
     <div
       className={`invoice-copy bg-white flex flex-col ${
-        isA5
-          ? 'text-[8.5px] p-2 min-h-[120mm]'
-          : isDoubleCopy
+        isDoubleCopy
           ? 'text-[10px] p-2 min-h-[120mm]'
           : 'text-[11px] p-3 min-h-[140mm]'
       }`}
@@ -128,7 +125,7 @@ function SheetInvoiceCopy({
         <div className="text-left">
           <h1
             className="font-bold mb-0.5 tracking-tight"
-            style={{ fontSize: isA5 ? '15px' : '18px', margin: 0, lineHeight: 1.15 }}
+            style={{ fontSize: '18px', margin: 0, lineHeight: 1.15 }}
           >
             {firmName}
           </h1>
@@ -207,7 +204,7 @@ function SheetInvoiceCopy({
       <div className="flex-1 mb-1">
         <table
           className="w-full border-collapse"
-          style={{ border: '0.5px solid black', fontSize: isA5 ? '8px' : '9px' }}
+          style={{ border: '0.5px solid black', fontSize: '9px' }}
         >
           <thead>
             <tr style={{ borderBottom: '0.5px solid black', background: '#f5f5f5' }}>
@@ -553,46 +550,7 @@ export default function InvoiceDocument({
     );
   }
 
-  // A5 Horizontal Half Sheet (A4 Half-Sheet Cut)
-  if (format === PRINT_FORMATS.A5) {
-    const isDouble = !isSingleCopy;
-    return (
-      <div className={`invoice-print print-format-a5 ${metadata.cssClass}`}>
-        <SheetInvoiceCopy
-          invoice={invoice}
-          format={PRINT_FORMATS.A5}
-          admin={admin}
-          customerOutstanding={customerOutstanding}
-          isDoubleCopy={isDouble}
-          copyTitle={isDouble ? 'Customer Copy' : null}
-          columns={columns}
-          enableBatchTracking={enableBatchTracking}
-        />
-
-        {isDouble && (
-          <>
-            <div className="flex items-center my-2" style={{ borderTop: '1px dashed #000' }}>
-              <span className="text-[9px] text-gray-600 mx-auto bg-white px-2" style={{ marginTop: '-10px' }}>
-                Cut Here
-              </span>
-            </div>
-            <SheetInvoiceCopy
-              invoice={invoice}
-              format={PRINT_FORMATS.A5}
-              admin={admin}
-              customerOutstanding={customerOutstanding}
-              isDoubleCopy={true}
-              copyTitle="Dealer Copy"
-              columns={columns}
-              enableBatchTracking={enableBatchTracking}
-            />
-          </>
-        )}
-      </div>
-    );
-  }
-
-  // A4 Full Sheet (Default) — Preserves 1x Single vs 2x Double Copy
+  // A4 / A5 Sheet (Default) — Preserves 1x Single vs 2x Double Copy
   const isDouble = !isSingleCopy;
 
   return (

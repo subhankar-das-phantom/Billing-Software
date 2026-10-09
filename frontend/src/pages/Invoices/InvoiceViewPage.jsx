@@ -566,7 +566,7 @@ export default function InvoiceViewPage() {
                         <div className="mb-2.5 p-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-300 flex items-start gap-1.5 leading-snug">
                           <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-400" />
                           <span>
-                            Thermal roll printers use a compact POS receipt layout. Column customization applies to A4 and A5 sheet formats.
+                            Thermal roll printers use a compact POS receipt layout. Column customization applies to A4 / A5 sheet formats.
                           </span>
                         </div>
                       )}
@@ -819,7 +819,7 @@ export default function InvoiceViewPage() {
               </div>
               <div>
                 <h3 className="text-xs sm:text-sm font-semibold text-slate-200">
-                  Document Preview ({previewFormat === 'THERMAL_80' ? 'Thermal 80mm Roll' : previewFormat === 'THERMAL_58' ? 'Thermal 58mm Roll' : previewFormat === 'A5' ? 'A5 Half Sheet' : 'A4 Full Sheet'})
+                  Document Preview ({previewFormat === 'THERMAL_80' ? 'Thermal 80mm Roll' : previewFormat === 'THERMAL_58' ? 'Thermal 58mm Roll' : 'A4 / A5 Sheet'})
                 </h3>
                 <p className="text-[11px] text-slate-400">
                   Preview adapts to selected paper format. Click buttons to inspect other formats.
@@ -829,8 +829,7 @@ export default function InvoiceViewPage() {
 
             <div className="flex items-center gap-1.5 flex-wrap">
               {[
-                { id: 'A4', label: 'A4 Sheet' },
-                { id: 'A5', label: 'A5 Sheet' },
+                { id: 'A4', label: 'A4 / A5' },
                 { id: 'THERMAL_80', label: 'Thermal 80mm' },
                 { id: 'THERMAL_58', label: 'Thermal 58mm' }
               ].map((fmt) => (
@@ -860,12 +859,10 @@ export default function InvoiceViewPage() {
                   ? 'max-w-[74mm] sm:max-w-[320px] p-2'
                   : previewFormat === 'THERMAL_58'
                   ? 'max-w-[52mm] sm:max-w-[260px] p-1.5'
-                  : previewFormat === 'A5'
-                  ? 'max-w-[190mm] p-2'
                   : 'max-w-[190mm] p-2'
               }`}
               style={{
-                width: previewFormat === 'THERMAL_80' ? '74mm' : previewFormat === 'THERMAL_58' ? '52mm' : previewFormat === 'A5' ? '190mm' : '190mm',
+                width: previewFormat === 'THERMAL_80' ? '74mm' : previewFormat === 'THERMAL_58' ? '52mm' : '190mm',
                 color: '#000000',
                 margin: '0 auto'
               }}

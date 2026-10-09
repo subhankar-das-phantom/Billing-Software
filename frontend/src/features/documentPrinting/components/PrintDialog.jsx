@@ -168,7 +168,7 @@ export default function PrintDialog({
               {isThermal ? (
                 <span>Tip: Choose <strong>Roll Paper</strong> or paper size 80mm/58mm in browser print dialog.</span>
               ) : (
-                <span>Paper: <strong>{activeFormat}</strong> · Margins: <strong>Default / Minimum</strong></span>
+                <span>Paper: <strong>{metadata.label}</strong> · Margins: <strong>Default / Minimum</strong></span>
               )}
             </div>
 

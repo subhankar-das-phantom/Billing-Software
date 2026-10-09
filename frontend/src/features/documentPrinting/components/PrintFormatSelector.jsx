@@ -22,8 +22,6 @@ export default function PrintFormatSelector({
       case PRINT_FORMATS.THERMAL_80:
       case PRINT_FORMATS.THERMAL_58:
         return Receipt;
-      case PRINT_FORMATS.A5:
-        return FileText;
       case PRINT_FORMATS.A4:
       default:
         return Printer;
@@ -52,9 +50,9 @@ export default function PrintFormatSelector({
             >
               <Icon className={`w-4 h-4 shrink-0 ${isSelected ? 'text-white' : 'text-slate-400'}`} />
               <div className="text-left leading-tight">
-                <div className="font-semibold">{meta.label}</div>
+                <div className="font-semibold">{meta?.label || fmt}</div>
                 <div className={`text-[10px] ${isSelected ? 'text-blue-100' : 'text-slate-400'}`}>
-                  {meta.badge}
+                  {meta?.badge || 'Sheet'}
                 </div>
               </div>
             </button>
@@ -62,12 +60,12 @@ export default function PrintFormatSelector({
         })}
       </div>
 
-      {/* Invoice Copy Mode (A4 & A5) */}
-      {showCopyToggle && (selectedFormat === PRINT_FORMATS.A4 || selectedFormat === PRINT_FORMATS.A5) && onToggleCopyMode && (
+      {/* Invoice Copy Mode (A4 / A5) */}
+      {showCopyToggle && selectedFormat === PRINT_FORMATS.A4 && onToggleCopyMode && (
         <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-800/40 border border-slate-700/50 text-xs">
           <div className="flex items-center gap-2 text-slate-300">
             <Copy className="w-4 h-4 text-blue-400" />
-            <span>{selectedFormat === PRINT_FORMATS.A5 ? 'A5 Half-Sheet Copies:' : 'A4 Sheet Layout:'}</span>
+            <span>A4 / A5 Sheet Layout:</span>
           </div>
           <div className="flex items-center gap-1 bg-slate-900 p-0.5 rounded-lg border border-slate-700/60">
             <button

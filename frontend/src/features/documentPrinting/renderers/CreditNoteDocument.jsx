@@ -54,11 +54,9 @@ function getCNItemTotal(item) {
 }
 
 /**
- * Standard Sheet Layout (A4 & A5)
+ * Standard Sheet Layout (A4 / A5)
  */
 function SheetCreditNote({ creditNote, format = PRINT_FORMATS.A4, admin = null }) {
-  const isA5 = format === PRINT_FORMATS.A5;
-
   const firm = {
     firmName: admin?.firmName || creditNote.distributor?.firmName || 'BHARAT ENTERPRISE',
     firmAddress: admin?.firmAddress || creditNote.distributor?.firmAddress || '',
@@ -75,7 +73,7 @@ function SheetCreditNote({ creditNote, format = PRINT_FORMATS.A4, admin = null }
 
   return (
     <div
-      className={`invoice-copy bg-white flex flex-col ${isA5 ? 'text-[9px] p-2.5 min-h-[105mm]' : 'text-[10px] p-4 min-h-[130mm]'}`}
+      className="invoice-copy bg-white flex flex-col text-[10px] p-4 min-h-[130mm]"
       style={{ width: '100%', color: '#000000', boxSizing: 'border-box' }}
     >
       <PrintFirmHeader
@@ -102,7 +100,7 @@ function SheetCreditNote({ creditNote, format = PRINT_FORMATS.A4, admin = null }
 
       {/* Items Table */}
       <div className="flex-1 mb-1">
-        <table className="w-full border-collapse" style={{ border: '0.5px solid black', fontSize: isA5 ? '8px' : '9px' }}>
+        <table className="w-full border-collapse" style={{ border: '0.5px solid black', fontSize: '9px' }}>
           <thead>
             <tr style={{ borderBottom: '0.5px solid black', background: '#f5f5f5' }}>
               <th className="border-r border-black p-0.5 text-center font-bold" style={{ width: '5%' }}>SN</th>

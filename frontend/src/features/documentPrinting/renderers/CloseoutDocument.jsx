@@ -1,6 +1,6 @@
 /**
  * Format-Aware Daily Cashier Closeout & Reconciliation Statement Renderer
- * Supports A4 & A5 Sheet Formats
+ * Supports A4 / A5 Sheet Formats
  * Bharat Enterprise Billing System
  */
 
@@ -24,7 +24,6 @@ export default function CloseoutDocument({
   format = PRINT_FORMATS.A4,
   admin = null
 }) {
-  const isA5 = format === PRINT_FORMATS.A5;
   const metadata = FORMAT_METADATA[format] || FORMAT_METADATA[PRINT_FORMATS.A4];
 
   const totalCollected = summary?.totalCollected || 0;
@@ -48,7 +47,7 @@ export default function CloseoutDocument({
   return (
     <div className={`invoice-print ${metadata.cssClass}`}>
       <div
-        className={`invoice-copy bg-white flex flex-col ${isA5 ? 'text-[8.5px] p-2' : 'text-[10px] p-4'}`}
+        className="invoice-copy bg-white flex flex-col text-[10px] p-4"
         style={{ width: '100%', color: '#000000', boxSizing: 'border-box' }}
       >
         <PrintFirmHeader
@@ -87,7 +86,7 @@ export default function CloseoutDocument({
           <h3 className="font-bold uppercase mb-1 text-[9.5px]">
             2. Payment Method Ledger Breakdown
           </h3>
-          <table className="w-full border-collapse border border-black" style={{ fontSize: isA5 ? '8px' : '9px' }}>
+          <table className="w-full border-collapse border border-black" style={{ fontSize: '9px' }}>
             <thead>
               <tr className="bg-gray-100 border-b border-black">
                 <th className="border border-black p-1 text-left">Method</th>
@@ -121,7 +120,7 @@ export default function CloseoutDocument({
           <h3 className="font-bold uppercase mb-1 text-[9.5px]">
             3. Itemized Receipt Register ({payments.length} entries for {closeoutDateLabel})
           </h3>
-          <table className="print-table w-full border-collapse border border-black" style={{ fontSize: isA5 ? '7.5px' : '8.5px' }}>
+          <table className="print-table w-full border-collapse border border-black" style={{ fontSize: '8.5px' }}>
             <thead>
               <tr className="bg-gray-100 border-b border-black">
                 <th className="border border-black p-1 text-left" style={{ width: '15%' }}>Time</th>

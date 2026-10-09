@@ -57,11 +57,11 @@ For full release notes with implementation details, see [GitHub Releases](https:
   - Restored authentic 3-column buyer and invoice metadata layout (`M/s Customer`, `GSTIN/DL`, `Invoice No/Date/Bill Type`).
   - Reconnected multi-batch allocation grouping (`getBatchGroups`), displaying `Batch A (10) + Batch B (5)` and parallel expiry dates (`MM/YY`) when batch tracking is enabled.
   - Reconnected tax-inclusive Net rate formula `rate * (1 + gst / 100)` with stored `netRate` precedence, exact paise round-off, Current Dues, uppercase Amount in Words, and authorized signatory blocks.
-- **A5 Horizontal (A4 Half-Sheet Cut) Architecture (`PrintTransport.js`, `index.css`, `documentPrintFormats.js`, `PrintFormatSelector.jsx`)**:
-  - Corrected physical A5 bill orientation for standard Indian A4 printers to horizontal landscape cut (**210mm wide × 140–148mm high**, `max-width: 190mm`).
-  - Updated `@page` rule in `PrintTransport.js` for A5 to `@page { size: A4 portrait; margin: 4mm 6mm; }`, ensuring standard A4 printers feed paper without driver mismatch errors.
-  - Supported Single Copy (top half of A4 sheet, leaving the bottom half blank for physical cutting) and Double Copy (two landscape bills on one A4 sheet separated by a dashed `"Cut Here"` line).
-  - Enforced content overflow safety: removed rigid max-heights to ensure large invoices flow naturally across pages without clipping text, notes, or totals.
+- **A4 / A5 Unified Sheet Architecture (`PrintTransport.js`, `documentPrintFormats.js`, `PrintFormatSelector.jsx`, `InvoiceDocument.jsx`)**:
+  - Removed standalone A5 format from the frontend UI and consolidated all sheet printing into a single, intuitive **"A4 / A5"** format.
+  - Retained the double-copy split workflow: users can choose between 1x Single Copy and 2x Double Copy (with a dashed `"Cut Here"` line on standard A4 paper, yielding two landscape half-sheets).
+  - Updated format selectors, Settings page badges, preview format bars, and print dialog tips to label the sheet format as **"A4 / A5"**.
+  - Ensured seamless backward compatibility: legacy preferences storing `'A5'` gracefully resolve to `'A4'` with zero crashes or data loss.
 - **Automated Regression Verification (`backend/scripts/testInvoicePrintingRegression.ts`)**:
   - Built comprehensive 36-test regression suite asserting dynamic column filtering, individual column toggle isolation, batch grouping and UNNAMED filtering, Net rate derivation, round-off formatting, thermal POS independence, and CSS page sizing rules.
 

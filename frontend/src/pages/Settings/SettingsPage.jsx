@@ -928,15 +928,15 @@ export default function SettingsPage() {
                           <span className="text-[11px] sm:text-xs text-slate-400 line-clamp-1">{doc.desc}</span>
                         </div>
                       </div>
-                      <span className="text-[10px] sm:text-[11px] font-mono font-medium px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700/50 shrink-0">
-                        {currentFormat}
+                      <span className="text-[10px] sm:text-[11px] font-medium px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700/50 shrink-0">
+                        {FORMAT_METADATA[currentFormat]?.label || currentFormat}
                       </span>
                     </div>
 
                     <div className="flex flex-wrap gap-1.5 pt-1 border-t border-white/5">
                       {allowedFormats.map((fmtKey) => {
                         const meta = FORMAT_METADATA[fmtKey];
-                        const isSelected = currentFormat === fmtKey;
+                        const isSelected = currentFormat === fmtKey || (fmtKey === 'A4' && currentFormat === 'A5');
                         return (
                           <button
                             key={fmtKey}

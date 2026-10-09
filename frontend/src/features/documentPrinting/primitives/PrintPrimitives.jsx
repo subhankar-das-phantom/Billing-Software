@@ -47,7 +47,7 @@ export function PrintFirmHeader({ firm, format = PRINT_FORMATS.A4, documentTitle
     <div className="border-b-2 border-black pb-1.5 mb-2">
       <div className="flex justify-between items-start">
         <div className="flex-1">
-          <h1 className={`${format === PRINT_FORMATS.A5 ? 'text-sm' : 'text-base'} font-bold uppercase tracking-tight`}>
+          <h1 className="text-base font-bold uppercase tracking-tight">
             {firmName}
           </h1>
           {firm?.firmAddress && (

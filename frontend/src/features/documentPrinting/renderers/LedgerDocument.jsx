@@ -28,7 +28,6 @@ export default function LedgerDocument({
 }) {
   if (!party) return null;
 
-  const isA5 = format === PRINT_FORMATS.A5;
   const metadata = FORMAT_METADATA[format] || FORMAT_METADATA[PRINT_FORMATS.A4];
   const isSupplier = partyType === 'supplier';
 
@@ -52,7 +51,7 @@ export default function LedgerDocument({
   return (
     <div className={`invoice-print ${metadata.cssClass}`}>
       <div
-        className={`invoice-copy bg-white flex flex-col ${isA5 ? 'text-[8.5px] p-2' : 'text-[10px] p-4'}`}
+        className="invoice-copy bg-white flex flex-col text-[10px] p-4"
         style={{ width: '100%', color: '#000000', boxSizing: 'border-box' }}
       >
         <PrintFirmHeader firm={firm} format={format} documentTitle={title} />
@@ -68,7 +67,7 @@ export default function LedgerDocument({
         <div className="w-full mb-1">
           <table
             className="print-table w-full border-collapse"
-            style={{ fontSize: isA5 ? '8px' : '9px', border: '1px solid black' }}
+            style={{ fontSize: '9px', border: '1px solid black' }}
           >
             <thead>
               <tr style={{ background: '#f0f0f0', borderBottom: '1px solid black' }}>

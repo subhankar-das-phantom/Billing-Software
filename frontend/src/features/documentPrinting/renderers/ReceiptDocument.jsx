@@ -30,10 +30,9 @@ const formatTime = (dateString) => {
 };
 
 /**
- * Standard Sheet Receipt Voucher (A4 & A5)
+ * Standard Sheet Receipt Voucher (A4 / A5)
  */
 function SheetReceipt({ payment, format = PRINT_FORMATS.A4, admin = null, amountInWords = '' }) {
-  const isA5 = format === PRINT_FORMATS.A5;
   const firm = {
     firmName: admin?.firmName || 'BHARAT ENTERPRISE',
     firmAddress: admin?.firmAddress || '',
@@ -47,7 +46,7 @@ function SheetReceipt({ payment, format = PRINT_FORMATS.A4, admin = null, amount
 
   return (
     <div
-      className={`invoice-copy bg-white flex flex-col ${isA5 ? 'text-[9px] p-3 min-h-[90mm]' : 'text-[11px] p-6 min-h-[120mm]'}`}
+      className="invoice-copy bg-white flex flex-col text-[11px] p-6 min-h-[120mm]"
       style={{ width: '100%', color: '#000000', boxSizing: 'border-box' }}
     >
       <PrintFirmHeader
