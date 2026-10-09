@@ -36,6 +36,51 @@ import { useToast } from '../../contexts/ToastContext';
 import { authService } from '../../services/auth/authService';
 import { useMotionConfig } from '../../hooks';
 import SettingsPageSkeleton from './SettingsPageSkeleton';
+import { 
+  PRINT_FORMATS, 
+  DOCUMENT_TYPES, 
+  DOCUMENT_CAPABILITY_MATRIX, 
+  FORMAT_METADATA 
+} from '../../features/documentPrinting/formats/documentPrintFormats';
+
+const DOCUMENT_CONFIG_LIST = [
+  {
+    id: DOCUMENT_TYPES.INVOICE,
+    label: 'Sales Invoices',
+    desc: 'Tax invoices, bills, and multi-copy prints',
+    icon: FileText
+  },
+  {
+    id: DOCUMENT_TYPES.CREDIT_NOTE,
+    label: 'Credit Notes',
+    desc: 'Sales returns & credit adjustments',
+    icon: FileText
+  },
+  {
+    id: DOCUMENT_TYPES.PAYMENT_RECEIPT,
+    label: 'Payment Receipts',
+    desc: 'Customer payments & collection vouchers',
+    icon: CreditCard
+  },
+  {
+    id: DOCUMENT_TYPES.CUSTOMER_LEDGER,
+    label: 'Customer Ledger',
+    desc: 'Customer transaction statement & account ledger',
+    icon: Building2
+  },
+  {
+    id: DOCUMENT_TYPES.SUPPLIER_LEDGER,
+    label: 'Supplier Ledger',
+    desc: 'Supplier purchase & payment statement',
+    icon: Building2
+  },
+  {
+    id: DOCUMENT_TYPES.DAILY_CLOSEOUT,
+    label: 'Daily Closeout',
+    desc: 'Daily register audit & collection summary',
+    icon: Calculator
+  }
+];
 
 export default function SettingsPage() {
   const { user, userRole, isAdmin, admin, updateAdmin, updateUserPreferences } = useAuth();
@@ -83,7 +128,15 @@ export default function SettingsPage() {
     showCalculator: true,
     enableBatchTracking: false,
     allowPublicInvoicePrint: false,
-    mobileCardDensity: typeof window !== 'undefined' ? (localStorage.getItem('bharat_mobile_card_density') || 'compact') : 'compact'
+    mobileCardDensity: typeof window !== 'undefined' ? (localStorage.getItem('bharat_mobile_card_density') || 'compact') : 'compact',
+    documentPrintFormats: {
+      invoice: 'A4',
+      creditNote: 'A4',
+      paymentReceipt: 'A4',
+      customerLedger: 'A4',
+      supplierLedger: 'A4',
+      dailyCloseout: 'A4'
+    }
   });
   const [preferencesLoading, setPreferencesLoading] = useState(false);
 
@@ -122,7 +175,15 @@ export default function SettingsPage() {
         showCalculator: currentPrefs.showCalculator !== false,
         enableBatchTracking: currentPrefs.enableBatchTracking === true,
         allowPublicInvoicePrint: currentPrefs.allowPublicInvoicePrint === true,
-        mobileCardDensity: currentPrefs.mobileCardDensity || 'compact'
+        mobileCardDensity: currentPrefs.mobileCardDensity || 'compact',
+        documentPrintFormats: {
+          invoice: currentPrefs.documentPrintFormats?.invoice || 'A4',
+          creditNote: currentPrefs.documentPrintFormats?.creditNote || 'A4',
+          paymentReceipt: currentPrefs.documentPrintFormats?.paymentReceipt || 'A4',
+          customerLedger: currentPrefs.documentPrintFormats?.customerLedger || 'A4',
+          supplierLedger: currentPrefs.documentPrintFormats?.supplierLedger || 'A4',
+          dailyCloseout: currentPrefs.documentPrintFormats?.dailyCloseout || 'A4'
+        }
       });
     }
   }, [user, admin, isUserAdmin, activeThemeMode]);
@@ -261,6 +322,45 @@ export default function SettingsPage() {
       updateUserPreferences({ mobileCardDensity: prevDensity });
       localStorage.setItem('bharat_mobile_card_density', prevDensity);
       showError(err.message || 'Failed to update card density preference');
+    } finally {
+      setPreferencesLoading(false);
+    }
+  };
+
+  const handleSelectDocumentPrintFormat = async (docType, format) => {
+    if (!isUserAdmin) return;
+    const currentDocFormat = preferences.documentPrintFormats?.[docType] || 'A4';
+    if (currentDocFormat === format) return;
+
+    const previousFormats = { ...preferences.documentPrintFormats };
+    const updatedFormats = {
+      ...preferences.documentPrintFormats,
+      [docType]: format
+    };
+
+    setPreferences(prev => ({
+      ...prev,
+      documentPrintFormats: updatedFormats
+    }));
+    updateUserPreferences({ documentPrintFormats: updatedFormats });
+    setPreferencesLoading(true);
+
+    try {
+      const result = await authService.updatePreferences({
+        documentPrintFormats: { [docType]: format }
+      });
+      if (result.success) {
+        showSuccess(`Default print format for ${DOCUMENT_CONFIG_LIST.find(d => d.id === docType)?.label || docType} set to ${format}`);
+      } else {
+        throw new Error(result.message || 'Failed to update document print format');
+      }
+    } catch (err) {
+      setPreferences(prev => ({
+        ...prev,
+        documentPrintFormats: previousFormats
+      }));
+      updateUserPreferences({ documentPrintFormats: previousFormats });
+      showError(err.message || 'Failed to update print format preference');
     } finally {
       setPreferencesLoading(false);
     }
@@ -678,6 +778,82 @@ export default function SettingsPage() {
                       <div className="text-xs text-slate-400">{item.desc}</div>
                     </div>
                   </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Default Document Print Formats */}
+          <div className="p-5 bg-slate-950/40 rounded-2xl border border-white/5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-sky-500/10 rounded-xl shadow-[0_0_15px_rgba(14,165,233,0.1)]">
+                  <Printer className="w-6 h-6 text-sky-400" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-slate-100 text-base">Default Document Print Formats</h3>
+                    {!isUserAdmin && (
+                      <span className="px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase bg-slate-800 text-slate-400 border border-slate-700/60 rounded-md">
+                        Admin Only
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-slate-400 mt-0.5">
+                    Configure default paper sizes and print styles for each document type across your firm.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+              {DOCUMENT_CONFIG_LIST.map((doc) => {
+                const currentFormat = preferences.documentPrintFormats?.[doc.id] || 'A4';
+                const allowedFormats = DOCUMENT_CAPABILITY_MATRIX[doc.id] || ['A4'];
+                const DocIcon = doc.icon;
+
+                return (
+                  <div
+                    key={doc.id}
+                    className="p-3.5 bg-slate-900/40 rounded-xl border border-white/5 flex flex-col justify-between gap-3"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-1.5 rounded-lg bg-slate-800/80 text-slate-300">
+                          <DocIcon className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <span className="text-sm font-semibold text-slate-200 block">{doc.label}</span>
+                          <span className="text-xs text-slate-400 line-clamp-1">{doc.desc}</span>
+                        </div>
+                      </div>
+                      <span className="text-[11px] font-mono font-medium px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700/50">
+                        {currentFormat}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5 pt-1 border-t border-white/5">
+                      {allowedFormats.map((fmtKey) => {
+                        const meta = FORMAT_METADATA[fmtKey];
+                        const isSelected = currentFormat === fmtKey;
+                        return (
+                          <button
+                            key={fmtKey}
+                            type="button"
+                            disabled={!isUserAdmin || preferencesLoading}
+                            onClick={() => handleSelectDocumentPrintFormat(doc.id, fmtKey)}
+                            className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-all ${
+                              isSelected
+                                ? 'bg-sky-500/20 text-sky-300 border border-sky-500/50 shadow-xs'
+                                : 'bg-slate-800/50 text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-transparent'
+                            } ${!isUserAdmin ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+                          >
+                            {meta?.label || fmtKey}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 );
               })}
             </div>

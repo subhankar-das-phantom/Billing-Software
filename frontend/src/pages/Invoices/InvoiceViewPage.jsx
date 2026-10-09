@@ -43,6 +43,9 @@ import { authService } from '../../services/auth/authService';
 import { useSWR, useFirstVisit, invalidateCachePattern } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
 import ShareResourceMenu from '../../components/Common/Sharing/ShareResourceMenu';
+import PrintDialog from '../../features/documentPrinting/components/PrintDialog';
+import InvoiceDocument from '../../features/documentPrinting/renderers/InvoiceDocument';
+import { resolveDocumentPrintFormat, DOCUMENT_TYPES } from '../../features/documentPrinting/formats/documentPrintFormats';
 
 const roundCurrency = (value) => Math.round(((Number(value) || 0) + Number.EPSILON) * 100) / 100;
 
@@ -95,6 +98,7 @@ export default function InvoiceViewPage() {
   const backPath = location.state?.from || '/invoices';
   const [updating, setUpdating] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
   const [showColumnSettings, setShowColumnSettings] = useState(false);
   const [showManageMenu, setShowManageMenu] = useState(false);
   const columnSettingsRef = useRef(null);
@@ -338,8 +342,12 @@ export default function InvoiceViewPage() {
   const isValidating = isInvoiceValidating || isCNValidating;
 
 
+  const configuredFormat = useMemo(() => {
+    return resolveDocumentPrintFormat(user?.preferences || admin?.preferences, DOCUMENT_TYPES.INVOICE);
+  }, [user?.preferences, admin?.preferences]);
+
   const handlePrint = () => {
-    window.print();
+    setShowPrintDialog(true);
   };
 
   const handleMarkPrinted = async () => {
@@ -361,7 +369,7 @@ export default function InvoiceViewPage() {
   };
 
   const handleDownload = () => {
-    window.print();
+    setShowPrintDialog(true);
   };
 
   const toggleCopyMode = () => {
@@ -1018,6 +1026,24 @@ export default function InvoiceViewPage() {
         manualEntries={[]}
         preSelectedInvoice={invoiceForPayment}
         creditNotes={creditNotes}
+      />
+      <PrintDialog
+        isOpen={showPrintDialog}
+        onClose={() => setShowPrintDialog(false)}
+        documentType={DOCUMENT_TYPES.INVOICE}
+        title={`Print Tax Invoice ${invoice.invoiceNumber || ''}`}
+        initialFormat={configuredFormat}
+        isSingleCopy={isSingleCopy}
+        onToggleCopyMode={toggleCopyMode}
+        renderDocument={(activeFormat, singleCopy) => (
+          <InvoiceDocument
+            invoice={invoice}
+            format={activeFormat}
+            isSingleCopy={singleCopy}
+            admin={admin}
+            customerOutstanding={customerOutstanding}
+          />
+        )}
       />
     </>
   );

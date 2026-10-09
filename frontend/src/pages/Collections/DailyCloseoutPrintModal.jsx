@@ -23,6 +23,9 @@ import {
 import { formatCurrency, formatDate, formatPaymentTime } from '../../utils/formatters';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
+import PrintDialog from '../../features/documentPrinting/components/PrintDialog';
+import CloseoutDocument from '../../features/documentPrinting/renderers/CloseoutDocument';
+import { resolveDocumentPrintFormat, DOCUMENT_TYPES } from '../../features/documentPrinting/formats/documentPrintFormats';
 
 const CANONICAL_METHODS = ['Cash', 'UPI', 'Bank Transfer', 'Cheque', 'NEFT/RTGS'];
 
@@ -139,8 +142,11 @@ export default function DailyCloseoutPrintModal({
   const cashShare = totalCollected > 0 ? ((cashCollected / totalCollected) * 100).toFixed(1) : '0.0';
   const nonCashShare = totalCollected > 0 ? ((nonCashCollected / totalCollected) * 100).toFixed(1) : '0.0';
 
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
+  const configuredFormat = resolveDocumentPrintFormat(admin?.preferences, DOCUMENT_TYPES.DAILY_CLOSEOUT);
+
   const handlePrint = () => {
-    window.print();
+    setShowPrintDialog(true);
   };
 
   const closeoutDateLabel = selectedDay === todayStr 
@@ -464,128 +470,24 @@ export default function DailyCloseoutPrintModal({
         </motion.div>
       </div>
 
-      {/* Printable Closeout Document (strictly visible in @media print) */}
-      <div className="hidden print:block invoice-print p-6 text-black bg-white w-full max-w-[210mm]">
-        <div className="text-center pb-4 border-b-2 border-black">
-          <h1 className="text-xl font-bold uppercase">{firmName}</h1>
-          {firmGstin && <p className="text-xs">GSTIN: {firmGstin}</p>}
-          {firmAddress && <p className="text-xs">{firmAddress}</p>}
-          {firmPhone && <p className="text-xs">Phone: {firmPhone}</p>}
-          <h2 className="text-sm font-bold uppercase tracking-wider mt-3 bg-gray-100 py-1 inline-block px-6 border border-black">
-            Daily Cashier Closeout & Reconciliation Statement
-          </h2>
-          <p className="text-xs mt-1">
-            <strong>Business Date:</strong> {closeoutDateLabel} · <strong>Audit Run:</strong> {generatedTimestamp}
-          </p>
-        </div>
-
-        {/* Cashier Reconciliation Summary Box */}
-        <div className="my-4 border border-black p-3 bg-gray-50 text-xs">
-          <h3 className="font-bold uppercase text-xs border-b border-gray-400 pb-1 mb-2">
-            1. Cashier Reconciliation Summary
-          </h3>
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <p className="text-gray-600">Total Cash Collections:</p>
-              <p className="text-base font-bold font-mono">{formatCurrency(cashCollected)}</p>
-              <p className="text-[10px] text-gray-500">{cashCount} cash receipts ({cashShare}%)</p>
-            </div>
-            <div>
-              <p className="text-gray-600">Total Digital & Non-Cash:</p>
-              <p className="text-base font-bold font-mono">{formatCurrency(nonCashCollected)}</p>
-              <p className="text-[10px] text-gray-500">{nonCashCount} digital receipts ({nonCashShare}%)</p>
-            </div>
-            <div>
-              <p className="text-gray-600">Total Day Collections:</p>
-              <p className="text-base font-bold font-mono">{formatCurrency(totalCollected)}</p>
-              <p className="text-[10px] text-gray-500">{paymentCount} transactions (100%)</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Payment Methods Breakdown */}
-        <div className="my-4 text-xs">
-          <h3 className="font-bold uppercase text-xs mb-2">
-            2. Payment Method Ledger Breakdown
-          </h3>
-          <table className="w-full border-collapse border border-black">
-            <thead>
-              <tr className="bg-gray-100 border-b border-black">
-                <th className="border border-black p-1 text-left">Method</th>
-                <th className="border border-black p-1 text-center">Receipts</th>
-                <th className="border border-black p-1 text-right">Total Amount</th>
-                <th className="border border-black p-1 text-right">Avg / Receipt</th>
-                <th className="border border-black p-1 text-right">Share</th>
-              </tr>
-            </thead>
-            <tbody>
-              {CANONICAL_METHODS.map((method) => {
-                const info = byMethod[method] || { count: 0, total: 0 };
-                const share = totalCollected > 0 ? ((info.total / totalCollected) * 100).toFixed(1) : '0.0';
-                const avg = info.count > 0 ? info.total / info.count : 0;
-                return (
-                  <tr key={method} className="border-b border-black">
-                    <td className="border border-black p-1 font-medium">{method}</td>
-                    <td className="border border-black p-1 text-center font-mono">{info.count}</td>
-                    <td className="border border-black p-1 text-right font-mono font-bold">{formatCurrency(info.total)}</td>
-                    <td className="border border-black p-1 text-right font-mono">{formatCurrency(avg)}</td>
-                    <td className="border border-black p-1 text-right font-mono">{share}%</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Itemized Transactions Table */}
-        <div className="my-4 text-xs">
-          <h3 className="font-bold uppercase text-xs mb-2">
-            3. Itemized Receipt Register ({payments.length} entries for {closeoutDateLabel})
-          </h3>
-          <table className="w-full border-collapse border border-black text-[11px]">
-            <thead>
-              <tr className="bg-gray-100 border-b border-black">
-                <th className="border border-black p-1 text-left">Time</th>
-                <th className="border border-black p-1 text-left">Customer</th>
-                <th className="border border-black p-1 text-left">Invoice / Ref</th>
-                <th className="border border-black p-1 text-left">Method</th>
-                <th className="border border-black p-1 text-left">UTR / Ref</th>
-                <th className="border border-black p-1 text-right">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {payments.map((p) => (
-                <tr key={p.id} className="border-b border-gray-300">
-                  <td className="border border-black p-1 font-mono">{formatPaymentTime(p)}</td>
-                  <td className="border border-black p-1 font-medium">{p.customer?.name || 'Unknown'}</td>
-                  <td className="border border-black p-1 font-mono">{p.invoice?.invoiceNumber || (p.entryType ? 'Manual Entry' : '-')}</td>
-                  <td className="border border-black p-1">{p.paymentMethod}</td>
-                  <td className="border border-black p-1 font-mono">{p.referenceNumber || '—'}</td>
-                  <td className="border border-black p-1 text-right font-mono font-bold">{formatCurrency(p.amount)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Verification & Sign-off Block */}
-        <div className="mt-8 pt-6 border-t-2 border-black grid grid-cols-2 gap-8 text-xs">
-          <div>
-            <p className="text-gray-600 mb-8">Cashier / Operator Signature:</p>
-            <div className="border-t border-black w-48 pt-1">
-              <p className="font-bold">Authorized Cashier</p>
-              <p className="text-[10px] text-gray-500">Date: {closeoutDateLabel}</p>
-            </div>
-          </div>
-          <div className="text-right flex flex-col items-end">
-            <p className="text-gray-600 mb-8">Manager / Auditor Verification:</p>
-            <div className="border-t border-black w-48 pt-1 text-right">
-              <p className="font-bold">Store / Branch Manager</p>
-              <p className="text-[10px] text-gray-500">Register Reconciled & Audited</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PrintDialog
+        isOpen={showPrintDialog}
+        onClose={() => setShowPrintDialog(false)}
+        documentType={DOCUMENT_TYPES.DAILY_CLOSEOUT}
+        title={`Print Cashier Closeout: ${closeoutDateLabel}`}
+        initialFormat={configuredFormat}
+        renderDocument={(activeFormat) => (
+          <CloseoutDocument
+            summary={summary}
+            payments={payments}
+            selectedDay={selectedDay}
+            closeoutDateLabel={closeoutDateLabel}
+            generatedTimestamp={generatedTimestamp}
+            format={activeFormat}
+            admin={admin}
+          />
+        )}
+      />
     </>,
     document.body
   );

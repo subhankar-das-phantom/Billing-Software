@@ -19,6 +19,9 @@ import { useToast } from '../../contexts/ToastContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSWR, useFirstVisit } from '../../hooks';
 import RefreshIndicator from '../../components/Common/Feedback/RefreshIndicator';
+import PrintDialog from '../../features/documentPrinting/components/PrintDialog';
+import CreditNoteDocument from '../../features/documentPrinting/renderers/CreditNoteDocument';
+import { resolveDocumentPrintFormat, DOCUMENT_TYPES } from '../../features/documentPrinting/formats/documentPrintFormats';
 
 const pageVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -51,6 +54,12 @@ export default function CreditNoteViewPage() {
   );
 
   const creditNote = creditNoteData?.creditNote || creditNoteData;
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
+
+  const configuredFormat = resolveDocumentPrintFormat(
+    user?.preferences || admin?.preferences,
+    DOCUMENT_TYPES.CREDIT_NOTE
+  );
 
   useEffect(() => {
     if (creditNote) {
@@ -60,7 +69,7 @@ export default function CreditNoteViewPage() {
     }
   }, [creditNote]);
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => setShowPrintDialog(true);
 
   if (loading) return <CreditNoteViewPageSkeleton />;
   if (!creditNote) {
@@ -408,6 +417,20 @@ export default function CreditNoteViewPage() {
         </motion.div>
       </div>
     </motion.div>
+    <PrintDialog
+      isOpen={showPrintDialog}
+      onClose={() => setShowPrintDialog(false)}
+      documentType={DOCUMENT_TYPES.CREDIT_NOTE}
+      title={`Print Credit Note ${creditNote.creditNoteNumber || ''}`}
+      initialFormat={configuredFormat}
+      renderDocument={(activeFormat) => (
+        <CreditNoteDocument
+          creditNote={creditNote}
+          format={activeFormat}
+          admin={admin}
+        />
+      )}
+    />
     </>
   );
 }

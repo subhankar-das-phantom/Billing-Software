@@ -53,3 +53,4 @@ Thumbs.db
 *.pem
 *.key
 .cache
+artifacts/
