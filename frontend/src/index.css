@@ -1478,16 +1478,23 @@ html.light .pp-footer-home:hover {
     display: table-header-group;
   }
 
+  /* Prevent table footer from repeating on every page during multi-page print */
   .print-table tfoot {
-    display: table-footer-group;
+    display: table-row-group;
+  }
+
+  .print-final-summary {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    width: 100%;
   }
 }
 
 
-/* Invoice & Ledger Print Styles for A4 */
+/* Invoice & Ledger Print Styles */
 @media print {
+  /* Default fallback page rule; dynamically overridden by active print format */
   @page {
-    size: A4 portrait;
     margin: 6mm;
   }
 
@@ -1570,6 +1577,39 @@ html.light .pp-footer-home:hover {
     box-sizing: border-box !important;
     border: none !important;
     box-shadow: none !important;
+  }
+
+  /* Format-Specific Scoped Document Containers */
+  .print-format-a4 {
+    width: 100% !important;
+    max-width: 190mm !important;
+    margin: 0 auto !important;
+    box-sizing: border-box !important;
+  }
+
+  .print-format-a5 {
+    width: 100% !important;
+    max-width: 138mm !important;
+    margin: 0 auto !important;
+    box-sizing: border-box !important;
+  }
+
+  .print-format-thermal-80 {
+    width: 74mm !important;
+    max-width: 74mm !important;
+    margin: 0 auto !important;
+    box-sizing: border-box !important;
+    font-size: 10px !important;
+    line-height: 1.25 !important;
+  }
+
+  .print-format-thermal-58 {
+    width: 52mm !important;
+    max-width: 52mm !important;
+    margin: 0 auto !important;
+    box-sizing: border-box !important;
+    font-size: 9px !important;
+    line-height: 1.2 !important;
   }
 
   .invoice-copy {
