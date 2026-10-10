@@ -15,10 +15,12 @@ For full release notes with implementation details, see [GitHub Releases](https:
   - Restored clean product header layout on `InvoiceCreatePage.jsx` (displaying title, items count badge, and Live SSE indicator) by removing the temporary copy-mode switcher capsule.
   - Implemented draft-session acknowledgment persistence (`a5WarningDismissed`): once the user clicks "OK, Got It" on the dialog, the warning is saved to the active draft in `sessionStorage` and **never reappears** while working on or reloading that draft in either create or edit mode.
   - Reset dismissal flag upon invoice submission or explicit draft clearance, re-arming capacity audits for freshly started invoices.
-- **Enterprise Dialog Redesign & Collapsible Preference Disclosure (`A5CapacityWarningDialog.jsx`)**:
-  - Overhauled dialog with high-density Enterprise SaaS aesthetics (no AI-slop glows): clean amber notice icon, 2-column tabular metric comparison card (Required Rows with `+{overflow} over` pill vs. A5 Capacity `~12`), and actionable layout guidance.
+- **Enterprise Dialog Redesign & Mobile Compact Optimization (`A5CapacityWarningDialog.jsx`, `Modal.jsx`)**:
+  - Overhauled dialog with high-density Enterprise SaaS aesthetics (no AI-slop glows): clean amber notice icon, streamlined single-line metric comparison strip (`Printed Rows: {actualRowCount} / ~{capacity}` with `+{overflow} over` pill), and concise guidance text.
+  - Optimized mobile ergonomics and viewport density: constrained mobile width via `maxWidth="max-w-[340px] sm:max-w-md"` and inner padding (`p-3.5 sm:p-5`), reducing mobile dialog height by >50% (from >450px down to ~220px) to prevent vertical crowding on phone screens.
+  - Upgraded generic `Modal.jsx` component to prioritize custom responsive `maxWidth` overrides (`maxWidth || sizes[size] || sizes.md`) and added responsive header padding (`p-3.5 sm:p-5`) and title sizing.
   - Added a collapsible disclosure accordion with a bottom-facing chevron (`ChevronDown`) for notification preferences, keeping the *"Don't show this warning again"* toggle neatly tucked away unless clicked.
-  - Single tactile full-width mobile/desktop *"OK, Got It"* confirmation button.
+  - Single tactile full-width mobile/desktop *"OK, Got It"* confirmation button (`min-h-[36px]`).
 - **Financial & Data Invariance**:
   - Pure presentation-only calculation: zero modifications to invoice calculations, stock, batch allocations, or stored invoice data.
 
@@ -41,6 +43,7 @@ For full release notes with implementation details, see [GitHub Releases](https:
 - `backend/controllers/authController.js` — added strict boolean validation and persistence for `showA5CapacityWarning` across admin and employee callers
 - `frontend/src/utils/invoiceRowCapacity.js` — implemented `calculateRenderedItemRowCount`, `isA5DoubleCopyWorkflowActive`, and `A5_ROW_CAPACITY_THRESHOLD`
 - `frontend/src/components/Common/Modals/A5CapacityWarningDialog.jsx` — created informational capacity warning modal with suppression checkbox
+- `frontend/src/components/Common/Modals/Modal.jsx` — added responsive maxWidth override resolution and xs preset
 - `frontend/src/pages/Invoices/InvoiceCreatePage.jsx` — integrated reactive copyMode, row capacity calculation, transition lifecycle, and warning dialog
 - `frontend/src/pages/Settings/SettingsPage.jsx` — added A5 capacity warning toggle in printing tab, opened printing tab to employees
 - `backend/scripts/testA5CapacityWarning.ts` — 31-test automated verification suite for capacity calculation, transitions, preference persistence, and financial invariance
