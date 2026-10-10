@@ -13,8 +13,8 @@ export default function Modal({
   closeOnOverlayClick = true,
   showCloseButton = true
 }) {
-  const effectiveSize = size === 'md' && maxWidth ? maxWidth : size;
   const sizes = {
+    xs: 'max-w-sm',
     sm: 'max-w-md',
     md: 'max-w-lg',
     lg: 'max-w-2xl',
@@ -23,7 +23,7 @@ export default function Modal({
     '4xl': 'max-w-4xl',
     full: 'max-w-7xl'
   };
-  const sizeClass = sizes[effectiveSize] || sizes.md;
+  const sizeClass = maxWidth || sizes[size] || sizes.md;
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -87,8 +87,8 @@ export default function Modal({
           >
             {/* Header */}
             {(title || showCloseButton) && (
-              <div className="modal-header flex items-center justify-between p-5 border-b border-slate-800">
-                <h2 className="text-lg font-semibold text-slate-100">{title}</h2>
+              <div className="modal-header flex items-center justify-between p-3.5 sm:p-5 border-b border-slate-800">
+                <h2 className="text-base sm:text-lg font-semibold text-slate-100">{title}</h2>
                 
                 {showCloseButton && (
                   <button

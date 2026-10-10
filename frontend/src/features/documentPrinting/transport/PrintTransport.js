@@ -14,12 +14,12 @@ const DYNAMIC_STYLE_ID = 'bharat-dynamic-print-page-style';
 function getFormatPageCss(format) {
   switch (format) {
     case PRINT_FORMATS.THERMAL_80:
-      return `@page { size: 80mm auto; margin: 2mm; }`;
+      return `@page { size: 80mm auto; margin: 0; }`;
     case PRINT_FORMATS.THERMAL_58:
-      return `@page { size: 58mm auto; margin: 2mm; }`;
+      return `@page { size: 58mm auto; margin: 0; }`;
     case PRINT_FORMATS.A4:
     default:
-      return `@page { size: A4 portrait; margin: 6mm; }`;
+      return `@page { size: A4 portrait; margin: 0; }`;
   }
 }
 

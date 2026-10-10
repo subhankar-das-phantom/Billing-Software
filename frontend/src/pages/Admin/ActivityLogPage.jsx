@@ -71,6 +71,14 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
   const [showAllProductsAdded, setShowAllProductsAdded] = useState(false);
   const [showAllProductsUpdated, setShowAllProductsUpdated] = useState(false);
 
+  // Recalibrate virtualizer offsets when accordion toggles or inner lists expand
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      window.dispatchEvent(new Event('resize'));
+    }, 220);
+    return () => clearTimeout(timer);
+  }, [expanded, showAllInvoices, showAllPayments, showAllProductsAdded, showAllProductsUpdated, activeTab]);
+
   if (!entry) return null;
 
   const session = entry.session || null;
@@ -129,14 +137,6 @@ const SessionCard = ({ entry, isMobile, isFirstVisit }) => {
 
   const DEFAULT_DISPLAY_LIMIT = 5;
   const DEFAULT_PRODUCT_LIMIT = 8;
-
-  // Recalibrate virtualizer offsets when accordion toggles or inner lists expand
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      window.dispatchEvent(new Event('resize'));
-    }, 220);
-    return () => clearTimeout(timer);
-  }, [expanded, showAllInvoices, showAllPayments, showAllProductsAdded, showAllProductsUpdated, activeTab]);
 
   const totalProducts = productsAdded.length + productsUpdated.length;
   const hasActivities = (summary.invoiceCount || 0) > 0 || (summary.paymentCount || 0) > 0 || totalProducts > 0 || invoicesCreated.length > 0 || paymentsRecorded.length > 0;

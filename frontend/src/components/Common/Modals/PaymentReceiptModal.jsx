@@ -45,6 +45,7 @@ const METHOD_BADGES = {
 export default function PaymentReceiptModal({ isOpen, onClose, payment }) {
   const { admin } = useAuth();
   const [copiedField, setCopiedField] = useState(null);
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
 
   // Keyboard shortcut: Escape to close
   useEffect(() => {
@@ -68,7 +69,6 @@ export default function PaymentReceiptModal({ isOpen, onClose, payment }) {
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  const [showPrintDialog, setShowPrintDialog] = useState(false);
   const configuredFormat = resolveDocumentPrintFormat(admin?.preferences, DOCUMENT_TYPES.PAYMENT_RECEIPT);
 
   const handlePrint = () => {
@@ -78,7 +78,6 @@ export default function PaymentReceiptModal({ isOpen, onClose, payment }) {
   const firmName = admin?.firmName || admin?.name || 'Bharat Enterprise';
   const firmGstin = admin?.gstin || '';
   const firmAddress = admin?.address || '';
-  const firmPhone = admin?.phone || '';
 
   const displayTime = formatPaymentTime(payment);
 

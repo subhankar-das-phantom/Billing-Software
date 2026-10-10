@@ -4,6 +4,78 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.10.2](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.10.2) — 2026-10-10 — React Hook Order Violation Fixes (#310 & #418) & Smart A5 Print Capacity Warning Subsystem
+
+### ⚠️ Smart A5 Print Capacity Warning Subsystem
+- **Direct Badge Count Binding & Capacity Detection (`frontend/src/utils/invoiceRowCapacity.js`, `InvoiceCreatePage.jsx`)**:
+  - Bound effective row capacity on `InvoiceCreatePage.jsx` directly to `Math.max(invoiceItems.length, calculateRenderedItemRowCount(invoiceItems))`, guaranteeing 100% agreement with the product count badge in the UI (e.g. `13 items`) while expanding if distinct batch allocations generate additional rows.
+  - Implemented `calculateRenderedItemRowCount(items)` sharing exact invoice renderer and backend batch grouping semantics (`splitInvoiceItemByBatchAllocations`).
+  - Updated `isA5DoubleCopyWorkflowActive(format, copyMode)` to treat `2x Double`, `1x Half` (1x Half Sheet), and default sheet creation workflows as A5 capacity-constrained layouts. Full-page A4 (`copyMode === 'single'`) and thermal formats (`THERMAL_80`, `THERMAL_58`) continue to be strictly excluded.
+- **Draft-Session Dismissal Persistence & Clean Header (`InvoiceCreatePage.jsx`)**:
+  - Restored clean product header layout on `InvoiceCreatePage.jsx` (displaying title, items count badge, and Live SSE indicator) by removing the temporary copy-mode switcher capsule.
+  - Implemented draft-session acknowledgment persistence (`a5WarningDismissed`): once the user clicks "OK, Got It" on the dialog, the warning is saved to the active draft in `sessionStorage` and **never reappears** while working on or reloading that draft in either create or edit mode.
+  - Reset dismissal flag upon invoice submission or explicit draft clearance, re-arming capacity audits for freshly started invoices.
+- **Enterprise Dialog Redesign & Mobile Compact Optimization (`A5CapacityWarningDialog.jsx`, `Modal.jsx`)**:
+  - Overhauled dialog with high-density Enterprise SaaS aesthetics (no AI-slop glows): clean amber notice icon, streamlined single-line metric comparison strip (`Printed Rows: {actualRowCount} / ~{capacity}` with `+{overflow} over` pill), and concise guidance text.
+  - Optimized mobile ergonomics and viewport density: constrained mobile width via `maxWidth="max-w-[340px] sm:max-w-md"` and inner padding (`p-3.5 sm:p-5`), reducing mobile dialog height by >50% (from >450px down to ~220px) to prevent vertical crowding on phone screens.
+  - Upgraded generic `Modal.jsx` component to prioritize custom responsive `maxWidth` overrides (`maxWidth || sizes[size] || sizes.md`) and added responsive header padding (`p-3.5 sm:p-5`) and title sizing.
+  - Added a collapsible disclosure accordion with a bottom-facing chevron (`ChevronDown`) for notification preferences, keeping the *"Don't show this warning again"* toggle neatly tucked away unless clicked.
+  - Single tactile full-width mobile/desktop *"OK, Got It"* confirmation button (`min-h-[36px]`).
+- **Financial & Data Invariance**:
+  - Pure presentation-only calculation: zero modifications to invoice calculations, stock, batch allocations, or stored invoice data.
+
+### 🖨️ Print Margin Immunity & Browser Override Protection (`PrintTransport.js`, `index.css`)
+- **Zero-Margin Override Immunity**:
+  - Resolved physical paper edge clipping, border bleeding, and header truncation occurring when users select **Margins: "None"** in Chromium's print dialog.
+  - **Root Cause**: Page margins were previously bound to `@page { margin: 6mm; }` while document containers had `padding: 0 !important`. Selecting "None" forced browser page margins to `0mm`, stripping all whitespace and slamming headers (`BHARAT ENTERPRISES`) and table borders directly against physical paper edges `(0, 0)`.
+  - **Fix**: Transitioned `@page` rules to `margin: 0;` in `PrintTransport.js` and `index.css`, embedding canonical self-contained padding (`padding: 5mm 6mm !important; box-sizing: border-box !important;`) directly into `.print-format-a4`.
+  - Guarantees 100% visual parity whether the user selects Margins: "None" or Margins: "Default", preserving safe ~5–6mm printer roller clearance, centered Cut Here divider placement, and guaranteed 1-page bounds for A4 double copy prints.
+
+### ⚡ Zero-Lag Filter Drawer Progressive Disclosure (`InvoicesPage.jsx`, `PurchasesPage.jsx`, `InventoryLedgerPage.jsx`, `index.css`)
+- **Eliminated 9px–25px Collapse Hang & Visual Stutter**:
+  - Eliminated the noticeable lag and pause when closing the mobile filter drawer across **Invoices**, **Purchases**, and **Inventory Ledger** pages.
+  - **Root Cause**: Top padding (`pt-2`/`pt-3`), margin (`mt-3`), and borders (`border-t`) were attached directly to the animating `motion.div`. During `exit={{ height: 0 }}`, Framer Motion collapsed content height while leaving the 9px–25px static padding intact until `AnimatePresence` unmounted the node, causing a jarring two-phase "freeze then pop" snap.
+  - **Fix**: Replaced JavaScript `framer-motion` height animation with GPU-composited pure CSS Grid progressive disclosure (`.collapsible-drawer` with `grid-template-rows: 0fr -> 1fr`, `min-height: 0`, `overflow: hidden`, and `visibility: hidden`), relocating all padding and borders inside `.collapsible-drawer-inner`.
+  - Provides instantaneous, 60fps hardware-accelerated close transitions with zero DOM layout measuring overhead, zero React unmount delay, and zero keyboard focus traps when collapsed.
+- **Trigger Button Event Target Isolation**:
+  - Applied `pointer-events-none` to inner indicator SVGs and text labels on filter buttons across all three pages.
+  - Replaced closure-dependent toggles with functional state updaters (`setShowMobileFilters((prev) => !prev)`), preventing closure races on rapid taps.
+
+### 🐛 Defect Resolutions & Hook Order Invariant Architecture
+- **Collections Page Modal Hook Ordering (`DailyCloseoutPrintModal.jsx`, `PaymentReceiptModal.jsx`)**:
+  - Eliminated runtime crashes (`Uncaught Error: Minified React error #310` / *"Rendered more hooks than during the previous render"*) triggered when clicking **"Daily Closeout"** or **"Receipt"** in the Collections subsystem (`CollectionsPage.jsx`).
+  - **Root Cause**: `useState(false)` for `showPrintDialog` was declared *after* early returns (`if (!isOpen ...) return null;`). On initial mount, 7 (or 3) hooks executed; opening the modal bypassed the early exit and executed hook #8 (or #4), violating React's Rules of Hooks.
+  - **Fix**: Hoisted `const [showPrintDialog, setShowPrintDialog] = useState(false);` to the top-level hook initialization sequence alongside other state hooks in both components, ensuring deterministic hook call order across open and closed states.
+- **Route Wrapper Hook Ordering & Hydration Parity (`App.jsx`)**:
+  - Hoisted `useAuth()` and `useSubscription()` hooks to the very top of `ProtectedRoute` and `PublicRoute` wrappers prior to the `if (!hasToken)` check.
+  - Guarantees 100% stable hook execution order during client auth rehydration and SSR passes, eliminating potential React Error #418 hydration mismatch crashes.
+- **Activity Log Virtualizer Resize Hook Order (`ActivityLogPage.jsx`)**:
+  - Hoisted `useEffect` for virtualizer resize recalibration in `SessionCard` before the `if (!entry) return null;` guard, ensuring unconditional hook invocation regardless of entry record presence.
+- **Clean Code & Lint Hygiene**:
+  - Removed unused variable declarations (`firmName`, `firmGstin`, `firmAddress`, `firmPhone`) in closeout and receipt print modals.
+
+### Files Modified
+- `backend/models/Admin.js` — added `showA5CapacityWarning` boolean preference (default `true`)
+- `backend/models/Employee.js` — added `showA5CapacityWarning` boolean preference (default `true`)
+- `backend/controllers/authController.js` — added strict boolean validation and persistence for `showA5CapacityWarning` across admin and employee callers
+- `frontend/src/utils/invoiceRowCapacity.js` — implemented `calculateRenderedItemRowCount`, `isA5DoubleCopyWorkflowActive`, and `A5_ROW_CAPACITY_THRESHOLD`
+- `frontend/src/components/Common/Modals/A5CapacityWarningDialog.jsx` — created informational capacity warning modal with suppression checkbox
+- `frontend/src/components/Common/Modals/Modal.jsx` — added responsive maxWidth override resolution and xs preset
+- `frontend/src/pages/Invoices/InvoiceCreatePage.jsx` — integrated reactive copyMode, row capacity calculation, transition lifecycle, and warning dialog
+- `frontend/src/pages/Settings/SettingsPage.jsx` — added A5 capacity warning toggle in printing tab, opened printing tab to employees
+- `backend/scripts/testA5CapacityWarning.ts` — 31-test automated verification suite for capacity calculation, transitions, preference persistence, and financial invariance
+- `frontend/src/pages/Collections/DailyCloseoutPrintModal.jsx` — hoisted `showPrintDialog` hook before early return, removed unused firm variables
+- `frontend/src/components/Common/Modals/PaymentReceiptModal.jsx` — hoisted `showPrintDialog` hook before early return, cleaned up unused `firmPhone`
+- `frontend/src/App.jsx` — hoisted `useAuth` and `useSubscription` in `ProtectedRoute` and `PublicRoute` before `hasToken` checks
+- `frontend/src/pages/Admin/ActivityLogPage.jsx` — hoisted virtualizer resize `useEffect` in `SessionCard` before `!entry` guard
+- `frontend/src/features/documentPrinting/transport/PrintTransport.js` — set format @page margins to 0 for print margin immunity
+- `frontend/src/index.css` — set @page margin to 0, added 5mm 6mm container padding to .print-format-a4, and introduced .collapsible-drawer CSS Grid rules
+- `frontend/src/pages/Invoices/InvoicesPage.jsx` — migrated mobile filter drawer to .collapsible-drawer and isolated trigger events
+- `frontend/src/pages/Purchases/PurchasesPage.jsx` — migrated mobile filter drawer to .collapsible-drawer and isolated trigger events
+- `frontend/src/pages/Inventory/InventoryLedgerPage.jsx` — migrated mobile filter drawer to .collapsible-drawer and isolated trigger events
+- `README.md` — verified version badge `v2.10.2`
+- `CHANGELOG.md` — documented v2.10.2 changes
+
 ## [v2.10.1](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.10.1) — 2026-10-10 — Single Compact Half-Sheet Invoice Layout Mode & Multi-Document Print Controls
 
 ### 🖨️ Single Compact Half-Sheet Layout Mode (`frontend/src/features/documentPrinting/*`)

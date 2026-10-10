@@ -28,7 +28,8 @@ import {
   Smartphone,
   Maximize2,
   Minimize2,
-  Printer
+  Printer,
+  AlertTriangle
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -128,6 +129,7 @@ export default function SettingsPage() {
     showCalculator: true,
     enableBatchTracking: false,
     allowPublicInvoicePrint: false,
+    showA5CapacityWarning: true,
     mobileCardDensity: typeof window !== 'undefined' ? (localStorage.getItem('bharat_mobile_card_density') || 'compact') : 'compact',
     documentPrintFormats: {
       invoice: 'A4',
@@ -175,6 +177,7 @@ export default function SettingsPage() {
         showCalculator: currentPrefs.showCalculator !== false,
         enableBatchTracking: currentPrefs.enableBatchTracking === true,
         allowPublicInvoicePrint: currentPrefs.allowPublicInvoicePrint === true,
+        showA5CapacityWarning: currentPrefs.showA5CapacityWarning !== false,
         mobileCardDensity: currentPrefs.mobileCardDensity || 'compact',
         documentPrintFormats: {
           invoice: currentPrefs.documentPrintFormats?.invoice || 'A4',
@@ -271,6 +274,25 @@ export default function SettingsPage() {
       }
     } catch (err) {
       setPreferences(prev => ({ ...prev, allowPublicInvoicePrint: !newAllowPublicPrint }));
+      showError(err.message || 'Failed to update preferences');
+    } finally {
+      setPreferencesLoading(false);
+    }
+  };
+
+  const handleToggleA5CapacityWarning = async () => {
+    const newA5Warning = preferences.showA5CapacityWarning === false;
+    setPreferences(prev => ({ ...prev, showA5CapacityWarning: newA5Warning }));
+    setPreferencesLoading(true);
+    
+    try {
+      const result = await authService.updatePreferences({ showA5CapacityWarning: newA5Warning });
+      if (result.success) {
+        updateUserPreferences({ showA5CapacityWarning: newA5Warning });
+        showSuccess(`A5 capacity warning is now ${newA5Warning ? 'enabled' : 'disabled'}`);
+      }
+    } catch (err) {
+      setPreferences(prev => ({ ...prev, showA5CapacityWarning: !newA5Warning }));
       showError(err.message || 'Failed to update preferences');
     } finally {
       setPreferencesLoading(false);
@@ -405,7 +427,7 @@ export default function SettingsPage() {
   const tabs = [
     ...(isUserAdmin ? [{ id: 'general', label: 'General', icon: Building2, desc: 'Business details' }] : []),
     ...(isUserAdmin ? [{ id: 'subscription', label: 'Subscription', icon: Crown, desc: 'Plan & Billing' }] : []),
-    ...(isUserAdmin ? [{ id: 'printing', label: 'Printing', icon: Printer, desc: 'Document formats & print styles' }] : []),
+    { id: 'printing', label: 'Printing', icon: Printer, desc: 'Document formats & print styles' },
     { id: 'preferences', label: 'Preferences', icon: Palette, desc: 'App customization' },
     { id: 'security', label: 'Security', icon: Shield, desc: 'Password & auth' }
   ];
@@ -994,6 +1016,39 @@ export default function SettingsPage() {
                 aria-hidden="true"
                 className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg ring-0 transition duration-300 ease-in-out ${
                   preferences.allowPublicInvoicePrint ? 'translate-x-7' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* A5 Print Capacity Warning Toggle (Per-user preference accessible to all authenticated users) */}
+          <div className="flex items-start sm:items-center justify-between p-3.5 sm:p-5 bg-slate-950/40 rounded-xl sm:rounded-2xl border border-white/5 hover:border-white/10 transition-colors gap-3 sm:gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="p-2.5 sm:p-3 bg-amber-500/10 rounded-xl shadow-[0_0_15px_rgba(245,158,11,0.1)] shrink-0">
+                <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-100 text-sm sm:text-base">Show A5 capacity warnings</h3>
+                <p className="text-xs sm:text-sm text-slate-400 mt-0.5 max-w-sm">
+                  Alert when an invoice exceeds practical capacity (~12 rows) for A5 double-copy print layout.
+                </p>
+              </div>
+            </div>
+            
+            <button 
+              type="button"
+              onClick={handleToggleA5CapacityWarning}
+              disabled={preferencesLoading}
+              title="Toggle A5 capacity warning"
+              className={`relative inline-flex h-7 w-14 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-opacity-75 disabled:opacity-50 ${
+                preferences.showA5CapacityWarning ? 'bg-amber-500' : 'bg-slate-700'
+              }`}
+            >
+              <span className="sr-only">Toggle A5 Capacity Warning</span>
+              <span
+                aria-hidden="true"
+                className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg ring-0 transition duration-300 ease-in-out ${
+                  preferences.showA5CapacityWarning ? 'translate-x-7' : 'translate-x-0'
                 }`}
               />
             </button>

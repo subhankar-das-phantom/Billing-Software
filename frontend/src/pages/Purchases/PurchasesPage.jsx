@@ -471,17 +471,19 @@ export default function PurchasesPage() {
 
           <button
             type="button"
-            onClick={() => setMobileFiltersExpanded(prev => !prev)}
-            className={`relative p-2 rounded-xl border transition-all ${
+            onClick={() => setMobileFiltersExpanded((prev) => !prev)}
+            aria-expanded={mobileFiltersExpanded}
+            className={`p-2.5 rounded-lg border text-xs flex items-center gap-1.5 transition-colors shrink-0 ${
               mobileFiltersExpanded || activeFiltersCount > 0
                 ? 'bg-blue-600 text-white border-blue-500 shadow-xs'
                 : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 border-slate-700/80'
             }`}
-            title="Filter options"
+            title="Filter purchases"
+            aria-label="Filter purchases"
           >
-            <Filter className="w-4 h-4" />
+            <Filter className="w-4 h-4 pointer-events-none" />
             {activeFiltersCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-slate-900" />
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 pointer-events-none" />
             )}
           </button>
 
@@ -496,15 +498,9 @@ export default function PurchasesPage() {
         </div>
 
         {/* Collapsible Mobile Drawer (< sm) */}
-        <AnimatePresence>
-          {mobileFiltersExpanded && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="sm:hidden overflow-hidden pt-3 space-y-2.5 border-t border-slate-800 mt-3"
-            >
+        <div className={`sm:hidden collapsible-drawer ${mobileFiltersExpanded ? 'expanded' : ''}`}>
+          <div className="collapsible-drawer-inner">
+            <div className="pt-3 mt-3 space-y-2.5 border-t border-slate-800">
               <div className="grid grid-cols-1 gap-2">
                 <div className="relative">
                   <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
@@ -551,9 +547,9 @@ export default function PurchasesPage() {
                   </button>
                 )}
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
+          </div>
+        </div>
 
         {/* Desktop Search and Filters (>= sm) */}
         <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 mt-6">

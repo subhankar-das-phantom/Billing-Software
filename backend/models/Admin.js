@@ -69,6 +69,10 @@ const adminSchema = new mongoose.Schema({
       type: Boolean,
       default: false
     },
+    showA5CapacityWarning: {
+      type: Boolean,
+      default: true
+    },
     documentPrintFormats: {
       invoice: {
         type: String,
