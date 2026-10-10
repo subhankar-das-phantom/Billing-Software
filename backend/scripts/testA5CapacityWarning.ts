@@ -55,9 +55,11 @@ function createMockResponse() {
 // Replicate pure frontend helper functions for verification parity
 const A5_ROW_CAPACITY_THRESHOLD = 12;
 
-function isA5DoubleCopyWorkflowActive(format: string, copyMode: string): boolean {
+function isA5DoubleCopyWorkflowActive(format: string, copyMode: string = 'double'): boolean {
   const isSheetFormat = format === 'A4' || format === 'A5';
-  return isSheetFormat && copyMode === 'double';
+  if (!isSheetFormat) return false;
+  if (copyMode === 'single') return false;
+  return true;
 }
 
 function getBatchGroupingKey(item: any, allocation: any): string {
@@ -380,6 +382,16 @@ async function runTests() {
   assert(
     isA5DoubleCopyWorkflowActive('A4', 'double') === true,
     'A4 format + copyMode "double" -> true (A5 half-sheet double-copy active)'
+  );
+
+  assert(
+    isA5DoubleCopyWorkflowActive('A4', 'half') === true,
+    'A4 format + copyMode "half" -> true (1x Half Sheet is A5 capacity constrained)'
+  );
+
+  assert(
+    isA5DoubleCopyWorkflowActive('A4', undefined) === true,
+    'A4 format + default copyMode -> true'
   );
 
   assert(

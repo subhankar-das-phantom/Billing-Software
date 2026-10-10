@@ -13,16 +13,21 @@ export const A5_ROW_CAPACITY_THRESHOLD = 12;
  * Detects whether the current active invoice layout is the A5 half-sheet double-copy workflow.
  * 
  * Safeguard:
- * Strictly applies to sheet formats (A4 / legacy A5) when copyMode is 'double'.
- * Full-page A4 ('single' copy), 'half' sheet, and thermal rolls (THERMAL_80, THERMAL_58) return false.
+ * Applies to sheet formats (A4 / legacy A5) when copyMode is 'double' (2x Half Sheet)
+ * or 'half' (1x Half Sheet), or default sheet workflow.
+ * Full-page A4 ('single' copy fits ~30 rows) and thermal rolls (THERMAL_80, THERMAL_58) return false.
  *
  * @param {string} format - Document print format ('A4', 'A5', 'THERMAL_80', 'THERMAL_58')
- * @param {string} copyMode - Active copy mode ('single', 'double', 'half')
+ * @param {string} [copyMode='double'] - Active copy mode ('single', 'double', 'half')
  * @returns {boolean}
  */
-export function isA5DoubleCopyWorkflowActive(format, copyMode) {
+export function isA5DoubleCopyWorkflowActive(format, copyMode = 'double') {
   const isSheetFormat = format === 'A4' || format === 'A5';
-  return isSheetFormat && copyMode === 'double';
+  if (!isSheetFormat) return false;
+  // Full-page A4 ('single') does NOT trigger warning
+  if (copyMode === 'single') return false;
+  // 'double' (2x Half Sheet) and 'half' (1x Half Sheet) or unspecified default
+  return true;
 }
 
 /**

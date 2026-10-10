@@ -211,7 +211,7 @@ export default function InvoiceCreatePage() {
   const [copyMode, setCopyMode] = useState(() => {
     try {
       const saved = localStorage.getItem("invoiceCopyMode");
-      if (saved === "single" || saved === "double" || saved === "half") {
+      if (saved === "double" || saved === "half") {
         return saved;
       }
       return "double";
@@ -219,6 +219,15 @@ export default function InvoiceCreatePage() {
       return "double";
     }
   });
+
+  const handleSelectCopyMode = (mode) => {
+    setCopyMode(mode);
+    try {
+      localStorage.setItem("invoiceCopyMode", mode);
+    } catch (err) {
+      console.warn("Failed saving copyMode", err);
+    }
+  };
 
   useEffect(() => {
     const handleStorageChange = (e) => {
@@ -305,7 +314,7 @@ export default function InvoiceCreatePage() {
   );
 
   const renderedRowCount = useMemo(
-    () => calculateRenderedItemRowCount(invoiceItems),
+    () => Math.max(invoiceItems.length, calculateRenderedItemRowCount(invoiceItems)),
     [invoiceItems]
   );
 
@@ -2282,13 +2291,13 @@ export default function InvoiceCreatePage() {
         variants={cardVariants}
         className="glass-card p-6 relative z-10"
       >
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2.5 bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 rounded-xl text-blue-600 dark:text-blue-400">
-            <ShoppingCart className="w-5 h-5" />
-          </div>
-          <h2 className="text-lg font-semibold text-slate-100">Add Products</h2>
-          {invoiceItems.length > 0 && (
-            <>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 rounded-xl text-blue-600 dark:text-blue-400">
+              <ShoppingCart className="w-5 h-5" />
+            </div>
+            <h2 className="text-lg font-semibold text-slate-100">Add Products</h2>
+            {invoiceItems.length > 0 && (
               <motion.span
                 className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-blue-500/15 border border-blue-500/30 text-blue-400 text-xs font-semibold font-mono"
                 initial={{ opacity: 0, scale: 0.9 }}
@@ -2298,26 +2307,71 @@ export default function InvoiceCreatePage() {
                 {invoiceItems.length}{" "}
                 {invoiceItems.length === 1 ? "item" : "items"}
               </motion.span>
-              <span className="ml-auto flex items-center gap-1.5 text-xs font-medium">
-                {sseConnectionState === "connected" ? (
-                  <>
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-                    </span>
-                    <span className="text-emerald-400">Live</span>
-                  </>
-                ) : (
-                  <>
-                    <AlertTriangle className="w-3 h-3 text-amber-400" />
-                    <span className="text-amber-400">
-                      Stock updates unavailable
-                    </span>
-                  </>
-                )}
-              </span>
-            </>
-          )}
+            )}
+          </div>
+
+          <div className="flex items-center gap-3 ml-auto">
+            {/* Segmented Copy Mode Capsule for Sheet Layout */}
+            {configuredFormat !== 'THERMAL_80' && configuredFormat !== 'THERMAL_58' && (
+              <div className="inline-flex items-center p-0.5 rounded-xl bg-slate-900/90 border border-slate-700/60 shadow-inner">
+                <button
+                  type="button"
+                  onClick={() => handleSelectCopyMode('double')}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                    copyMode === 'double'
+                      ? 'bg-blue-600 text-white shadow-xs font-semibold'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                  title="Print two compact copies with Cut Here divider (~12 rows)"
+                >
+                  2x Double
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectCopyMode('half')}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                    copyMode === 'half'
+                      ? 'bg-blue-600 text-white shadow-xs font-semibold'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                  title="Print single compact half-sheet copy (~12 rows)"
+                >
+                  1x Half
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectCopyMode('single')}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                    copyMode === 'single'
+                      ? 'bg-blue-600 text-white shadow-xs font-semibold'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                  title="Print single full-page A4 copy (~30 rows)"
+                >
+                  1x Full
+                </button>
+              </div>
+            )}
+
+            <span className="flex items-center gap-1.5 text-xs font-medium">
+              {sseConnectionState === "connected" ? (
+                <>
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                  </span>
+                  <span className="text-emerald-400">Live</span>
+                </>
+              ) : (
+                <>
+                  <AlertTriangle className="w-3 h-3 text-amber-400" />
+                  <span className="text-amber-400">
+                    Stock updates unavailable
+                  </span>
+                </>
+              )}
+            </span>
+          </div>
         </div>
 
         <div ref={productSearchContainerRef} className="relative mb-4">
