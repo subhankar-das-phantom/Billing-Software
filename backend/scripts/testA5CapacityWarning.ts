@@ -113,6 +113,7 @@ class A5WarningTransitionSimulator {
   triggered = false;
   prevIsA5Workflow = false;
   modalOpen = false;
+  draftDismissed = false;
 
   update(rowCount: number, isA5Workflow: boolean, showWarningPref: boolean) {
     const wasA5Workflow = this.prevIsA5Workflow;
@@ -121,6 +122,12 @@ class A5WarningTransitionSimulator {
     if (!isA5Workflow) {
       this.modalOpen = false;
       this.triggered = false;
+      return;
+    }
+
+    // Once dismissed for this draft session, never re-trigger
+    if (this.draftDismissed) {
+      this.modalOpen = false;
       return;
     }
 
@@ -135,7 +142,16 @@ class A5WarningTransitionSimulator {
     }
   }
 
-  dismissModal() {
+  dismissModal(markDraftDismissed = false) {
+    this.modalOpen = false;
+    if (markDraftDismissed) {
+      this.draftDismissed = true;
+    }
+  }
+
+  resetDraft() {
+    this.draftDismissed = false;
+    this.triggered = false;
     this.modalOpen = false;
   }
 }
@@ -463,7 +479,21 @@ async function runTests() {
   // Re-enabling preference
   sim.update(13, true, true); // preference toggled back to true in Settings
   assert(sim.modalOpen === true, 'Re-enabling preference in Settings -> triggers warning for exceeded capacity');
-  sim.dismissModal();
+  sim.dismissModal(true); // User clicks OK, marking draft as dismissed
+
+  // Draft-session dismissal persistence (user pressed OK on dialog)
+  sim.update(14, true, true);
+  assert(sim.modalOpen === false, 'Adding 14th item after draft dismissal -> modal stays closed');
+
+  sim.update(11, true, true);
+  sim.update(13, true, true);
+  assert(sim.modalOpen === false, 'Dropping and re-exceeding threshold within same draft -> modal NEVER reappears');
+
+  // Resetting draft (clearing draft or starting new invoice)
+  sim.resetDraft();
+  sim.update(13, true, true);
+  assert(sim.modalOpen === true, 'Starting a new draft with > 12 rows -> modal triggers cleanly');
+  sim.dismissModal(true);
 
   // 6. Financial Invariance
   console.log('\n💰 6. Financial Invariance Under Row Counting');

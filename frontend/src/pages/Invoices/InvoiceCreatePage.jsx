@@ -220,15 +220,6 @@ export default function InvoiceCreatePage() {
     }
   });
 
-  const handleSelectCopyMode = (mode) => {
-    setCopyMode(mode);
-    try {
-      localStorage.setItem("invoiceCopyMode", mode);
-    } catch (err) {
-      console.warn("Failed saving copyMode", err);
-    }
-  };
-
   useEffect(() => {
     const handleStorageChange = (e) => {
       if (e.key === "invoiceCopyMode") {
@@ -243,6 +234,7 @@ export default function InvoiceCreatePage() {
   }, []);
 
   const [showA5WarningModal, setShowA5WarningModal] = useState(false);
+  const [a5WarningDismissed, setA5WarningDismissed] = useState(false);
 
   // Detect if we're in edit mode
   const isEditMode = Boolean(
@@ -333,6 +325,12 @@ export default function InvoiceCreatePage() {
       return;
     }
 
+    // Once dismissed for this draft session, never re-trigger
+    if (a5WarningDismissed) {
+      setShowA5WarningModal(false);
+      return;
+    }
+
     if (renderedRowCount <= A5_ROW_CAPACITY_THRESHOLD) {
       a5WarningTriggeredRef.current = false;
     } else {
@@ -342,10 +340,12 @@ export default function InvoiceCreatePage() {
         a5WarningTriggeredRef.current = true;
       }
     }
-  }, [renderedRowCount, isA5Workflow, showA5WarningPref]);
+  }, [renderedRowCount, isA5Workflow, showA5WarningPref, a5WarningDismissed]);
 
   const handleA5WarningClose = async (dontShowAgain) => {
     setShowA5WarningModal(false);
+    setA5WarningDismissed(true);
+    a5WarningTriggeredRef.current = true;
     if (dontShowAgain) {
       try {
         await authService.updatePreferences({ showA5CapacityWarning: false });
@@ -486,6 +486,7 @@ export default function InvoiceCreatePage() {
       invoiceItems,
       paymentType,
       notes,
+      a5WarningDismissed,
       savedAt: new Date().toISOString(),
     };
 
@@ -503,6 +504,7 @@ export default function InvoiceCreatePage() {
     draftLoaded,
     isEditMode,
     editInvoiceId,
+    a5WarningDismissed,
   ]);
 
   useEffect(() => {
@@ -884,6 +886,7 @@ export default function InvoiceCreatePage() {
 
           if (savedDraft.paymentType) setPaymentType(savedDraft.paymentType);
           if (savedDraft.notes !== undefined) setNotes(savedDraft.notes);
+          if (savedDraft.a5WarningDismissed) setA5WarningDismissed(true);
 
           success("Edit draft restored");
         } else if (!isEditMode && draftIsEdit) {
@@ -938,6 +941,7 @@ export default function InvoiceCreatePage() {
 
           if (savedDraft.paymentType) setPaymentType(savedDraft.paymentType);
           if (savedDraft.notes) setNotes(savedDraft.notes);
+          if (savedDraft.a5WarningDismissed) setA5WarningDismissed(true);
 
           success("Draft restored");
         } else if (isEditMode && !draftIsForThisEdit) {
@@ -2004,6 +2008,8 @@ export default function InvoiceCreatePage() {
         result = await invoiceService.updateInvoice(editInvoiceId, invoiceData);
         // Clear the draft after successful update
         clearDraftFromStorage();
+        setA5WarningDismissed(false);
+        a5WarningTriggeredRef.current = false;
         // Invalidate cache so all tabs get updated data
         invalidateCachePattern("invoices");
         invalidateCachePattern("dashboard");
@@ -2018,6 +2024,8 @@ export default function InvoiceCreatePage() {
         result = await invoiceService.createInvoice(invoiceData);
         // Clear the draft after successful creation
         clearDraftFromStorage();
+        setA5WarningDismissed(false);
+        a5WarningTriggeredRef.current = false;
         // Invalidate cache so all tabs get updated data
         invalidateCachePattern("invoices");
         invalidateCachePattern("dashboard");
@@ -2057,6 +2065,8 @@ export default function InvoiceCreatePage() {
     setOriginalInvoice(null);
     originalStockAllocationsRef.current = new Map();
     clearDraftFromStorage();
+    setA5WarningDismissed(false);
+    a5WarningTriggeredRef.current = false;
     success("Draft cleared");
 
     // If we're on an edit URL, navigate to the create page so isEditMode
@@ -2291,7 +2301,7 @@ export default function InvoiceCreatePage() {
         variants={cardVariants}
         className="glass-card p-6 relative z-10"
       >
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <div className="flex items-center justify-between gap-3 mb-6">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 dark:border-blue-500/30 rounded-xl text-blue-600 dark:text-blue-400">
               <ShoppingCart className="w-5 h-5" />
@@ -2310,68 +2320,24 @@ export default function InvoiceCreatePage() {
             )}
           </div>
 
-          <div className="flex items-center gap-3 ml-auto">
-            {/* Segmented Copy Mode Capsule for Sheet Layout */}
-            {configuredFormat !== 'THERMAL_80' && configuredFormat !== 'THERMAL_58' && (
-              <div className="inline-flex items-center p-0.5 rounded-xl bg-slate-900/90 border border-slate-700/60 shadow-inner">
-                <button
-                  type="button"
-                  onClick={() => handleSelectCopyMode('double')}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
-                    copyMode === 'double'
-                      ? 'bg-blue-600 text-white shadow-xs font-semibold'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                  title="Print two compact copies with Cut Here divider (~12 rows)"
-                >
-                  2x Double
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSelectCopyMode('half')}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
-                    copyMode === 'half'
-                      ? 'bg-blue-600 text-white shadow-xs font-semibold'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                  title="Print single compact half-sheet copy (~12 rows)"
-                >
-                  1x Half
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSelectCopyMode('single')}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
-                    copyMode === 'single'
-                      ? 'bg-blue-600 text-white shadow-xs font-semibold'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                  title="Print single full-page A4 copy (~30 rows)"
-                >
-                  1x Full
-                </button>
-              </div>
+          <span className="ml-auto flex items-center gap-1.5 text-xs font-medium">
+            {sseConnectionState === "connected" ? (
+              <>
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                </span>
+                <span className="text-emerald-400">Live</span>
+              </>
+            ) : (
+              <>
+                <AlertTriangle className="w-3 h-3 text-amber-400" />
+                <span className="text-amber-400">
+                  Stock updates unavailable
+                </span>
+              </>
             )}
-
-            <span className="flex items-center gap-1.5 text-xs font-medium">
-              {sseConnectionState === "connected" ? (
-                <>
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-                  </span>
-                  <span className="text-emerald-400">Live</span>
-                </>
-              ) : (
-                <>
-                  <AlertTriangle className="w-3 h-3 text-amber-400" />
-                  <span className="text-amber-400">
-                    Stock updates unavailable
-                  </span>
-                </>
-              )}
-            </span>
-          </div>
+          </span>
         </div>
 
         <div ref={productSearchContainerRef} className="relative mb-4">

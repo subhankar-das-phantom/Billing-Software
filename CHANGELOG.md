@@ -11,15 +11,14 @@ For full release notes with implementation details, see [GitHub Releases](https:
   - Bound effective row capacity on `InvoiceCreatePage.jsx` directly to `Math.max(invoiceItems.length, calculateRenderedItemRowCount(invoiceItems))`, guaranteeing 100% agreement with the product count badge in the UI (e.g. `13 items`) while expanding if distinct batch allocations generate additional rows.
   - Implemented `calculateRenderedItemRowCount(items)` sharing exact invoice renderer and backend batch grouping semantics (`splitInvoiceItemByBatchAllocations`).
   - Updated `isA5DoubleCopyWorkflowActive(format, copyMode)` to treat `2x Double`, `1x Half` (1x Half Sheet), and default sheet creation workflows as A5 capacity-constrained layouts. Full-page A4 (`copyMode === 'single'`) and thermal formats (`THERMAL_80`, `THERMAL_58`) continue to be strictly excluded.
-- **Copy-Mode Segmented Capsule & Deterministic Lifecycle (`InvoiceCreatePage.jsx`)**:
-  - Added an interactive Segmented Copy Mode Capsule (`2x Double`, `1x Half`, `1x Full`) directly in the product header on `InvoiceCreatePage.jsx` next to the items count badge, providing immediate visual feedback and 1-click layout selection.
-  - Defaulted invoice creation `copyMode` state to `'double'` (standard billing workflow), eliminating silent suppression caused by stale `localStorage` settings from previous invoice view sessions.
-  - Connected reactive `copyMode` state with browser `storage` event listeners for instantaneous synchronization across tabs and layout switches without stale render-time reads.
-  - Configured deterministic transition guards: triggers warning modal once when crossing from $\le 12 \rightarrow > 12$ rows; suppresses duplicate popups during ordinary edits while staying $> 12$; re-arms when dropping to $\le 12$ rows; re-evaluates when workflow changes into A5 double-copy.
-- **Informational Modal & Per-User Suppression Preference (`A5CapacityWarningDialog.jsx`, `SettingsPage.jsx`)**:
-  - Built informational modal with approved title *"A5 Print Capacity Exceeded"*, explanatory row metrics (`{actualRowCount}` of `{capacity}`), and single *"OK"* button. Never blocks creation or auto-changes format.
-  - Added per-user preference `showA5CapacityWarning: { type: Boolean, default: true }` on both `Admin` and `Employee` models, with strict boolean validation on `authController.updatePreferences`.
-  - Added dedicated Settings toggle card in `renderPrintingTab`, with the Printing tab accessible to both Admins and Employees.
+- **Draft-Session Dismissal Persistence & Clean Header (`InvoiceCreatePage.jsx`)**:
+  - Restored clean product header layout on `InvoiceCreatePage.jsx` (displaying title, items count badge, and Live SSE indicator) by removing the temporary copy-mode switcher capsule.
+  - Implemented draft-session acknowledgment persistence (`a5WarningDismissed`): once the user clicks "OK, Got It" on the dialog, the warning is saved to the active draft in `sessionStorage` and **never reappears** while working on or reloading that draft in either create or edit mode.
+  - Reset dismissal flag upon invoice submission or explicit draft clearance, re-arming capacity audits for freshly started invoices.
+- **Enterprise Dialog Redesign & Collapsible Preference Disclosure (`A5CapacityWarningDialog.jsx`)**:
+  - Overhauled dialog with high-density Enterprise SaaS aesthetics (no AI-slop glows): clean amber notice icon, 2-column tabular metric comparison card (Required Rows with `+{overflow} over` pill vs. A5 Capacity `~12`), and actionable layout guidance.
+  - Added a collapsible disclosure accordion with a bottom-facing chevron (`ChevronDown`) for notification preferences, keeping the *"Don't show this warning again"* toggle neatly tucked away unless clicked.
+  - Single tactile full-width mobile/desktop *"OK, Got It"* confirmation button.
 - **Financial & Data Invariance**:
   - Pure presentation-only calculation: zero modifications to invoice calculations, stock, batch allocations, or stored invoice data.
 
