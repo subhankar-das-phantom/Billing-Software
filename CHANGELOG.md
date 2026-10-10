@@ -4,7 +4,22 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
-## [v2.10.2](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.10.2) — 2026-10-10 — React Hook Order Violation Fixes (#310 & #418) in Collections Modals & Route Wrappers
+## [v2.10.2](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.10.2) — 2026-10-10 — React Hook Order Violation Fixes (#310 & #418) & Smart A5 Print Capacity Warning Subsystem
+
+### ⚠️ Smart A5 Print Capacity Warning Subsystem
+- **Context-Aware Capacity Detection (`frontend/src/utils/invoiceRowCapacity.js`)**:
+  - Implemented `calculateRenderedItemRowCount(items)` sharing exact invoice renderer and backend batch grouping semantics (`splitInvoiceItemByBatchAllocations`).
+  - Accurately accounts for single products expanding into multiple rendered rows when distinct batch allocations differ in price, MRP, GST rate, or discount (`rate|mrp|gstPercent|discount`), while collapsing identical pricing batches into a single row and excluding empty draft items.
+  - Implemented `isA5DoubleCopyWorkflowActive(format, copyMode)` strictly detecting the A5 half-sheet double-copy workflow (`(configuredFormat === 'A4' || configuredFormat === 'A5') && copyMode === 'double'`). Full-page A4 (`copyMode === 'single'`), half sheet (`copyMode === 'half'`), and thermal formats (`THERMAL_80`, `THERMAL_58`) never trigger warnings.
+- **Deterministic Transition & Re-arming Lifecycle (`InvoiceCreatePage.jsx`)**:
+  - Connected reactive `copyMode` state with browser `storage` event listeners for instantaneous synchronization across tabs and layout switches without stale render-time reads.
+  - Configured deterministic transition guards: triggers warning modal once when crossing from $\le 12 \rightarrow > 12$ rows; suppresses duplicate popups during ordinary edits while staying $> 12$; re-arms when dropping to $\le 12$ rows; re-evaluates when workflow changes into A5 double-copy.
+- **Informational Modal & Per-User Suppression Preference (`A5CapacityWarningDialog.jsx`, `SettingsPage.jsx`)**:
+  - Built informational modal with approved title *"A5 Print Capacity Exceeded"*, explanatory row metrics (`{actualRowCount}` of `{capacity}`), and single *"OK"* button. Never blocks creation or auto-changes format.
+  - Added per-user preference `showA5CapacityWarning: { type: Boolean, default: true }` on both `Admin` and `Employee` models, with strict boolean validation on `authController.updatePreferences`.
+  - Added dedicated Settings toggle card in `renderPrintingTab`, with the Printing tab accessible to both Admins and Employees.
+- **Financial & Data Invariance**:
+  - Pure presentation-only calculation: zero modifications to invoice calculations, stock, batch allocations, or stored invoice data.
 
 ### 🐛 Defect Resolutions & Hook Order Invariant Architecture
 - **Collections Page Modal Hook Ordering (`DailyCloseoutPrintModal.jsx`, `PaymentReceiptModal.jsx`)**:
@@ -20,11 +35,19 @@ For full release notes with implementation details, see [GitHub Releases](https:
   - Removed unused variable declarations (`firmName`, `firmGstin`, `firmAddress`, `firmPhone`) in closeout and receipt print modals.
 
 ### Files Modified
+- `backend/models/Admin.js` — added `showA5CapacityWarning` boolean preference (default `true`)
+- `backend/models/Employee.js` — added `showA5CapacityWarning` boolean preference (default `true`)
+- `backend/controllers/authController.js` — added strict boolean validation and persistence for `showA5CapacityWarning` across admin and employee callers
+- `frontend/src/utils/invoiceRowCapacity.js` — implemented `calculateRenderedItemRowCount`, `isA5DoubleCopyWorkflowActive`, and `A5_ROW_CAPACITY_THRESHOLD`
+- `frontend/src/components/Common/Modals/A5CapacityWarningDialog.jsx` — created informational capacity warning modal with suppression checkbox
+- `frontend/src/pages/Invoices/InvoiceCreatePage.jsx` — integrated reactive copyMode, row capacity calculation, transition lifecycle, and warning dialog
+- `frontend/src/pages/Settings/SettingsPage.jsx` — added A5 capacity warning toggle in printing tab, opened printing tab to employees
+- `backend/scripts/testA5CapacityWarning.ts` — 31-test automated verification suite for capacity calculation, transitions, preference persistence, and financial invariance
 - `frontend/src/pages/Collections/DailyCloseoutPrintModal.jsx` — hoisted `showPrintDialog` hook before early return, removed unused firm variables
 - `frontend/src/components/Common/Modals/PaymentReceiptModal.jsx` — hoisted `showPrintDialog` hook before early return, cleaned up unused `firmPhone`
 - `frontend/src/App.jsx` — hoisted `useAuth` and `useSubscription` in `ProtectedRoute` and `PublicRoute` before `hasToken` checks
 - `frontend/src/pages/Admin/ActivityLogPage.jsx` — hoisted virtualizer resize `useEffect` in `SessionCard` before `!entry` guard
-- `README.md` — updated version badge to `v2.10.2`
+- `README.md` — verified version badge `v2.10.2`
 - `CHANGELOG.md` — documented v2.10.2 changes
 
 ## [v2.10.1](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.10.1) — 2026-10-10 — Single Compact Half-Sheet Invoice Layout Mode & Multi-Document Print Controls
