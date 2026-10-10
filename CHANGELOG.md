@@ -4,6 +4,29 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.10.2](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.10.2) — 2026-10-10 — React Hook Order Violation Fixes (#310 & #418) in Collections Modals & Route Wrappers
+
+### 🐛 Defect Resolutions & Hook Order Invariant Architecture
+- **Collections Page Modal Hook Ordering (`DailyCloseoutPrintModal.jsx`, `PaymentReceiptModal.jsx`)**:
+  - Eliminated runtime crashes (`Uncaught Error: Minified React error #310` / *"Rendered more hooks than during the previous render"*) triggered when clicking **"Daily Closeout"** or **"Receipt"** in the Collections subsystem (`CollectionsPage.jsx`).
+  - **Root Cause**: `useState(false)` for `showPrintDialog` was declared *after* early returns (`if (!isOpen ...) return null;`). On initial mount, 7 (or 3) hooks executed; opening the modal bypassed the early exit and executed hook #8 (or #4), violating React's Rules of Hooks.
+  - **Fix**: Hoisted `const [showPrintDialog, setShowPrintDialog] = useState(false);` to the top-level hook initialization sequence alongside other state hooks in both components, ensuring deterministic hook call order across open and closed states.
+- **Route Wrapper Hook Ordering & Hydration Parity (`App.jsx`)**:
+  - Hoisted `useAuth()` and `useSubscription()` hooks to the very top of `ProtectedRoute` and `PublicRoute` wrappers prior to the `if (!hasToken)` check.
+  - Guarantees 100% stable hook execution order during client auth rehydration and SSR passes, eliminating potential React Error #418 hydration mismatch crashes.
+- **Activity Log Virtualizer Resize Hook Order (`ActivityLogPage.jsx`)**:
+  - Hoisted `useEffect` for virtualizer resize recalibration in `SessionCard` before the `if (!entry) return null;` guard, ensuring unconditional hook invocation regardless of entry record presence.
+- **Clean Code & Lint Hygiene**:
+  - Removed unused variable declarations (`firmName`, `firmGstin`, `firmAddress`, `firmPhone`) in closeout and receipt print modals.
+
+### Files Modified
+- `frontend/src/pages/Collections/DailyCloseoutPrintModal.jsx` — hoisted `showPrintDialog` hook before early return, removed unused firm variables
+- `frontend/src/components/Common/Modals/PaymentReceiptModal.jsx` — hoisted `showPrintDialog` hook before early return, cleaned up unused `firmPhone`
+- `frontend/src/App.jsx` — hoisted `useAuth` and `useSubscription` in `ProtectedRoute` and `PublicRoute` before `hasToken` checks
+- `frontend/src/pages/Admin/ActivityLogPage.jsx` — hoisted virtualizer resize `useEffect` in `SessionCard` before `!entry` guard
+- `README.md` — updated version badge to `v2.10.2`
+- `CHANGELOG.md` — documented v2.10.2 changes
+
 ## [v2.10.1](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.10.1) — 2026-10-10 — Single Compact Half-Sheet Invoice Layout Mode & Multi-Document Print Controls
 
 ### 🖨️ Single Compact Half-Sheet Layout Mode (`frontend/src/features/documentPrinting/*`)
