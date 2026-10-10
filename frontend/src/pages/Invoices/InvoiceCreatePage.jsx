@@ -40,6 +40,17 @@ import {
 } from "../../utils/calculations";
 import { InvoiceCreatePageSkeleton } from "./InvoiceCreatePageSkeleton";
 import Modal from "../../components/Common/Modals/Modal";
+import A5CapacityWarningDialog from "../../components/Common/Modals/A5CapacityWarningDialog";
+import {
+  calculateRenderedItemRowCount,
+  isA5DoubleCopyWorkflowActive,
+  A5_ROW_CAPACITY_THRESHOLD,
+} from "../../utils/invoiceRowCapacity";
+import {
+  resolveDocumentPrintFormat,
+  DOCUMENT_TYPES,
+} from "../../features/documentPrinting/formats/documentPrintFormats";
+import { authService } from "../../services/auth/authService";
 import { useToast } from "../../contexts/ToastContext";
 import {
   invalidateCachePattern,
@@ -193,8 +204,90 @@ export default function InvoiceCreatePage() {
   const isFirstVisit = useFirstVisit("invoice-create");
   const isDesktop = useMediaQuery("(min-width: 950px)");
 
-  const { user } = useAuth();
+  const { user, admin, updateUserPreferences } = useAuth();
   const enableBatchTracking = user?.preferences?.enableBatchTracking === true;
+
+  // Reactive copy-mode state synchronized with storage events
+  const [copyMode, setCopyMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem("invoiceCopyMode");
+      if (saved === "single" || saved === "double" || saved === "half") {
+        return saved;
+      }
+      return "double";
+    } catch {
+      return "double";
+    }
+  });
+
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === "invoiceCopyMode") {
+        const newMode = e.newValue;
+        if (newMode === "single" || newMode === "double" || newMode === "half") {
+          setCopyMode(newMode);
+        }
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
+  const configuredFormat = useMemo(() => {
+    return resolveDocumentPrintFormat(
+      user?.preferences || admin?.preferences,
+      DOCUMENT_TYPES.INVOICE
+    );
+  }, [user?.preferences, admin?.preferences]);
+
+  const isA5Workflow = useMemo(
+    () => isA5DoubleCopyWorkflowActive(configuredFormat, copyMode),
+    [configuredFormat, copyMode]
+  );
+
+  const renderedRowCount = useMemo(
+    () => calculateRenderedItemRowCount(invoiceItems),
+    [invoiceItems]
+  );
+
+  const showA5WarningPref = (user?.preferences?.showA5CapacityWarning ?? admin?.preferences?.showA5CapacityWarning ?? true) !== false;
+
+  const [showA5WarningModal, setShowA5WarningModal] = useState(false);
+  const a5WarningTriggeredRef = useRef(false);
+  const prevA5WorkflowRef = useRef(isA5Workflow);
+
+  useEffect(() => {
+    const wasA5Workflow = prevA5WorkflowRef.current;
+    prevA5WorkflowRef.current = isA5Workflow;
+
+    if (!isA5Workflow) {
+      setShowA5WarningModal(false);
+      a5WarningTriggeredRef.current = false;
+      return;
+    }
+
+    if (renderedRowCount <= A5_ROW_CAPACITY_THRESHOLD) {
+      a5WarningTriggeredRef.current = false;
+    } else {
+      const workflowJustBecameActive = !wasA5Workflow && isA5Workflow;
+      if ((!a5WarningTriggeredRef.current || workflowJustBecameActive) && showA5WarningPref) {
+        setShowA5WarningModal(true);
+        a5WarningTriggeredRef.current = true;
+      }
+    }
+  }, [renderedRowCount, isA5Workflow, showA5WarningPref]);
+
+  const handleA5WarningClose = async (dontShowAgain) => {
+    setShowA5WarningModal(false);
+    if (dontShowAgain) {
+      try {
+        await authService.updatePreferences({ showA5CapacityWarning: false });
+        updateUserPreferences({ showA5CapacityWarning: false });
+      } catch (err) {
+        console.error("Failed to update A5 capacity warning preference:", err);
+      }
+    }
+  };
 
   // Detect if we're in edit mode
   const isEditMode = Boolean(
@@ -2993,6 +3086,14 @@ export default function InvoiceCreatePage() {
           </div>
         </div>
       </Modal>
+
+      {/* Smart A5 Capacity Warning Dialog */}
+      <A5CapacityWarningDialog
+        isOpen={showA5WarningModal}
+        onClose={handleA5WarningClose}
+        actualRowCount={renderedRowCount}
+        capacity={A5_ROW_CAPACITY_THRESHOLD}
+      />
     </motion.div>
   );
 }

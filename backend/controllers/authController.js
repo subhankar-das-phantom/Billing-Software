@@ -550,7 +550,7 @@ const VALID_DOCUMENT_TYPES = new Set(Object.keys(DOCUMENT_PRINT_CAPABILITY_MATRI
 
 exports.updatePreferences = async (req, res, next) => {
   try {
-    const { showCalculator, invoiceColumns, enableBatchTracking, themeMode, mobileCardDensity, allowPublicInvoicePrint, documentPrintFormats } = req.body;
+    const { showCalculator, invoiceColumns, enableBatchTracking, themeMode, mobileCardDensity, allowPublicInvoicePrint, documentPrintFormats, showA5CapacityWarning } = req.body;
 
     // Early authorization guards for admin-only preferences
     if (invoiceColumns !== undefined && req.userRole !== 'admin') {
@@ -611,6 +611,16 @@ exports.updatePreferences = async (req, res, next) => {
 
     if (showCalculator !== undefined) {
       user.set('preferences.showCalculator', showCalculator);
+    }
+
+    if (showA5CapacityWarning !== undefined) {
+      if (typeof showA5CapacityWarning !== 'boolean') {
+        return res.status(400).json({
+          success: false,
+          message: 'showA5CapacityWarning must be a boolean'
+        });
+      }
+      user.set('preferences.showA5CapacityWarning', showA5CapacityWarning);
     }
 
     if (invoiceColumns !== undefined) {

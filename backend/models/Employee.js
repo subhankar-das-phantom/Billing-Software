@@ -120,6 +120,10 @@ const employeeSchema = new mongoose.Schema({
       type: String,
       enum: ['compact', 'expanded'],
       default: 'compact'
+    },
+    showA5CapacityWarning: {
+      type: Boolean,
+      default: true
     }
   },
 
