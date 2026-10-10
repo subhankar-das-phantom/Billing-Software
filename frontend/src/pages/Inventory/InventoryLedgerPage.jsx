@@ -490,15 +490,17 @@ export default function InventoryLedgerPage() {
             )}
             <button
               type="button"
-              onClick={() => setMobileFiltersExpanded(prev => !prev)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-medium border flex items-center gap-1 transition-all ${
+              onClick={() => setMobileFiltersExpanded((prev) => !prev)}
+              aria-expanded={mobileFiltersExpanded}
+              aria-label="Toggle stock filters"
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium border flex items-center gap-1 transition-colors ${
                 mobileFiltersExpanded
                   ? 'bg-blue-600 text-white border-blue-500'
                   : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
               }`}
             >
-              <Filter className="w-3 h-3" />
-              <span>{mobileFiltersExpanded ? 'Less' : 'More'}</span>
+              <Filter className="w-3 h-3 pointer-events-none" />
+              <span className="pointer-events-none">{mobileFiltersExpanded ? 'Less' : 'More'}</span>
             </button>
           </div>
         </div>
@@ -764,15 +766,9 @@ export default function InventoryLedgerPage() {
           </div>
 
           {/* Collapsible Mobile Drawer */}
-          <AnimatePresence>
-            {mobileFiltersExpanded && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="overflow-hidden pt-2 space-y-2.5 border-t border-slate-800"
-              >
+          <div className={`collapsible-drawer ${mobileFiltersExpanded ? 'expanded' : ''}`}>
+            <div className="collapsible-drawer-inner">
+              <div className="pt-2 space-y-2.5 border-t border-slate-800">
                 {/* Batch Number */}
                 <div className="relative">
                   <input
@@ -837,9 +833,9 @@ export default function InventoryLedgerPage() {
                     onChange={(e) => { setDateTo(e.target.value); setDatePreset('custom'); setPage(1); }}
                   />
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

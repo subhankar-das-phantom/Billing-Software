@@ -441,7 +441,8 @@ export default function InvoicesPage() {
             {/* Filter Toggle */}
             <button
               type="button"
-              onClick={() => setShowMobileFilters(!showMobileFilters)}
+              onClick={() => setShowMobileFilters((prev) => !prev)}
+              aria-expanded={showMobileFilters}
               className={`p-2.5 rounded-lg border text-xs flex items-center gap-1.5 transition-colors shrink-0 ${
                 hasActiveFilters
                   ? 'bg-blue-500/20 text-blue-400 border-blue-500/40 shadow-xs'
@@ -452,9 +453,9 @@ export default function InvoicesPage() {
               title="Filter invoices"
               aria-label="Filter invoices"
             >
-              <Filter className="w-4 h-4" />
+              <Filter className="w-4 h-4 pointer-events-none" />
               {hasActiveFilters && (
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 pointer-events-none" />
               )}
             </button>
 
@@ -471,15 +472,9 @@ export default function InvoicesPage() {
           </div>
 
           {/* Expandable Mobile Filters */}
-          <AnimatePresence>
-            {showMobileFilters && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.15 }}
-                className="pt-2 border-t border-slate-800 space-y-2.5 overflow-hidden"
-              >
+          <div className={`collapsible-drawer ${showMobileFilters ? 'expanded' : ''}`}>
+            <div className="collapsible-drawer-inner">
+              <div className="pt-2 border-t border-slate-800 space-y-2.5">
                 <div className="grid grid-cols-1 gap-2">
                   <div className="relative">
                     <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
@@ -533,9 +528,9 @@ export default function InvoicesPage() {
                     </button>
                   </div>
                 )}
-              </motion.div>
-            )}
-          </AnimatePresence>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Desktop Search and Filters (>= sm) */}

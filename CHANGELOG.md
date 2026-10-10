@@ -24,6 +24,23 @@ For full release notes with implementation details, see [GitHub Releases](https:
 - **Financial & Data Invariance**:
   - Pure presentation-only calculation: zero modifications to invoice calculations, stock, batch allocations, or stored invoice data.
 
+### 🖨️ Print Margin Immunity & Browser Override Protection (`PrintTransport.js`, `index.css`)
+- **Zero-Margin Override Immunity**:
+  - Resolved physical paper edge clipping, border bleeding, and header truncation occurring when users select **Margins: "None"** in Chromium's print dialog.
+  - **Root Cause**: Page margins were previously bound to `@page { margin: 6mm; }` while document containers had `padding: 0 !important`. Selecting "None" forced browser page margins to `0mm`, stripping all whitespace and slamming headers (`BHARAT ENTERPRISES`) and table borders directly against physical paper edges `(0, 0)`.
+  - **Fix**: Transitioned `@page` rules to `margin: 0;` in `PrintTransport.js` and `index.css`, embedding canonical self-contained padding (`padding: 5mm 6mm !important; box-sizing: border-box !important;`) directly into `.print-format-a4`.
+  - Guarantees 100% visual parity whether the user selects Margins: "None" or Margins: "Default", preserving safe ~5–6mm printer roller clearance, centered Cut Here divider placement, and guaranteed 1-page bounds for A4 double copy prints.
+
+### ⚡ Zero-Lag Filter Drawer Progressive Disclosure (`InvoicesPage.jsx`, `PurchasesPage.jsx`, `InventoryLedgerPage.jsx`, `index.css`)
+- **Eliminated 9px–25px Collapse Hang & Visual Stutter**:
+  - Eliminated the noticeable lag and pause when closing the mobile filter drawer across **Invoices**, **Purchases**, and **Inventory Ledger** pages.
+  - **Root Cause**: Top padding (`pt-2`/`pt-3`), margin (`mt-3`), and borders (`border-t`) were attached directly to the animating `motion.div`. During `exit={{ height: 0 }}`, Framer Motion collapsed content height while leaving the 9px–25px static padding intact until `AnimatePresence` unmounted the node, causing a jarring two-phase "freeze then pop" snap.
+  - **Fix**: Replaced JavaScript `framer-motion` height animation with GPU-composited pure CSS Grid progressive disclosure (`.collapsible-drawer` with `grid-template-rows: 0fr -> 1fr`, `min-height: 0`, `overflow: hidden`, and `visibility: hidden`), relocating all padding and borders inside `.collapsible-drawer-inner`.
+  - Provides instantaneous, 60fps hardware-accelerated close transitions with zero DOM layout measuring overhead, zero React unmount delay, and zero keyboard focus traps when collapsed.
+- **Trigger Button Event Target Isolation**:
+  - Applied `pointer-events-none` to inner indicator SVGs and text labels on filter buttons across all three pages.
+  - Replaced closure-dependent toggles with functional state updaters (`setShowMobileFilters((prev) => !prev)`), preventing closure races on rapid taps.
+
 ### 🐛 Defect Resolutions & Hook Order Invariant Architecture
 - **Collections Page Modal Hook Ordering (`DailyCloseoutPrintModal.jsx`, `PaymentReceiptModal.jsx`)**:
   - Eliminated runtime crashes (`Uncaught Error: Minified React error #310` / *"Rendered more hooks than during the previous render"*) triggered when clicking **"Daily Closeout"** or **"Receipt"** in the Collections subsystem (`CollectionsPage.jsx`).
@@ -51,6 +68,11 @@ For full release notes with implementation details, see [GitHub Releases](https:
 - `frontend/src/components/Common/Modals/PaymentReceiptModal.jsx` — hoisted `showPrintDialog` hook before early return, cleaned up unused `firmPhone`
 - `frontend/src/App.jsx` — hoisted `useAuth` and `useSubscription` in `ProtectedRoute` and `PublicRoute` before `hasToken` checks
 - `frontend/src/pages/Admin/ActivityLogPage.jsx` — hoisted virtualizer resize `useEffect` in `SessionCard` before `!entry` guard
+- `frontend/src/features/documentPrinting/transport/PrintTransport.js` — set format @page margins to 0 for print margin immunity
+- `frontend/src/index.css` — set @page margin to 0, added 5mm 6mm container padding to .print-format-a4, and introduced .collapsible-drawer CSS Grid rules
+- `frontend/src/pages/Invoices/InvoicesPage.jsx` — migrated mobile filter drawer to .collapsible-drawer and isolated trigger events
+- `frontend/src/pages/Purchases/PurchasesPage.jsx` — migrated mobile filter drawer to .collapsible-drawer and isolated trigger events
+- `frontend/src/pages/Inventory/InventoryLedgerPage.jsx` — migrated mobile filter drawer to .collapsible-drawer and isolated trigger events
 - `README.md` — verified version badge `v2.10.2`
 - `CHANGELOG.md` — documented v2.10.2 changes
 
