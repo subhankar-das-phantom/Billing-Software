@@ -61,12 +61,14 @@ export default function DailyCloseoutPrintModal({
   const [selectedDay, setSelectedDay] = useState(todayStr);
   const [dayData, setDayData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
 
   // Sync state whenever modal opens or initialDate changes
   useEffect(() => {
     if (isOpen) {
       const target = initialDate || todayStr;
       setSelectedDay(target);
+      setShowPrintDialog(false);
     }
   }, [isOpen, initialDate, todayStr]);
 
@@ -123,11 +125,6 @@ export default function DailyCloseoutPrintModal({
 
   if (!isOpen || typeof document === 'undefined') return null;
 
-  const firmName = admin?.firmName || admin?.name || 'Bharat Enterprise';
-  const firmGstin = admin?.gstin || '';
-  const firmAddress = admin?.address || '';
-  const firmPhone = admin?.phone || '';
-
   const summary = dayData?.summary || null;
   const payments = dayData?.payments || [];
 
@@ -142,7 +139,6 @@ export default function DailyCloseoutPrintModal({
   const cashShare = totalCollected > 0 ? ((cashCollected / totalCollected) * 100).toFixed(1) : '0.0';
   const nonCashShare = totalCollected > 0 ? ((nonCashCollected / totalCollected) * 100).toFixed(1) : '0.0';
 
-  const [showPrintDialog, setShowPrintDialog] = useState(false);
   const configuredFormat = resolveDocumentPrintFormat(admin?.preferences, DOCUMENT_TYPES.DAILY_CLOSEOUT);
 
   const handlePrint = () => {

@@ -81,13 +81,13 @@ function PageLoader() {
 
 // Protected Route Wrapper
 function ProtectedRoute({ children }) {
+  const { user, loading, isAdmin, logout, authTransition } = useAuth();
+  const { canAccess, loading: subLoading } = useSubscription();
+
   const hasToken = typeof window !== 'undefined' ? !!localStorage.getItem('token') : false;
   if (!hasToken) {
     return <Navigate to="/landing" replace />;
   }
-
-  const { user, loading, isAdmin, logout, authTransition } = useAuth();
-  const { canAccess, loading: subLoading } = useSubscription();
   
   // Treat an in-progress login transition as a loading state — the React
   // state updates (setUser/setAdmin/setUserRole) haven't committed yet but
@@ -181,12 +181,12 @@ function PermissionRoute({ resource, action = 'view', feature: explicitFeature, 
 
 // Public Route Wrapper (redirect if logged in)
 function PublicRoute({ children }) {
+  const { user, loading, authTransition } = useAuth();
+
   const hasToken = typeof window !== 'undefined' ? !!localStorage.getItem('token') : false;
   if (!hasToken) {
     return children;
   }
-
-  const { user, loading, authTransition } = useAuth();
   
   // During loading or a login transition, render children (e.g. LoginPage)
   // instead of a spinner — the form stays visible while auth resolves.
