@@ -233,61 +233,7 @@ export default function InvoiceCreatePage() {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
-  const configuredFormat = useMemo(() => {
-    return resolveDocumentPrintFormat(
-      user?.preferences || admin?.preferences,
-      DOCUMENT_TYPES.INVOICE
-    );
-  }, [user?.preferences, admin?.preferences]);
-
-  const isA5Workflow = useMemo(
-    () => isA5DoubleCopyWorkflowActive(configuredFormat, copyMode),
-    [configuredFormat, copyMode]
-  );
-
-  const renderedRowCount = useMemo(
-    () => calculateRenderedItemRowCount(invoiceItems),
-    [invoiceItems]
-  );
-
-  const showA5WarningPref = (user?.preferences?.showA5CapacityWarning ?? admin?.preferences?.showA5CapacityWarning ?? true) !== false;
-
   const [showA5WarningModal, setShowA5WarningModal] = useState(false);
-  const a5WarningTriggeredRef = useRef(false);
-  const prevA5WorkflowRef = useRef(isA5Workflow);
-
-  useEffect(() => {
-    const wasA5Workflow = prevA5WorkflowRef.current;
-    prevA5WorkflowRef.current = isA5Workflow;
-
-    if (!isA5Workflow) {
-      setShowA5WarningModal(false);
-      a5WarningTriggeredRef.current = false;
-      return;
-    }
-
-    if (renderedRowCount <= A5_ROW_CAPACITY_THRESHOLD) {
-      a5WarningTriggeredRef.current = false;
-    } else {
-      const workflowJustBecameActive = !wasA5Workflow && isA5Workflow;
-      if ((!a5WarningTriggeredRef.current || workflowJustBecameActive) && showA5WarningPref) {
-        setShowA5WarningModal(true);
-        a5WarningTriggeredRef.current = true;
-      }
-    }
-  }, [renderedRowCount, isA5Workflow, showA5WarningPref]);
-
-  const handleA5WarningClose = async (dontShowAgain) => {
-    setShowA5WarningModal(false);
-    if (dontShowAgain) {
-      try {
-        await authService.updatePreferences({ showA5CapacityWarning: false });
-        updateUserPreferences({ showA5CapacityWarning: false });
-      } catch (err) {
-        console.error("Failed to update A5 capacity warning preference:", err);
-      }
-    }
-  };
 
   // Detect if we're in edit mode
   const isEditMode = Boolean(
@@ -344,6 +290,62 @@ export default function InvoiceCreatePage() {
     err?.code === "ERR_CANCELED" ||
     err?.name === "CanceledError" ||
     err?.name === "AbortError";
+
+  // Smart A5 Double-Copy Capacity Warning & Lifecycle
+  const configuredFormat = useMemo(() => {
+    return resolveDocumentPrintFormat(
+      user?.preferences || admin?.preferences,
+      DOCUMENT_TYPES.INVOICE
+    );
+  }, [user?.preferences, admin?.preferences]);
+
+  const isA5Workflow = useMemo(
+    () => isA5DoubleCopyWorkflowActive(configuredFormat, copyMode),
+    [configuredFormat, copyMode]
+  );
+
+  const renderedRowCount = useMemo(
+    () => calculateRenderedItemRowCount(invoiceItems),
+    [invoiceItems]
+  );
+
+  const showA5WarningPref = (user?.preferences?.showA5CapacityWarning ?? admin?.preferences?.showA5CapacityWarning ?? true) !== false;
+
+  const a5WarningTriggeredRef = useRef(false);
+  const prevA5WorkflowRef = useRef(isA5Workflow);
+
+  useEffect(() => {
+    const wasA5Workflow = prevA5WorkflowRef.current;
+    prevA5WorkflowRef.current = isA5Workflow;
+
+    if (!isA5Workflow) {
+      setShowA5WarningModal(false);
+      a5WarningTriggeredRef.current = false;
+      return;
+    }
+
+    if (renderedRowCount <= A5_ROW_CAPACITY_THRESHOLD) {
+      a5WarningTriggeredRef.current = false;
+    } else {
+      const workflowJustBecameActive = !wasA5Workflow && isA5Workflow;
+      if ((!a5WarningTriggeredRef.current || workflowJustBecameActive) && showA5WarningPref) {
+        setShowA5WarningModal(true);
+        a5WarningTriggeredRef.current = true;
+      }
+    }
+  }, [renderedRowCount, isA5Workflow, showA5WarningPref]);
+
+  const handleA5WarningClose = async (dontShowAgain) => {
+    setShowA5WarningModal(false);
+    if (dontShowAgain) {
+      try {
+        await authService.updatePreferences({ showA5CapacityWarning: false });
+        updateUserPreferences({ showA5CapacityWarning: false });
+      } catch (err) {
+        console.error("Failed to update A5 capacity warning preference:", err);
+      }
+    }
+  };
 
   const getCurrentEditStock = (productObj, productId) => {
     const rawVal =
