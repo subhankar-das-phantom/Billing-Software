@@ -5,7 +5,7 @@ import { AlertTriangle, ChevronDown } from 'lucide-react';
 /**
  * A5CapacityWarningDialog
  * Informational dialog notifying users when an invoice exceeds the practical row capacity
- * of the A5 double-copy layout (~14 rows).
+ * of the A5 double-copy layout (~12 rows).
  *
  * Design: High-density Enterprise SaaS aesthetics without superficial AI-slop or glowing bloat.
  * Features:
@@ -17,7 +17,7 @@ export default function A5CapacityWarningDialog({
   isOpen,
   onClose,
   actualRowCount,
-  capacity = 14
+  capacity = 12
 }) {
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const [showPreferences, setShowPreferences] = useState(false);
@@ -67,7 +67,7 @@ export default function A5CapacityWarningDialog({
 
         {/* Explanatory Guidance */}
         <p className="text-[11px] sm:text-xs text-slate-400 leading-relaxed">
-          Printing 15+ rows on A5 half-sheet may compress heights or overflow margins. Use <span className="text-slate-200 font-medium">A4 Full Page</span> for multi-page invoices.
+          Printing 13+ rows on A5 half-sheet may compress heights or overflow margins. Use <span className="text-slate-200 font-medium">A4 Full Page</span> for multi-page invoices.
         </p>
 
         {/* Expandable Notification Preferences (Chevron Accordion) */}

@@ -7,7 +7,7 @@
  * Standard maximum rendered item rows designed to fit on the A5 double-copy half-sheet layout
  * before content overflows physical printable margins.
  */
-export const A5_ROW_CAPACITY_THRESHOLD = 14;
+export const A5_ROW_CAPACITY_THRESHOLD = 12;
 
 /**
  * Detects whether the current active invoice layout is the A5 half-sheet double-copy workflow.

@@ -1030,7 +1030,7 @@ export default function SettingsPage() {
               <div>
                 <h3 className="font-semibold text-slate-100 text-sm sm:text-base">Show A5 capacity warnings</h3>
                 <p className="text-xs sm:text-sm text-slate-400 mt-0.5 max-w-sm">
-                  Alert when an invoice exceeds practical capacity (~14 rows) for A5 double-copy print layout.
+                  Alert when an invoice exceeds practical capacity (~12 rows) for A5 double-copy print layout.
                 </p>
               </div>
             </div>

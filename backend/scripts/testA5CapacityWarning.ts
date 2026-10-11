@@ -21,11 +21,11 @@
  *    - A4 + 'single' -> false
  *    - THERMAL_80 / THERMAL_58 -> false
  * 6. Transition & Re-arming lifecycle simulation:
- *    - <= 14 rows -> no warning
- *    - 14 -> 15 rows -> warning triggers once
- *    - 15 -> 16 rows -> no repeat warning during ordinary edits
- *    - 16 -> 13 rows -> resets trigger flag
- *    - 13 -> 15 rows -> triggers warning again
+ *    - <= 12 rows -> no warning
+ *    - 12 -> 13 rows -> warning triggers once
+ *    - 13 -> 14 rows -> no repeat warning during ordinary edits
+ *    - 14 -> 11 rows -> resets trigger flag
+ *    - 11 -> 13 rows -> triggers warning again
  *    - Suppressed preference -> no warning
  *    - Re-enabled preference -> warning triggers
  * 7. Financial Invariance:
@@ -53,7 +53,7 @@ function createMockResponse() {
 }
 
 // Replicate pure frontend helper functions for verification parity
-const A5_ROW_CAPACITY_THRESHOLD = 14;
+const A5_ROW_CAPACITY_THRESHOLD = 12;
 
 function isA5DoubleCopyWorkflowActive(format: string, copyMode: string = 'double'): boolean {
   const isSheetFormat = format === 'A4' || format === 'A5';
@@ -435,64 +435,64 @@ async function runTests() {
 
   const sim = new A5WarningTransitionSimulator();
 
-  // Initial: 12 rows, A4 double
-  sim.update(12, true, true);
-  assert(sim.modalOpen === false, 'Initial <= 14 rows -> modal remains closed');
+  // Initial: 10 rows, A4 double
+  sim.update(10, true, true);
+  assert(sim.modalOpen === false, 'Initial <= 12 rows -> modal remains closed');
 
-  // Crossing from 14 to 15 rows
-  sim.update(15, true, true);
-  assert(sim.modalOpen === true, 'Crossing to 15 rows -> modal opens');
+  // Crossing from 12 to 13 rows
+  sim.update(13, true, true);
+  assert(sim.modalOpen === true, 'Crossing to 13 rows -> modal opens');
   sim.dismissModal();
   assert(sim.modalOpen === false, 'User dismisses modal -> modal closed');
 
-  // Adding 16th item (ordinary edit above threshold)
-  sim.update(16, true, true);
-  assert(sim.modalOpen === false, 'Editing at 16 rows -> does NOT re-trigger modal');
+  // Adding 14th item (ordinary edit above threshold)
+  sim.update(14, true, true);
+  assert(sim.modalOpen === false, 'Editing at 14 rows -> does NOT re-trigger modal');
 
-  // Editing at 17 rows
-  sim.update(17, true, true);
-  assert(sim.modalOpen === false, 'Editing at 17 rows -> does NOT re-trigger modal');
-
-  // Removing items to 13 rows (returning within capacity)
-  sim.update(13, true, true);
-  assert(sim.modalOpen === false && sim.triggered === false, 'Dropping to 13 rows -> re-arms trigger flag');
-
-  // Crossing back to 15 rows
+  // Editing at 15 rows
   sim.update(15, true, true);
-  assert(sim.modalOpen === true, 'Re-crossing to 15 rows -> triggers warning again');
+  assert(sim.modalOpen === false, 'Editing at 15 rows -> does NOT re-trigger modal');
+
+  // Removing items to 11 rows (returning within capacity)
+  sim.update(11, true, true);
+  assert(sim.modalOpen === false && sim.triggered === false, 'Dropping to 11 rows -> re-arms trigger flag');
+
+  // Crossing back to 13 rows
+  sim.update(13, true, true);
+  assert(sim.modalOpen === true, 'Re-crossing to 13 rows -> triggers warning again');
   sim.dismissModal();
 
   // Workflow switch: user switches to A4 single copy
-  sim.update(16, false, true);
+  sim.update(14, false, true);
   assert(sim.modalOpen === false && sim.triggered === false, 'Switching layout to single copy -> suppresses warning and resets');
 
-  // User switches back to A4 double copy while at 16 rows
-  sim.update(16, true, true);
+  // User switches back to A4 double copy while at 14 rows
+  sim.update(14, true, true);
   assert(sim.modalOpen === true, 'Switching layout back to double copy -> triggers warning for active capacity overflow');
   sim.dismissModal();
 
   // Suppressed preference
-  sim.update(13, true, false); // drop and re-arm, with preference false
-  sim.update(15, true, false); // cross to 15 with preference false
+  sim.update(11, true, false); // drop and re-arm, with preference false
+  sim.update(13, true, false); // cross to 13 with preference false
   assert(sim.modalOpen === false, 'When user suppressed warnings (showA5CapacityWarning = false) -> never triggers');
 
   // Re-enabling preference
-  sim.update(15, true, true); // preference toggled back to true in Settings
+  sim.update(13, true, true); // preference toggled back to true in Settings
   assert(sim.modalOpen === true, 'Re-enabling preference in Settings -> triggers warning for exceeded capacity');
   sim.dismissModal(true); // User clicks OK, marking draft as dismissed
 
   // Draft-session dismissal persistence (user pressed OK on dialog)
-  sim.update(16, true, true);
-  assert(sim.modalOpen === false, 'Adding 16th item after draft dismissal -> modal stays closed');
+  sim.update(14, true, true);
+  assert(sim.modalOpen === false, 'Adding 14th item after draft dismissal -> modal stays closed');
 
+  sim.update(11, true, true);
   sim.update(13, true, true);
-  sim.update(15, true, true);
   assert(sim.modalOpen === false, 'Dropping and re-exceeding threshold within same draft -> modal NEVER reappears');
 
   // Resetting draft (clearing draft or starting new invoice)
   sim.resetDraft();
-  sim.update(15, true, true);
-  assert(sim.modalOpen === true, 'Starting a new draft with > 14 rows -> modal triggers cleanly');
+  sim.update(13, true, true);
+  assert(sim.modalOpen === true, 'Starting a new draft with > 12 rows -> modal triggers cleanly');
   sim.dismissModal(true);
 
   // 6. Financial Invariance
