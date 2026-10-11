@@ -103,12 +103,14 @@ Invoices support three sheet workflows plus thermal POS rolls:
 - **Footer**: Current Outstanding Dues, Taxable, CGST, SGST, Round Off, Net Payable, Amount in Words, and Authorized Signatory.
 
 ### 2. `2x Half Sheet (A5 Cut)` — Double Copy (Customer + Dealer)
-- **Container Height**: Two identical compact copies with `min-h-[120mm]`.
-- **Divider**: Centered dashed line with `"Cut Here"` indicator.
+- **Container Height**: Two identical symmetrical copies with `min-h-[140.5mm] h-[140.5mm] flex-1` inside a `296mm` `.is-double-sheet` flex container.
+- **Divider**: Self-contained `5mm` height element with absolute centered dashed border at `top: 50%` (`y = 2.5mm`) and centered `"Cut Here"` badge.
+- **Physical Midpoint Centering**: Mathematically anchored at $5.0\text{mm (top pad)} + 140.5\text{mm (copy 1)} + 2.5\text{mm (half divider)} = 148.0\text{mm} \dots 148.5\text{mm}$ (exact 50.0% physical A4 center).
+- **Zero Bottom Dead Space & Full Column Extension**: The `<tr className="filler-row">` absorbs remaining height down to the totals box, extending vertical column lines across the full half-sheet and eliminating bottom white space.
 - Designed for users who print two copies on one physical A4 sheet and cut the paper in half for the customer and office archive.
 
 ### 3. `1x Half Sheet` — Single Compact Copy
-- **Container Height**: Exactly one compact copy with `min-h-[120mm]`.
+- **Container Height**: Exactly one compact copy with `min-h-[140.5mm]`.
 - **Divider**: None (no dashed line, no duplicate dealer copy).
 - Designed for businesses printing directly on pre-cut A5 paper or businesses wanting a single compact receipt on standard A4 paper without generating an unneeded duplicate copy.
 
@@ -184,10 +186,10 @@ html.dark .invoice-copy {
 
 | To Change... | Edit File | Property / Setting |
 |-------------|-----------|--------------------|
-| **Default page margins** | `PrintTransport.js` | `@page { size: A4 portrait; margin: 6mm; }` |
+| **Default page margins** | `PrintTransport.js` | `@page { size: A4 portrait; margin: 0; }` |
 | **Full-page invoice height** | `InvoiceDocument.jsx` | `min-h-[265mm]` on `.invoice-copy` |
-| **Half-sheet cut height** | `InvoiceDocument.jsx` | `min-h-[120mm]` on `.invoice-copy` |
-| **Thermal 80mm roll width** | `index.css` & `PrintTransport.js` | `74mm` in CSS, `80mm auto; margin: 2mm;` in `@page` |
-| **Thermal 58mm roll width** | `index.css` & `PrintTransport.js` | `52mm` in CSS, `58mm auto; margin: 2mm;` in `@page` |
+| **Half-sheet cut height** | `InvoiceDocument.jsx` & `index.css` | `min-h-[140.5mm] h-[140.5mm]` on `.invoice-copy` |
+| **Thermal 80mm roll width** | `index.css` & `PrintTransport.js` | `74mm` in CSS, `80mm auto; margin: 0;` in `@page` |
+| **Thermal 58mm roll width** | `index.css` & `PrintTransport.js` | `52mm` in CSS, `58mm auto; margin: 0;` in `@page` |
 | **Table filler row style** | `InvoiceDocument.jsx` | `<tr className="filler-row" style={{ height: 'auto' }}>` |
 | **Ledger font size** | `LedgerDocument.jsx` | `fontSize: isA5 ? '8px' : '9px'` |

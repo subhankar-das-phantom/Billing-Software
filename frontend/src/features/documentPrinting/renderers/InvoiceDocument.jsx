@@ -102,13 +102,14 @@ function SheetInvoiceCopy({
     <div
       className={`invoice-copy bg-white flex flex-col ${
         isDoubleCopy
-          ? 'text-[10px] p-2 print:p-0 min-h-[120mm]'
+          ? 'invoice-half-sheet text-[10px] p-2 print:p-0 min-h-[140.5mm] h-[140.5mm] flex-1'
           : 'text-[11px] p-4 sm:p-5 print:p-0 min-h-[265mm]'
       }`}
       style={{
         width: '100%',
         color: '#000000',
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        ...(isDoubleCopy ? { minHeight: '140.5mm', height: '140.5mm', flex: '1 1 0%' } : { minHeight: '265mm' })
       }}
     >
       {/* ─── Header: Firm Info & Optional Payment Box ───────────────────── */}
@@ -590,7 +591,10 @@ export default function InvoiceDocument({
   const isSingleHalf = resolvedMode === INVOICE_COPY_MODES.HALF;
 
   return (
-    <div className={`invoice-print print-format-a4 ${metadata.cssClass}`}>
+    <div
+      className={`invoice-print print-format-a4 ${isDouble ? 'is-double-sheet' : ''} ${metadata.cssClass}`}
+      style={isDouble ? { minHeight: '296mm', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' } : {}}
+    >
       <SheetInvoiceCopy
         invoice={invoice}
         format={PRINT_FORMATS.A4}
@@ -604,8 +608,31 @@ export default function InvoiceDocument({
 
       {isDouble && (
         <>
-          <div className="flex items-center my-2" style={{ borderTop: '1px dashed #000' }}>
-            <span className="text-[9px] text-gray-600 mx-auto bg-white px-2" style={{ marginTop: '-10px' }}>
+          <div
+            className="invoice-cut-divider flex items-center justify-center shrink-0 w-full relative select-none my-0"
+            style={{
+              height: '5mm',
+              pageBreakInside: 'avoid',
+              breakInside: 'avoid'
+            }}
+          >
+            <div
+              style={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                borderTop: '1px dashed #000'
+              }}
+            />
+            <span
+              className="text-[9px] text-gray-600 bg-white px-2.5 relative z-10"
+              style={{
+                backgroundColor: '#ffffff',
+                lineHeight: 1
+              }}
+            >
               Cut Here
             </span>
           </div>

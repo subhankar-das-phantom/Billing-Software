@@ -31,6 +31,17 @@ For full release notes with implementation details, see [GitHub Releases](https:
   - **Fix**: Transitioned `@page` rules to `margin: 0;` in `PrintTransport.js` and `index.css`, embedding canonical self-contained padding (`padding: 5mm 6mm !important; box-sizing: border-box !important;`) directly into `.print-format-a4`.
   - Guarantees 100% visual parity whether the user selects Margins: "None" or Margins: "Default", preserving safe ~5–6mm printer roller clearance, centered Cut Here divider placement, and guaranteed 1-page bounds for A4 double copy prints.
 
+### ✂️ Centered "Cut Here" Divider & Full Table Column Extension (`InvoiceDocument.jsx`, `index.css`, `PRINT-POSITIONING-GUIDE.md`)
+- **Exact 50.0% Physical Midpoint Centering**:
+  - Anchored the dashed cut divider line at $148.0\text{mm} - 148.5\text{mm}$ (exact 50.0% physical center of a $297\text{mm}$ A4 paper sheet), ensuring that folding the printed sheet in half or cutting along the fold line perfectly aligns with the cut mark.
+  - Re-engineered the divider from erratic negative-margin flow (`my-2` with `marginTop: -10px`) into a self-contained $5\text{mm}$ flex container with absolute centered dashed border at `top: 50%` (`y = 2.5mm`) and clean `#ffffff` badge background.
+- **Eliminated ~43mm Bottom Dead Whitespace Void**:
+  - Sized Customer Copy and Dealer Copy to $140.5\text{mm}$ (up from sub-capacity $120\text{mm}$) inside a $296\text{mm}$ `.is-double-sheet` flex container, allowing both copies to evenly span the page.
+- **Continuous Table Column Grid Extension**:
+  - Enabled `<tr className="filler-row" style={{ height: 'auto' }}>` to absorb the full remaining height down to the totals box, seamlessly carrying vertical column lines down to the bottom of the half sheet.
+- **Chromium Blank Page 2 Cushion**:
+  - Total outer height of $296.0\text{mm}$ provides a $1.0\text{mm}$ ($3.8\text{px}$) safety buffer within the $297\text{mm}$ A4 page boundary, guaranteeing that Chrome print preview never triggers an accidental blank second page.
+
 ### ⚡ Zero-Lag Filter Drawer Progressive Disclosure (`InvoicesPage.jsx`, `PurchasesPage.jsx`, `InventoryLedgerPage.jsx`, `index.css`)
 - **Eliminated 9px–25px Collapse Hang & Visual Stutter**:
   - Eliminated the noticeable lag and pause when closing the mobile filter drawer across **Invoices**, **Purchases**, and **Inventory Ledger** pages.

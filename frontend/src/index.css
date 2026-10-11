@@ -1591,6 +1591,25 @@ html.light .pp-footer-home:hover {
     font-size: 10px !important;
   }
 
+  .print-format-a4.is-double-sheet {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    height: 296mm !important;
+    max-height: 296mm !important;
+    box-sizing: border-box !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .print-format-a4.is-double-sheet .invoice-copy {
+    height: 140.5mm !important;
+    min-height: 140.5mm !important;
+    max-height: 140.5mm !important;
+    flex: 1 1 0% !important;
+    box-sizing: border-box !important;
+  }
+
   .print-format-a4 .invoice-copy {
     width: 100% !important;
     max-width: 100% !important;
