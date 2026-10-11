@@ -41,6 +41,8 @@ For full release notes with implementation details, see [GitHub Releases](https:
   - Enabled `<tr className="filler-row" style={{ height: 'auto' }}>` to absorb the full remaining height down to the totals box, seamlessly carrying vertical column lines down to the bottom of the half sheet.
 - **Chromium Blank Page 2 Cushion**:
   - Total outer height of $296.0\text{mm}$ provides a $1.0\text{mm}$ ($3.8\text{px}$) safety buffer within the $297\text{mm}$ A4 page boundary, guaranteeing that Chrome print preview never triggers an accidental blank second page.
+- **Recalibrated A5 Print Capacity Threshold (12 → 14 rows)**:
+  - Elevated the practical half-sheet item threshold from 12 to 14 rows across row capacity detection (`A5_ROW_CAPACITY_THRESHOLD = 14`), `A5CapacityWarningDialog.jsx`, and `SettingsPage.jsx`, matching real-world print tolerance under the expanded $140.5\text{mm}$ layout.
 
 ### ⚡ Zero-Lag Filter Drawer Progressive Disclosure (`InvoicesPage.jsx`, `PurchasesPage.jsx`, `InventoryLedgerPage.jsx`, `index.css`)
 - **Eliminated 9px–25px Collapse Hang & Visual Stutter**:
