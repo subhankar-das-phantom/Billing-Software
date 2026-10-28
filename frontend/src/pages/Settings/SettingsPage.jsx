@@ -396,8 +396,8 @@ export default function SettingsPage() {
       return;
     }
 
-    if (passwords.newPassword.length < 6) {
-      showError('Password must be at least 6 characters');
+    if (passwords.newPassword.length < 8 || !/^(?=.*[a-zA-Z])(?=.*\d)/.test(passwords.newPassword)) {
+      showError('Password must be at least 8 characters and contain both letters and numbers');
       return;
     }
 

@@ -147,6 +147,11 @@ const EmployeeModal = ({ isOpen, onClose, employee, onSave }) => {
           setLoading(false);
           return;
         }
+        if (formData.password.length < 8 || !/^(?=.*[a-zA-Z])(?=.*\d)/.test(formData.password)) {
+          setError('Password must be at least 8 characters and contain both letters and numbers');
+          setLoading(false);
+          return;
+        }
         const createData = { ...formData };
         if (createData.govIdType && createData.govIdNumber) {
           const type = createData.govIdType === 'Other' ? createData.govIdCustomType : createData.govIdType;
@@ -409,8 +414,8 @@ const PasswordResetModal = ({ isOpen, onClose, employee, onSave }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (newPassword.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (newPassword.length < 8 || !/^(?=.*[a-zA-Z])(?=.*\d)/.test(newPassword)) {
+      setError('Password must be at least 8 characters and contain both letters and numbers');
       return;
     }
 
