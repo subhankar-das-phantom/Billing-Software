@@ -1,10 +1,33 @@
 # Bharat Enterprise - Billing & Business Operations Platform
 
-[![GitHub Tag](https://img.shields.io/badge/version-v2.10.3-emerald.svg)](https://github.com/subhankar-das-phantom/Billing-Software/releases)
+[![GitHub Tag](https://img.shields.io/badge/version-v2.11.0-emerald.svg)](https://github.com/subhankar-das-phantom/Billing-Software/releases)
 [![CI](https://github.com/subhankar-das-phantom/Billing-Software/actions/workflows/ci.yml/badge.svg)](https://github.com/subhankar-das-phantom/Billing-Software/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-ISC-blue.svg)](LICENSE)
 
 A comprehensive, multi-tenant cloud business operations platform optimized for both high-speed desktop workflows and mobile accessibility. Evolved from an invoicing utility into an end-to-end enterprise solution featuring **inward purchasing, dual-mode inventory with automated FIFO & manual batch selection, an immutable stock movement ledger, format-aware multi-document printing, operational intelligence, granular RBAC, and tiered SaaS subscriptions**.
+
+---
+
+## 🚀 Release v2.11.0 — Enterprise Security Hardening & Session Protection
+
+Version 2.11.0 delivers a defense-in-depth security hardening suite protecting authentication, multi-tenant access, database resources, and financial transactions.
+
+### 💎 Key Highlights (v2.11.0)
+
+- **Cookie-Only JWT Session Architecture & Double-Exposure Elimination**  
+  Removed JWT tokens from API response JSON bodies and eliminated client-side token persistence in `localStorage`. All state-changing and read requests authenticate strictly via sandboxed `httpOnly: true`, `secure: true`, `sameSite: 'strict'`/`'none'` HTTP cookies with `withCredentials: true`.
+- **Multi-Tenant Registration Access Control & Anti-Abuse Traps**  
+  Dedicated registration rate limiting (5 req/hr), invisible honeypot bot trap, $O(1)$ disposable email domain blocking, and an emergency invitation secret bypass (`REGISTRATION_SECRET`).
+- **Universal Pagination Clamping & DoS Ceiling Enforcement**  
+  Uniform `Math.min(100, Math.max(1, limit))` bounds across all 11 collection controller endpoints and `paginationQuery` validation, preventing unbounded heap exhaustion attacks (`?limit=1000000`).
+- **Production Error Sanitization & Structured Telemetry**  
+  Redacted unhandled 500 status responses to generic `'Internal Server Error'` in production mode, suppressing technical exception leaks. Replaced full multiline stack trace dumps with structured single-line JSON logging.
+- **Irreversible Destructive Action Hardening (`adminOnly`)**  
+  Locked permanent hard-deletions (`DELETE /api/payments/:id`, `DELETE /api/customers/:id`, `DELETE /api/products/:id`) strictly to administrators while keeping standard billing, payment recording, and credit note issuance under granular RBAC permissions.
+- **CSRF & Custom Header Request Origin Protection**  
+  Global `verifyRequestOrigin` middleware guarding state-changing operations (`POST`, `PUT`, `PATCH`, `DELETE`) with browser Same-Origin Policy and `X-Requested-With: XMLHttpRequest` verification.
+- **Balanced Enterprise Password Policy**  
+  Enforced 8-character minimum alphanumeric standard requiring at least one letter and at least one digit across new admin registrations, password changes, and employee management.
 
 ---
 
