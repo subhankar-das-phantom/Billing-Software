@@ -54,6 +54,18 @@ For full release notes with implementation details, see [GitHub Releases](https:
 - **Employee Login Route Validation Alignment (`routes/auth.js`)**:
   - Mounted `loginValidator` onto `POST /api/auth/employee/login`, closing the validation bypass on the dedicated employee login route.
 
+### 🛡️ Universal Pagination Clamping, Error Sanitization, Delete Hardening & CSRF Defense
+- **Universal Pagination Clamping & Limit Enforcement (`controllers/*`, `validators.js`, `routes/*`)**:
+  - Implemented universal bounds `Math.min(100, Math.max(1, limit))` across all 11 collection controller endpoints (`reportsController`, `supplierController`, `purchaseController`, `productController`, `paymentController`, `noteController`, `manualEntryController`, `employeeController`, `employeeAnalyticsController`, `customerController`, `creditNoteController`).
+  - Attached `paginationQuery` express-validator to collection routes (`invoices`, `payments`, `creditNotes`, `manualEntries`, `customers`, `products`, `employees`, `reports`), preventing unbounded memory consumption (`?limit=1000000`) and database heap exhaustion DoS.
+- **Production Error Sanitization & Structured Logging (`errorHandler.js`)**:
+  - Redacted unhandled 500 status error messages to generic `'Internal Server Error'` in production, eliminating technical and internal schema leakage.
+  - Restricted verbose multiline error stack traces to development mode (`process.env.NODE_ENV !== 'production'`) and implemented single-line structured JSON error logging in production.
+- **Irreversible Destructive Operation Hardening (`routes/payments.js`, `routes/customers.js`, `routes/products.js`)**:
+  - Attached `adminOnly` guard to permanent hard-delete routes (`DELETE /api/payments/:id`, `DELETE /api/customers/:id`, `DELETE /api/products/:id`), ensuring non-admin staff can never permanently erase financial transaction history, customer profiles, or product catalog entries.
+- **CSRF & Custom Header Request Origin Protection (`csrfProtection.js`, `server.js`, `api.js`)**:
+  - Implemented `verifyRequestOrigin` middleware guarding state-changing API operations (`POST`, `PUT`, `PATCH`, `DELETE`) with browser Same-Origin Policy / custom header verification (`X-Requested-With: XMLHttpRequest`), protecting cross-origin cookie authentication.
+
 ## [v2.10.3](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.10.3) — 2026-10-11 — A4 Double-Copy 50% Midpoint Cut-Line Centering & Continuous Table Column Height Extension
 
 ### ✂️ Centered "Cut Here" Divider & Full Table Column Extension (`InvoiceDocument.jsx`, `index.css`, `PRINT-POSITIONING-GUIDE.md`)
