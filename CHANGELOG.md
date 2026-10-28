@@ -39,6 +39,21 @@ For full release notes with implementation details, see [GitHub Releases](https:
 - **Defensive Unique Index Concurrency Guard (`authController.js`)**:
   - Handled MongoDB duplicate key error code 11000 gracefully, returning a clean 400 Bad Request if concurrent requests attempt duplicate email registration.
 
+### 🔐 Request Body Size Limiting, Password Policy & Sensitive Route Validation
+- **Request Body Size Ceiling Enforcement (`server.js`, `errorHandler.js`)**:
+  - Configured explicit `1mb` maximum payload ceiling on `express.json({ limit: '1mb' })` and `express.urlencoded({ extended: true, limit: '1mb' })`, eliminating memory exhaustion DoS attack vectors.
+  - Upgraded global error handler (`errorHandler.js`) to capture `entity.too.large` errors and return canonical HTTP 413 Payload Too Large responses.
+- **Balanced Enterprise Password Policy (`validators.js`, `Admin.js`, `Employee.js`, `RegisterPage.jsx`, `SettingsPage.jsx`, `EmployeesPage.jsx`)**:
+  - Enforced 8-character minimum alphanumeric standard requiring at least one letter and at least one digit (`/^(?=.*[a-zA-Z])(?=.*\d)/`) across new admin registrations, password changes (`changePassword`), and employee creation/resets.
+  - Preserved backward compatibility on `loginValidator` to prevent lockouts on existing legacy sessions.
+- **Sensitive Route Mutation Validators (`validators.js`, `routes/payments.js`, `routes/creditNotes.js`, `routes/manualEntries.js`)**:
+  - Implemented and mounted `createPaymentValidator` and `updatePaymentValidator` with positive decimal guards (`min: 0.01`), payment method enums, and `isMongoId()` foreign key checks.
+  - Implemented and mounted `createCreditNoteValidator` requiring valid invoice IDs and non-empty item arrays with positive return quantities.
+  - Implemented and mounted `createManualEntryValidator` and `updateManualEntryValidator` enforcing customer ID integrity, entry classification enums, and monetary limits.
+  - Applied `mongoIdParam` and `validateMongoIdParam` across all `:id`, `:customerId`, and `:invoiceId` route segments to prevent cast errors.
+- **Employee Login Route Validation Alignment (`routes/auth.js`)**:
+  - Mounted `loginValidator` onto `POST /api/auth/employee/login`, closing the validation bypass on the dedicated employee login route.
+
 ## [v2.10.3](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.10.3) — 2026-10-11 — A4 Double-Copy 50% Midpoint Cut-Line Centering & Continuous Table Column Height Extension
 
 ### ✂️ Centered "Cut Here" Divider & Full Table Column Extension (`InvoiceDocument.jsx`, `index.css`, `PRINT-POSITIONING-GUIDE.md`)
