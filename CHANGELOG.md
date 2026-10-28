@@ -22,6 +22,23 @@ For full release notes with implementation details, see [GitHub Releases](https:
 - **Privacy Policy Transparency Audit (`PrivacyPolicyPage.jsx`)**:
   - Updated Section 7 (Cookies & Browser Storage Handling) to document strictly sandboxed HTTP-only cookie authentication isolated from JavaScript access.
 
+### 🛡️ Multi-Tenant Registration Access Control & Anti-Abuse Architecture
+- **Dedicated Ultra-Strict Registration Rate Limiter (`registrationGuard.js`, `routes/auth.js`)**:
+  - Implemented `registerLimiter` bounding registration attempts to 5 per IP per hour in production (20 in dev), separating account creation from the broader 50-req/15m login limiter.
+  - Prevents bulk tenant provisioning, automatic database resource exhaustion, and trial quota abuse.
+- **Invisible Honeypot Anti-Bot Trap (`RegisterPage.jsx`, `registrationGuard.js`)**:
+  - Embedded an off-screen, tab-index isolated `website` trap input field in the registration form.
+  - Blocks automated web scrapers and form submission bots with HTTP 400 before executing database queries or provisioning SaaS subscriptions.
+- **Disposable & Temporary Email Domain Blocker (`disposableEmailBlocker.js`, `registrationGuard.js`)**:
+  - Engineered $O(1)$ domain blacklist lookup blocking high-volume burner and disposable email services (`mailinator.com`, `tempmail.com`, `10minutemail.com`, `guerrillamail.com`, etc.).
+  - Guarantees multi-tenant database records are anchored to authentic business or personal communications.
+- **Emergency Kill-Switch & Invitation Secret Bypass (`RegisterPage.jsx`, `authService.js`, `registrationGuard.js`)**:
+  - Added operational toggle `ALLOW_PUBLIC_REGISTRATION=false` to immediately halt public signups during incidents or maintenance.
+  - Integrated `REGISTRATION_SECRET` verification via `x-registration-secret` header or payload, enabling private/invite-only tenant onboarding.
+  - Added contextual UI banner and dynamic invitation code entry field on `RegisterPage.jsx` when public registration is gated.
+- **Defensive Unique Index Concurrency Guard (`authController.js`)**:
+  - Handled MongoDB duplicate key error code 11000 gracefully, returning a clean 400 Bad Request if concurrent requests attempt duplicate email registration.
+
 ## [v2.10.3](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.10.3) — 2026-10-11 — A4 Double-Copy 50% Midpoint Cut-Line Centering & Continuous Table Column Height Extension
 
 ### ✂️ Centered "Cut Here" Divider & Full Table Column Extension (`InvoiceDocument.jsx`, `index.css`, `PRINT-POSITIONING-GUIDE.md`)
