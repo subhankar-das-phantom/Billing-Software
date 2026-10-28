@@ -30,8 +30,8 @@ export const createSupplier = async (req: Request, res: Response, next: NextFunc
 export const getSuppliers = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const tenantId = getTenantId(req);
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 50;
+    const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string, 10) || 50));
     const skip = (page - 1) * limit;
     const search = req.query.search as string;
 

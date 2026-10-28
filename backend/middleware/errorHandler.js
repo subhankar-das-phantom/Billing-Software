@@ -1,10 +1,21 @@
 const errorHandler = (err, req, res, next) => {
   let error = { ...err };
   error.message = err.message;
-  error.statusCode = err.statusCode || err.status;
+  const statusCode = error.statusCode || err.statusCode || err.status || 500;
+  error.statusCode = statusCode;
 
-  // Log error for dev
-  console.error('Error:', err);
+  // Log error: structured single-line in production, full stack trace in development
+  if (process.env.NODE_ENV === 'production') {
+    console.error(JSON.stringify({
+      timestamp: new Date().toISOString(),
+      method: req?.method,
+      url: req?.originalUrl,
+      status: statusCode,
+      message: err.message || 'Unknown error'
+    }));
+  } else {
+    console.error('Error:', err);
+  }
 
   // Request body payload too large
   if (err.type === 'entity.too.large' || err.status === 413 || err.statusCode === 413) {
@@ -43,9 +54,16 @@ const errorHandler = (err, req, res, next) => {
     error.message = message;
   }
 
-  res.status(error.statusCode || 500).json({
+  // Sanitize 500 errors in production to prevent technical information leakage
+  const finalStatusCode = error.statusCode || 500;
+  const isProd = process.env.NODE_ENV === 'production';
+  const responseMessage = (isProd && finalStatusCode === 500)
+    ? 'Internal Server Error'
+    : (error.message || 'Server Error');
+
+  res.status(finalStatusCode).json({
     success: false,
-    message: error.message || 'Server Error'
+    message: responseMessage
   });
 };
 

@@ -299,7 +299,7 @@ exports.getCreditStats = async (req, res, next) => {
 // @access  Private
 exports.getRecentPayments = async (req, res, next) => {
   try {
-    const limit = parseInt(req.query.limit) || 20;
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
     const tenantId = getTenantId(req);
 
     const payments = await Payment.find({ tenantId })

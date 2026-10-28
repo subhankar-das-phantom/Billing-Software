@@ -9,11 +9,12 @@ const {
   deleteCustomer,
   searchCustomers
 } = require('../controllers/customerController');
-const { protect, requirePermission } = require('../middleware/auth');
+const { protect, adminOnly, requirePermission } = require('../middleware/auth');
 const { 
   createCustomerValidator, 
   updateCustomerValidator, 
-  mongoIdParam 
+  mongoIdParam,
+  paginationQuery
 } = require('../middleware/validators');
 const { checkSubscription, checkFeatureAccess, checkWriteAccess } = require('../saas/middleware');
 const { Feature } = require('../saas/shared/features');
@@ -26,7 +27,7 @@ router.use(checkFeatureAccess(Feature.CUSTOMERS));
 router.get('/search', requirePermission('customers', 'view'), searchCustomers);
 
 router.route('/')
-  .get(requirePermission('customers', 'view'), getCustomers)
+  .get(requirePermission('customers', 'view'), paginationQuery, getCustomers)
   .post(checkWriteAccess, requirePermission('customers', 'create'), createCustomerValidator, createCustomer);
 
 // Ledger route (must be before /:id to avoid param collision)
@@ -35,6 +36,6 @@ router.get('/:id/ledger', requirePermission('ledger', 'view'), mongoIdParam, get
 router.route('/:id')
   .get(requirePermission('customers', 'view'), mongoIdParam, getCustomer)
   .put(checkWriteAccess, requirePermission('customers', 'edit'), updateCustomerValidator, updateCustomer)
-  .delete(checkWriteAccess, requirePermission('customers', 'delete'), mongoIdParam, deleteCustomer);
+  .delete(checkWriteAccess, adminOnly, mongoIdParam, deleteCustomer);
 
 module.exports = router;

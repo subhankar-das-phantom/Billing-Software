@@ -107,6 +107,10 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
+// CSRF & Request Origin Protection for state-changing operations
+const verifyRequestOrigin = require('./middleware/csrfProtection');
+app.use(verifyRequestOrigin);
+
 // Mount routes with rate limiting
 app.use('/api/auth', authLimiter, require('./routes/auth'));
 app.use('/api/employees', generalLimiter, require('./routes/employees'));

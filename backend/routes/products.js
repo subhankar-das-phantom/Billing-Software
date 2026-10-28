@@ -12,12 +12,13 @@ const {
   getStockHistory
 } = require('../controllers/productController');
 const { exportProducts } = require('../controllers/product/productExportController');
-const { protect, requirePermission } = require('../middleware/auth');
+const { protect, adminOnly, requirePermission } = require('../middleware/auth');
 const { 
   createProductValidator, 
   updateProductValidator, 
   adjustStockValidator,
-  mongoIdParam 
+  mongoIdParam,
+  paginationQuery
 } = require('../middleware/validators');
 const { checkSubscription, checkFeatureAccess, checkWriteAccess } = require('../saas/middleware');
 const { Feature } = require('../saas/shared/features');
@@ -32,7 +33,7 @@ router.get('/stock/low', requirePermission('inventory', 'view'), getLowStock);
 router.get('/export', requirePermission('reports', 'view'), exportProducts);
 
 router.route('/')
-  .get(requirePermission('products', 'view'), getProducts)
+  .get(requirePermission('products', 'view'), paginationQuery, getProducts)
   .post(checkWriteAccess, requirePermission('products', 'create'), createProductValidator, createProduct);
 
 router.get('/:id/stock-history', requirePermission('inventory', 'view'), mongoIdParam, getStockHistory);
@@ -40,7 +41,7 @@ router.get('/:id/stock-history', requirePermission('inventory', 'view'), mongoId
 router.route('/:id')
   .get(requirePermission('products', 'view'), mongoIdParam, getProduct)
   .put(checkWriteAccess, requirePermission('products', 'edit'), updateProductValidator, updateProduct)
-  .delete(checkWriteAccess, requirePermission('products', 'delete'), mongoIdParam, deleteProduct);
+  .delete(checkWriteAccess, adminOnly, mongoIdParam, deleteProduct);
 
 router.put('/:id/stock', checkWriteAccess, requirePermission('inventory', 'create'), adjustStockValidator, adjustStock);
 

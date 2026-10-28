@@ -5,7 +5,8 @@ const {
   createManualEntryValidator, 
   updateManualEntryValidator, 
   mongoIdParam, 
-  validateMongoIdParam 
+  validateMongoIdParam,
+  paginationQuery
 } = require('../middleware/validators');
 const { checkSubscription, checkFeatureAccess, checkWriteAccess } = require('../saas/middleware');
 const { Feature } = require('../saas/shared/features');
@@ -27,7 +28,7 @@ router.use(checkFeatureAccess(Feature.MANUAL_ENTRIES));
 
 // Main routes
 router.route('/')
-  .get(getManualEntries)
+  .get(paginationQuery, getManualEntries)
   .post(checkWriteAccess, createManualEntryValidator, createManualEntry);
 
 // Customer-specific routes (must be before /:id to avoid conflicts)

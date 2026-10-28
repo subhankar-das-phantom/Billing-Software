@@ -11,6 +11,7 @@ const {
   updatePermissions
 } = require('../controllers/employeeController');
 const { protect, adminOnly } = require('../middleware/auth');
+const { paginationQuery } = require('../middleware/validators');
 const { checkSubscription, checkFeatureAccess, checkWriteAccess } = require('../saas/middleware');
 const { Feature } = require('../saas/shared/features');
 
@@ -22,7 +23,7 @@ router.use(checkFeatureAccess(Feature.EMPLOYEES));
 
 // Employee CRUD routes
 router.route('/')
-  .get(getEmployees)
+  .get(paginationQuery, getEmployees)
   .post(checkWriteAccess, createEmployee);
 
 router.route('/:id')

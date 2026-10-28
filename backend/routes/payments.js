@@ -11,12 +11,13 @@ const {
   deletePayment
 } = require('../controllers/paymentController');
 const { exportCollections } = require('../controllers/collectionExportController');
-const { protect, requirePermission } = require('../middleware/auth');
+const { protect, adminOnly, requirePermission } = require('../middleware/auth');
 const { 
   createPaymentValidator, 
   updatePaymentValidator, 
   mongoIdParam, 
-  validateMongoIdParam 
+  validateMongoIdParam,
+  paginationQuery
 } = require('../middleware/validators');
 const { checkSubscription, checkFeatureAccess, checkWriteAccess } = require('../saas/middleware');
 const { Feature } = require('../saas/shared/features');
@@ -33,13 +34,13 @@ router.get('/collections', requirePermission('collections', 'view', 'payments'),
 
 // Payment routes
 router.route('/')
-  .get(requirePermission('payments', 'view'), getPayments)
+  .get(requirePermission('payments', 'view'), paginationQuery, getPayments)
   .post(checkWriteAccess, requirePermission('payments', 'create'), createPaymentValidator, createPayment);
 
 router.route('/:id')
   .get(requirePermission('payments', 'view'), mongoIdParam, getPayment)
   .put(checkWriteAccess, requirePermission('payments', 'edit'), updatePaymentValidator, updatePayment)
-  .delete(checkWriteAccess, requirePermission('payments', 'delete'), mongoIdParam, deletePayment);
+  .delete(checkWriteAccess, adminOnly, mongoIdParam, deletePayment);
 
 router.get('/customer/:customerId', requirePermission('payments', 'view'), validateMongoIdParam('customerId'), getPaymentsByCustomer);
 router.get('/invoice/:invoiceId', requirePermission('payments', 'view'), validateMongoIdParam('invoiceId'), getPaymentsByInvoice);

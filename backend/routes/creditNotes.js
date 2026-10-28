@@ -11,7 +11,8 @@ const { protect, requirePermission } = require('../middleware/auth');
 const { 
   createCreditNoteValidator, 
   mongoIdParam, 
-  validateMongoIdParam 
+  validateMongoIdParam,
+  paginationQuery
 } = require('../middleware/validators');
 const { checkSubscription, checkFeatureAccess, checkWriteAccess } = require('../saas/middleware');
 const { Feature } = require('../saas/shared/features');
@@ -22,7 +23,7 @@ router.use(checkSubscription);
 router.use(checkFeatureAccess(Feature.CREDIT_NOTES));
 
 router.route('/')
-  .get(requirePermission('creditNotes', 'view'), getCreditNotes)
+  .get(requirePermission('creditNotes', 'view'), paginationQuery, getCreditNotes)
   .post(checkWriteAccess, requirePermission('creditNotes', 'create'), createCreditNoteValidator, createCreditNote);
 
 router.get('/invoice/:invoiceId', requirePermission('creditNotes', 'view'), validateMongoIdParam('invoiceId'), getCreditNotesByInvoice);

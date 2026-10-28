@@ -17,8 +17,8 @@ exports.getProducts = async (req, res, next) => {
     const tenantId = getTenantId(req);
     const tenantObjectId = new mongoose.Types.ObjectId(tenantId.toString());
 
-    let page = parseInt(req.query.page) || 1;
-    let limit = parseInt(req.query.limit) || 50;
+    let page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    let limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
     let skip = (page - 1) * limit;
 
     const query = { tenantId: tenantObjectId, isActive: true };
@@ -519,9 +519,7 @@ exports.getStockHistory = async (req, res, next) => {
     const productId = req.params.id;
 
     // --- Validate & parse query params ---
-    let limit = parseInt(req.query.limit) || 20;
-    if (limit < 1) limit = 1;
-    if (limit > 100) limit = 100;
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
 
     let beforeCursor = null;
     if (req.query.before) {

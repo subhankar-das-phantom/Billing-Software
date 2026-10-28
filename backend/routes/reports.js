@@ -8,6 +8,7 @@ const {
 } = require('../controllers/reportsController');
 const { getGstReport } = require('../controllers/gstReportController');
 const { protect, adminOnly, requirePermission } = require('../middleware/auth');
+const { paginationQuery } = require('../middleware/validators');
 const { checkSubscription, checkFeatureAccess } = require('../saas/middleware');
 const { Feature } = require('../saas/shared/features');
 
@@ -20,7 +21,7 @@ router.use(checkSubscription);
 router.get('/outstanding', requirePermission('reports', 'view'), checkFeatureAccess(Feature.OUTSTANDING_TRACKING), getOutstandingReport);
 router.get('/ageing', requirePermission('reports', 'view'), checkFeatureAccess(Feature.OUTSTANDING_TRACKING), getAgeingReport);
 router.get('/credit-stats', requirePermission('reports', 'view'), checkFeatureAccess(Feature.OUTSTANDING_TRACKING), getCreditStats);
-router.get('/recent-payments', requirePermission('reports', 'view'), checkFeatureAccess(Feature.OUTSTANDING_TRACKING), getRecentPayments);
+router.get('/recent-payments', requirePermission('reports', 'view'), checkFeatureAccess(Feature.OUTSTANDING_TRACKING), paginationQuery, getRecentPayments);
 
 // GST report
 router.get('/gst', requirePermission('reports', 'view'), checkFeatureAccess(Feature.GST_REPORTS), getGstReport);

@@ -15,7 +15,8 @@ const { protect, requirePermission } = require('../middleware/auth');
 const { 
   createInvoiceValidator, 
   updateInvoiceStatusValidator,
-  mongoIdParam 
+  mongoIdParam,
+  paginationQuery
 } = require('../middleware/validators');
 const { checkSubscription, checkFeatureAccess, checkWriteAccess } = require('../saas/middleware');
 const { Feature } = require('../saas/shared/features');
@@ -29,7 +30,7 @@ router.get('/export', requirePermission('invoices', 'view'), exportInvoices);
 router.get('/stats', requirePermission('invoices', 'view'), getInvoiceStats);
 
 router.route('/')
-  .get(requirePermission('invoices', 'view'), checkFeatureAccess(Feature.INVOICE_HISTORY), getInvoices)
+  .get(requirePermission('invoices', 'view'), checkFeatureAccess(Feature.INVOICE_HISTORY), paginationQuery, getInvoices)
   .post(checkWriteAccess, requirePermission('invoices', 'create'), checkFeatureAccess(Feature.INVOICE_CREATE), createInvoiceValidator, createInvoice);
 
 router.get('/customer/:customerId', requirePermission('invoices', 'view'), getCustomerInvoices);
