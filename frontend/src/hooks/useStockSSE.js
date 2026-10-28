@@ -93,16 +93,19 @@ export function useStockSSE({ onStockUpdate, onReconnect, enabled = true }) {
         return;
       }
 
-      const token = localStorage.getItem('token');
-      if (!token) {
-        console.warn('[useStockSSE] No auth token found — skipping SSE connection');
+      // Check for an active session (JWT is in HTTP-only cookie, sent automatically)
+      const hasSession = !!(localStorage.getItem('admin') || localStorage.getItem('user'));
+      if (!hasSession) {
+        console.warn('[useStockSSE] No active session found — skipping SSE connection');
         setConnectionState('disconnected');
         return;
       }
 
       setConnectionState('connecting');
 
-      const sseUrl = `${API_URL}/stock-events/stream?token=${encodeURIComponent(token)}`;
+      // Cookie auth: withCredentials sends the HTTP-only cookie automatically.
+      // No token in the URL — prevents token leakage in server logs and browser history.
+      const sseUrl = `${API_URL}/stock-events/stream`;
       const es = new EventSource(sseUrl, { withCredentials: true });
       eventSourceRef.current = es;
 

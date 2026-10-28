@@ -15,10 +15,9 @@ export const authService = {
     try {
       const response = await api.post('/auth/login', { email, password });
       
-      // Store JWT token and user info in localStorage
-      if (response.data?.token) {
-        localStorage.setItem('token', response.data.token);
-      }
+      
+      // Store user info in localStorage for Frame-0 hydration
+      // (token is delivered exclusively via HTTP-only cookie — never stored client-side)
       if (response.data?.admin) {
         localStorage.setItem('admin', JSON.stringify(response.data.admin));
         localStorage.setItem('lastLoginTime', Date.now().toString());
@@ -42,10 +41,9 @@ export const authService = {
     try {
       const response = await api.post('/auth/register', userData);
       
-      // Store JWT token and user info in localStorage
-      if (response.data?.token) {
-        localStorage.setItem('token', response.data.token);
-      }
+      
+      // Store user info in localStorage for Frame-0 hydration
+      // (token is delivered exclusively via HTTP-only cookie — never stored client-side)
       if (response.data?.admin) {
         localStorage.setItem('admin', JSON.stringify(response.data.admin));
         localStorage.setItem('lastLoginTime', Date.now().toString());
@@ -68,10 +66,9 @@ export const authService = {
     try {
       const response = await api.post('/auth/employee/login', { email, password });
       
-      // Store JWT token and employee info in localStorage
-      if (response.data?.token) {
-        localStorage.setItem('token', response.data.token);
-      }
+      
+      // Store employee info in localStorage for Frame-0 hydration
+      // (token is delivered exclusively via HTTP-only cookie — never stored client-side)
       if (response.data?.employee) {
         localStorage.setItem('user', JSON.stringify(response.data.employee));
         localStorage.setItem('lastLoginTime', Date.now().toString());

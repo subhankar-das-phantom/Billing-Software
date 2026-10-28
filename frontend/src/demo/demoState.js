@@ -30,8 +30,9 @@ export const enterDemoMode = (navigate) => {
   clearApiCache();
 
   // Seed demo session synchronously
+  // Note: No 'token' in localStorage — demo mode is identified by isDemoMode flag.
+  // The mock adapter intercepts all requests before they reach the network.
   localStorage.setItem('isDemoMode', 'true');
-  localStorage.setItem('token', 'demo_client_jwt_token_secure_isolated');
   localStorage.setItem('userRole', 'admin');
   localStorage.setItem('admin', JSON.stringify(DEMO_ADMIN));
   localStorage.setItem('cached_subscription', JSON.stringify(DEMO_SUBSCRIPTION));

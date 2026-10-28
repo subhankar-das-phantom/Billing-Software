@@ -84,8 +84,9 @@ function ProtectedRoute({ children }) {
   const { user, loading, isAdmin, logout, authTransition } = useAuth();
   const { canAccess, loading: subLoading } = useSubscription();
 
-  const hasToken = typeof window !== 'undefined' ? !!localStorage.getItem('token') : false;
-  if (!hasToken) {
+  // Check for cached session data (JWT is in HTTP-only cookie, not localStorage)
+  const hasSession = typeof window !== 'undefined' ? !!(localStorage.getItem('admin') || localStorage.getItem('user') || localStorage.getItem('isDemoMode')) : false;
+  if (!hasSession) {
     return <Navigate to="/landing" replace />;
   }
   
@@ -183,8 +184,9 @@ function PermissionRoute({ resource, action = 'view', feature: explicitFeature, 
 function PublicRoute({ children }) {
   const { user, loading, authTransition } = useAuth();
 
-  const hasToken = typeof window !== 'undefined' ? !!localStorage.getItem('token') : false;
-  if (!hasToken) {
+  // Check for cached session data (JWT is in HTTP-only cookie, not localStorage)
+  const hasSession = typeof window !== 'undefined' ? !!(localStorage.getItem('admin') || localStorage.getItem('user') || localStorage.getItem('isDemoMode')) : false;
+  if (!hasSession) {
     return children;
   }
   

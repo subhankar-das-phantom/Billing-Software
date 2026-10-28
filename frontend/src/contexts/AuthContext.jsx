@@ -88,8 +88,9 @@ export const AuthProvider = ({ children }) => {
 
   const isNonBlockingRoute = isPublicMarketingRoute || isAuthRoute;
 
-  // Check if there's a token to verify — if not, skip auth entirely
-  const hasToken = !!localStorage.getItem('token');
+  // Check if there's a cached session to verify — if not, skip auth entirely
+  // (JWT is in HTTP-only cookie, not localStorage; user profile data signals a session exists)
+  const hasSession = !!(localStorage.getItem('admin') || localStorage.getItem('user'));
 
   // Support for both admin and employee users with Frame-0 localStorage pre-seeding
   const [user, setUser] = useState(() => {
@@ -115,7 +116,7 @@ export const AuthProvider = ({ children }) => {
     }
   });
   const [loading, setLoading] = useState(() => (
-    hasToken && !localStorage.getItem('admin') && !localStorage.getItem('user')
+    hasSession && !localStorage.getItem('admin') && !localStorage.getItem('user')
   ));
   // Client hydration restoration flag: false on Frame 0 (matching prerendered snapshot),
   // flips to true in useEffect after mount to safely permit client-side auth switches.
@@ -169,13 +170,13 @@ export const AuthProvider = ({ children }) => {
     // Public routes without a session stay non-blocking for fast landing-page
     // paint. A token without a cached user still needs restoration here so
     // landing navigation never presents logged-out actions as final state.
-    if (isNonBlockingRoute && !hasToken) {
+    if (isNonBlockingRoute && !hasSession) {
       setLoading(false);
       return;
     }
 
-    // No token = no session to verify, skip auth check entirely
-    if (!hasToken) {
+    // No cached session = no session to verify, skip auth check entirely
+    if (!hasSession) {
       setLoading(false);
       return;
     }
@@ -230,7 +231,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     checkAuth();
-  }, [isNonBlockingRoute, hasToken, user, admin]);
+  }, [isNonBlockingRoute, hasSession, user, admin]);
 
   // Heartbeat to keep session alive (every 2 minutes)
   // When all tabs are closed or internet disconnects, heartbeats stop
@@ -327,7 +328,7 @@ export const AuthProvider = ({ children }) => {
       clearClientCaches();
       await authService.logout();
       
-      localStorage.removeItem('token');
+      localStorage.removeItem('token'); // Defensive cleanup for legacy sessions
       localStorage.removeItem('admin');
       localStorage.removeItem('user');
       localStorage.removeItem('userRole');
@@ -406,7 +407,8 @@ export const AuthProvider = ({ children }) => {
   const startDemoMode = useCallback(() => {
     clearClientCaches();
     localStorage.setItem('isDemoMode', 'true');
-    localStorage.setItem('token', 'demo_client_jwt_token_secure_isolated');
+    // Note: No 'token' in localStorage — demo mode is identified by isDemoMode flag.
+    // The mock adapter intercepts all requests before they reach the network.
     localStorage.setItem('userRole', 'admin');
     localStorage.setItem('admin', JSON.stringify(DEMO_ADMIN));
     localStorage.setItem('cached_subscription', JSON.stringify(DEMO_SUBSCRIPTION));

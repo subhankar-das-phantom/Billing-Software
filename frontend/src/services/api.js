@@ -89,11 +89,8 @@ api.interceptors.request.use(
       startTime: Date.now() 
     };
 
-    // Add JWT token from localStorage to Authorization header (unless explicitly disabled for public requests)
-    const token = localStorage.getItem('token');
-    if (token && config.withCredentials !== false) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    // JWT is delivered exclusively via HTTP-only cookie (withCredentials: true).
+    // No Authorization header needed — cookie is sent automatically by the browser.
 
     // Add cancel token (optional - uncomment if needed)
     // config.cancelToken = getCancelToken(config);
@@ -109,8 +106,7 @@ api.interceptors.request.use(
         {
           id: config.metadata.requestId,
           data: config.data,
-          params: config.params,
-          hasToken: !!token
+          params: config.params
         }
       );
     }

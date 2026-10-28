@@ -37,7 +37,8 @@ export const SubscriptionProvider = ({ children }) => {
     return null;
   });
   const [loading, setLoading] = useState(() => {
-    const hasToken = typeof window !== 'undefined' ? !!localStorage.getItem('token') : false;
+    // Check for cached session data (JWT is in HTTP-only cookie, not localStorage)
+    const hasSession = typeof window !== 'undefined' ? !!(localStorage.getItem('admin') || localStorage.getItem('user')) : false;
     const isPublic = typeof window !== 'undefined' && (
       window.location.pathname === '/landing' ||
       window.location.pathname === '/privacy-policy' ||
@@ -47,7 +48,7 @@ export const SubscriptionProvider = ({ children }) => {
       window.location.pathname.startsWith('/login') ||
       window.location.pathname.startsWith('/register')
     );
-    return !hasToken || isPublic ? false : !subscription;
+    return !hasSession || isPublic ? false : !subscription;
   });
   const [error, setError] = useState(null);
 

@@ -202,7 +202,7 @@ const sections = [
     content: (
       <>
         <ul>
-          <li><strong>Authentication Tokens</strong> — Secure storage of session tokens necessary to keep you authenticated across requests.</li>
+          <li><strong>Authentication & Session Cookies</strong> — Strictly protected HTTP-only cookies storing authentication credentials, protected by browser sandboxing from JavaScript access to eliminate cross-site scripting (XSS) extraction risks.</li>
           <li><strong>User Interface Preferences</strong> — Browser local storage for theme choices, collapsed sidebar states, and table column visibility.</li>
           <li><strong>Form Session Recovery</strong> — Temporary browser session storage to prevent loss of in-progress invoice or purchase entries during active typing.</li>
         </ul>

@@ -30,13 +30,10 @@ const protect = async (req, res, next) => {
   if (req.cookies.token) {
     token = req.cookies.token;
   }
-  // Fallback to Authorization header (for backward compatibility)
+  // Fallback to Authorization header (backward compatibility for active sessions
+  // issued before cookie-only migration — can be removed after one release cycle)
   else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     token = req.headers.authorization.split(' ')[1];
-  }
-  // Fallback to query string (for SSE — EventSource cannot send headers or cookies cross-origin)
-  else if (req.query.token) {
-    token = req.query.token;
   }
 
   if (!token) {
