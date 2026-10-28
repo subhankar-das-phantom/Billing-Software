@@ -15,7 +15,9 @@ import {
   EyeOff,
   CheckCircle,
   Sparkles,
-  Shield
+  Shield,
+  KeyRound,
+  AlertTriangle
 } from 'lucide-react';
 import { authService } from '../../services/auth/authService';
 import { useAuth } from '../../contexts/AuthContext';
@@ -30,13 +32,17 @@ export default function RegisterPage() {
     firmName: '',
     firmAddress: '',
     firmPhone: '',
-    firmGSTIN: ''
+    firmGSTIN: '',
+    website: '',
+    registrationSecret: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [registrationDisabled, setRegistrationDisabled] = useState(false);
+  const [showSecretField, setShowSecretField] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { error: showError, success: showSuccess } = useToast();
@@ -100,9 +106,16 @@ export default function RegisterPage() {
         navigate('/dashboard');
       }
     } catch (err) {
-      // Show the specific error message from the server
-      const errorMessage = err.message || 'Registration failed. Please try again.';
-      showError(errorMessage);
+      // Check for registration disabled status
+      if (err.statusCode === 403 || err.response?.data?.code === 'REGISTRATION_DISABLED') {
+        setRegistrationDisabled(true);
+        setShowSecretField(true);
+        showError(err.message || 'Public registration is currently disabled. Please enter a valid registration key.');
+      } else {
+        // Show specific error message (e.g. rate limit breach, disposable email block, duplicate account)
+        const errorMessage = err.message || 'Registration failed. Please try again.';
+        showError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -205,8 +218,30 @@ export default function RegisterPage() {
             </div>
           </div>
 
+          {/* Registration Disabled Banner */}
+          {registrationDisabled && (
+            <div className="mb-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2.5">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0 text-amber-400" />
+              <span>Public registration is currently closed. A valid registration key is required to create an account.</span>
+            </div>
+          )}
+
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Honeypot field — invisible to real users, catches automated spam bots */}
+            <div className="sr-only" aria-hidden="true" style={{ display: 'none', position: 'absolute', left: '-9999px' }}>
+              <label htmlFor="website">Website</label>
+              <input
+                type="text"
+                id="website"
+                name="website"
+                tabIndex={-1}
+                autoComplete="off"
+                value={formData.website || ''}
+                onChange={handleChange}
+              />
+            </div>
+
             {/* Email & Password Section */}
             <div className="grid grid-cols-1 gap-4">
               {renderInput({ 
@@ -270,6 +305,30 @@ export default function RegisterPage() {
                 })}
               </div>
             </div>
+
+            {/* Registration Key / Secret (Invite Access) */}
+            {showSecretField ? (
+              <div className="pt-3 border-t border-slate-700/50">
+                {renderInput({
+                  name: 'registrationSecret',
+                  label: 'Registration Key / Invitation Code',
+                  icon: KeyRound,
+                  type: 'password',
+                  placeholder: 'Enter secret access key'
+                })}
+              </div>
+            ) : (
+              <div className="flex justify-end pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowSecretField(true)}
+                  className="text-xs text-slate-400 hover:text-slate-200 transition-colors inline-flex items-center gap-1.5 focus:outline-hidden"
+                >
+                  <KeyRound size={13} className="text-slate-400" />
+                  <span>Have an invitation key?</span>
+                </button>
+              </div>
+            )}
 
             {/* Privacy Policy & Terms Consent — Explicit Checkbox */}
             <div className="mt-3">

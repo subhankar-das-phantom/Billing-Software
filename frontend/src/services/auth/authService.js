@@ -39,7 +39,11 @@ export const authService = {
    */
   register: async (userData) => {
     try {
-      const response = await api.post('/auth/register', userData);
+      const headers = {};
+      if (userData?.registrationSecret) {
+        headers['x-registration-secret'] = userData.registrationSecret;
+      }
+      const response = await api.post('/auth/register', userData, { headers });
       
       
       // Store user info in localStorage for Frame-0 hydration

@@ -13,9 +13,10 @@ const {
 } = require('../controllers/authController');
 const { protect, adminOnly } = require('../middleware/auth');
 const { registerValidator, loginValidator, updateProfileValidator } = require('../middleware/validators');
+const { registerLimiter, registrationGuard } = require('../middleware/registrationGuard');
 
 // Public routes
-router.post('/register', registerValidator, register);
+router.post('/register', registerLimiter, registrationGuard, registerValidator, register);
 router.post('/login', loginValidator, login);
 router.post('/employee/login', employeeLogin);
 
