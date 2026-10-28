@@ -63,8 +63,9 @@ app.post(
   require('./saas/controllers/subscriptionController').handleRazorpayWebhook
 );
 
-// Body parser
-app.use(express.json());
+// Body parser with 1MB limit to prevent memory exhaustion DoS
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // Cookie parser
 app.use(cookieParser());

@@ -12,13 +12,13 @@ const {
   updatePreferences
 } = require('../controllers/authController');
 const { protect, adminOnly } = require('../middleware/auth');
-const { registerValidator, loginValidator, updateProfileValidator } = require('../middleware/validators');
+const { registerValidator, loginValidator, updateProfileValidator, changePasswordValidator } = require('../middleware/validators');
 const { registerLimiter, registrationGuard } = require('../middleware/registrationGuard');
 
 // Public routes
 router.post('/register', registerLimiter, registrationGuard, registerValidator, register);
 router.post('/login', loginValidator, login);
-router.post('/employee/login', employeeLogin);
+router.post('/employee/login', loginValidator, employeeLogin);
 
 // Protected routes (both admin and employee)
 router.get('/me', protect, getMe);
@@ -27,7 +27,7 @@ router.post('/heartbeat', protect, heartbeat);
 router.put('/preferences', protect, updatePreferences);
 
 // Admin-only routes
-router.put('/change-password', protect, adminOnly, changePassword);
+router.put('/change-password', protect, adminOnly, changePasswordValidator, changePassword);
 router.put('/profile', protect, adminOnly, updateProfileValidator, updateProfile);
 
 module.exports = router;

@@ -12,7 +12,7 @@ const adminSchema = new mongoose.Schema({
   password: {
     type: String,
     required: [true, 'Please add a password'],
-    minlength: 6,
+    minlength: [8, 'Password must be at least 8 characters'],
     select: false
   },
   firmName: {

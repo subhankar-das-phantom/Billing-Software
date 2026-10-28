@@ -134,6 +134,14 @@ exports.createEmployee = async (req, res, next) => {
       });
     }
 
+    // Validate password policy
+    if (password.length < 8 || !/^(?=.*[a-zA-Z])(?=.*\d)/.test(password)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 8 characters and contain both letters and numbers'
+      });
+    }
+
     // Validate Gov ID if provided
     if (govId && govId.type && govId.number) {
       if (govId.type === 'Aadhar' && !/^\d{12}$/.test(govId.number)) {
@@ -253,10 +261,10 @@ exports.resetPassword = async (req, res, next) => {
     const tenantId = getTenantId(req);
     const { newPassword } = req.body;
 
-    if (!newPassword || newPassword.length < 6) {
+    if (!newPassword || newPassword.length < 8 || !/^(?=.*[a-zA-Z])(?=.*\d)/.test(newPassword)) {
       return res.status(400).json({
         success: false,
-        message: 'New password must be at least 6 characters'
+        message: 'New password must be at least 8 characters and contain both letters and numbers'
       });
     }
 

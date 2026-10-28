@@ -436,10 +436,10 @@ exports.changePassword = async (req, res, next) => {
       });
     }
 
-    if (newPassword.length < 6) {
+    if (newPassword.length < 8 || !/^(?=.*[a-zA-Z])(?=.*\d)/.test(newPassword)) {
       return res.status(400).json({
         success: false,
-        message: 'New password must be at least 6 characters'
+        message: 'New password must be at least 8 characters and contain both letters and numbers'
       });
     }
 

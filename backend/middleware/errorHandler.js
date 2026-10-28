@@ -1,9 +1,16 @@
 const errorHandler = (err, req, res, next) => {
   let error = { ...err };
   error.message = err.message;
+  error.statusCode = err.statusCode || err.status;
 
   // Log error for dev
   console.error('Error:', err);
+
+  // Request body payload too large
+  if (err.type === 'entity.too.large' || err.status === 413 || err.statusCode === 413) {
+    error.statusCode = 413;
+    error.message = 'Payload too large. Request body exceeds maximum allowed size of 1MB.';
+  }
 
   // Mongoose bad ObjectId
   if (err.name === 'CastError') {

@@ -25,9 +25,7 @@ const loginValidator = [
     .normalizeEmail(),
   body('password')
     .notEmpty()
-    .withMessage('Password is required')
-    .isLength({ min: 6 })
-    .withMessage('Password must be at least 6 characters'),
+    .withMessage('Password is required'),
   validate
 ];
 
@@ -40,8 +38,10 @@ const registerValidator = [
   body('password')
     .notEmpty()
     .withMessage('Password is required')
-    .isLength({ min: 6 })
-    .withMessage('Password must be at least 6 characters'),
+    .isLength({ min: 8 })
+    .withMessage('Password must be at least 8 characters')
+    .matches(/^(?=.*[a-zA-Z])(?=.*\d)/)
+    .withMessage('Password must contain both letters and numbers'),
   body('firmName')
     .optional()
     .trim()
@@ -86,6 +86,20 @@ const updateProfileValidator = [
     .trim()
     .matches(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]Z[0-9A-Z]$/i)
     .withMessage('Invalid GSTIN format (e.g., 19ABCDE1234F1Z5)'),
+  validate
+];
+
+const changePasswordValidator = [
+  body('currentPassword')
+    .notEmpty()
+    .withMessage('Current password is required'),
+  body('newPassword')
+    .notEmpty()
+    .withMessage('New password is required')
+    .isLength({ min: 8 })
+    .withMessage('New password must be at least 8 characters')
+    .matches(/^(?=.*[a-zA-Z])(?=.*\d)/)
+    .withMessage('New password must contain both letters and numbers'),
   validate
 ];
 
@@ -299,11 +313,190 @@ const updateNoteValidator = [
   validate
 ];
 
+// ==================== PAYMENT VALIDATORS ====================
+const createPaymentValidator = [
+  body('invoiceId')
+    .notEmpty()
+    .withMessage('Invoice ID is required')
+    .isMongoId()
+    .withMessage('Invalid invoice ID format'),
+  body('amount')
+    .notEmpty()
+    .withMessage('Payment amount is required')
+    .isFloat({ min: 0.01 })
+    .withMessage('Payment amount must be greater than 0'),
+  body('paymentMethod')
+    .optional()
+    .isIn(['Cash', 'UPI', 'Bank Transfer', 'Cheque', 'NEFT/RTGS'])
+    .withMessage('Invalid payment method'),
+  body('paymentDate')
+    .optional({ checkFalsy: true })
+    .isISO8601()
+    .withMessage('Invalid payment date format'),
+  body('referenceNumber')
+    .optional()
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage('Reference number cannot exceed 100 characters'),
+  body('notes')
+    .optional()
+    .trim()
+    .isLength({ max: 1000 })
+    .withMessage('Notes cannot exceed 1000 characters'),
+  validate
+];
+
+const updatePaymentValidator = [
+  param('id')
+    .isMongoId()
+    .withMessage('Invalid payment ID format'),
+  body('amount')
+    .optional()
+    .isFloat({ min: 0.01 })
+    .withMessage('Payment amount must be greater than 0'),
+  body('paymentMethod')
+    .optional()
+    .isIn(['Cash', 'UPI', 'Bank Transfer', 'Cheque', 'NEFT/RTGS'])
+    .withMessage('Invalid payment method'),
+  body('paymentDate')
+    .optional({ checkFalsy: true })
+    .isISO8601()
+    .withMessage('Invalid payment date format'),
+  body('referenceNumber')
+    .optional()
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage('Reference number cannot exceed 100 characters'),
+  body('notes')
+    .optional()
+    .trim()
+    .isLength({ max: 1000 })
+    .withMessage('Notes cannot exceed 1000 characters'),
+  validate
+];
+
+// ==================== CREDIT NOTE VALIDATORS ====================
+const createCreditNoteValidator = [
+  body('invoiceId')
+    .notEmpty()
+    .withMessage('Invoice ID is required')
+    .isMongoId()
+    .withMessage('Invalid invoice ID format'),
+  body('items')
+    .isArray({ min: 1 })
+    .withMessage('Credit note must include at least one item'),
+  body('items.*.productId')
+    .notEmpty()
+    .withMessage('Product ID is required for each item')
+    .isMongoId()
+    .withMessage('Invalid product ID format'),
+  body('items.*.quantityReturned')
+    .notEmpty()
+    .withMessage('Return quantity is required')
+    .isFloat({ min: 0.001 })
+    .withMessage('Return quantity must be greater than 0'),
+  body('items.*.invoiceItemId')
+    .optional({ checkFalsy: true })
+    .isMongoId()
+    .withMessage('Invalid invoice item ID format'),
+  body('items.*.batchId')
+    .optional({ checkFalsy: true })
+    .isMongoId()
+    .withMessage('Invalid batch ID format'),
+  body('reason')
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage('Reason cannot exceed 500 characters'),
+  validate
+];
+
+// ==================== MANUAL ENTRY VALIDATORS ====================
+const createManualEntryValidator = [
+  body().custom((value) => {
+    const customerId = value?.customerId || value?.customer;
+    if (!customerId) {
+      throw new Error('Customer ID is required');
+    }
+    if (!/^[0-9a-fA-F]{24}$/.test(customerId)) {
+      throw new Error('Invalid customer ID format');
+    }
+    return true;
+  }),
+  body('entryType')
+    .notEmpty()
+    .withMessage('Entry type is required')
+    .isIn(['opening_balance', 'manual_bill', 'payment_adjustment', 'credit_adjustment'])
+    .withMessage('Invalid entry type'),
+  body('paymentType')
+    .notEmpty()
+    .withMessage('Payment type is required')
+    .isIn(['Cash', 'Credit'])
+    .withMessage('Payment type must be Cash or Credit'),
+  body('amount')
+    .notEmpty()
+    .withMessage('Amount is required')
+    .isFloat({ min: 0.01 })
+    .withMessage('Amount must be greater than 0'),
+  body('entryDate')
+    .optional({ checkFalsy: true })
+    .isISO8601()
+    .withMessage('Invalid entry date format'),
+  body('description')
+    .trim()
+    .notEmpty()
+    .withMessage('Description is required')
+    .isLength({ max: 500 })
+    .withMessage('Description cannot exceed 500 characters'),
+  body('notes')
+    .optional()
+    .trim()
+    .isLength({ max: 1000 })
+    .withMessage('Notes cannot exceed 1000 characters'),
+  validate
+];
+
+const updateManualEntryValidator = [
+  param('id')
+    .isMongoId()
+    .withMessage('Invalid manual entry ID format'),
+  body('amount')
+    .optional()
+    .isFloat({ min: 0.01 })
+    .withMessage('Amount must be greater than 0'),
+  body('paymentType')
+    .optional()
+    .isIn(['Cash', 'Credit'])
+    .withMessage('Payment type must be Cash or Credit'),
+  body('entryDate')
+    .optional({ checkFalsy: true })
+    .isISO8601()
+    .withMessage('Invalid entry date format'),
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 500 })
+    .withMessage('Description must be between 1 and 500 characters'),
+  body('notes')
+    .optional()
+    .trim()
+    .isLength({ max: 1000 })
+    .withMessage('Notes cannot exceed 1000 characters'),
+  validate
+];
+
 // ==================== COMMON VALIDATORS ====================
 const mongoIdParam = [
   param('id')
     .isMongoId()
     .withMessage('Invalid ID format'),
+  validate
+];
+
+const validateMongoIdParam = (paramName = 'id') => [
+  param(paramName)
+    .isMongoId()
+    .withMessage(`Invalid ${paramName} format`),
   validate
 ];
 
@@ -323,6 +516,7 @@ module.exports = {
   // Auth
   registerValidator,
   loginValidator,
+  changePasswordValidator,
   updateProfileValidator,
   
   // Products
@@ -338,9 +532,16 @@ module.exports = {
   createInvoiceValidator,
   updateInvoiceStatusValidator,
   
-  // Invoices
-  createInvoiceValidator,
-  updateInvoiceStatusValidator,
+  // Payments
+  createPaymentValidator,
+  updatePaymentValidator,
+  
+  // Credit Notes
+  createCreditNoteValidator,
+  
+  // Manual Entries
+  createManualEntryValidator,
+  updateManualEntryValidator,
   
   // Notes
   createNoteValidator,
@@ -348,5 +549,6 @@ module.exports = {
   
   // Common
   mongoIdParam,
+  validateMongoIdParam,
   paginationQuery
 };
