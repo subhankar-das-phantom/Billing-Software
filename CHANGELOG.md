@@ -4,6 +4,24 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v2.11.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.11.0) — 2026-10-28 — Enterprise Security Hardening & Session Protection
+
+### 🔒 JWT Double-Exposure Elimination & Cookie-Only Session Architecture
+- **Eliminated JWT Exposure in API Response Bodies (`authController.js`)**:
+  - Removed `token` field from all 4 JSON auth response payloads (`register`, admin `login`, employee `login`, and employee-direct `employeeLogin`).
+  - Restricted JWT token transport exclusively to cryptographically configured, `httpOnly: true`, `secure: true`, `sameSite: 'strict'`/`'none'` HTTP cookies.
+- **Removed Client-Side Token Storage in `localStorage` (`api.js`, `authService.js`, `demoState.js`)**:
+  - Eliminated `localStorage.setItem('token')` and `localStorage.getItem('token')` across the entire frontend application.
+  - Eliminated manual `Authorization: Bearer <token>` header injection in Axios request interceptor (`api.js`). With `withCredentials: true`, all API requests transmit credentials natively and securely via the browser's protected cookie jar, immune to malicious JavaScript and XSS token extraction.
+- **Session Identification & Route Guard Migration (`AuthContext.jsx`, `SubscriptionContext.jsx`, `App.jsx`)**:
+  - Migrated Frame-0 synchronous boot guards from reading the `token` key to inspecting client-side user metadata profiles (`admin` or `user`), preventing unauthenticated layout flashing while keeping tokens entirely inaccessible to scripts.
+  - Updated `ProtectedRoute` and `PublicRoute` to evaluate session state via authenticated user models rather than raw tokens.
+- **SSE Stream Cookie Authentication Migration (`useStockSSE.js`, `auth.js`)**:
+  - Transitioned real-time stock change event streams (`EventSource`) from query-string token transport (`?token=<jwt>`) to native cookie authentication (`withCredentials: true`), preventing token leakage into proxy logs, browser history, and server access logs.
+  - Removed deprecated `req.query.token` fallback from backend authentication middleware (`backend/middleware/auth.js`).
+- **Privacy Policy Transparency Audit (`PrivacyPolicyPage.jsx`)**:
+  - Updated Section 7 (Cookies & Browser Storage Handling) to document strictly sandboxed HTTP-only cookie authentication isolated from JavaScript access.
+
 ## [v2.10.3](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.10.3) — 2026-10-11 — A4 Double-Copy 50% Midpoint Cut-Line Centering & Continuous Table Column Height Extension
 
 ### ✂️ Centered "Cut Here" Divider & Full Table Column Extension (`InvoiceDocument.jsx`, `index.css`, `PRINT-POSITIONING-GUIDE.md`)
