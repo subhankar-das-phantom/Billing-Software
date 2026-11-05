@@ -29,12 +29,16 @@ const verifyRequestOrigin = (req, res, next) => {
   })() : null);
 
   const allowedOrigin = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const platformOrigin = process.env.PLATFORM_FRONTEND_URL || 'http://localhost:5174';
   const allowedOrigins = new Set([
     allowedOrigin,
+    platformOrigin,
     'http://localhost:3000',
     'http://127.0.0.1:3000',
     'http://localhost:5173',
-    'http://127.0.0.1:5173'
+    'http://127.0.0.1:5173',
+    'http://localhost:5174',
+    'http://127.0.0.1:5174'
   ]);
 
   if (origin && allowedOrigins.has(origin)) {

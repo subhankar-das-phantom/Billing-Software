@@ -240,6 +240,17 @@ export default function LoginPage() {
             <Shield size={14} className="text-emerald-400" />
             <span>Secured with end-to-end encryption</span>
           </div>
+
+          {/* Super Admin Control Plane Switch */}
+          <div className="mt-4 pt-4 border-t border-slate-800/80 text-center">
+            <a
+              href={import.meta.env.VITE_PLATFORM_URL || 'http://localhost:5174'}
+              className="inline-flex items-center gap-1.5 text-xs text-cyan-400 hover:text-cyan-300 font-mono tracking-tight transition-colors py-1 px-2.5 rounded-lg hover:bg-slate-800/60 border border-transparent hover:border-slate-700/60"
+            >
+              <Shield className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Platform Operator? Open Super Admin Console &rarr;</span>
+            </a>
+          </div>
         </div>
       </div>
     </div>

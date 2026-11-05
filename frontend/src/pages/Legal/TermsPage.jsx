@@ -32,6 +32,7 @@ const sections = [
           <li><strong>Employee Management & RBAC</strong> — Team member provisioning with tenant-controlled, role-based granular permissions.</li>
           <li><strong>GST-Related Reporting Tools</strong> — Generation of tax summaries and reports based strictly on user-entered transaction data.</li>
           <li><strong>Subscription-Based Feature Access</strong> — Multi-tiered SaaS access plans tailored to evolving business sizes.</li>
+          <li><strong>Platform Control Plane & Operational Governance</strong> — Enterprise platform administration, tenant provisioning, subscription lifecycle management, and authorized diagnostic support governed by strict security boundaries.</li>
         </ul>
         <div className="pp-callout">
           <strong>Important Notice:</strong> Bharat Enterprise Billing System provides business software tools. We do <strong>not</strong> provide certified accounting services, professional financial advice, statutory auditing, or legal tax filing services.
@@ -106,6 +107,7 @@ const sections = [
           <li><strong>Admin Control</strong> — All business data belongs to the organization (tenant Admin), not individual employee or user accounts.</li>
           <li><strong>Prohibition of Cross-Tenant Intrusion</strong> — Any attempt to exploit, probe, scan, or breach multi-tenant barriers constitutes a material violation of these Terms.</li>
           <li><strong>Remedies</strong> — Circumventing tenant isolation will result in immediate termination of service and may lead to legal action under applicable cybersecurity laws.</li>
+          <li><strong>Dual-Plane Platform Segregation</strong> — Administrative operations are partitioned on an isolated Platform Control Plane (<code>/api/platform</code>). System operators access tenant data solely via bounded, cryptographically signed keyset queries and audited diagnostic tools, never sharing tenant credentials.</li>
         </ul>
       </>
     )
@@ -113,18 +115,27 @@ const sections = [
   {
     id: 'tc-employee-access',
     num: '6',
-    title: 'Employee Access & Role-Based Permissions (RBAC)',
+    title: 'Employee Access, RBAC & Diagnostic Support Bounds',
     icon: Users,
     color: 'from-rose-500 to-pink-500',
     content: (
       <>
-        <p>The Platform enables organization administrators to provision employee user accounts and configure granular access controls across different business workflows.</p>
+        <p>The Platform enables organization administrators to provision employee user accounts and configure granular access controls across different business workflows, alongside strict platform diagnostic protocols.</p>
+        
+        <h4>6.1 Employee Access & Tenant RBAC</h4>
         <ul>
           <li><strong>Admin-Managed Authorization</strong> — Business Admins configure and manage employee roles and module permissions (such as viewing, creating, editing, deleting, or cancelling entries in Customers, Products, Invoices, Payments, Purchases, and Reports).</li>
           <li><strong>Subordinate Access</strong> — Employees operate solely under the authority and supervision of the tenant Admin. Employees have no independent ownership claim over tenant business data.</li>
           <li><strong>Prompt Revocation</strong> — Admins are solely responsible for promptly deactivating, suspending, or revoking access for departing or re-assigned employees.</li>
           <li><strong>Audit & Activity Logging</strong> — Employee actions within the Platform (including creation, updates, and cancellations of transactions) may be recorded in activity logs for administrative accountability, compliance, and dispute resolution.</li>
           <li><strong>Plan Availability</strong> — The capacity to provision employee accounts and utilize advanced granular permissions varies according to your active subscription plan.</li>
+        </ul>
+
+        <h4>6.2 Diagnostic Support Sessions & Operational Safeguards</h4>
+        <ul>
+          <li><strong>Diagnostic Scoping</strong> — When assistance is requested, platform personnel may access tenant systems under a time-bounded diagnostic support session (maximum 2 hours).</li>
+          <li><strong>Non-Impersonation & Read-Only Invariant</strong> — Support sessions operate under anti-impersonation controls without issuing tenant administrative tokens. Personnel are strictly forbidden from creating, altering, or deleting financial invoices, inventory lots, payments, or customer records (enforced via HTTP 403 <code>SUPPORT_SESSION_READ_ONLY</code>).</li>
+          <li><strong>Audit Traceability</strong> — All diagnostic actions and session terminations are permanently logged in an immutable, cryptographically chained audit ledger.</li>
         </ul>
       </>
     )
@@ -272,6 +283,7 @@ const sections = [
           <li><strong>Limited Processing License</strong> — You grant us a limited, worldwide, non-exclusive license to host, store, process, and back up your data solely for the purpose of operating, maintaining, and delivering the Platform.</li>
           <li><strong>No Sale of Data</strong> — We never sell, rent, monetize, or trade your commercial or customer data to third parties.</li>
           <li><strong>Aggregated Insights</strong> — We may generate anonymized, aggregated statistical metrics that cannot identify you or your customers to monitor system performance and platform health.</li>
+          <li><strong>Operational Telemetry & Audit Integrity</strong> — While commercial data remains your property, system-level operational telemetry, subscription lifecycle events, and cryptographic audit records are retained by the platform to maintain operational stability and forensic traceability.</li>
         </ul>
       </>
     )
@@ -443,6 +455,7 @@ const sections = [
           <li><strong>Grace Period & Read-Only Mode</strong> — Following subscription expiration, a 7-day grace period is provided. Thereafter, the account shifts to read-only access until renewed.</li>
           <li><strong>Subscription Changes & Data Integrity</strong> — Changing or downgrading subscription tiers adjusts access to features specific to higher tiers. However, subscription plan changes do <strong>not</strong> automatically delete your historical business records, invoices, purchase transactions, or inventory movement history.</li>
           <li><strong>Refund Policy</strong> — All subscription payments are final and non-refundable, except where mandated by applicable consumer laws.</li>
+          <li><strong>5-Level Feature Precedence & Emergency Bypasses</strong> — Platform feature availability is resolved through a 5-level precedence engine (IAM Lockout Supremacy, Commercial Status, Base Plan, Subtractive Overrides, and Additive Overrides). In urgent billing disputes or operational maintenance, platform operators may issue a temporary emergency bypass for up to 72 hours with mandatory audit documentation.</li>
         </ul>
       </>
     )
@@ -537,11 +550,11 @@ export default function TermsPage() {
           <div className="pp-header-content">
             <div className="pp-header-badge">
               <Gavel className="w-4 h-4" />
-              Legal Document — Version 2.0.0
+              Legal Document — Version 3.0.0
             </div>
             <h1 className="pp-title">Terms & Conditions</h1>
             <p className="pp-subtitle">Bharat Enterprise Billing System</p>
-            <p className="pp-last-updated">Last Updated: September 2, 2026</p>
+            <p className="pp-last-updated">Last Updated: November 4, 2026</p>
           </div>
         </div>
       </header>
@@ -616,6 +629,9 @@ export default function TermsPage() {
                     <tr><td>Subscription Tiers</td><td>Starter (₹299), Business (₹499), Professional (₹699); downgrades preserve historical data.</td></tr>
                     <tr><td>Referral Program</td><td>Earn free subscription days for referring new businesses; no cash value.</td></tr>
                     <tr><td>Governing Law</td><td>Indian law; exclusive jurisdiction of Indian courts.</td></tr>
+                    <tr><td>Diagnostic Support Bounds</td><td>Time-limited, read-only diagnostic sessions; zero tenant impersonation; financial mutations strictly prohibited.</td></tr>
+                    <tr><td>Feature Precedence & Bypass</td><td>5-level precedence engine; temporary emergency bypasses capped at 72 hours with mandatory audit trails.</td></tr>
+                    <tr><td>Cryptographic Audit Ledger</td><td>Immutable SHA-256 hash-chained ledger permanently tracking all administrative touches and status transitions.</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -627,7 +643,7 @@ export default function TermsPage() {
       {/* Footer */}
       <footer className="pp-footer">
         <div className="pp-footer-inner">
-          <p>These Terms & Conditions are effective as of September 2, 2026 (Version 2.0.0).</p>
+          <p>These Terms & Conditions are effective as of November 4, 2026 (Version 3.0.0).</p>
           <p className="pp-footer-copyright">
             © {new Date().getFullYear()} Bharat Enterprise Billing System. All rights reserved.
           </p>

@@ -132,17 +132,18 @@ const sections = [
   {
     id: 'multi-tenant-isolation',
     num: '4',
-    title: 'Multi-Tenant Data Isolation & Security',
+    title: 'Multi-Tenant Data Isolation & Platform Governance',
     icon: Lock,
     color: 'from-amber-500 to-orange-500',
     content: (
       <>
-        <p>The Platform employs a <strong>multi-tenant cloud architecture</strong> designed with strict logical segregation:</p>
+        <p>The Platform employs a <strong>multi-tenant cloud architecture</strong> designed with strict logical, network, and operational segregation:</p>
         <ul>
-          <li><strong>Tenant-Scoped Queries</strong> — Every backend API request, database query, and reporting computation is strictly scoped to the authenticated user's organization identifier. No tenant can view, access, or modify another tenant's records.</li>
+          <li><strong>Tenant-Scoped Queries</strong> — Every business API request, database query, and reporting computation is strictly scoped to the authenticated organization identifier. No tenant can view, access, or modify another tenant's records.</li>
           <li><strong>Tenant-Scoped Unique Constraints</strong> — Database indexes for customer numbers, invoice identifiers, and product codes are enforced per tenant, preventing cross-tenant data exposure.</li>
+          <li><strong>Dual-Plane Architecture Segregation</strong> — Platform administration is partitioned into an isolated Platform Control Plane (<code>/api/platform</code>) governed by dedicated credentials (<code>PlatformUser</code>), monotonic session invalidation (<code>PlatformSession</code>), and path-restricted HTTP cookies (<code>platform_token</code>). Platform operators do not share session scopes or credentials with tenant organizations.</li>
           <li><strong>Admin Organization Ownership</strong> — All commercial data belongs to the organization (tenant Admin), not to individual employee users.</li>
-          <li><strong>Continuous Security Verification</strong> — Our authorization layers are structured to ensure that tenant context cannot be spoofed or bypassed.</li>
+          <li><strong>Continuous Security Verification</strong> — Our authorization layers ensure that tenant context cannot be spoofed, escalated, or bypassed.</li>
         </ul>
       </>
     )
@@ -150,15 +151,16 @@ const sections = [
   {
     id: 'authentication',
     num: '5',
-    title: 'Authentication & Access Control',
+    title: 'Authentication & Dual-Plane Access Control',
     icon: ShieldCheck,
     color: 'from-cyan-500 to-blue-500',
     content: (
       <>
         <ul>
-          <li><strong>Encrypted Passwords</strong> — All passwords are encrypted with bcrypt using strong salt factors and are never stored in readable plaintext.</li>
-          <li><strong>Token-Based Authentication</strong> — User sessions are authenticated using secure JSON Web Tokens (JWT) that expire automatically upon inactivity.</li>
-          <li><strong>Role-Based Permission Middleware</strong> — All backend endpoints verify that the requesting user holds the specific permission required for the requested action.</li>
+          <li><strong>Encrypted Passwords</strong> — All tenant and operator passwords are encrypted with bcrypt using strong salt factors and are never stored in readable plaintext.</li>
+          <li><strong>Token-Based Cookie Authentication</strong> — Tenant user sessions are authenticated using secure JSON Web Tokens (JWT) stored exclusively in HTTP-only, secure cookies that expire automatically upon inactivity.</li>
+          <li><strong>Platform Control Plane Identity Isolation</strong> — Platform operators (Owners, Admins, Support) authenticate through an isolated control plane utilizing mandatory RFC 6238 TOTP Multi-Factor Authentication (MFA), monotonic session invalidation, and path-restricted cookies (<code>Path=/api/platform</code>).</li>
+          <li><strong>Role-Based Permission Middleware</strong> — All backend endpoints verify that the requesting user holds the specific permission required for the requested action, backed by a 17-privilege granular platform hierarchy.</li>
         </ul>
       </>
     )
@@ -202,7 +204,7 @@ const sections = [
     content: (
       <>
         <ul>
-          <li><strong>Authentication & Session Cookies</strong> — Strictly protected HTTP-only cookies storing authentication credentials, protected by browser sandboxing from JavaScript access to eliminate cross-site scripting (XSS) extraction risks.</li>
+          <li><strong>Authentication & Session Cookies</strong> — Strictly protected HTTP-only cookies storing authentication credentials, protected by browser sandboxing from JavaScript access to eliminate cross-site scripting (XSS) extraction risks. Platform administrative sessions are additionally restricted by dedicated path scoping (<code>Path=/api/platform</code>).</li>
           <li><strong>User Interface Preferences</strong> — Browser local storage for theme choices, collapsed sidebar states, and table column visibility.</li>
           <li><strong>Form Session Recovery</strong> — Temporary browser session storage to prevent loss of in-progress invoice or purchase entries during active typing.</li>
         </ul>
@@ -223,6 +225,7 @@ const sections = [
           <li><strong>Subscription Downgrades</strong> — Downgrading subscription tiers adjusts access to higher-tier features, but does <strong>not</strong> delete historical transactions, invoices, purchases, or ledger entries.</li>
           <li><strong>Account Closure</strong> — Upon explicit request for account termination, tenant data is scheduled for permanent deletion from active databases within <strong>90 days</strong>, subject to statutory retention obligations.</li>
           <li><strong>Disaster Recovery Backups</strong> — Periodic automated cloud database snapshots may persist temporarily in disaster recovery archives until cycled out in accordance with standard backup rotation schedules.</li>
+          <li><strong>Cryptographic Append-Only Audit Ledger</strong> — All platform-level administrative, subscription, and diagnostic actions are recorded in an immutable, cryptographically chained (SHA-256) audit log with monotonic sequence counters. In accordance with enterprise compliance and security standards, platform audit logs are permanently preserved to guarantee forensic accountability and cannot be modified or purged.</li>
         </ul>
       </>
     )
@@ -285,16 +288,25 @@ const sections = [
   {
     id: 'employee-access',
     num: '12',
-    title: 'Employee Access & Audit Accountability',
+    title: 'Employee Access & Diagnostic Support Session Bounds',
     icon: Users,
     color: 'from-orange-500 to-red-500',
     content: (
       <>
+        <h4>12.1 Tenant Employee Governance</h4>
         <ul>
           <li><strong>Admin Authorization</strong> — Tenant Admins hold exclusive authority to create employee accounts and designate role-based module permissions.</li>
-          <li><strong>Subordinate Access</strong> — Employee access is granted on behalf of the tenant Admin and does not confer personal ownership of tenant data.</li>
+          <li><strong>Subordinate Access</strong> — Employee access is granted on behalf of the tenant Admin and does not confer personal ownership of tenant data. Inactive or suspended tenant accounts immediately block employee access.</li>
           <li><strong>Access Deactivation</strong> — Admins must promptly suspend or delete employee credentials when team members depart or reassign responsibilities.</li>
           <li><strong>Activity Logging</strong> — To safeguard business records against internal errors or disputes, employee actions (including purchase entries, invoice creation, and stock adjustments) may be logged with timestamps and user identifiers.</li>
+        </ul>
+
+        <h4>12.2 Diagnostic Support Sessions & Anti-Impersonation Guarantees</h4>
+        <ul>
+          <li><strong>Time-Bounded Assistance</strong> — When technical assistance is requested, authorized platform operators may initiate a diagnostic support session with strict time expiration (maximum 2 hours; default 30–60 minutes).</li>
+          <li><strong>Zero Tenant Impersonation</strong> — Support sessions do not issue tenant credentials or tenant JWTs. Platform operators never assume tenant identity, and request contexts are scrubbed of tenant admin identifiers.</li>
+          <li><strong>Strict Business Read-Only Gating</strong> — Support sessions strictly forbid mutating financial transactions, invoices, customer ledgers, stock levels, batch lots, or tenant credentials (enforcing HTTP 403 <code>SUPPORT_SESSION_READ_ONLY</code>).</li>
+          <li><strong>Mandatory Reason & Audit Accountability</strong> — Initiating a support session requires an explicit operational justification and is cryptographically recorded in the Platform Audit Ledger with operator identity, IP address, and touched endpoints.</li>
         </ul>
       </>
     )
@@ -395,11 +407,11 @@ export default function PrivacyPolicyPage() {
           <div className="pp-header-content">
             <div className="pp-header-badge">
               <Shield className="w-4 h-4" />
-              Privacy Document — Version 2.0.0
+              Privacy Document — Version 3.0.0
             </div>
             <h1 className="pp-title">Privacy Policy</h1>
             <p className="pp-subtitle">Bharat Enterprise Billing System</p>
-            <p className="pp-last-updated">Last Updated: September 2, 2026</p>
+            <p className="pp-last-updated">Last Updated: November 4, 2026</p>
           </div>
         </div>
       </header>
@@ -472,6 +484,9 @@ export default function PrivacyPolicyPage() {
                     <tr><td>No External Trackers</td><td>No advertising pixels, social login trackers, or data reselling.</td></tr>
                     <tr><td>Data Retention</td><td>Retained during active subscription; historical data preserved across plan changes.</td></tr>
                     <tr><td>Security Standards</td><td>TLS encryption in transit, bcrypt password hashing, encryption at rest.</td></tr>
+                    <tr><td>Platform Control Plane</td><td>Segregated on /api/platform with dedicated PlatformUser accounts, TOTP MFA, and path-restricted cookies.</td></tr>
+                    <tr><td>Diagnostic Support Bounds</td><td>Strict read-only bounds (SUPPORT_SESSION_READ_ONLY), zero tenant impersonation, time-limited, and audited.</td></tr>
+                    <tr><td>Cryptographic Audit Ledger</td><td>Append-only SHA-256 hash chaining; immutable ledger permanently preserved for security and compliance.</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -483,7 +498,7 @@ export default function PrivacyPolicyPage() {
       {/* Footer */}
       <footer className="pp-footer">
         <div className="pp-footer-inner">
-          <p>This Privacy Policy is effective as of September 2, 2026 (Version 2.0.0).</p>
+          <p>This Privacy Policy is effective as of November 4, 2026 (Version 3.0.0).</p>
           <p className="pp-footer-copyright">
             © {new Date().getFullYear()} Bharat Enterprise Billing System. All rights reserved.
           </p>

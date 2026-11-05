@@ -1,10 +1,39 @@
 # Bharat Enterprise - Billing & Business Operations Platform
 
-[![GitHub Tag](https://img.shields.io/badge/version-v2.11.0-emerald.svg)](https://github.com/subhankar-das-phantom/Billing-Software/releases)
+[![GitHub Tag](https://img.shields.io/badge/version-v3.0.0-emerald.svg)](https://github.com/subhankar-das-phantom/Billing-Software/releases)
 [![CI](https://github.com/subhankar-das-phantom/Billing-Software/actions/workflows/ci.yml/badge.svg)](https://github.com/subhankar-das-phantom/Billing-Software/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-ISC-blue.svg)](LICENSE)
 
 A comprehensive, multi-tenant cloud business operations platform optimized for both high-speed desktop workflows and mobile accessibility. Evolved from an invoicing utility into an end-to-end enterprise solution featuring **inward purchasing, dual-mode inventory with automated FIFO & manual batch selection, an immutable stock movement ledger, format-aware multi-document printing, operational intelligence, granular RBAC, and tiered SaaS subscriptions**.
+
+---
+
+## 🚀 Release v3.0.0 — Super Admin & Platform Control Plane Architecture
+
+Version 3.0.0 delivers a ground-up dual-plane architectural transformation, establishing a dedicated, zero-trust Platform Control Plane and Super Admin Console physically and logically isolated from tenant billing operations.
+
+### 💎 Key Highlights (v3.0.0)
+
+- **🏛️ Dual-Plane Platform Architecture & Isolated Identity**  
+  Segregated platform operations into a dedicated control plane (`/api/platform`) powered by isolated database entities (`PlatformUser`, `PlatformSession`), path-scoped HTTP-only cookies (`platform_token` with `Path=/api/platform; HttpOnly; Secure; SameSite=Strict`), mandatory RFC 6238 TOTP Multi-Factor Authentication (MFA), and AES-256-GCM encryption for all secrets at rest.
+- **🛡️ Centralized Platform RBAC & 17 Granular Privileges**  
+  Enterprise 6-role hierarchy (`PLATFORM_OWNER`, `PLATFORM_ADMIN`, `SUPPORT_ADMIN`, `SUPPORT_AGENT`, `TELESUPPORT`, `READ_ONLY`) governed by 17 granular permission primitives. Enforces privilege ceiling validation, last-owner demotion/deactivation defense, anti-self-demotion guards, and mandatory operational justification logging.
+- **⛓️ Cryptographic Append-Only Audit Ledger**  
+  Tamper-evident, partitioned SHA-256 hash chaining linking each event to the previous log hash via monotonic sequence counters in `PlatformAuditHead`. Backed by Optimistic Concurrency Control (OCC) and pre-hooks blocking all updates and deletions (`updateOne`, `deleteOne`, `save`). Sensitive fields (passwords, TOTP secrets) are automatically redacted.
+- **🔒 Fenced Distributed Locking & Subscription Concurrency**  
+  MongoDB-backed atomic distributed locking (`DistributedLock`) with strictly increasing monotonic fencing tokens and a 5-minute lease duration. Automatically reclaims abandoned or crashed worker leases. Integrates with auto-retrying ACID transactions (`runInTransaction`) to eliminate double-activation races and concurrent renewal anomalies.
+- **⚡ Keyset Pagination & Cryptographic Cursor Security**  
+  High-throughput, memory-bounded keyset pagination with HMAC-SHA256 cursor signatures and filter context fingerprints (`filterSig`). Strictly prevents cursor tampering, parameter injection, and cross-tenant boundary traversals. Pipeline executes Stage 3 `$limit` prior to `$lookup` to eliminate full-collection memory bloat.
+- **🎛️ 5-Level Feature Precedence Engine & Partial Unique Index**  
+  Granular capability resolution resolving effective tenant features across 5 levels: Level 1 (IAM Lockout Supremacy), Level 2 (Commercial Subscription Status & 72-hour Emergency Bypass ceiling), Level 3 (Base Plan features), Level 4 (Subtractive `DENY` overrides), and Level 5 (Additive `ALLOW` overrides). Backed by a partial unique index (`{ tenantId: 1, feature: 1 }` with `{ isActive: true }`) guaranteeing at most one active override per feature while retaining full historical audit records.
+- **🛠️ Support Session Diagnostic Bounds & Anti-Impersonation**  
+  Zero tenant JWT issuance. Support operators never assume tenant identity and request contexts are scrubbed of tenant admin identifiers. Real-time middleware strictly blocks mutating business routes (invoices, bills, stock, payments, ledgers, credentials) with HTTP 403 `SUPPORT_SESSION_READ_ONLY`, restricting sessions to time-bounded diagnostics (max 2 hours) with action counting.
+- **📊 High-Performance Platform Dashboard & Compound ESR Indexing**  
+  Parallel indexed aggregations via `Promise.all` with a 30-second TTL in-memory cache and automatic mutation invalidation. Aligned with Indian Standard Time (`UTC+05:30`) calendar boundaries for accurate revenue aggregation and formatted to 2-decimal paise precision (`₹1,23,456.78`).
+- **🚫 Legacy Endpoint Retirement & Employee Fail-Closed Defense**  
+  Permanently retired legacy `/api/saas/admin/*` and mutating plan administration routes with HTTP 410 Gone. Closed employee authentication bypass on suspended or deactivated tenants via fail-closed checks in authentication middleware (`backend/middleware/auth.js`).
+- **🖥️ Standalone Super Admin Console**  
+  A modern, high-density React 19 + TypeScript + Tailwind CSS v4 + Vite console running independently on port 5174. Features zero-CLS GPU-accelerated layout banners with isolated timer subscriptions, universal 300ms search debouncing with instant clear affordance, and responsive touch-first management views.
 
 ---
 

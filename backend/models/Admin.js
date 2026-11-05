@@ -19,6 +19,14 @@ const adminSchema = new mongoose.Schema({
     type: String,
     default: 'Bharat Enterprise'
   },
+  normalizedFirmName: {
+    type: String,
+    lowercase: true,
+    trim: true,
+    default: function() {
+      return (this.firmName || '').toLowerCase().trim();
+    }
+  },
   firmAddress: {
     type: String,
     default: ''
@@ -116,7 +124,13 @@ const adminSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Encrypt password before save
+// Normalize firm name before save
+adminSchema.pre('save', function() {
+  if (this.isModified('firmName') || !this.normalizedFirmName) {
+    this.normalizedFirmName = (this.firmName || '').toLowerCase().trim();
+  }
+});
+
 // Encrypt password before save
 adminSchema.pre('save', async function() {
   if (!this.isModified('password')) {
@@ -130,5 +144,10 @@ adminSchema.pre('save', async function() {
 adminSchema.methods.matchPassword = async function(enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
+
+// Keyset pagination & performance indexes
+adminSchema.index({ normalizedFirmName: 1, _id: 1 });
+adminSchema.index({ isActive: 1, createdAt: -1, _id: -1 });
+adminSchema.index({ createdAt: -1, _id: -1 });
 
 module.exports = mongoose.model('Admin', adminSchema);

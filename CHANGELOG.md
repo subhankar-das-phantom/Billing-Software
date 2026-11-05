@@ -4,6 +4,156 @@ All notable changes to **Bharat Enterprise Billing System** are documented here.
 
 For full release notes with implementation details, see [GitHub Releases](https://github.com/subhankar-das-phantom/Billing-Software/releases).
 
+## [v3.0.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v3.0.0) — 2026-11-04 — Super Admin & Platform Control Plane Architecture
+
+### 🏛️ Dual-Plane Platform Architecture & Isolated Identity
+- **Physical & Logical Plane Separation (`admin/backend/`, `backend/server.js`)**:
+  - Partitioned all administrative and system operations into an independent Platform Control Plane mounted strictly at `/api/platform`, completely isolated from tenant billing routes (`/api/*`).
+  - Implemented standalone database models for platform governance: `PlatformUser` (operator directory), `PlatformSession` (session invalidation and monotonic token rotation), `PlatformAuditHead` (partition sequence and hash tracking), and `PlatformAuditLog` (append-only ledger).
+- **Hardened Cookie Transport & Scoping (`platformAuthService.ts`, `platformAuthMiddleware.ts`)**:
+  - Implemented dedicated `platform_token` cookie with strict path isolation (`Path=/api/platform`), preventing platform administrative credentials from ever transmitting to tenant API endpoints or third-party scopes.
+  - Hardened with `httpOnly: true`, `secure: true`, `sameSite: 'strict'`, eliminating cross-site token interception and JavaScript credential extraction.
+- **Enterprise RFC 6238 TOTP Multi-Factor Authentication (`mfaService.ts`, `mfaMiddleware.ts`)**:
+  - Mandatory TOTP MFA authentication protecting all platform operators with two-step login challenge resolution (`POST /api/platform/auth/login` -> `POST /api/platform/auth/mfa/verify`).
+  - Engineered zero-downtime base32 OTP secret generation with SHA-256 backup recovery codes (hashed at rest).
+  - All MFA secrets encrypted at rest using AES-256-GCM authenticated encryption (`PLATFORM_MFA_KEY`) with unique initialization vectors (IV) and auth tags.
+- **Monotonic Session Invalidation & Brute-Force Rate Limiting (`platformAuthService.ts`, `PlatformSession.ts`)**:
+  - Instant session termination via `PlatformSession.findOneAndUpdate({ sessionToken, isValid: true }, { $set: { isValid: false, revokedAt: now } })`.
+  - Account lockout after 5 consecutive failed login attempts with a 30-minute exponential cooling window (`failedLoginAttempts`, `lockUntil`).
+
+### 🛡️ Centralized Platform RBAC & 17 Granular Privileges
+- **6-Tier Hierarchical Role Architecture (`permissions/index.ts`, `types/index.ts`)**:
+  - Defined explicit privilege levels: `PLATFORM_OWNER` (Rank 100), `PLATFORM_ADMIN` (Rank 80), `SUPPORT_ADMIN` (Rank 60), `SUPPORT_AGENT` (Rank 40), `TELESUPPORT` (Rank 20), and `READ_ONLY` (Rank 10).
+- **17 Granular Permission Primitives**:
+  - Modularly governs: Dashboard View, Tenants View/Manage/Suspend/Reactivate, Tenant Data View, Subscriptions View/Manage, Feature Overrides View/Manage, Support Start/Operate/End, Audit View, Users View/Manage, and Emergency Bypass Manage.
+- **Privilege Ceiling & Defense-in-Depth Invariants (`platformUserController.ts`)**:
+  - Strict rank inequality: Operators cannot provision, modify, or elevate users to a rank equal to or higher than their own (`canManageRole`).
+  - Anti-Self-Demotion: Operators are blocked from demoting or altering their own assigned platform role.
+  - Last-Owner Protection: Prevents suspension, deactivation, or demotion of the final remaining active `PLATFORM_OWNER` in the database.
+  - Mandatory Operational Reasons: Every administrative mutation (suspension, plan change, override, user modification) strictly requires an explicit reason (minimum 10 characters) logged to the audit ledger.
+
+### ⛓️ Cryptographic Append-Only Audit Ledger
+- **Partitioned SHA-256 Hash Chaining (`PlatformAuditHead.ts`, `PlatformAuditLog.ts`, `platformAuditService.ts`)**:
+  - Constructed an immutable, tamper-evident cryptographic ledger where every audit record contains `sequence`, `previousHash`, and a computed SHA-256 `hash` over the record payload: `SHA256(scope + sequence + actorId + action + targetId + reason + timestamp + previousHash)`.
+  - Managed partition sequence pointers and hash chain tips in `PlatformAuditHead` using Optimistic Concurrency Control (OCC) with version incrementing (`lastSequence`, `lastHash`).
+- **Database Engine Mutation Blocking Hooks (`PlatformAuditLog.ts`)**:
+  - Attached strict Mongoose pre-hooks throwing runtime errors on all mutating operations: `updateOne`, `updateMany`, `replaceOne`, `findOneAndUpdate`, `deleteOne`, `deleteMany`, `findOneAndDelete`, `findOneAndRemove`, and pre-save on non-new documents.
+- **Automated Field Redaction & Integrity Verification Engine (`platformAuditService.ts`, `platformAuditController.ts`)**:
+  - Automatic deep redaction of sensitive attributes (`password`, `mfaSecret`, `token`, `creditCard`, `secret`) in audit `before` and `after` state snapshots.
+  - Real-time audit chain verification API (`GET /api/platform/audit/verify-chain`) validating sequence continuity and cryptographic hash integrity across the ledger.
+
+### 🔒 Fenced Distributed Locking & Subscription Concurrency
+- **Atomic Fenced Leases (`DistributedLock.ts`, `backend/models/DistributedLock.ts`)**:
+  - Built an atomic MongoDB distributed locking mechanism (`acquireLease`, `releaseLease`, `heartbeatLease`) utilizing strictly increasing monotonic `fencingToken` counters and a 5-minute lease duration.
+  - Two-step atomic claim pattern: Step 1 initializes lock records via `$setOnInsert`; Step 2 atomically acquires or claims expired leases via `findOneAndUpdate`.
+  - Automatic stale lease recovery safely taking over abandoned or crashed worker leases.
+- **Transactional Subscription Mutations & Double-Activation Prevention (`subscriptionService.ts`, `transactionHelper.ts`)**:
+  - Wrapped subscription activations, trial creation, extensions, and manual day adjustments in MongoDB ACID transactions using `runInTransaction`.
+  - Guaranteed idempotency and race condition immunity under concurrent payment webhook callbacks and operator adjustments.
+  - Guarded daily cron job (`processExpiredSubscriptions`) with distributed lease `cron:process-expired`, preventing duplicate status transitions in clustered horizontal deployments.
+
+### ⚡ Keyset Pagination & Cryptographic Cursor Security
+- **HMAC-SHA256 Keyset Pagination (`tenantQueries.ts`, `cursorCrypto.ts`)**:
+  - Eliminated high-offset query degradation (`$skip`) across large tenant datasets by replacing offset pagination with high-throughput keyset pagination (`createdAt` + `_id` or `normalizedFirmName` + `_id`).
+  - Cryptographically signed cursors: Encodes cursor values with an HMAC-SHA256 signature (`PLATFORM_JWT_SECRET`) and filter context signature (`filterSig`). Any parameter tampering or filter permutation mismatch immediately rejects the cursor.
+- **Tenant Scope Pinning & Pipeline Optimization**:
+  - Bound cursor signatures to specific tenant scopes, preventing cross-tenant cursor replay attacks.
+  - Ordered MongoDB aggregation pipeline with Stage 3 `$limit: limit + 1` placed strictly prior to `$lookup`, reducing memory footprint and eliminating unindexed joined collection scans.
+
+### 🎛️ 5-Level Feature Precedence Engine & Partial Unique Index
+- **Fine-Grained Capability Resolution (`featureService.ts`, `featureOverrideService.ts`)**:
+  - Re-architected tenant feature gating into an authoritative 5-level precedence hierarchy:
+    - **Level 1 — IAM Lockout Supremacy**: If tenant administrator account is inactive (`Admin.isActive === false`), write privileges and features are completely revoked immediately.
+    - **Level 2 — Commercial Subscription Status & Emergency Bypass**: Validates active subscription status. If expired or suspended, checks for an active `EMERGENCY_BYPASS` grant.
+    - **Level 3 — Base Plan Features**: Base feature set defined by the active SaaS plan tier.
+    - **Level 4 — Subtractive Overrides (`DENY`)**: Explicit active unexpired overrides stripping specific capabilities from the tenant.
+    - **Level 5 — Additive Overrides (`ALLOW`)**: Explicit active unexpired overrides granting additional capabilities to the tenant.
+- **Partial Unique Indexing (`TenantFeatureOverride.ts`)**:
+  - Enforced compound partial unique index: `{ tenantId: 1, feature: 1 }` with `{ partialFilterExpression: { isActive: true } }`.
+  - Guarantees at most ONE active override exists per feature per tenant while maintaining an immutable historical audit trail of deactivated and expired overrides.
+- **72-Hour Emergency Bypass Safety Ceiling (`featureOverrideService.ts`)**:
+  - Hardened emergency commercial bypass grants with a mandatory 72-hour maximum ceiling, requiring high-severity audit logging (`CRITICAL`) and owner-level authorization.
+
+### 🛠️ Support Session Diagnostic Bounds & Anti-Impersonation
+- **Zero Tenant JWT Issuance & Anti-Impersonation Safeguards (`supportSessionMiddleware.ts`)**:
+  - Support personnel never receive tenant JWTs or tenant administrative credentials.
+  - Active request context is stripped of tenant identity pollution (`delete req.user`, `delete req.userRole`, `delete req.admin`).
+- **Strict Business Mutation Gating (`supportSessionMiddleware.ts`)**:
+  - Enforced real-time regex boundary gates blocking all mutating business routes (Invoices, Bills, Stock, Inventory, Batch Lots, Customers, Suppliers, Payments, Credit Notes, Manual Entries, Ledgers) with HTTP 403 `SUPPORT_SESSION_READ_ONLY`.
+  - Strictly blocked credential and password alteration endpoints (`/auth/update-password`, `/auth/change-password`).
+- **Time-Bounded Diagnostic Scoping (`supportSessionService.ts`, `PlatformSupportSession.ts`)**:
+  - Support sessions enforce a strict maximum ceiling of 2 hours (default 30–60 minutes) with action counters tracking total diagnostic queries executed.
+
+### 📊 High-Performance Platform Dashboard & Compound ESR Indexing
+- **Parallel Indexed Aggregations & In-Memory TTL Caching (`dashboardQueries.ts`, `platformDashboardController.ts`)**:
+  - Parallelized tenant counts, subscription breakdowns, payment aggregates, and recent activity metrics using `Promise.all`.
+  - Implemented 30-second in-memory TTL caching with automatic invalidation across subscription, payment, and tenant status mutations.
+- **Timezone-Immune Indian Standard Time Boundaries (`dashboardQueries.ts`)**:
+  - Anchored revenue and transaction boundaries to exact Indian Standard Time calendar days (`UTC+05:30` offset) rather than volatile server UTC timestamps.
+- **Financial Counter Precision & Compound ESR Indexing**:
+  - Maintained 2-decimal paise precision across all Monthly Recurring Revenue (MRR) and collection counters (`₹1,23,456.78`).
+  - Added compound indexes: `Admin.index({ normalizedFirmName: 1, _id: 1 })`, `Admin.index({ isActive: 1, createdAt: -1, _id: -1 })`, and `SubscriptionPayment.index({ status: 1, paidAt: -1 })`.
+
+### 🚫 Legacy Endpoint Retirement & Employee Fail-Closed Defense
+- **Permanent HTTP 410 Gone Retirement (`saas/routes/adminSaas.ts`, `saas/routes/plans.ts`)**:
+  - Permanently retired legacy `/api/saas/admin/*` routes and mutating plan routes with HTTP 410 Gone, directing all administrative traffic to the hardened Platform Control Plane.
+- **Employee Authentication Fail-Closed Defense (`backend/middleware/auth.js`)**:
+  - Closed employee access bypass on suspended or deactivated tenants: Employee requests now perform a fail-closed check on tenant organization active status (`Admin.findById(employee.createdByAdmin).select('isActive')`), immediately clearing cookies and rejecting inactive tenant staff with HTTP 401.
+
+### 🖥️ Standalone Super Admin Console (`admin/frontend/`)
+- **Modern React 19 Architecture**:
+  - Greenfield Super Admin Single Page Application built on React 19, TypeScript, Vite, and Tailwind CSS v4, running isolated on port 5174.
+- **Zero-CLS Layout Stability & Isolated Banner Timers (`ActiveSupportBanner.tsx`)**:
+  - Fixed-height (44px) GPU-accelerated support status banner utilizing subtle opacity and Y-translation (`will-change: transform, opacity`).
+  - Contains an isolated, memoized countdown timer component ticking independently every 1,000ms, eliminating whole-tree React layout thrashing.
+- **Universal Search Debouncing & Ergonomics (`SearchInput.tsx`)**:
+  - 300ms debounced search bar with instant clear (`X`) button and decoupled local input state, eliminating cursor jumping and focus loss.
+- **Responsive High-Density Administration Pages**:
+  - `DashboardPage.tsx`: Real-time MRR, tenant status distribution, and collection counters.
+  - `TenantsPage.tsx`: Keyset-paginated tenant directory with status filtering and instant suspension controls.
+  - `SubscriptionsPage.tsx`: Subscription lifecycle inspection, plan management, and day adjustments.
+  - `FeaturesPage.tsx`: Tenant feature override manager with emergency bypass dispatch.
+  - `SupportPage.tsx`: Diagnostic support session manager with real-time countdown timer.
+  - `AuditPage.tsx`: Cryptographic audit log explorer with hash chain verification.
+  - `UsersPage.tsx`: Platform operator directory with role privilege hierarchy controls.
+
+---
+
+### 📁 Specific File Modifications & Creations
+
+| File | Status | Description |
+| :--- | :---: | :--- |
+| `backend/server.js` | Modified | Added `PLATFORM_JWT_SECRET` startup check, enabled port 5174 CORS, and mounted platform routes at `/api/platform`. |
+| `backend/controllers/authController.js` | Modified | Added tenant active state guards (`admin.isActive`, `employee.createdByAdmin.isActive`) to login and employeeLogin. |
+| `backend/middleware/auth.js` | Modified | Added fail-closed check verifying tenant active state for employee token requests. |
+| `backend/middleware/csrfProtection.js` | Modified | Updated origin verification to support platform control plane domain. |
+| `backend/models/Admin.js` | Modified | Added `normalizedFirmName` field, pre-save normalization hook, and keyset pagination compound indexes. |
+| `backend/models/Admin.d.ts` | Added | TypeScript declaration for Admin model supporting TypeScript services. |
+| `backend/models/DistributedLock.ts` | Added | MongoDB distributed locking model with monotonic fencing tokens and lease reclamation. |
+| `backend/utils/transactionHelper.ts` | Added | ACID transaction runner with automatic retry for TransientTransactionErrors. |
+| `backend/saas/routes/adminSaas.ts` | Modified | Retired all legacy admin SaaS routes permanently with HTTP 410 Gone. |
+| `backend/saas/routes/plans.ts` | Modified | Retired mutating plan administration routes with HTTP 410 Gone. |
+| `backend/saas/services/featureService.ts` | Modified | Connected feature resolution to 5-level platform precedence engine. |
+| `backend/saas/services/subscriptionService.ts` | Modified | Wrapped subscription mutations in ACID transactions and fenced distributed leases. |
+| `backend/tsconfig.json` | Modified | Expanded include path to encompass models and utility services. |
+| `backend/.env.example` | Modified | Documented `PLATFORM_JWT_SECRET`, `PLATFORM_MFA_KEY`, and bootstrap credentials. |
+| `frontend/src/pages/Legal/PrivacyPolicyPage.jsx` | Modified | Updated to Version 3.0.0; documented platform control plane isolation, audit retention, and diagnostic support bounds. |
+| `frontend/src/pages/Legal/TermsPage.jsx` | Modified | Updated to Version 3.0.0; documented diagnostic session read-only bounds and 5-level feature precedence engine. |
+| `README.md` | Modified | Updated version badge to v3.0.0, added dual-plane architecture diagrams, API references, and quickstart run instructions. |
+| `CHANGELOG.md` | Modified | Documented complete, categorized release notes for v3.0.0 milestone. |
+| `admin/backend/auth/*` | Added | Platform authentication service, TOTP MFA service with AES-256-GCM encryption. |
+| `admin/backend/controllers/*` | Added | 9 domain controllers managing auth, audit, dashboard, features, plans, subscriptions, support, tenants, and operators. |
+| `admin/backend/middleware/*` | Added | Platform auth, TOTP MFA, platform RBAC, target tenant, and support session bounds middleware. |
+| `admin/backend/models/*` | Added | Mongoose models for `PlatformUser`, `PlatformSession`, `PlatformAuditHead`, `PlatformAuditLog`, `PlatformSupportSession`, and `TenantFeatureOverride`. |
+| `admin/backend/permissions/*` | Added | Centralized 6-tier platform RBAC definitions, 17 granular privileges, and privilege ceiling evaluation. |
+| `admin/backend/queries/*` | Added | Optimized aggregations for dashboard metrics, tenant keyset queries, and tenant diagnostic queries. |
+| `admin/backend/routes/*` | Added | Express router modules mounted under `/api/platform`. |
+| `admin/backend/scripts/*` | Added | Platform Owner bootstrap CLI (`bootstrapPlatformOwner.ts`) and index migration script (`migratePlatformIndexes.ts`). |
+| `admin/backend/services/*` | Added | Core domain services for feature overrides, cryptographic audit logging, and support sessions. |
+| `admin/backend/types/*` | Added | Strict TypeScript definitions, DTOs, and interface boundaries. |
+| `admin/backend/utils/*` | Added | HMAC-SHA256 cursor crypto and filter context signature generators. |
+| `admin/frontend/src/*` | Added | Standalone React 19 + TypeScript + Vite + Tailwind CSS v4 Super Admin Console. |
+
 ## [v2.11.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.11.0) — 2026-10-28 — Enterprise Security Hardening & Session Protection
 
 ### 🔒 JWT Double-Exposure Elimination & Cookie-Only Session Architecture

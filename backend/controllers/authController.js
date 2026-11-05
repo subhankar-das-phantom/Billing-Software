@@ -176,6 +176,14 @@ exports.login = async (req, res, next) => {
         });
       }
 
+      // Verify tenant account is active
+      if (admin.isActive !== true) {
+        return res.status(401).json({
+          success: false,
+          message: 'Account has been deactivated. Please contact support.'
+        });
+      }
+
       // Update last login
       admin.lastLogin = new Date();
       await admin.save();
@@ -206,9 +214,17 @@ exports.login = async (req, res, next) => {
     }
 
     // If not an Admin, try Employee
-    const employee = await Employee.findOne({ email: email.toLowerCase() }).select('+password').populate('createdByAdmin', 'firmName');
+    const employee = await Employee.findOne({ email: email.toLowerCase() }).select('+password').populate('createdByAdmin', 'firmName isActive');
 
     if (employee) {
+      // Verify parent organization account is active
+      if (!employee.createdByAdmin || employee.createdByAdmin.isActive !== true) {
+        return res.status(401).json({
+          success: false,
+          message: 'Organization account is inactive or suspended. Access denied.'
+        });
+      }
+
       // Check if employee is active
       if (!employee.isActive) {
         return res.status(401).json({
@@ -280,12 +296,20 @@ exports.employeeLogin = async (req, res, next) => {
     // Find employee by email
     const employee = await Employee.findOne({ 
       email: email.toLowerCase() 
-    }).select('+password').populate('createdByAdmin', 'firmName');
+    }).select('+password').populate('createdByAdmin', 'firmName isActive');
 
     if (!employee) {
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials'
+      });
+    }
+
+    // Verify parent organization account is active
+    if (!employee.createdByAdmin || employee.createdByAdmin.isActive !== true) {
+      return res.status(401).json({
+        success: false,
+        message: 'Organization account is inactive or suspended. Access denied.'
       });
     }
 

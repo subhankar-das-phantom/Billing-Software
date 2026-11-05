@@ -5,10 +5,13 @@
  * the daily cron job for expiry processing.
  */
 
+import type { ClientSession } from 'mongoose';
 import Subscription from '../models/Subscription';
 import SubscriptionPayment from '../models/SubscriptionPayment';
 import SubscriptionAdjustment from '../models/SubscriptionAdjustment';
 import Plan from '../models/Plan';
+import DistributedLock from '../../models/DistributedLock';
+import { runInTransaction } from '../../utils/transactionHelper';
 import { SubscriptionStatus, PaymentStatus, AdjustmentType } from '../shared/features';
 import type { IPricingSnapshot } from '../types';
 import { getDefaultGraceDays, getDefaultTrialDays, getDefaultTrialPlan } from './settingsService';
@@ -33,6 +36,7 @@ type ActivateSubscriptionOptions = {
  */
 export async function createTrialSubscription(
   tenantId: string,
+  externalSession?: ClientSession,
 ): Promise<typeof Subscription.prototype> {
   const trialDays = await getDefaultTrialDays();
   const graceDays = await getDefaultGraceDays();
@@ -57,16 +61,20 @@ export async function createTrialSubscription(
     features: plan.features,
   };
 
-  const subscription = await Subscription.create({
-    tenantId,
-    planId: plan._id,
-    status: SubscriptionStatus.TRIAL,
-    startedAt: now,
-    expiresAt,
-    graceUntil,
-    gracePeriodDays: graceDays,
-    currentPricingSnapshot: snapshot,
-  });
+  const subscription = await runInTransaction(async (session) => {
+    const sub = new Subscription({
+      tenantId,
+      planId: plan._id,
+      status: SubscriptionStatus.TRIAL,
+      startedAt: now,
+      expiresAt,
+      graceUntil,
+      gracePeriodDays: graceDays,
+      currentPricingSnapshot: snapshot,
+    });
+    await sub.save({ session });
+    return sub;
+  }, externalSession);
 
   // Schedule expiry notifications
   await scheduleExpiryNotifications(
@@ -91,6 +99,7 @@ export async function activateSubscription(
   durationMonths: number,
   paymentId: string,
   options: ActivateSubscriptionOptions = {},
+  externalSession?: ClientSession,
 ): Promise<{
   subscription: typeof Subscription.prototype;
   proratedDaysAdded: number;
@@ -102,119 +111,134 @@ export async function activateSubscription(
   if (!plan) throw new Error('Plan not found');
 
   const pricing = await calculatePrice(planId, durationMonths);
-
   const now = new Date();
 
-  // Check if there's an active/trial subscription to extend from
-  const existing = await Subscription.findOne({
-    tenantId,
-    status: { $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL, SubscriptionStatus.GRACE] },
-  }).sort({ expiresAt: -1 }).lean();
-
-  let additionalDays = durationMonths * 30;
-
-  if (existing && new Date(existing.expiresAt) > now) {
-    const remainingMs = new Date(existing.expiresAt).getTime() - now.getTime();
-    const remainingDays = remainingMs / (1000 * 60 * 60 * 24);
-
-    if (existing.planId.toString() === planId.toString()) {
-      // Same plan renewal — just carry over all remaining days
-      additionalDays += remainingDays;
-    } else {
-      // Plan change — prorate remaining days based on the price ratio
-      const oldPrice = existing.currentPricingSnapshot.baseMonthlyPrice || 0;
-      const newPrice = plan.baseMonthlyPrice || 1; // Prevent div zero
-
-      const ratio = oldPrice / newPrice;
-      const proratedDays = remainingDays * ratio;
-
-      additionalDays += proratedDays;
-    }
-  }
-
-  const expiresAt = new Date(now.getTime() + additionalDays * 24 * 60 * 60 * 1000);
-  const graceUntil = new Date(
-    expiresAt.getTime() + graceDays * 24 * 60 * 60 * 1000,
-  );
-
-  const snapshot: IPricingSnapshot = {
-    planName: plan.name,
-    planCode: plan.code,
-    baseMonthlyPrice: plan.baseMonthlyPrice,
-    durationMonths,
-    discountApplied: pricing.discountAmount,
-    finalAmount: pricing.finalPrice,
-    features: plan.features,
-  };
-
-  // If extending an existing subscription, update it
-  if (existing) {
-    const recurringFields = buildRecurringFields(options, durationMonths);
-    const updated = await Subscription.findByIdAndUpdate(
-      existing._id,
-      {
-        $set: {
-          planId: plan._id,
-          status: SubscriptionStatus.ACTIVE,
-          autoRenew: options.autoRenew === true,
-          billingMode: options.autoRenew === true ? 'auto' : 'manual',
-          expiresAt,
-          graceUntil,
-          gracePeriodDays: graceDays,
-          currentPricingSnapshot: snapshot,
-          ...recurringFields.$set,
-        },
-        ...(Object.keys(recurringFields.$unset).length > 0
-          ? { $unset: recurringFields.$unset }
-          : {}),
-      },
-      { new: true },
-    );
-
-    // Link payment to subscription
-    await SubscriptionPayment.findByIdAndUpdate(paymentId, {
-      $set: { subscriptionId: existing._id },
-    });
-
-    // Schedule new expiry notifications
-    await scheduleExpiryNotifications(
+  const result = await runInTransaction(async (session) => {
+    // Check if there's an active/trial subscription to extend from
+    const existing = await Subscription.findOne({
       tenantId,
-      existing._id.toString(),
-      expiresAt,
+      status: { $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL, SubscriptionStatus.GRACE] },
+    }).sort({ expiresAt: -1 }).session(session).lean();
+
+    let additionalDays = durationMonths * 30;
+
+    if (existing && new Date(existing.expiresAt) > now) {
+      const remainingMs = new Date(existing.expiresAt).getTime() - now.getTime();
+      const remainingDays = remainingMs / (1000 * 60 * 60 * 24);
+
+      if (existing.planId.toString() === planId.toString()) {
+        // Same plan renewal — just carry over all remaining days
+        additionalDays += remainingDays;
+      } else {
+        // Plan change — prorate remaining days based on the price ratio
+        const oldPrice = existing.currentPricingSnapshot.baseMonthlyPrice || 0;
+        const newPrice = plan.baseMonthlyPrice || 1; // Prevent div zero
+
+        const ratio = oldPrice / newPrice;
+        const proratedDays = remainingDays * ratio;
+
+        additionalDays += proratedDays;
+      }
+    }
+
+    const expiresAt = new Date(now.getTime() + additionalDays * 24 * 60 * 60 * 1000);
+    const graceUntil = new Date(
+      expiresAt.getTime() + graceDays * 24 * 60 * 60 * 1000,
     );
 
-    invalidateSubscriptionCache(tenantId);
-    return { subscription: updated!, proratedDaysAdded: additionalDays - (durationMonths * 30), isUpgrade: existing.planId.toString() !== planId.toString() };
-  }
+    const snapshot: IPricingSnapshot = {
+      planName: plan.name,
+      planCode: plan.code,
+      baseMonthlyPrice: plan.baseMonthlyPrice,
+      durationMonths,
+      discountApplied: pricing.discountAmount,
+      finalAmount: pricing.finalPrice,
+      features: plan.features,
+    };
 
-  // Create new subscription
-  const subscription = await Subscription.create({
-    tenantId,
-    planId: plan._id,
-    status: SubscriptionStatus.ACTIVE,
-    startedAt: now,
-    expiresAt,
-    graceUntil,
-    autoRenew: options.autoRenew === true,
-    billingMode: options.autoRenew === true ? 'auto' : 'manual',
-    ...buildRecurringFields(options, durationMonths).$set,
-    gracePeriodDays: graceDays,
-    currentPricingSnapshot: snapshot,
-  });
+    // If extending an existing subscription, update it
+    if (existing) {
+      const recurringFields = buildRecurringFields(options, durationMonths);
+      const updated = await Subscription.findByIdAndUpdate(
+        existing._id,
+        {
+          $set: {
+            planId: plan._id,
+            status: SubscriptionStatus.ACTIVE,
+            autoRenew: options.autoRenew === true,
+            billingMode: options.autoRenew === true ? 'auto' : 'manual',
+            expiresAt,
+            graceUntil,
+            gracePeriodDays: graceDays,
+            currentPricingSnapshot: snapshot,
+            ...recurringFields.$set,
+          },
+          ...(Object.keys(recurringFields.$unset).length > 0
+            ? { $unset: recurringFields.$unset }
+            : {}),
+        },
+        { new: true, session },
+      );
 
-  // Link payment
-  await SubscriptionPayment.findByIdAndUpdate(paymentId, {
-    $set: { subscriptionId: subscription._id },
-  });
+      // Link payment to subscription
+      await SubscriptionPayment.findByIdAndUpdate(
+        paymentId,
+        { $set: { subscriptionId: existing._id } },
+        { session },
+      );
+
+      return {
+        subscription: updated!,
+        proratedDaysAdded: additionalDays - (durationMonths * 30),
+        isUpgrade: existing.planId.toString() !== planId.toString(),
+        expiresAt,
+      };
+    }
+
+    // Create new subscription
+    const recurringFields = buildRecurringFields(options, durationMonths);
+    const newSub = new Subscription({
+      tenantId,
+      planId: plan._id,
+      status: SubscriptionStatus.ACTIVE,
+      startedAt: now,
+      expiresAt,
+      graceUntil,
+      autoRenew: options.autoRenew === true,
+      billingMode: options.autoRenew === true ? 'auto' : 'manual',
+      ...recurringFields.$set,
+      gracePeriodDays: graceDays,
+      currentPricingSnapshot: snapshot,
+    });
+    await newSub.save({ session });
+
+    // Link payment
+    await SubscriptionPayment.findByIdAndUpdate(
+      paymentId,
+      { $set: { subscriptionId: newSub._id } },
+      { session },
+    );
+
+    return {
+      subscription: newSub,
+      proratedDaysAdded: 0,
+      isUpgrade: false,
+      expiresAt,
+    };
+  }, externalSession);
 
   await scheduleExpiryNotifications(
     tenantId,
-    subscription._id.toString(),
-    expiresAt,
+    result.subscription._id.toString(),
+    result.expiresAt,
   );
 
   invalidateSubscriptionCache(tenantId);
-  return { subscription, proratedDaysAdded: 0, isUpgrade: false };
+  return {
+    subscription: result.subscription,
+    proratedDaysAdded: result.proratedDaysAdded,
+    isUpgrade: result.isUpgrade,
+  };
 }
 
 function buildRecurringFields(
@@ -256,110 +280,115 @@ export async function applyAutoRenewalCycle(
   paymentData: Record<string, any>,
   eventId?: string,
   razorpaySubscription?: Record<string, any>,
+  externalSession?: ClientSession,
 ): Promise<{
   subscription: typeof Subscription.prototype | null;
   payment: typeof SubscriptionPayment.prototype | null;
   duplicate: boolean;
 }> {
-  const subscription = await Subscription.findOne({
-    gatewaySubscriptionId,
-  }).sort({ createdAt: -1 });
+  return runInTransaction(async (session) => {
+    const subscription = await Subscription.findOne({
+      gatewaySubscriptionId,
+    }).sort({ createdAt: -1 }).session(session);
 
-  if (!subscription) {
-    return { subscription: null, payment: null, duplicate: false };
-  }
-
-  if (paymentData?.id) {
-    const existingPayment = await SubscriptionPayment.findOne({
-      gatewayPaymentId: paymentData.id,
-    });
-    if (existingPayment) {
-      return { subscription, payment: existingPayment, duplicate: true };
+    if (!subscription) {
+      return { subscription: null, payment: null, duplicate: false };
     }
-  }
 
-  const durationMonths =
-    subscription.renewalIntervalMonths ||
-    subscription.currentPricingSnapshot?.durationMonths ||
-    1;
+    if (paymentData?.id) {
+      const existingPayment = await SubscriptionPayment.findOne({
+        gatewayPaymentId: paymentData.id,
+      }).session(session);
+      if (existingPayment) {
+        return { subscription, payment: existingPayment, duplicate: true };
+      }
+    }
 
-  const baseAmount =
-    (subscription.currentPricingSnapshot?.baseMonthlyPrice || 0) *
-    durationMonths;
-  const finalAmount =
-    typeof paymentData?.amount === 'number'
-      ? paymentData.amount / 100
-      : subscription.currentPricingSnapshot?.finalAmount || baseAmount;
-  const discountAmount = Math.max(0, baseAmount - finalAmount);
+    const durationMonths =
+      subscription.renewalIntervalMonths ||
+      subscription.currentPricingSnapshot?.durationMonths ||
+      1;
 
-  const payment = await SubscriptionPayment.create({
-    tenantId: subscription.tenantId,
-    subscriptionId: subscription._id,
-    planId: subscription.planId,
-    durationMonths,
-    baseAmount,
-    discountAmount,
-    finalAmount,
-    paymentGateway: 'razorpay',
-    gatewaySubscriptionId,
-    gatewayInvoiceId: paymentData?.invoice_id,
-    gatewayPaymentId: paymentData?.id,
-    paymentStatus: PaymentStatus.COMPLETED,
-    billingMode: 'auto',
-    gatewayEventId: eventId,
-    paidAt: paymentData?.created_at
-      ? new Date(paymentData.created_at * 1000)
-      : new Date(),
-    metadata: {
-      eventId,
-      razorpayStatus: paymentData?.status,
-      method: paymentData?.method,
-      invoiceId: paymentData?.invoice_id,
-    },
-  });
+    const baseAmount =
+      (subscription.currentPricingSnapshot?.baseMonthlyPrice || 0) *
+      durationMonths;
+    const finalAmount =
+      typeof paymentData?.amount === 'number'
+        ? paymentData.amount / 100
+        : subscription.currentPricingSnapshot?.finalAmount || baseAmount;
+    const discountAmount = Math.max(0, baseAmount - finalAmount);
 
-  const graceDays = await getDefaultGraceDays();
-  const now = new Date();
-  const baseDate =
-    subscription.expiresAt && subscription.expiresAt > now
-      ? subscription.expiresAt
-      : now;
-  const expiresAt = new Date(
-    baseDate.getTime() + durationMonths * 30 * 24 * 60 * 60 * 1000,
-  );
-  const graceUntil = new Date(
-    expiresAt.getTime() + graceDays * 24 * 60 * 60 * 1000,
-  );
+    const payment = new SubscriptionPayment({
+      tenantId: subscription.tenantId,
+      subscriptionId: subscription._id,
+      planId: subscription.planId,
+      durationMonths,
+      baseAmount,
+      discountAmount,
+      finalAmount,
+      paymentGateway: 'razorpay',
+      gatewaySubscriptionId,
+      gatewayInvoiceId: paymentData?.invoice_id,
+      gatewayPaymentId: paymentData?.id,
+      paymentStatus: PaymentStatus.COMPLETED,
+      billingMode: 'auto',
+      gatewayEventId: eventId,
+      paidAt: paymentData?.created_at
+        ? new Date(paymentData.created_at * 1000)
+        : new Date(),
+      metadata: {
+        eventId,
+        razorpayStatus: paymentData?.status,
+        method: paymentData?.method,
+        invoiceId: paymentData?.invoice_id,
+      },
+    });
+    await payment.save({ session });
 
-  subscription.status = SubscriptionStatus.ACTIVE;
-  subscription.autoRenew = true;
-  subscription.billingMode = 'auto';
-  subscription.expiresAt = expiresAt;
-  subscription.graceUntil = graceUntil;
-  subscription.gracePeriodDays = graceDays;
-  subscription.nextChargeAt = razorpaySubscription?.charge_at
-    ? new Date(razorpaySubscription.charge_at * 1000)
-    : undefined;
-  subscription.autoRenewStatus =
-    razorpaySubscription?.status || subscription.autoRenewStatus || 'active';
-  if (razorpaySubscription?.customer_id) {
-    subscription.gatewayCustomerId = razorpaySubscription.customer_id;
-  }
+    const graceDays = await getDefaultGraceDays();
+    const now = new Date();
+    const baseDate =
+      subscription.expiresAt && subscription.expiresAt > now
+        ? subscription.expiresAt
+        : now;
+    const expiresAt = new Date(
+      baseDate.getTime() + durationMonths * 30 * 24 * 60 * 60 * 1000,
+    );
+    const graceUntil = new Date(
+      expiresAt.getTime() + graceDays * 24 * 60 * 60 * 1000,
+    );
 
-  await subscription.save();
-  await scheduleExpiryNotifications(
-    subscription.tenantId.toString(),
-    subscription._id.toString(),
-    expiresAt,
-  );
-  invalidateSubscriptionCache(subscription.tenantId.toString());
+    subscription.status = SubscriptionStatus.ACTIVE;
+    subscription.autoRenew = true;
+    subscription.billingMode = 'auto';
+    subscription.expiresAt = expiresAt;
+    subscription.graceUntil = graceUntil;
+    subscription.gracePeriodDays = graceDays;
+    subscription.nextChargeAt = razorpaySubscription?.charge_at
+      ? new Date(razorpaySubscription.charge_at * 1000)
+      : undefined;
+    subscription.autoRenewStatus =
+      razorpaySubscription?.status || subscription.autoRenewStatus || 'active';
+    if (razorpaySubscription?.customer_id) {
+      subscription.gatewayCustomerId = razorpaySubscription.customer_id;
+    }
 
-  return { subscription, payment, duplicate: false };
+    await subscription.save({ session });
+    await scheduleExpiryNotifications(
+      subscription.tenantId.toString(),
+      subscription._id.toString(),
+      expiresAt,
+    );
+    invalidateSubscriptionCache(subscription.tenantId.toString());
+
+    return { subscription, payment, duplicate: false };
+  }, externalSession);
 }
 
 export async function updateAutoRenewStatus(
   gatewaySubscriptionId: string,
   razorpaySubscription: Record<string, any>,
+  externalSession?: ClientSession,
 ): Promise<void> {
   const status = razorpaySubscription?.status;
   const shouldDisable = [
@@ -382,16 +411,19 @@ export async function updateAutoRenewStatus(
     set.billingMode = 'manual';
   }
 
-  await Subscription.findOneAndUpdate(
-    { gatewaySubscriptionId },
-    { $set: set },
-  );
+  await runInTransaction(async (session) => {
+    await Subscription.findOneAndUpdate(
+      { gatewaySubscriptionId },
+      { $set: set },
+      { session },
+    );
+  }, externalSession);
 }
 
 // ─── Apply Adjustment ────────────────────────────────────────────
 
 /**
- * Add/remove days from a subscription (referral reward, bonus, etc.)
+ * Add/remove days from a subscription (referral reward, bonus, support compensation, etc.)
  */
 export async function applyAdjustment(
   tenantId: string,
@@ -399,58 +431,132 @@ export async function applyAdjustment(
   type: AdjustmentType,
   reason: string,
   createdBy: string,
+  externalSession?: ClientSession,
 ): Promise<void> {
-  // Include EXPIRED so referral rewards can revive an expired subscription.
-  // The reactivation logic below handles status transition back to ACTIVE.
-  const subscription = await Subscription.findOne({
-    tenantId,
-    status: {
-      $in: [
-        SubscriptionStatus.ACTIVE,
-        SubscriptionStatus.TRIAL,
-        SubscriptionStatus.GRACE,
-        SubscriptionStatus.EXPIRED,
-      ],
-    },
-  }).sort({ createdAt: -1 });
+  await runInTransaction(async (session) => {
+    // Include SUSPENDED & EXPIRED so Super Admin can adjust any tenant subscription state
+    const subscription = await Subscription.findOne({
+      tenantId,
+      status: {
+        $in: [
+          SubscriptionStatus.ACTIVE,
+          SubscriptionStatus.TRIAL,
+          SubscriptionStatus.GRACE,
+          SubscriptionStatus.EXPIRED,
+          SubscriptionStatus.SUSPENDED,
+        ],
+      },
+    }).sort({ createdAt: -1 }).session(session);
 
-  if (!subscription) {
-    throw new Error('No active subscription found for this tenant');
-  }
+    if (!subscription) {
+      throw new Error('No active subscription found for this tenant');
+    }
 
-  // Extend expiry
-  const msToAdd = daysToAdd * 24 * 60 * 60 * 1000;
-  const newExpiresAt = new Date(subscription.expiresAt.getTime() + msToAdd);
-  const newGraceUntil = new Date(
-    newExpiresAt.getTime() +
-    subscription.gracePeriodDays * 24 * 60 * 60 * 1000,
-  );
+    // Historical date bug fix: anchor positive additions from now if subscription is in past
+    const nowMs = Date.now();
+    const currentExpiryMs = new Date(subscription.expiresAt).getTime();
+    const baseTime = daysToAdd > 0 && currentExpiryMs < nowMs ? nowMs : currentExpiryMs;
+    const newExpiresAt = new Date(baseTime + daysToAdd * 86400000);
+    const newGraceUntil = new Date(
+      newExpiresAt.getTime() + (subscription.gracePeriodDays || 7) * 86400000,
+    );
 
-  subscription.expiresAt = newExpiresAt;
-  subscription.graceUntil = newGraceUntil;
+    subscription.expiresAt = newExpiresAt;
+    subscription.graceUntil = newGraceUntil;
 
-  // If subscription was in grace/expired but days were added, reactivate
-  if (
-    newExpiresAt > new Date() &&
-    (subscription.status === SubscriptionStatus.GRACE ||
-      subscription.status === SubscriptionStatus.EXPIRED)
-  ) {
-    subscription.status = SubscriptionStatus.ACTIVE;
-  }
+    // If subscription was in grace/expired but days were added, reactivate
+    if (
+      newExpiresAt.getTime() > nowMs &&
+      (subscription.status === SubscriptionStatus.GRACE ||
+        subscription.status === SubscriptionStatus.EXPIRED)
+    ) {
+      subscription.status = SubscriptionStatus.ACTIVE;
+    }
 
-  await subscription.save();
+    await subscription.save({ session });
 
-  // Record the adjustment
-  await SubscriptionAdjustment.create({
-    tenantId,
-    subscriptionId: subscription._id,
-    type,
-    daysAdded: daysToAdd,
-    reason,
-    createdBy,
-  });
+    // Record the adjustment atomically
+    const adjustment = new SubscriptionAdjustment({
+      tenantId,
+      subscriptionId: subscription._id,
+      type,
+      daysAdded: daysToAdd,
+      reason,
+      createdBy,
+    });
+    await adjustment.save({ session });
+  }, externalSession);
 
   invalidateSubscriptionCache(tenantId);
+}
+
+// ─── Suspend & Resume Subscriptions ──────────────────────────────
+
+/**
+ * Suspend an active tenant subscription (platform admin action).
+ */
+export async function suspendSubscription(
+  tenantId: string,
+  reason: string,
+  session?: ClientSession,
+): Promise<typeof Subscription.prototype> {
+  return runInTransaction(async (s) => {
+    const subscription = await Subscription.findOne({
+      tenantId,
+      status: {
+        $in: [
+          SubscriptionStatus.ACTIVE,
+          SubscriptionStatus.TRIAL,
+          SubscriptionStatus.GRACE,
+          SubscriptionStatus.EXPIRED,
+        ],
+      },
+    }).sort({ createdAt: -1 }).session(s);
+
+    if (!subscription) {
+      throw new Error('No active subscription found to suspend');
+    }
+
+    subscription.status = SubscriptionStatus.SUSPENDED;
+    await subscription.save({ session: s });
+
+    invalidateSubscriptionCache(tenantId);
+    return subscription;
+  }, session);
+}
+
+/**
+ * Resume a suspended tenant subscription (platform admin action).
+ */
+export async function resumeSubscription(
+  tenantId: string,
+  reason: string,
+  session?: ClientSession,
+): Promise<typeof Subscription.prototype> {
+  return runInTransaction(async (s) => {
+    const subscription = await Subscription.findOne({
+      tenantId,
+      status: SubscriptionStatus.SUSPENDED,
+    }).sort({ createdAt: -1 }).session(s);
+
+    if (!subscription) {
+      throw new Error('No suspended subscription found to resume');
+    }
+
+    const now = new Date();
+    if (new Date(subscription.expiresAt) > now) {
+      subscription.status = SubscriptionStatus.ACTIVE;
+    } else if (new Date(subscription.graceUntil) > now) {
+      subscription.status = SubscriptionStatus.GRACE;
+    } else {
+      subscription.status = SubscriptionStatus.EXPIRED;
+    }
+
+    await subscription.save({ session: s });
+
+    invalidateSubscriptionCache(tenantId);
+    return subscription;
+  }, session);
 }
 
 // ─── Get Subscription for Tenant ─────────────────────────────────
@@ -464,6 +570,7 @@ export async function getActiveSubscription(tenantId: string) {
         SubscriptionStatus.TRIAL,
         SubscriptionStatus.GRACE,
         SubscriptionStatus.EXPIRED,
+        SubscriptionStatus.SUSPENDED,
       ],
     },
   })
@@ -489,38 +596,71 @@ export async function getAdjustmentHistory(tenantId: string) {
 
 /**
  * Run once daily to transition subscription statuses.
- * Simple cron — no overengineered scheduler.
+ * Hardened with distributed fencing lease to guarantee single-worker execution in clustered environments.
  */
 export async function processExpiredSubscriptions(): Promise<{
   expired: number;
   suspended: number;
+  skipped?: boolean;
+  reason?: string;
 }> {
-  const now = new Date();
+  const lease = await DistributedLock.acquireLease('cron:process-expired', 5 * 60 * 1000);
+  if (!lease.acquired) {
+    return {
+      expired: 0,
+      suspended: 0,
+      skipped: true,
+      reason: 'LOCKED_BY_OTHER_WORKER',
+    };
+  }
 
-  // Active/Trial → check if expired
-  const expiredResult = await Subscription.updateMany(
-    {
-      status: { $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL] },
-      expiresAt: { $lt: now },
-      graceUntil: { $gte: now },
-    },
-    { $set: { status: SubscriptionStatus.GRACE } },
-  );
+  // Background heartbeat extending lease every 60s for long-running batch sweeps
+  let heartbeatInterval: NodeJS.Timeout | null = null;
+  if (lease.ownerToken && lease.fencingToken) {
+    heartbeatInterval = setInterval(async () => {
+      try {
+        await DistributedLock.heartbeatLease('cron:process-expired', lease.ownerToken!, lease.fencingToken!, 5 * 60 * 1000);
+      } catch {
+        // Non-blocking background heartbeat
+      }
+    }, 60000);
+  }
 
-  // Grace → Expired (past grace period)
-  const suspendedResult = await Subscription.updateMany(
-    {
-      status: SubscriptionStatus.GRACE,
-      graceUntil: { $lt: now },
-    },
-    { $set: { status: SubscriptionStatus.EXPIRED } },
-  );
+  try {
+    const now = new Date();
 
-  // Clear caches for affected tenants
-  invalidateSubscriptionCache();
+    // Active/Trial → check if expired
+    const expiredResult = await Subscription.updateMany(
+      {
+        status: { $in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL] },
+        expiresAt: { $lt: now },
+        graceUntil: { $gte: now },
+      },
+      { $set: { status: SubscriptionStatus.GRACE } },
+    );
 
-  return {
-    expired: expiredResult.modifiedCount,
-    suspended: suspendedResult.modifiedCount,
-  };
+    // Grace → Expired (past grace period)
+    const suspendedResult = await Subscription.updateMany(
+      {
+        status: SubscriptionStatus.GRACE,
+        graceUntil: { $lt: now },
+      },
+      { $set: { status: SubscriptionStatus.EXPIRED } },
+    );
+
+    // Clear caches for affected tenants
+    invalidateSubscriptionCache();
+
+    return {
+      expired: expiredResult.modifiedCount,
+      suspended: suspendedResult.modifiedCount,
+    };
+  } finally {
+    if (heartbeatInterval) {
+      clearInterval(heartbeatInterval);
+    }
+    if (lease.ownerToken) {
+      await DistributedLock.releaseLease('cron:process-expired', lease.ownerToken);
+    }
+  }
 }

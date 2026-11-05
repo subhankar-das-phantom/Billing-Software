@@ -1,7 +1,8 @@
 /**
  * Feature Service — determines what a tenant can access.
  *
- * Reads the tenant's active subscription and checks plan features.
+ * Reads the tenant's active subscription, resolves effective features
+ * and commercial permissions through the platform control plane precedence engine.
  * Used by middleware and also directly by controllers when needed.
  */
 
@@ -41,6 +42,7 @@ function setCache(tenantId: string, info: SubscriptionInfo): void {
 
 /**
  * Get the full subscription info for a tenant.
+ * Evaluates through the 5-level precedence engine (IAM, Commercial, Base Plan, Subtractive, Additive).
  * This is what gets attached to req.subscription by middleware.
  */
 export async function getSubscriptionInfo(
@@ -68,8 +70,21 @@ export async function getSubscriptionInfo(
     .lean();
 
   if (!subscription) {
-    // No subscription at all — treat as expired with no features
+    // No subscription at all — evaluate through precedence engine in case IAM or emergency bypass applies
+    let effectiveFeatures: Feature[] = [];
+    let effectiveCanWrite = false;
+    try {
+      const featureOverrideService = require('../../../admin/backend/services/featureOverrideService');
+      const effective = await featureOverrideService.resolveEffectiveFeatures(tenantId);
+      effectiveFeatures = effective.effectiveFeatures as Feature[];
+      effectiveCanWrite = effective.canWrite;
+    } catch {
+      // Non-blocking fallback
+    }
+
     const info = buildNoSubscriptionInfo();
+    info.plan.features = effectiveFeatures;
+    info.canWrite = effectiveCanWrite;
     setCache(tenantId, info);
     return info;
   }
@@ -85,10 +100,9 @@ export async function getSubscriptionInfo(
     ),
   );
 
-  const isGrace =
-    actualStatus === SubscriptionStatus.GRACE;
+  const isGrace = actualStatus === SubscriptionStatus.GRACE;
 
-  const canWrite =
+  let canWrite =
     actualStatus === SubscriptionStatus.ACTIVE ||
     actualStatus === SubscriptionStatus.TRIAL ||
     actualStatus === SubscriptionStatus.GRACE;
@@ -105,6 +119,16 @@ export async function getSubscriptionInfo(
       planName = planDoc.name || planName;
       planCode = (planDoc.code || planCode) as PlanCode;
     }
+  }
+
+  // Evaluate through 5-level precedence engine from platform control plane
+  try {
+    const featureOverrideService = require('../../../admin/backend/services/featureOverrideService');
+    const effective = await featureOverrideService.resolveEffectiveFeatures(tenantId);
+    resolvedFeatures = effective.effectiveFeatures as Feature[];
+    canWrite = effective.canWrite;
+  } catch {
+    // Non-blocking fallback to base plan evaluation
   }
 
   const info: SubscriptionInfo = {
@@ -127,6 +151,7 @@ export async function getSubscriptionInfo(
 
 /**
  * Check if a tenant has access to a specific feature.
+ * Evaluates through resolveEffectiveFeatures via getSubscriptionInfo.
  */
 export async function canAccess(
   tenantId: string,
@@ -138,6 +163,7 @@ export async function canAccess(
 
 /**
  * Check if a tenant can perform write operations.
+ * Evaluates through resolveEffectiveFeatures (including emergency commercial bypass).
  */
 export async function canWrite(tenantId: string): Promise<boolean> {
   const info = await getSubscriptionInfo(tenantId);
@@ -156,7 +182,7 @@ export async function getAccessibleFeatures(
 
 /**
  * Invalidate the subscription cache for a tenant.
- * Call this after subscription changes (payment, upgrade, adjustment).
+ * Call this after subscription changes (payment, upgrade, adjustment, feature override).
  */
 export function invalidateSubscriptionCache(tenantId?: string): void {
   if (tenantId) {

@@ -220,6 +220,21 @@ function RootRoute() {
   return <LandingPage />;
 }
 
+function PlatformRedirect() {
+  useEffect(() => {
+    const platformUrl = import.meta.env.VITE_PLATFORM_URL || 'http://localhost:5174';
+    window.location.href = platformUrl;
+  }, []);
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-200 flex items-center justify-center p-4">
+      <div className="text-center space-y-3">
+        <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto" />
+        <p className="text-sm font-mono text-cyan-400">Redirecting to Platform Control Plane...</p>
+      </div>
+    </div>
+  );
+}
+
 function AppRoutes() {
   return (
     <Suspense fallback={<PageLoader />}>
@@ -227,6 +242,11 @@ function AppRoutes() {
         {/* Landing Page - Public Marketing & Legal */}
         <Route path="/" element={<RootRoute />} />
         <Route path="/landing" element={<LandingPage />} />
+        {/* Super Admin Control Plane Direct Gateways */}
+        <Route path="/admin" element={<PlatformRedirect />} />
+        <Route path="/platform" element={<PlatformRedirect />} />
+        <Route path="/super-admin" element={<PlatformRedirect />} />
+        <Route path="/control-plane" element={<PlatformRedirect />} />
         <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/share/:token" element={<PublicInvoicePage />} />

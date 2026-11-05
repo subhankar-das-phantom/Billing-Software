@@ -69,6 +69,16 @@ const protect = async (req, res, next) => {
         });
       }
 
+      // Check tenant admin active state (fail-closed check)
+      const tenantAdmin = await Admin.findById(employee.createdByAdmin).select('isActive');
+      if (!tenantAdmin || tenantAdmin.isActive !== true) {
+        clearAuthCookie(res);
+        return res.status(401).json({
+          success: false,
+          message: 'Tenant organization account is inactive or not found.'
+        });
+      }
+
       // Set user info on request
       req.user = employee;
       req.userRole = 'employee';

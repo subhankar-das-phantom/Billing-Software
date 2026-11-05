@@ -40,6 +40,10 @@ if (process.env.NODE_ENV === 'production') {
     console.error('[FATAL STARTUP ERROR] SHARE_TOKEN_SECRET environment variable is mandatory in production.');
     process.exit(1);
   }
+  if (!process.env.PLATFORM_JWT_SECRET) {
+    console.error('[FATAL STARTUP ERROR] PLATFORM_JWT_SECRET environment variable is mandatory in production.');
+    process.exit(1);
+  }
 }
 
 // Connect to database and initialize Change Stream
@@ -70,9 +74,26 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 // Cookie parser
 app.use(cookieParser());
 
-// Enable CORS
+// Enable CORS (supports tenant billing frontend and platform control plane frontend)
+const allowedOrigins = [
+  process.env.FRONTEND_URL || 'http://localhost:3000',
+  process.env.PLATFORM_FRONTEND_URL || 'http://localhost:5174',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:5174',
+  'http://127.0.0.1:5174'
+];
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 
@@ -127,6 +148,7 @@ app.use('/api/sales-analytics', generalLimiter, require('./src/modules/salesAnal
 app.use('/api/manual-entries', generalLimiter, require('./routes/manualEntries'));
 app.use('/api/credit-notes', generalLimiter, require('./routes/creditNotes'));
 app.use('/api/saas', generalLimiter, require('./saas/routes'));
+app.use('/api/platform', generalLimiter, require('../admin/backend/routes').default || require('../admin/backend/routes'));
 app.use('/api/suppliers', generalLimiter, require('./routes/suppliers'));
 app.use('/api/purchases', generalLimiter, require('./routes/purchases'));
 app.use('/api/stock-movements', generalLimiter, require('./routes/stockMovements'));

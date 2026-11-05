@@ -1,0 +1,28 @@
+{
+  "name": "bharat-enterprise-billing-system",
+  "version": "3.0.0",
+  "description": "Bharat Enterprise Billing & Business Operations Platform with Standalone Super Admin Control Plane",
+  "private": true,
+  "scripts": {
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:admin": "npm --prefix admin/frontend run dev",
+    "build:frontend": "npm --prefix frontend run build",
+    "build:admin": "npm --prefix admin/frontend run build",
+    "build:all": "npm --prefix frontend run build && npm --prefix admin/frontend run build",
+    "test:admin": "npx tsx --tsconfig admin/backend/tsconfig.json --test admin/backend/tests/*.test.ts",
+    "bootstrap:owner": "npx tsx admin/backend/scripts/bootstrapPlatformOwner.ts",
+    "bootstrap:owner:reset": "npx tsx admin/backend/scripts/bootstrapPlatformOwner.ts --force"
+  },
+  "keywords": [
+    "billing",
+    "multi-tenant",
+    "saas",
+    "super-admin",
+    "control-plane",
+    "enterprise"
+  ],
+  "author": "Subhankar Das",
+  "license": "ISC"
+}
+

@@ -1,7 +1,5 @@
 import express from 'express';
-import { getPlans, getPlan, createPlan, updatePlan } from '../controllers/planController';
-
-const { protect, adminOnly } = require('../../middleware/auth');
+import { getPlans, getPlan } from '../controllers/planController';
 
 const router = express.Router();
 
@@ -9,8 +7,18 @@ const router = express.Router();
 router.get('/', getPlans);
 router.get('/:id', getPlan);
 
-// Super-admin routes
-router.post('/', protect, adminOnly, createPlan);
-router.put('/:id', protect, adminOnly, updatePlan);
+// Mutating plan administration routes permanently retired to /api/platform/plans
+router.post('/', (_req, res) =>
+  res.status(410).json({
+    success: false,
+    message: 'Plan administration permanently moved to /api/platform/plans',
+  }),
+);
+router.put('/:id', (_req, res) =>
+  res.status(410).json({
+    success: false,
+    message: 'Plan administration permanently moved to /api/platform/plans',
+  }),
+);
 
 export default router;
