@@ -194,9 +194,9 @@ export const PlatformHeader: React.FC<PlatformHeaderProps> = ({
           }
         >
           {isSidebarCollapsed ? (
-            <PanelLeftOpen className="w-5 h-5 text-slate-400 group-hover:text-cyan-400 transition-colors pointer-events-none" />
+            <PanelLeftOpen className="w-5 h-5 text-slate-400 group-hover:text-blue-400 transition-colors pointer-events-none" />
           ) : (
-            <PanelLeftClose className="w-5 h-5 text-slate-400 group-hover:text-cyan-400 transition-colors pointer-events-none" />
+            <PanelLeftClose className="w-5 h-5 text-slate-400 group-hover:text-blue-400 transition-colors pointer-events-none" />
           )}
         </button>
 
@@ -206,7 +206,7 @@ export const PlatformHeader: React.FC<PlatformHeaderProps> = ({
           className="flex items-center gap-1.5 text-xs font-medium min-w-0"
         >
           <span className="hidden sm:inline-flex items-center gap-1 text-slate-400 hover:text-slate-200 transition-colors">
-            <Shield className="w-3.5 h-3.5 text-cyan-500/80" />
+            <Shield className="w-3.5 h-3.5 text-blue-500/80" />
             <span>Platform</span>
           </span>
 
@@ -240,7 +240,7 @@ export const PlatformHeader: React.FC<PlatformHeaderProps> = ({
           className="flex items-center gap-2 px-3 py-1 rounded-md text-[11px] font-mono font-medium text-slate-300 bg-slate-950/70 border border-slate-800/80 shadow-xs"
           title="Indian Fiscal Calendar (April 1 - March 31)"
         >
-          <Calendar className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+          <Calendar className="w-3.5 h-3.5 text-blue-400 shrink-0" />
           <span>{fiscalInfo.pillText}</span>
         </div>
 
@@ -268,12 +268,12 @@ export const PlatformHeader: React.FC<PlatformHeaderProps> = ({
               aria-label="Quick search actions"
             >
               <div className="flex items-center gap-2 min-w-0 pointer-events-none">
-                <Search className="w-3.5 h-3.5 text-slate-500 group-hover:text-cyan-400 transition-colors shrink-0" />
+                <Search className="w-3.5 h-3.5 text-slate-500 group-hover:text-blue-400 transition-colors shrink-0" />
                 <span className="truncate text-slate-400 group-hover:text-slate-300 text-xs">
                   Search actions...
                 </span>
               </div>
-              <kbd className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono font-semibold bg-slate-800 text-slate-400 group-hover:text-cyan-400 border border-slate-700/80 rounded shadow-xs pointer-events-none">
+              <kbd className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono font-semibold bg-slate-800 text-slate-400 group-hover:text-blue-400 border border-slate-700/80 rounded shadow-xs pointer-events-none">
                 ⌘K
               </kbd>
             </button>
@@ -304,7 +304,7 @@ export const PlatformHeader: React.FC<PlatformHeaderProps> = ({
             }`}
           >
             {/* Operator Avatar with Initial */}
-            <div className="w-7 h-7 rounded-full bg-cyan-950/80 border border-cyan-500/40 flex items-center justify-center text-cyan-300 font-bold text-xs uppercase shrink-0 pointer-events-none">
+            <div className="w-7 h-7 rounded-full bg-blue-950/80 border border-blue-500/40 flex items-center justify-center text-blue-300 font-bold text-xs uppercase shrink-0 pointer-events-none">
               {user?.fullName?.charAt(0) || 'U'}
             </div>
 
@@ -341,7 +341,7 @@ export const PlatformHeader: React.FC<PlatformHeaderProps> = ({
                 {/* Header Profile Summary */}
                 <div className="p-3 bg-slate-950/80 border-b border-slate-800/80">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-full bg-cyan-950 border border-cyan-500/40 flex items-center justify-center text-cyan-300 font-bold text-sm uppercase shrink-0">
+                    <div className="w-9 h-9 rounded-full bg-blue-950 border border-blue-500/40 flex items-center justify-center text-blue-300 font-bold text-sm uppercase shrink-0">
                       {user?.fullName?.charAt(0) || 'U'}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -379,7 +379,7 @@ export const PlatformHeader: React.FC<PlatformHeaderProps> = ({
                     className="flex items-center gap-2.5 px-3 py-2.5 text-xs text-slate-300 hover:text-slate-100 hover:bg-slate-800/80 transition-colors min-h-[44px]"
                     role="menuitem"
                   >
-                    <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0" />
+                    <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0" />
                     <span>Cryptographic Audit Trail</span>
                   </Link>
 
@@ -389,7 +389,7 @@ export const PlatformHeader: React.FC<PlatformHeaderProps> = ({
                     className="flex items-center gap-2.5 px-3 py-2.5 text-xs text-slate-300 hover:text-slate-100 hover:bg-slate-800/80 transition-colors min-h-[44px]"
                     role="menuitem"
                   >
-                    <Headphones className="w-4 h-4 text-cyan-400 shrink-0" />
+                    <Headphones className="w-4 h-4 text-blue-400 shrink-0" />
                     <span>Support Diagnostic Sessions</span>
                   </Link>
 
@@ -399,7 +399,7 @@ export const PlatformHeader: React.FC<PlatformHeaderProps> = ({
                     className="flex items-center gap-2.5 px-3 py-2.5 text-xs text-slate-300 hover:text-slate-100 hover:bg-slate-800/80 transition-colors min-h-[44px]"
                     role="menuitem"
                   >
-                    <Users className="w-4 h-4 text-cyan-400 shrink-0" />
+                    <Users className="w-4 h-4 text-blue-400 shrink-0" />
                     <span>Platform Team Directory</span>
                   </Link>
                 </div>
@@ -430,7 +430,7 @@ export const PlatformHeader: React.FC<PlatformHeaderProps> = ({
                       onClick={() => setThemeMode('dark')}
                       className={`flex items-center justify-center gap-1.5 py-1 px-2 rounded-md text-xs font-medium transition-all min-h-[36px] cursor-pointer ${
                         themeMode === 'dark'
-                          ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-xs'
+                          ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40 shadow-xs'
                           : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent'
                       }`}
                       aria-label="Dark mode"

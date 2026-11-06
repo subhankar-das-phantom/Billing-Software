@@ -294,7 +294,7 @@ export const TenantsPage: React.FC = () => {
           <div className="flex items-center gap-2.5">
             <h1 className="text-lg font-bold text-slate-100 tracking-tight">Tenants Directory</h1>
             {totalCount !== undefined ? (
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 shadow-2xs">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-blue-950/80 text-blue-300 border border-blue-800/60 shadow-2xs">
                 <AnimatedCounter target={totalCount} /> total
               </span>
             ) : tenants.length > 0 ? (
@@ -326,7 +326,7 @@ export const TenantsPage: React.FC = () => {
             aria-label="Refresh directory"
           >
             <RefreshCw
-              className={`w-4 h-4 ${isFetching ? 'animate-spin text-cyan-400' : ''}`}
+              className={`w-4 h-4 ${isFetching ? 'animate-spin text-blue-400' : ''}`}
             />
           </button>
         </div>
@@ -380,12 +380,12 @@ export const TenantsPage: React.FC = () => {
           <div className="flex items-center gap-2 text-xs text-slate-400">
             <span>
               Active Filter: <strong className="text-slate-200">{statusFilter.toUpperCase()}</strong>
-              {search && <> matching &quot;<span className="text-cyan-300">{search}</span>&quot;</>}
+              {search && <> matching &quot;<span className="text-blue-300">{search}</span>&quot;</>}
             </span>
             <button
               type="button"
               onClick={handleResetFilters}
-              className="text-cyan-400 hover:text-cyan-300 underline underline-offset-2 cursor-pointer font-medium"
+              className="text-blue-400 hover:text-blue-300 underline underline-offset-2 cursor-pointer font-medium"
             >
               Reset
             </button>
@@ -507,7 +507,7 @@ export const TenantsPage: React.FC = () => {
                         <button
                           type="button"
                           onClick={handleResetFilters}
-                          className="px-4 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-medium shadow-xs transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                          className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium shadow-xs transition-colors cursor-pointer inline-flex items-center gap-1.5"
                         >
                           <X className="w-3.5 h-3.5" />
                           <span>Reset Filters</span>
@@ -539,7 +539,7 @@ export const TenantsPage: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => handleInspect(tenant.tenantId)}
-                              className="font-semibold text-slate-100 hover:text-cyan-400 transition-colors text-left truncate block max-w-xs cursor-pointer"
+                              className="font-semibold text-slate-100 hover:text-blue-400 transition-colors text-left truncate block max-w-xs cursor-pointer"
                               title="Inspect tenant profile"
                             >
                               {tenant.firmName || 'Unnamed Firm'}
@@ -583,7 +583,7 @@ export const TenantsPage: React.FC = () => {
                           />
 
                           {tenant.subscription?.planName && (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono uppercase bg-slate-800/80 text-cyan-300 border border-slate-700/70">
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono uppercase bg-slate-800/80 text-blue-300 border border-slate-700/70">
                               {tenant.subscription.planName}
                             </span>
                           )}
@@ -629,7 +629,7 @@ export const TenantsPage: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => handleAdjustTenant(tenant)}
-                            className="p-1.5 rounded-lg border border-slate-800 hover:border-cyan-600/60 bg-slate-950/60 hover:bg-cyan-950/40 text-cyan-400 hover:text-cyan-300 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg border border-slate-800 hover:border-blue-600/60 bg-slate-950/60 hover:bg-blue-950/40 text-blue-400 hover:text-blue-300 transition-colors cursor-pointer"
                             title="Adjust Subscription Tenure"
                             aria-label={`Adjust Subscription for ${tenant.firmName}`}
                           >
@@ -725,7 +725,7 @@ export const TenantsPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleResetFilters}
-                  className="px-4 py-2 min-h-[44px] rounded-lg bg-cyan-600 text-white font-medium cursor-pointer inline-flex items-center gap-2"
+                  className="px-4 py-2 min-h-[44px] rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium cursor-pointer inline-flex items-center gap-2 transition-colors"
                 >
                   <X className="w-4 h-4" />
                   <span>Reset Filters</span>
@@ -763,7 +763,7 @@ export const TenantsPage: React.FC = () => {
                         {tenant.firmGSTIN ? `GST: ${tenant.firmGSTIN}` : `ID: ${tenant.tenantId?.slice(-8)}`}
                       </span>
                       {tenant.subscription?.planName && (
-                        <span className="px-1.5 py-0.2 rounded text-[10px] uppercase bg-slate-800 text-cyan-300 border border-slate-700 shrink-0">
+                        <span className="px-1.5 py-0.2 rounded text-[10px] uppercase bg-slate-800 text-blue-300 border border-slate-700 shrink-0">
                           {tenant.subscription.planName}
                         </span>
                       )}
@@ -811,7 +811,7 @@ export const TenantsPage: React.FC = () => {
                         className="min-h-[44px] px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center gap-2 text-xs font-medium cursor-pointer transition-colors"
                         aria-label={`Inspect ${tenant.firmName}`}
                       >
-                        <Eye className="w-4 h-4 text-cyan-400" />
+                        <Eye className="w-4 h-4 text-blue-400" />
                         <span>Inspect</span>
                       </button>
 
@@ -831,10 +831,10 @@ export const TenantsPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => handleAdjustTenant(tenant)}
-                        className="min-h-[44px] px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-700 text-cyan-300 border border-slate-700 flex items-center justify-center gap-2 text-xs font-medium cursor-pointer transition-colors"
+                        className="min-h-[44px] px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-700 text-blue-300 border border-slate-700 flex items-center justify-center gap-2 text-xs font-medium cursor-pointer transition-colors"
                         aria-label={`Adjust subscription for ${tenant.firmName}`}
                       >
-                        <Sliders className="w-4 h-4 text-cyan-400" />
+                        <Sliders className="w-4 h-4 text-blue-400" />
                         <span>Adjust</span>
                       </button>
 

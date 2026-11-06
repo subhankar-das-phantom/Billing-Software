@@ -24,7 +24,7 @@ export interface CollapsibleMobileCardProps {
 
 const STATUS_VARIANT_STYLES: Record<string, string> = {
   default: 'bg-slate-900/80 border-slate-800/80 hover:border-slate-700/80',
-  active: 'bg-slate-900/90 border-slate-800 hover:border-cyan-500/40',
+  active: 'bg-slate-900/90 border-slate-800 hover:border-blue-500/40',
   warning: 'bg-amber-950/10 border-amber-800/30 hover:border-amber-700/50',
   danger: 'bg-rose-950/10 border-rose-800/30 hover:border-rose-700/50',
   neutral: 'bg-slate-900/40 border-slate-800/60',
@@ -96,11 +96,11 @@ export const CollapsibleMobileCard: React.FC<CollapsibleMobileCardProps> = ({
           aria-expanded={isExpanded}
           aria-controls={detailId}
           aria-label={isExpanded ? `Collapse ${entityType} details` : `Expand ${entityType} details`}
-          className="card-toggle-trigger p-2 -mr-1 text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 cursor-pointer"
+          className="card-toggle-trigger p-2 -mr-1 text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 cursor-pointer"
         >
           <ChevronDown
             className={`w-4 h-4 pointer-events-none transition-transform duration-150 ease-[0.16,1,0.3,1] ${
-              isExpanded ? 'rotate-180 text-cyan-400' : 'text-slate-400'
+              isExpanded ? 'rotate-180 text-blue-400' : 'text-slate-400'
             }`}
           />
         </button>

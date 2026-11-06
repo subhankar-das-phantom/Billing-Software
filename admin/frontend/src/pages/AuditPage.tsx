@@ -696,7 +696,7 @@ export const AuditPage: React.FC = () => {
                             {/* Formatted JSON Diff State Inspector */}
                             <div>
                               <div className="text-xs font-semibold text-slate-300 mb-2 flex items-center gap-1.5">
-                                <FileCode className="w-3.5 h-3.5 text-cyan-400" />
+                                <FileCode className="w-3.5 h-3.5 text-blue-400" />
                                 <span>Entity Mutation Diff State Inspector</span>
                               </div>
                               <div className="flex flex-col md:flex-row gap-3">
@@ -837,7 +837,7 @@ export const AuditPage: React.FC = () => {
                     </div>
                     <div className="flex items-center justify-between text-slate-300">
                       <span className="text-slate-500">Target ID:</span>
-                      <span className="text-cyan-400 truncate max-w-[180px] select-all">{log.targetId}</span>
+                      <span className="text-blue-400 truncate max-w-[180px] select-all">{log.targetId}</span>
                     </div>
                     <div className="flex items-center justify-between text-slate-300">
                       <span className="text-slate-500">Scope:</span>

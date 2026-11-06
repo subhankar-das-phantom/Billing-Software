@@ -80,7 +80,7 @@ const ROLE_BADGE_STYLES: Record<PlatformRole, { label: string; badge: string }> 
   },
   [PlatformRole.TELESUPPORT]: {
     label: 'Telesupport',
-    badge: 'bg-cyan-950/80 text-cyan-300 border-cyan-700/80',
+    badge: 'bg-blue-950/80 text-blue-300 border-blue-700/80',
   },
   [PlatformRole.READ_ONLY]: {
     label: 'Read Only',
@@ -644,7 +644,7 @@ export const UsersPage: React.FC = () => {
                           {roleStyle.label}
                         </span>
                         {operator.customPermissions && operator.customPermissions.length > 0 && (
-                          <div className="text-[10px] font-mono text-cyan-400 mt-0.5">
+                          <div className="text-[10px] font-mono text-blue-400 mt-0.5">
                             +{operator.customPermissions.length} granular perms
                           </div>
                         )}
@@ -868,7 +868,7 @@ export const UsersPage: React.FC = () => {
                       <span className="text-slate-400">{formatDateTime(operator.lastLoginAt)}</span>
                     </div>
                     {operator.customPermissions && operator.customPermissions.length > 0 && (
-                      <div className="pt-1 border-t border-slate-800 text-cyan-400">
+                      <div className="pt-1 border-t border-slate-800 text-blue-400">
                         {operator.customPermissions.length} Granular Permissions Assigned
                       </div>
                     )}
@@ -883,7 +883,7 @@ export const UsersPage: React.FC = () => {
                       className="min-h-[44px] px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center gap-2 text-xs font-medium cursor-pointer transition-colors"
                       aria-label={`Inspect ${operator.fullName}`}
                     >
-                      <Eye className="w-4 h-4 text-cyan-400" />
+                      <Eye className="w-4 h-4 text-blue-400" />
                       <span>Details</span>
                     </button>
 
@@ -1212,7 +1212,7 @@ export const UsersPage: React.FC = () => {
                 </span>
                 <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-2 bg-slate-950 rounded-lg border border-slate-800 font-mono text-[10px]">
                   {inspectedUser.customPermissions.map((p) => (
-                    <span key={p} className="px-2 py-0.5 rounded bg-slate-900 text-cyan-300 border border-slate-800">
+                    <span key={p} className="px-2 py-0.5 rounded bg-blue-950/70 text-blue-300 border border-blue-800/70">
                       {p}
                     </span>
                   ))}

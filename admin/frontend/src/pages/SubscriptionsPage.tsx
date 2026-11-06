@@ -474,7 +474,7 @@ export const SubscriptionsPage: React.FC = () => {
         <div>
           <div className="flex items-center gap-2.5">
             <h1 className="text-lg font-bold text-slate-100 tracking-tight">Subscriptions & SaaS Governance</h1>
-            <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-cyan-950/80 text-cyan-400 border border-cyan-800/60 font-semibold">
+            <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-blue-950/80 text-blue-400 border border-blue-800/60 font-semibold">
               Control Plane
             </span>
           </div>
@@ -491,14 +491,14 @@ export const SubscriptionsPage: React.FC = () => {
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/80 hover:border-slate-600 transition-all shadow-xs cursor-pointer disabled:opacity-50"
             title="Refresh pricing plans and subscription registries"
           >
-            <RefreshCw className={`w-3.5 h-3.5 text-cyan-400 ${isGlobalRefreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 text-blue-400 ${isGlobalRefreshing ? 'animate-spin' : ''}`} />
             <span className="font-mono">Sync State</span>
           </button>
 
           <button
             type="button"
             onClick={() => openAdjustModal()}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-950 bg-cyan-400 hover:bg-cyan-300 transition-all shadow-xs cursor-pointer active:scale-95"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 transition-all shadow-xs cursor-pointer active:scale-95"
           >
             <Sliders className="w-3.5 h-3.5" />
             <span>Adjust Subscription</span>
@@ -534,7 +534,7 @@ export const SubscriptionsPage: React.FC = () => {
         <div className="p-4 rounded-xl bg-slate-900 border border-slate-800/80 shadow-xs space-y-1">
           <div className="flex items-center justify-between text-xs text-slate-400">
             <span className="font-medium">Active Accounts</span>
-            <CheckCircle2 className="w-4 h-4 text-cyan-400" />
+            <CheckCircle2 className="w-4 h-4 text-blue-400" />
           </div>
           <div className="text-lg sm:text-xl font-bold text-slate-100 font-mono tracking-tight">
             <AnimatedCounter target={financialMetrics.activeCount} decimals={0} />
@@ -589,7 +589,7 @@ export const SubscriptionsPage: React.FC = () => {
       <div className="space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           <div className="flex items-center gap-2">
-            <Layers className="w-4 h-4 text-cyan-400" />
+            <Layers className="w-4 h-4 text-blue-400" />
             <h2 className="text-sm font-semibold text-slate-200 tracking-tight">SaaS Plans Matrix Strip</h2>
             <span className="text-[11px] font-mono text-slate-400">
               ({sortedPlans.length} Active Catalog Tiers)
@@ -602,7 +602,7 @@ export const SubscriptionsPage: React.FC = () => {
                 setEditingPlan(null);
                 setIsPlanModalOpen(true);
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-cyan-300 bg-cyan-950/60 hover:bg-cyan-900/60 border border-cyan-800/60 transition-all shadow-xs cursor-pointer active:scale-95 min-h-[44px] sm:min-h-0"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 transition-all shadow-xs cursor-pointer active:scale-95 min-h-[44px] sm:min-h-0"
               title="Create new pricing plan tier"
             >
               <Plus className="w-4 h-4" />
@@ -645,7 +645,7 @@ export const SubscriptionsPage: React.FC = () => {
                   key={plan._id}
                   className={`relative bg-slate-900 border rounded-xl p-5 flex flex-col justify-between transition-all hover:border-slate-700/80 shadow-xs ${
                     isPro
-                      ? 'border-cyan-800/60 shadow-cyan-950/20'
+                      ? 'border-blue-800/60 shadow-blue-950/20'
                       : isBusiness
                       ? 'border-indigo-800/60 shadow-indigo-950/20'
                       : 'border-slate-800/80'
@@ -688,7 +688,7 @@ export const SubscriptionsPage: React.FC = () => {
                     <div className="space-y-1.5 pt-2">
                       <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
                         <span>Included Capabilities</span>
-                        <span className="text-cyan-400 font-semibold">{plan.features.length} Entitlements</span>
+                        <span className="text-blue-400 font-semibold">{plan.features.length} Entitlements</span>
                       </div>
                       <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
                         {plan.features.slice(0, 8).map((feat) => (
@@ -700,7 +700,7 @@ export const SubscriptionsPage: React.FC = () => {
                           </span>
                         ))}
                         {plan.features.length > 8 && (
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950/60 text-cyan-300 border border-cyan-800/50">
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-950/60 text-blue-300 border border-blue-800/50">
                             +{plan.features.length - 8} more
                           </span>
                         )}
@@ -716,11 +716,11 @@ export const SubscriptionsPage: React.FC = () => {
                         setEditingPlan(plan);
                         setIsPlanModalOpen(true);
                       }}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700/80 active:bg-slate-700 text-cyan-300 border border-slate-700/80 hover:border-cyan-500/60 font-sans text-xs font-medium transition-all cursor-pointer min-h-[44px] sm:min-h-0 active:scale-95"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700/80 active:bg-slate-700 text-blue-300 border border-slate-700/80 hover:border-blue-500/60 font-sans text-xs font-medium transition-all cursor-pointer min-h-[44px] sm:min-h-0 active:scale-95"
                       title={`Edit ${plan.name} configuration`}
                       aria-label={`Edit ${plan.name} tier`}
                     >
-                      <Edit3 className="w-3.5 h-3.5 text-cyan-400" />
+                      <Edit3 className="w-3.5 h-3.5 text-blue-400" />
                       <span>Edit Plan</span>
                     </button>
                     <span className="text-slate-400 text-right">Order #{plan.displayOrder || 0}</span>
@@ -766,7 +766,7 @@ export const SubscriptionsPage: React.FC = () => {
                 value={reconcilePaymentId}
                 onChange={(e) => setReconcilePaymentId(e.target.value)}
                 placeholder="e.g. pay_N29Xz78dE or 65f1a2b3c4d5e6f7a8b9c0d1"
-                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none transition-colors min-h-[44px]"
+                className="w-full bg-slate-950 border border-slate-800 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none transition-colors min-h-[44px]"
                 required
               />
               <p className="text-[11px] text-slate-400">
@@ -794,7 +794,7 @@ export const SubscriptionsPage: React.FC = () => {
                 value={reconcileReason}
                 onChange={(e) => setReconcileReason(e.target.value)}
                 placeholder="Reason for payment claim (e.g. Gateway webhook timeout resolved via UTR)"
-                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none transition-colors min-h-[44px]"
+                className="w-full bg-slate-950 border border-slate-800 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none transition-colors min-h-[44px]"
                 required
               />
               <p className="text-[11px] text-slate-400">
@@ -871,7 +871,7 @@ export const SubscriptionsPage: React.FC = () => {
                 </span>
                 <div className="flex items-center justify-between text-slate-300">
                   <span className="text-slate-400">Payment ID:</span>
-                  <span className="text-cyan-400 font-bold">{reconcileResult.payment._id}</span>
+                  <span className="text-blue-400 font-bold">{reconcileResult.payment._id}</span>
                 </div>
                 <div className="flex items-center justify-between text-slate-300">
                   <span className="text-slate-400">Status:</span>
@@ -948,7 +948,7 @@ export const SubscriptionsPage: React.FC = () => {
                   }}
                   className={`px-2 py-0.5 rounded text-[10px] font-mono font-medium transition-colors cursor-pointer min-h-[32px] flex items-center ${
                     statusFilter === st
-                      ? 'bg-slate-800 text-cyan-300 border border-slate-700'
+                      ? 'bg-blue-600/20 text-blue-300 border border-blue-500/40'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
@@ -988,7 +988,7 @@ export const SubscriptionsPage: React.FC = () => {
               {isSubscriptionsLoading ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-slate-500 font-mono text-xs">
-                    <RefreshCw className="w-5 h-5 text-cyan-400 animate-spin mx-auto mb-2" />
+                    <RefreshCw className="w-5 h-5 text-blue-400 animate-spin mx-auto mb-2" />
                     Fetching subscriptions directory...
                   </td>
                 </tr>
@@ -1014,7 +1014,7 @@ export const SubscriptionsPage: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => setInspectRecord(sub)}
-                            className="font-semibold text-slate-200 hover:text-cyan-400 text-left block truncate max-w-[200px] cursor-pointer"
+                            className="font-semibold text-slate-200 hover:text-blue-400 text-left block truncate max-w-[200px] cursor-pointer"
                             title="Inspect subscription record"
                           >
                             {firmName}
@@ -1107,11 +1107,11 @@ export const SubscriptionsPage: React.FC = () => {
                               setEditingSubscription(sub);
                               setIsEditSubModalOpen(true);
                             }}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-300 border border-cyan-800/60 hover:border-cyan-700 font-mono text-[11px] transition-all cursor-pointer shadow-xs active:scale-95"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-blue-950/60 hover:bg-blue-900/60 text-blue-300 border border-blue-800/60 hover:border-blue-700 font-mono text-[11px] transition-all cursor-pointer shadow-xs active:scale-95"
                             title="Edit subscription parameters"
                             aria-label={`Edit subscription for ${firmName}`}
                           >
-                            <Sliders className="w-3 h-3 text-cyan-400" />
+                            <Sliders className="w-3 h-3 text-blue-400" />
                             <span>Edit</span>
                           </button>
 
@@ -1170,7 +1170,7 @@ export const SubscriptionsPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => resetParams()}
-                  className="px-4 py-2 min-h-[44px] rounded-lg bg-cyan-600 text-white font-medium cursor-pointer inline-flex items-center gap-2"
+                  className="px-4 py-2 min-h-[44px] rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium cursor-pointer inline-flex items-center gap-2 transition-colors"
                 >
                   <X className="w-4 h-4" />
                   <span>Reset Filters</span>
@@ -1188,7 +1188,7 @@ export const SubscriptionsPage: React.FC = () => {
               // Summary: 74-82px bounded height, single-line truncation
               const cardSummary = (
                 <div className="flex items-center gap-3 min-w-0 pr-1">
-                  <div className="w-9 h-9 rounded-lg bg-slate-800 border border-slate-700/80 flex items-center justify-center font-bold text-xs text-cyan-300 shrink-0 select-none shadow-2xs">
+                  <div className="w-9 h-9 rounded-lg bg-blue-950/70 border border-blue-800/70 flex items-center justify-center font-bold text-xs text-blue-300 shrink-0 select-none shadow-2xs">
                     <CreditCard className="w-4 h-4" />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -1277,10 +1277,10 @@ export const SubscriptionsPage: React.FC = () => {
                           setEditingSubscription(sub);
                           setIsEditSubModalOpen(true);
                         }}
-                        className="min-h-[44px] px-3 py-2 rounded-lg bg-cyan-950/60 hover:bg-cyan-900/60 active:bg-cyan-900/80 text-cyan-300 border border-cyan-800/60 flex items-center justify-center gap-2 text-xs font-medium cursor-pointer transition-colors"
+                        className="min-h-[44px] px-3 py-2 rounded-lg bg-blue-950/60 hover:bg-blue-900/60 active:bg-blue-900/80 text-blue-300 border border-blue-800/60 flex items-center justify-center gap-2 text-xs font-medium cursor-pointer transition-colors"
                         aria-label={`Edit subscription for ${firmName}`}
                       >
-                        <Sliders className="w-4 h-4 text-cyan-400" />
+                        <Sliders className="w-4 h-4 text-blue-400" />
                         <span>Edit</span>
                       </button>
 
@@ -1376,7 +1376,7 @@ export const SubscriptionsPage: React.FC = () => {
             </div>
           ) : (
             <div className="p-3.5 bg-slate-950/80 border border-slate-800 rounded-lg flex items-start gap-3 text-xs text-slate-300">
-              <Sliders className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
+              <Sliders className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
               <div className="space-y-1">
                 <p className="font-semibold text-slate-200">
                   Platform Operator Tenure Extension
@@ -1401,7 +1401,7 @@ export const SubscriptionsPage: React.FC = () => {
                 value={adjustTenantId}
                 onChange={(e) => setAdjustTenantId(e.target.value)}
                 placeholder="65f1a2b3c4d5e6f7a8b9c0d1"
-                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none transition-colors min-h-[44px]"
+                className="w-full bg-slate-950 border border-slate-800 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none transition-colors min-h-[44px]"
                 required
               />
             </div>
@@ -1413,7 +1413,7 @@ export const SubscriptionsPage: React.FC = () => {
                   Tenure Days Adjustment (Positive = Extend, Negative = Deduct){' '}
                   <span className="text-rose-400">*</span>
                 </label>
-                <span className="text-[11px] font-mono text-cyan-400">
+                <span className="text-[11px] font-mono text-blue-400">
                   {adjustDays > 0 ? `+${adjustDays}` : adjustDays} Days
                 </span>
               </div>
@@ -1425,7 +1425,7 @@ export const SubscriptionsPage: React.FC = () => {
                 onChange={(e) => setAdjustDays(parseInt(e.target.value, 10) || 0)}
                 max={isSupportAdmin ? 14 : 365}
                 min={isSupportAdmin ? -14 : -365}
-                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none transition-colors min-h-[44px]"
+                className="w-full bg-slate-950 border border-slate-800 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none transition-colors min-h-[44px]"
                 required
               />
               {isCeilingExceeded && (
@@ -1444,7 +1444,7 @@ export const SubscriptionsPage: React.FC = () => {
                 id="adjust-type"
                 value={adjustType}
                 onChange={(e) => setAdjustType(e.target.value as any)}
-                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none transition-colors min-h-[44px]"
+                className="w-full bg-slate-950 border border-slate-800 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none transition-colors min-h-[44px]"
               >
                 <option value="manual_bonus">Manual Bonus (Discretionary Extension)</option>
                 <option value="compensation">Incident Compensation (SLA / Downtime Credit)</option>
@@ -1473,7 +1473,7 @@ export const SubscriptionsPage: React.FC = () => {
                 value={adjustReason}
                 onChange={(e) => setAdjustReason(e.target.value)}
                 placeholder="Detailed reason for tenure adjustment (e.g. Compensating customer for Razorpay webhook timeout during month-end billing)..."
-                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none transition-colors"
+                className="w-full bg-slate-950 border border-slate-800 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none transition-colors"
                 required
               />
             </div>
@@ -1504,7 +1504,7 @@ export const SubscriptionsPage: React.FC = () => {
                 isCeilingExceeded ||
                 adjustReason.trim().length < 10
               }
-              className="inline-flex items-center gap-2 px-5 py-2 min-h-[44px] rounded-lg text-xs font-semibold text-slate-950 bg-cyan-400 hover:bg-cyan-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs cursor-pointer active:scale-95"
+              className="inline-flex items-center gap-2 px-5 py-2 min-h-[44px] rounded-lg text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs cursor-pointer active:scale-95"
             >
               {adjustMutation.isPending ? (
                 <>
@@ -1539,7 +1539,7 @@ export const SubscriptionsPage: React.FC = () => {
                 <span className="text-slate-400 text-[11px]">Subscription Plan</span>
                 <div className="text-base font-bold text-slate-100 flex items-center gap-2">
                   <span>{inspectRecord.plan?.name || 'Custom Plan'}</span>
-                  <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-slate-800 text-cyan-300 border border-slate-700">
+                  <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-blue-950/70 text-blue-300 border border-blue-800/70">
                     {inspectRecord.plan?.code || '—'}
                   </span>
                 </div>
@@ -1560,7 +1560,7 @@ export const SubscriptionsPage: React.FC = () => {
               <div>
                 <span className="text-slate-400 block text-[10px] uppercase">Tenant ID</span>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-cyan-400 truncate">{inspectRecord.tenantId}</span>
+                  <span className="text-blue-400 truncate">{inspectRecord.tenantId}</span>
                   <button
                     type="button"
                     onClick={() => handleCopy(inspectRecord.tenantId, 'modal-tid')}
@@ -1608,9 +1608,9 @@ export const SubscriptionsPage: React.FC = () => {
                   setEditingSubscription(subToEdit);
                   setIsEditSubModalOpen(true);
                 }}
-                className="px-4 py-2 min-h-[44px] rounded-lg bg-cyan-950/80 hover:bg-cyan-900/80 text-cyan-300 border border-cyan-800/80 font-medium cursor-pointer inline-flex items-center gap-1.5"
+                className="px-4 py-2 min-h-[44px] rounded-lg bg-blue-950/80 hover:bg-blue-900/80 text-blue-300 border border-blue-800/80 font-medium cursor-pointer inline-flex items-center gap-1.5"
               >
-                <Sliders className="w-4 h-4 text-cyan-400" />
+                <Sliders className="w-4 h-4 text-blue-400" />
                 <span>Edit Subscription</span>
               </button>
               <button
@@ -1620,7 +1620,7 @@ export const SubscriptionsPage: React.FC = () => {
                   setInspectRecord(null);
                   openAdjustModal(tid);
                 }}
-                className="px-4 py-2 min-h-[44px] rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold cursor-pointer inline-flex items-center gap-1.5"
+                className="px-4 py-2 min-h-[44px] rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold cursor-pointer inline-flex items-center gap-1.5"
               >
                 <Clock className="w-4 h-4" />
                 <span>Adjust Tenure</span>

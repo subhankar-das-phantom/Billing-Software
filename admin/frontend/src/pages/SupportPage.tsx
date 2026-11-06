@@ -546,7 +546,7 @@ export const SupportPage: React.FC = () => {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Activity className="w-4 h-4 text-cyan-400" />
+            <Activity className="w-4 h-4 text-blue-400" />
             <h2 className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
               Diagnostic & Telemetry Operator Toolcards
             </h2>
@@ -560,7 +560,7 @@ export const SupportPage: React.FC = () => {
           {/* Toolcard 1: DB Invariant Probe */}
           <div className="p-4 rounded-xl bg-slate-900 border border-slate-800/80 shadow-xs flex flex-col justify-between space-y-3">
             <div className="space-y-1">
-              <div className="flex items-center gap-2 text-cyan-400">
+              <div className="flex items-center gap-2 text-blue-400">
                 <Database className="w-4 h-4" />
                 <span className="font-semibold text-xs text-slate-200">DB Schema Invariants</span>
               </div>
@@ -576,12 +576,12 @@ export const SupportPage: React.FC = () => {
             >
               {activeToolRunning === 'db' ? (
                 <>
-                  <RefreshCw className="w-4 h-4 animate-spin text-cyan-400" />
+                  <RefreshCw className="w-4 h-4 animate-spin text-blue-400" />
                   <span>Probing Database...</span>
                 </>
               ) : (
                 <>
-                  <Activity className="w-4 h-4 text-cyan-400" />
+                  <Activity className="w-4 h-4 text-blue-400" />
                   <span>Run Invariant Probe</span>
                 </>
               )}
@@ -957,7 +957,7 @@ export const SupportPage: React.FC = () => {
                       </div>
                       <div className="flex items-center justify-between text-slate-300">
                         <span className="text-slate-500">Target Tenant:</span>
-                        <span className="text-cyan-400 truncate max-w-[180px] select-all">{item.targetTenantId}</span>
+                        <span className="text-blue-400 truncate max-w-[180px] select-all">{item.targetTenantId}</span>
                       </div>
                       <div className="flex items-center justify-between text-slate-300">
                         <span className="text-slate-500">Operator:</span>

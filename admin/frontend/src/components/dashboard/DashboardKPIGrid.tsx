@@ -105,7 +105,7 @@ export const DashboardKPIGrid: React.FC<DashboardKPIGridProps> = ({
             <div className="w-7 h-7 rounded-lg bg-emerald-950/70 border border-emerald-800/70 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-transform">
               <TrendingUp className="w-3.5 h-3.5" />
             </div>
-            <ArrowUpRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-cyan-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+            <ArrowUpRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-blue-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
           </div>
         </div>
 
@@ -140,10 +140,10 @@ export const DashboardKPIGrid: React.FC<DashboardKPIGridProps> = ({
         <div className="flex items-center justify-between text-slate-400">
           <span className="text-xs font-medium text-slate-300">Active Tenants</span>
           <div className="flex items-center gap-1.5">
-            <div className="w-7 h-7 rounded-lg bg-cyan-950/70 border border-cyan-800/70 flex items-center justify-center text-cyan-400 group-hover:scale-105 transition-transform">
+            <div className="w-7 h-7 rounded-lg bg-blue-950/70 border border-blue-800/70 flex items-center justify-center text-blue-400 group-hover:scale-105 transition-transform">
               <Building2 className="w-3.5 h-3.5" />
             </div>
-            <ArrowUpRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-cyan-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+            <ArrowUpRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-blue-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
           </div>
         </div>
 
@@ -179,7 +179,7 @@ export const DashboardKPIGrid: React.FC<DashboardKPIGridProps> = ({
             <div className="w-7 h-7 rounded-lg bg-purple-950/70 border border-purple-800/70 flex items-center justify-center text-purple-400 group-hover:scale-105 transition-transform">
               <Activity className="w-3.5 h-3.5" />
             </div>
-            <ArrowUpRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-cyan-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+            <ArrowUpRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-blue-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
           </div>
         </div>
 
@@ -214,7 +214,7 @@ export const DashboardKPIGrid: React.FC<DashboardKPIGridProps> = ({
             <div className="w-7 h-7 rounded-lg bg-amber-950/70 border border-amber-800/70 flex items-center justify-center text-amber-400 group-hover:scale-105 transition-transform">
               <Headphones className="w-3.5 h-3.5" />
             </div>
-            <ArrowUpRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-cyan-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+            <ArrowUpRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-blue-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
           </div>
         </div>
 
@@ -251,10 +251,10 @@ export const DashboardKPIGrid: React.FC<DashboardKPIGridProps> = ({
         <div className="flex items-center justify-between text-slate-400">
           <span className="text-xs font-medium text-slate-300">Cryptographic Audit</span>
           <div className="flex items-center gap-1.5">
-            <div className="w-7 h-7 rounded-lg bg-cyan-950/70 border border-cyan-800/70 flex items-center justify-center text-cyan-400 group-hover:scale-105 transition-transform">
+            <div className="w-7 h-7 rounded-lg bg-blue-950/70 border border-blue-800/70 flex items-center justify-center text-blue-400 group-hover:scale-105 transition-transform">
               <ShieldCheck className="w-3.5 h-3.5" />
             </div>
-            <ArrowUpRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-cyan-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+            <ArrowUpRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-blue-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
           </div>
         </div>
 

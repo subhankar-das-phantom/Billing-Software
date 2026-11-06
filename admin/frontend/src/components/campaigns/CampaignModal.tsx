@@ -269,9 +269,9 @@ export const CampaignModal: React.FC<CampaignModalProps> = ({
         type="button"
         onClick={() => handleSubmit()}
         disabled={!canSubmit}
-        className="min-h-[44px] w-full sm:w-auto px-5 py-2.5 rounded-lg text-xs font-semibold bg-cyan-500 hover:bg-cyan-400 active:bg-cyan-600 text-slate-950 shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+        className="min-h-[44px] w-full sm:w-auto px-5 py-2.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
       >
-        <Send className="w-3.5 h-3.5 text-slate-950 shrink-0" />
+        <Send className="w-3.5 h-3.5 text-white shrink-0" />
         <span>
           {isSubmitting
             ? isEditing
@@ -291,11 +291,11 @@ export const CampaignModal: React.FC<CampaignModalProps> = ({
       onClose={handleClose}
       title={
         <div className="flex items-center gap-2 flex-wrap min-w-0">
-          <Megaphone className="w-4 h-4 text-cyan-400 shrink-0" />
+          <Megaphone className="w-4 h-4 text-blue-400 shrink-0" />
           <span className="font-bold text-slate-100 truncate text-sm sm:text-base">
             {isEditing ? `Edit Campaign: ${campaign?.title || 'Notice'}` : 'Author Promotional Campaign'}
           </span>
-          <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-slate-800 text-cyan-300 border border-slate-700">
+          <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-blue-950/70 text-blue-300 border border-blue-800/70">
             {campaignType.replace(/_/g, ' ')}
           </span>
         </div>
@@ -311,7 +311,7 @@ export const CampaignModal: React.FC<CampaignModalProps> = ({
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-xs text-slate-400">
             <span className="flex items-center gap-1.5 font-semibold text-slate-300 uppercase tracking-wider text-[11px]">
-              <Eye className="w-3.5 h-3.5 text-cyan-400" />
+              <Eye className="w-3.5 h-3.5 text-blue-400" />
               <span>Live Tenant Banner Preview</span>
             </span>
             <span className="text-[10px] font-mono text-slate-500">
@@ -417,7 +417,7 @@ export const CampaignModal: React.FC<CampaignModalProps> = ({
               onChange={(e) => setTitle(e.target.value.slice(0, 200))}
               disabled={isSubmitting}
               placeholder="e.g. Diwali Super Saver: 30% Off Professional Annual Subscription"
-              className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition-all font-sans"
+              className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-sans"
             />
           </div>
 
@@ -462,7 +462,7 @@ export const CampaignModal: React.FC<CampaignModalProps> = ({
             disabled={isSubmitting}
             rows={3}
             placeholder="Enter announcement description, benefits, terms, and call-to-action details..."
-            className="w-full px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition-all font-sans min-h-[80px]"
+            className="w-full px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-sans min-h-[80px]"
           />
         </div>
 
@@ -474,10 +474,10 @@ export const CampaignModal: React.FC<CampaignModalProps> = ({
               value={campaignType}
               onChange={(e) => setCampaignType(e.target.value as any)}
               disabled={isSubmitting}
-              className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 focus:outline-none focus:border-cyan-500 transition-all font-sans cursor-pointer"
+              className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-sans cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {CAMPAIGN_TYPES.map((t) => (
-                <option key={t.value} value={t.value} className="bg-slate-900 text-slate-100">
+                <option key={t.value} value={t.value} className="bg-slate-900 text-slate-100 py-1">
                   {t.label} — {t.desc}
                 </option>
               ))}
@@ -490,10 +490,10 @@ export const CampaignModal: React.FC<CampaignModalProps> = ({
               value={priority}
               onChange={(e) => setPriority(e.target.value as any)}
               disabled={isSubmitting}
-              className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 focus:outline-none focus:border-cyan-500 transition-all font-sans cursor-pointer"
+              className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-sans cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {PRIORITY_OPTIONS.map((p) => (
-                <option key={p} value={p} className="bg-slate-900 text-slate-100">
+                <option key={p} value={p} className="bg-slate-900 text-slate-100 py-1">
                   {p} PRIORITY
                 </option>
               ))}
@@ -506,7 +506,7 @@ export const CampaignModal: React.FC<CampaignModalProps> = ({
             ═════════════════════════════════════════════════════════════ */}
         <div className="p-3 bg-slate-950/70 border border-slate-800 rounded-xl space-y-2.5">
           <label className="block text-xs font-semibold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-            <Layers className="w-3.5 h-3.5 text-cyan-400" />
+            <Layers className="w-3.5 h-3.5 text-blue-400" />
             <span>Target Audience Scope</span>
           </label>
 
@@ -521,7 +521,7 @@ export const CampaignModal: React.FC<CampaignModalProps> = ({
                   disabled={isSubmitting}
                   className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer min-h-[44px] flex flex-col justify-between ${
                     isSelected
-                      ? 'bg-cyan-950/40 border-cyan-500/70 text-cyan-300 ring-1 ring-cyan-500/30'
+                      ? 'bg-blue-950/40 border-blue-500/70 text-blue-300 ring-1 ring-blue-500/30'
                       : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200'
                   }`}
                 >
@@ -546,11 +546,11 @@ export const CampaignModal: React.FC<CampaignModalProps> = ({
                       onClick={() => togglePlanCode(planCode)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-mono uppercase transition-colors cursor-pointer min-h-[38px] flex items-center gap-1.5 border ${
                         isChecked
-                          ? 'bg-cyan-950/60 border-cyan-500/70 text-cyan-300 font-semibold'
+                          ? 'bg-blue-950/60 border-blue-500/70 text-blue-300 font-semibold'
                           : 'bg-slate-900 border-slate-800 text-slate-400'
                       }`}
                     >
-                      {isChecked && <Check className="w-3 h-3 text-cyan-400" />}
+                      {isChecked && <Check className="w-3 h-3 text-blue-400" />}
                       <span>{planCode}</span>
                     </button>
                   );
@@ -572,11 +572,11 @@ export const CampaignModal: React.FC<CampaignModalProps> = ({
                       onClick={() => toggleStatusOption(st)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-mono uppercase transition-colors cursor-pointer min-h-[38px] flex items-center gap-1.5 border ${
                         isChecked
-                          ? 'bg-cyan-950/60 border-cyan-500/70 text-cyan-300 font-semibold'
+                          ? 'bg-blue-950/60 border-blue-500/70 text-blue-300 font-semibold'
                           : 'bg-slate-900 border-slate-800 text-slate-400'
                       }`}
                     >
-                      {isChecked && <Check className="w-3 h-3 text-cyan-400" />}
+                      {isChecked && <Check className="w-3 h-3 text-blue-400" />}
                       <span>{st}</span>
                     </button>
                   );
@@ -594,7 +594,7 @@ export const CampaignModal: React.FC<CampaignModalProps> = ({
                 onChange={(e) => setTargetTenantIds(e.target.value)}
                 disabled={isSubmitting}
                 placeholder="e.g. 660f1b2c3d4e5f, 660f1b2c3d4e6a"
-                className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono text-cyan-300 placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition-all"
+                className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono text-blue-300 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
               />
             </div>
           )}
@@ -616,7 +616,7 @@ export const CampaignModal: React.FC<CampaignModalProps> = ({
               onChange={(e) => setPromoCode(e.target.value.toUpperCase().trim())}
               disabled={isSubmitting}
               placeholder="e.g. FESTIVE30"
-              className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono font-bold text-amber-300 placeholder-slate-600 focus:outline-none focus:border-amber-500 transition-all uppercase"
+              className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono font-bold text-amber-300 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all uppercase"
             />
           </div>
 
@@ -627,12 +627,12 @@ export const CampaignModal: React.FC<CampaignModalProps> = ({
               value={discountType}
               onChange={(e) => setDiscountType(e.target.value as any)}
               disabled={isSubmitting}
-              className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 focus:outline-none focus:border-cyan-500 transition-all font-sans cursor-pointer"
+              className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-sans cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <option value="PERCENTAGE">Percentage (%) Discount</option>
-              <option value="FLAT">Flat ₹ Amount Discount</option>
-              <option value="BONUS_DAYS">Bonus Tenure Days</option>
-              <option value="NONE">None / Informational</option>
+              <option value="PERCENTAGE" className="bg-slate-900 text-slate-100 py-1">Percentage (%) Discount</option>
+              <option value="FLAT" className="bg-slate-900 text-slate-100 py-1">Flat ₹ Amount Discount</option>
+              <option value="BONUS_DAYS" className="bg-slate-900 text-slate-100 py-1">Bonus Tenure Days</option>
+              <option value="NONE" className="bg-slate-900 text-slate-100 py-1">None / Informational</option>
             </select>
           </div>
 
@@ -651,7 +651,7 @@ export const CampaignModal: React.FC<CampaignModalProps> = ({
               onChange={(e) => setDiscountValue(e.target.value)}
               disabled={isSubmitting || discountType === 'NONE'}
               placeholder="20"
-              className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition-all disabled:opacity-40"
+              className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all disabled:opacity-40"
             />
           </div>
         </div>
@@ -689,7 +689,7 @@ export const CampaignModal: React.FC<CampaignModalProps> = ({
               onChange={(e) => setCtaLabel(e.target.value)}
               disabled={isSubmitting}
               placeholder="e.g. Upgrade Now"
-              className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition-all font-sans"
+              className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-sans"
             />
           </div>
 
@@ -702,7 +702,7 @@ export const CampaignModal: React.FC<CampaignModalProps> = ({
               onChange={(e) => setCtaRoute(e.target.value)}
               disabled={isSubmitting}
               placeholder="e.g. /subscription"
-              className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono text-slate-300 placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition-all"
+              className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono text-slate-300 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
             />
           </div>
         </div>
@@ -719,7 +719,7 @@ export const CampaignModal: React.FC<CampaignModalProps> = ({
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
               disabled={isSubmitting}
-              className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 focus:outline-none focus:border-cyan-500 transition-all font-mono"
+              className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-mono"
             />
           </div>
 
@@ -733,7 +733,7 @@ export const CampaignModal: React.FC<CampaignModalProps> = ({
               value={expiresAt}
               onChange={(e) => setExpiresAt(e.target.value)}
               disabled={isSubmitting}
-              className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 focus:outline-none focus:border-cyan-500 transition-all font-mono"
+              className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-mono"
             />
           </div>
         </div>
@@ -749,7 +749,7 @@ export const CampaignModal: React.FC<CampaignModalProps> = ({
             disabled={isSubmitting}
             rows={2}
             placeholder={`Provide a clear operational explanation for this campaign publication (min ${minReasonLength} chars)...`}
-            className="w-full px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition-all font-sans min-h-[72px]"
+            className="w-full px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-sans min-h-[72px]"
           />
           <div className="flex justify-between text-[11px] text-slate-500">
             <span>Minimum {minReasonLength} characters required for compliance</span>

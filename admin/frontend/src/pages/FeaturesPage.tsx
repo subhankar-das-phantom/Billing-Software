@@ -31,6 +31,7 @@ import { Toast, ToastMessage } from '../components/common/Toast';
 import CollapsibleMobileCard from '../components/common/CollapsibleMobileCard';
 import AnimatedCounter from '../components/common/AnimatedCounter';
 import SearchInput from '../components/common/SearchInput';
+import CustomDropdown, { type DropdownOption } from '../components/common/CustomDropdown';
 import { usePlatformAuth } from '../contexts/PlatformAuthContext';
 import { useListFilterParams } from '../hooks/useListFilterParams';
 import {
@@ -167,6 +168,34 @@ export const FeaturesPage: React.FC = () => {
   const statusFilter = (params.status || 'ACTIVE_ONLY') as 'ALL' | 'ACTIVE_ONLY' | 'INACTIVE_ONLY';
   const featureFilter = params.feature || 'ALL';
 
+  // Memoized options for page-level feature filter dropdown
+  const filterFeatureOptions: DropdownOption[] = useMemo(() => {
+    const list: DropdownOption[] = [
+      {
+        value: 'ALL',
+        label: 'All Features',
+        description: 'Show overrides across all feature flags',
+      },
+      {
+        value: EMERGENCY_BYPASS_FEATURE,
+        label: 'EMERGENCY_BYPASS',
+        badge: 'BYPASS',
+        badgeColor: 'bg-rose-950 text-rose-300 border border-rose-800/60',
+        description: 'Emergency commercial bypass overrides',
+      },
+    ];
+
+    ENTERPRISE_FEATURES.forEach((f) => {
+      list.push({
+        value: f,
+        label: f,
+        description: `Filter by ${f}`,
+      });
+    });
+
+    return list;
+  }, []);
+
   const filteredOverrides = useMemo(() => {
     if (!overridesData) return [];
     const now = Date.now();
@@ -242,6 +271,30 @@ export const FeaturesPage: React.FC = () => {
   const [grantError, setGrantError] = useState<string | null>(null);
 
   const isEmergencyBypassSelected = grantFeature === EMERGENCY_BYPASS_FEATURE;
+
+  // Memoized options for the Grant Feature Override Modal dropdown
+  const grantFeatureOptions: DropdownOption[] = useMemo(() => {
+    const featureList: readonly string[] = canManageEmergencyBypass
+      ? [EMERGENCY_BYPASS_FEATURE, ...ENTERPRISE_FEATURES]
+      : ENTERPRISE_FEATURES;
+
+    return featureList.map((feat) => {
+      if (feat === EMERGENCY_BYPASS_FEATURE) {
+        return {
+          value: EMERGENCY_BYPASS_FEATURE,
+          label: 'EMERGENCY_COMMERCIAL_BYPASS',
+          description: 'Emergency commercial bypass (max 72h safeguard, unlocks all enterprise capabilities)',
+          badge: 'CRITICAL',
+          badgeColor: 'bg-rose-950 text-rose-300 border border-rose-800/80',
+        };
+      }
+      return {
+        value: feat,
+        label: feat,
+        description: `Enterprise capability flag: ${feat}`,
+      };
+    });
+  }, [canManageEmergencyBypass]);
 
   const openGrantModal = (prefillTenantId?: string, forceBypass?: boolean) => {
     setGrantTenantId(prefillTenantId || '');
@@ -421,7 +474,7 @@ export const FeaturesPage: React.FC = () => {
         <div>
           <div className="flex items-center gap-2.5">
             <h1 className="text-lg font-bold text-slate-100 tracking-tight">Feature Overrides & Entitlements</h1>
-            <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-cyan-950/80 text-cyan-400 border border-cyan-800/60 font-semibold">
+            <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-blue-950/80 text-blue-400 border border-blue-800/60 font-semibold">
               Gating Engine
             </span>
           </div>
@@ -438,7 +491,7 @@ export const FeaturesPage: React.FC = () => {
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/80 hover:border-slate-600 transition-all shadow-xs cursor-pointer disabled:opacity-50"
             title="Refresh feature overrides from control plane"
           >
-            <RefreshCw className={`w-3.5 h-3.5 text-cyan-400 ${isOverridesFetching ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 text-blue-400 ${isOverridesFetching ? 'animate-spin' : ''}`} />
             <span className="font-mono">Sync Overrides</span>
           </button>
 
@@ -457,7 +510,7 @@ export const FeaturesPage: React.FC = () => {
             <button
               type="button"
               onClick={() => openGrantModal()}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-950 bg-cyan-400 hover:bg-cyan-300 transition-all shadow-xs cursor-pointer active:scale-95"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 transition-all shadow-xs cursor-pointer active:scale-95"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Grant Feature Override</span>
@@ -486,7 +539,7 @@ export const FeaturesPage: React.FC = () => {
 
         <div className="p-3.5 bg-slate-900 border border-slate-800/80 rounded-xl space-y-1">
           <span className="text-[11px] font-mono text-slate-400">Entitlement Allows</span>
-          <div className="text-xl font-bold font-mono text-cyan-400">
+          <div className="text-xl font-bold font-mono text-blue-400">
             <AnimatedCounter target={stats.allow} />
           </div>
         </div>
@@ -630,7 +683,7 @@ export const FeaturesPage: React.FC = () => {
         {/* Table Filters Toolbar */}
         <div className="p-4 border-b border-slate-800/80 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <Sliders className="w-4 h-4 text-cyan-400" />
+            <Sliders className="w-4 h-4 text-blue-400" />
             <h2 className="text-sm font-semibold text-slate-200 tracking-tight">Active Entitlement Overrides</h2>
             <span className="text-[11px] font-mono text-slate-400">
               ({filteredOverrides.length} records shown)
@@ -651,7 +704,7 @@ export const FeaturesPage: React.FC = () => {
                   onClick={() => setParam('status', st.key)}
                   className={`px-2 py-0.5 rounded text-[10px] font-mono font-medium transition-colors cursor-pointer min-h-[30px] flex items-center ${
                     statusFilter === st.key
-                      ? 'bg-slate-800 text-cyan-300 border border-slate-700'
+                      ? 'bg-blue-600/20 text-blue-300 border border-blue-500/40'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
@@ -673,7 +726,7 @@ export const FeaturesPage: React.FC = () => {
                         ? 'bg-emerald-950 text-emerald-300 border border-emerald-700'
                         : tp === 'DENY'
                         ? 'bg-rose-950 text-rose-300 border border-rose-700'
-                        : 'bg-slate-800 text-cyan-300 border border-slate-700'
+                        : 'bg-blue-600/20 text-blue-300 border border-blue-500/40'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
@@ -683,19 +736,18 @@ export const FeaturesPage: React.FC = () => {
             </div>
 
             {/* Feature Dropdown Filter */}
-            <select
+            <CustomDropdown
+              id="feature-filter"
               value={featureFilter}
-              onChange={(e) => setParam('feature', e.target.value)}
-              className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-300 focus:outline-none focus:border-cyan-500 font-mono min-h-[36px]"
-            >
-              <option value="ALL">All Features</option>
-              <option value={EMERGENCY_BYPASS_FEATURE}>EMERGENCY_BYPASS</option>
-              {ENTERPRISE_FEATURES.map((f) => (
-                <option key={f} value={f}>
-                  {f}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setParam('feature', val)}
+              options={filterFeatureOptions}
+              searchable={true}
+              searchPlaceholder="Filter feature flags..."
+              maxMenuHeight={260}
+              placement="bottom"
+              className="w-full sm:w-56"
+              buttonClassName="min-h-[36px] py-1 px-2.5 text-xs text-slate-300"
+            />
 
             {/* Debounced Search Input */}
             <SearchInput
@@ -726,7 +778,7 @@ export const FeaturesPage: React.FC = () => {
               {isOverridesLoading ? (
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-slate-500 font-mono text-xs">
-                    <RefreshCw className="w-5 h-5 text-cyan-400 animate-spin mx-auto mb-2" />
+                    <RefreshCw className="w-5 h-5 text-blue-400 animate-spin mx-auto mb-2" />
                     Loading platform feature overrides...
                   </td>
                 </tr>
@@ -798,7 +850,7 @@ export const FeaturesPage: React.FC = () => {
                             EMERGENCY_BYPASS
                           </span>
                         ) : (
-                          <span className="font-mono text-[11px] px-2 py-0.5 rounded bg-slate-800/90 text-cyan-300 border border-slate-700/80">
+                          <span className="font-mono text-[11px] px-2 py-0.5 rounded bg-blue-950/70 text-blue-300 border border-blue-800/70">
                             {ov.feature}
                           </span>
                         )}
@@ -829,7 +881,7 @@ export const FeaturesPage: React.FC = () => {
                                 grantedBy: creatorEmail,
                               })
                             }
-                            className="text-cyan-400 hover:text-cyan-300 shrink-0 text-[10px] font-mono cursor-pointer"
+                            className="text-blue-400 hover:text-blue-300 shrink-0 text-[10px] font-mono cursor-pointer"
                             title="Inspect full operational justification"
                           >
                             [view]
@@ -953,7 +1005,7 @@ export const FeaturesPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => resetParams()}
-                className="px-4 py-2 min-h-[44px] rounded-lg bg-cyan-600 text-white font-medium cursor-pointer inline-flex items-center gap-2"
+                className="px-4 py-2 min-h-[44px] rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium cursor-pointer inline-flex items-center gap-2 transition-colors"
               >
                 <X className="w-4 h-4" />
                 <span>Reset Filters</span>
@@ -1064,7 +1116,7 @@ export const FeaturesPage: React.FC = () => {
                         className="min-h-[44px] px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center gap-2 text-xs font-medium cursor-pointer transition-colors"
                         aria-label="View full audit reason"
                       >
-                        <Eye className="w-4 h-4 text-cyan-400" />
+                        <Eye className="w-4 h-4 text-blue-400" />
                         <span>Reason</span>
                       </button>
 
@@ -1144,7 +1196,7 @@ export const FeaturesPage: React.FC = () => {
             </div>
           ) : (
             <div className="p-3.5 bg-slate-950/80 border border-slate-800 rounded-lg flex items-start gap-3 text-xs text-slate-300">
-              <Sliders className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
+              <Sliders className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
               <div className="space-y-1">
                 <p className="font-semibold text-slate-200">
                   Capability Entitlement Rule
@@ -1168,7 +1220,7 @@ export const FeaturesPage: React.FC = () => {
                 value={grantTenantId}
                 onChange={(e) => setGrantTenantId(e.target.value)}
                 placeholder="65f1a2b3c4d5e6f7a8b9c0d1"
-                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none transition-colors min-h-[44px]"
+                className="w-full bg-slate-950 border border-slate-800 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none transition-colors min-h-[44px]"
                 required
               />
             </div>
@@ -1178,23 +1230,17 @@ export const FeaturesPage: React.FC = () => {
               <label htmlFor="grant-feature" className="block text-xs font-medium text-slate-300">
                 Entitlement Capability / Flag <span className="text-rose-400">*</span>
               </label>
-              <select
+              <CustomDropdown
                 id="grant-feature"
                 value={grantFeature}
-                onChange={(e) => setGrantFeature(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 focus:outline-none transition-colors min-h-[44px]"
-              >
-                {canManageEmergencyBypass && (
-                  <option value={EMERGENCY_BYPASS_FEATURE}>
-                    EMERGENCY_COMMERCIAL_BYPASS (Critical Incident Resolution)
-                  </option>
-                )}
-                {ENTERPRISE_FEATURES.map((feat) => (
-                  <option key={feat} value={feat}>
-                    {feat}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setGrantFeature(val)}
+                options={grantFeatureOptions}
+                searchable={true}
+                searchPlaceholder="Search feature flags (e.g. INVOICE, LEDGER)..."
+                placeholder="Select feature flag..."
+                maxMenuHeight={260}
+                placement="bottom"
+              />
             </div>
 
             {/* Field: Type (ALLOW / DENY) */}
@@ -1245,7 +1291,7 @@ export const FeaturesPage: React.FC = () => {
                       type="checkbox"
                       checked={isIndefinite}
                       onChange={(e) => setIsIndefinite(e.target.checked)}
-                      className="rounded border-slate-700 bg-slate-900 text-cyan-500 focus:ring-0"
+                      className="rounded border-slate-700 bg-slate-900 text-blue-500 focus:ring-0"
                     />
                     <span>Indefinite / Permanent</span>
                   </label>
@@ -1261,7 +1307,7 @@ export const FeaturesPage: React.FC = () => {
                       max={isEmergencyBypassSelected ? 72 : 8760}
                       value={grantDurationHours}
                       onChange={(e) => setGrantDurationHours(parseInt(e.target.value, 10) || 1)}
-                      className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none transition-colors min-h-[44px]"
+                      className="w-full bg-slate-950 border border-slate-800 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none transition-colors min-h-[44px]"
                       required
                     />
                     <span className="text-xs text-slate-400 font-mono shrink-0">Hours</span>
@@ -1295,7 +1341,7 @@ export const FeaturesPage: React.FC = () => {
                 value={grantReason}
                 onChange={(e) => setGrantReason(e.target.value)}
                 placeholder="Operational justification for granting this override (e.g. Enabling E-Invoicing trial pending bank payment confirmation)..."
-                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none transition-colors"
+                className="w-full bg-slate-950 border border-slate-800 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none transition-colors"
                 required
               />
             </div>
@@ -1328,7 +1374,7 @@ export const FeaturesPage: React.FC = () => {
               className={`inline-flex items-center gap-2 px-5 py-2 min-h-[44px] rounded-lg text-xs font-semibold shadow-xs cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed transition-all ${
                 isEmergencyBypassSelected
                   ? 'bg-amber-400 hover:bg-amber-300 text-slate-950'
-                  : 'bg-cyan-400 hover:bg-cyan-300 text-slate-950'
+                  : 'bg-blue-600 hover:bg-blue-500 text-white'
               }`}
             >
               {grantMutation.isPending ? (
@@ -1366,7 +1412,7 @@ export const FeaturesPage: React.FC = () => {
             <div className="p-3 bg-slate-950/80 rounded-lg border border-slate-800 space-y-2 font-mono text-[11px]">
               <div className="flex items-center justify-between text-slate-400">
                 <span>Tenant ID:</span>
-                <span className="text-cyan-400">{selectedReason.tenantId}</span>
+                <span className="text-blue-400">{selectedReason.tenantId}</span>
               </div>
               <div className="flex items-center justify-between text-slate-400">
                 <span>Granted By:</span>

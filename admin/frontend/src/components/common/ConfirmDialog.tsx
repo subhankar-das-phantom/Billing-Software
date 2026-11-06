@@ -145,7 +145,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             disabled={isLoading}
             rows={3}
             placeholder={`Provide a clear explanation for the platform audit log (min ${minReasonLength} characters)...`}
-            className="w-full min-h-[85px] px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition-all font-sans"
+            className="w-full min-h-[85px] px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 transition-all font-sans"
           />
           <div className="flex justify-between text-[11px] text-slate-500">
             <span>Minimum {minReasonLength} characters required</span>

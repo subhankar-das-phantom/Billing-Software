@@ -175,7 +175,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             type="button"
             onClick={isDesktop ? onToggleCollapse : undefined}
-            className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-bold text-sm shadow-xs shrink-0 cursor-pointer hover:border-cyan-400/60 transition-colors"
+            className="w-8 h-8 rounded-lg bg-blue-600/10 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold text-sm shadow-xs shrink-0 cursor-pointer hover:border-blue-400/60 transition-colors"
             title="Bharat Enterprise Platform Control Plane"
             aria-label="Toggle navigation rail"
           >
@@ -255,7 +255,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     : 'justify-between px-3 py-2.5'
                 } ${
                   isActive
-                    ? 'text-cyan-400 font-semibold'
+                    ? 'text-blue-400 font-semibold'
                     : 'text-slate-300 hover:text-slate-100 hover:bg-slate-800/60'
                 }`}
               >
@@ -263,14 +263,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {isActive && isDesktop && (
                   <motion.div
                     layoutId="sidebarActiveIndicator"
-                    className="absolute inset-0 rounded-lg bg-cyan-950/60 border border-cyan-500/40 shadow-xs"
+                    className="absolute inset-0 rounded-lg bg-blue-600/15 border border-blue-500/30 shadow-xs"
                     transition={{ type: 'spring', stiffness: 400, damping: 32 }}
                   />
                 )}
 
                 {/* Mobile Active Background (Instant, non-layoutId to prevent sheet jump) */}
                 {isActive && !isDesktop && (
-                  <div className="absolute inset-0 rounded-lg bg-cyan-950/60 border border-cyan-500/40 shadow-xs" />
+                  <div className="absolute inset-0 rounded-lg bg-blue-600/15 border border-blue-500/30 shadow-xs" />
                 )}
 
                 {/* Left region: Icon + Label */}
@@ -282,7 +282,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <Icon
                     className={`w-4 h-4 shrink-0 transition-colors pointer-events-none ${
                       isActive
-                        ? 'text-cyan-400'
+                        ? 'text-blue-400'
                         : 'text-slate-400 group-hover:text-slate-200'
                     }`}
                   />
@@ -293,7 +293,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                 {/* Active Chevron Indicator (Expanded state only) */}
                 {isActive && (!isCollapsed || !isDesktop) && (
-                  <ChevronRight className="relative z-10 w-3.5 h-3.5 text-cyan-400/80 shrink-0 pointer-events-none" />
+                  <ChevronRight className="relative z-10 w-3.5 h-3.5 text-blue-400/80 shrink-0 pointer-events-none" />
                 )}
               </NavLink>
 
@@ -309,7 +309,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     )}
                   </div>
                   {item.category && (
-                    <div className="text-[10px] text-cyan-400 font-mono mt-0.5">
+                    <div className="text-[10px] text-blue-400 font-mono mt-0.5">
                       {item.category}
                     </div>
                   )}
@@ -325,7 +325,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {isCollapsed && isDesktop ? (
           <div className="flex flex-col items-center gap-2">
             <div
-              className="w-8 h-8 rounded-full bg-cyan-950/80 border border-cyan-500/40 flex items-center justify-center text-cyan-300 font-bold text-xs uppercase cursor-pointer"
+              className="w-8 h-8 rounded-full bg-blue-950/80 border border-blue-500/40 flex items-center justify-center text-blue-300 font-bold text-xs uppercase cursor-pointer"
               title={`${user?.fullName || 'Operator'} (${user?.role || 'Control Plane'})`}
             >
               {user?.fullName?.charAt(0) || 'U'}
@@ -343,7 +343,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         ) : (
           <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-slate-900/80 border border-slate-800/80 min-h-[44px]">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-full bg-cyan-950/80 border border-cyan-500/40 flex items-center justify-center text-cyan-300 font-bold text-xs uppercase shrink-0">
+              <div className="w-8 h-8 rounded-full bg-blue-950/80 border border-blue-500/40 flex items-center justify-center text-blue-300 font-bold text-xs uppercase shrink-0">
                 {user?.fullName?.charAt(0) || 'U'}
               </div>
               <div className="min-w-0 flex flex-col select-none">

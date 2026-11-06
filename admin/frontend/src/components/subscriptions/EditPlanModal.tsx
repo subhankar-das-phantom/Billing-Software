@@ -271,9 +271,9 @@ export const EditPlanModal: React.FC<EditPlanModalProps> = ({
         type="button"
         onClick={() => handleSubmit()}
         disabled={!canSubmit}
-        className="min-h-[44px] w-full sm:w-auto px-5 py-2.5 rounded-lg text-xs font-semibold bg-cyan-500 hover:bg-cyan-400 active:bg-cyan-600 text-slate-950 shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+        className="min-h-[44px] w-full sm:w-auto px-5 py-2.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
       >
-        <Sparkles className="w-3.5 h-3.5 text-slate-950 shrink-0" />
+        <Sparkles className="w-3.5 h-3.5 text-white shrink-0" />
         <span>
           {isSubmitting
             ? isEditing
@@ -293,12 +293,12 @@ export const EditPlanModal: React.FC<EditPlanModalProps> = ({
       onClose={handleClose}
       title={
         <div className="flex items-center gap-2 flex-wrap min-w-0">
-          <Layers className="w-4 h-4 text-cyan-400 shrink-0" />
+          <Layers className="w-4 h-4 text-blue-400 shrink-0" />
           <span className="font-bold text-slate-100 truncate text-sm sm:text-base">
             {isEditing ? `Edit Plan Tier: ${plan?.name || code}` : 'Create New SaaS Plan'}
           </span>
           {isEditing && (
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-slate-800 text-cyan-300 border border-slate-700">
+            <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-blue-950/70 text-blue-300 border border-blue-800/70">
               {code}
             </span>
           )}
@@ -322,7 +322,7 @@ export const EditPlanModal: React.FC<EditPlanModalProps> = ({
               onChange={(e) => handleNameChange(e.target.value)}
               disabled={isSubmitting}
               placeholder="e.g. Business Pro"
-              className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition-all font-sans"
+              className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-sans"
             />
           </div>
 
@@ -337,7 +337,7 @@ export const EditPlanModal: React.FC<EditPlanModalProps> = ({
               onChange={(e) => setCode(e.target.value.toLowerCase().trim())}
               disabled={isSubmitting || isEditing}
               placeholder="e.g. business-pro"
-              className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono text-cyan-300 placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono text-blue-300 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             />
           </div>
 
@@ -375,10 +375,10 @@ export const EditPlanModal: React.FC<EditPlanModalProps> = ({
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <label className="block text-xs font-medium text-slate-300 flex items-center gap-1.5">
-                <DollarSign className="w-3.5 h-3.5 text-cyan-400" />
+                <DollarSign className="w-3.5 h-3.5 text-blue-400" />
                 <span>Base Monthly Price (₹)</span> <span className="text-rose-400">*</span>
               </label>
-              <div className="text-[11px] font-mono text-cyan-400 flex items-center gap-1">
+              <div className="text-[11px] font-mono text-blue-400 flex items-center gap-1">
                 <span>Preview:</span>
                 <CurrencyDisplay amount={numericPrice} size="sm" />
               </div>
@@ -391,7 +391,7 @@ export const EditPlanModal: React.FC<EditPlanModalProps> = ({
               onChange={(e) => setBaseMonthlyPrice(e.target.value)}
               disabled={isSubmitting}
               placeholder="1499.00"
-              className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition-all"
+              className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
             />
           </div>
 
@@ -408,7 +408,7 @@ export const EditPlanModal: React.FC<EditPlanModalProps> = ({
               onChange={(e) => setDisplayOrder(e.target.value)}
               disabled={isSubmitting}
               placeholder="1"
-              className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition-all"
+              className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
             />
           </div>
         </div>
@@ -428,7 +428,7 @@ export const EditPlanModal: React.FC<EditPlanModalProps> = ({
             disabled={isSubmitting}
             rows={2}
             placeholder="Comprehensive commercial suite for growing wholesale and distribution businesses..."
-            className="w-full px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition-all font-sans min-h-[64px]"
+            className="w-full px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-sans min-h-[64px]"
           />
         </div>
 
@@ -437,7 +437,7 @@ export const EditPlanModal: React.FC<EditPlanModalProps> = ({
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
               <h4 className="text-xs font-semibold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                <Sparkles className="w-3.5 h-3.5 text-blue-400" />
                 <span>Feature Entitlement Matrix</span>
               </h4>
               <p className="text-[11px] text-slate-400">
@@ -446,13 +446,13 @@ export const EditPlanModal: React.FC<EditPlanModalProps> = ({
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              <span className="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-cyan-300 border border-slate-700">
+              <span className="text-xs font-mono px-2 py-0.5 rounded bg-blue-950/70 text-blue-300 border border-blue-800/70">
                 {selectedCount} / {totalCount} active
               </span>
               <button
                 type="button"
                 onClick={selectAllFeatures}
-                className="px-2.5 py-1 text-[11px] font-medium text-cyan-400 hover:text-cyan-300 bg-cyan-950/60 hover:bg-cyan-900/60 border border-cyan-800/70 rounded-md transition-colors cursor-pointer"
+                className="px-2.5 py-1 text-[11px] font-medium text-blue-400 hover:text-blue-300 bg-blue-950/60 hover:bg-blue-900/60 border border-blue-800/70 rounded-md transition-colors cursor-pointer"
               >
                 Select All
               </button>
@@ -485,7 +485,7 @@ export const EditPlanModal: React.FC<EditPlanModalProps> = ({
                     <button
                       type="button"
                       onClick={() => toggleGroup(group)}
-                      className="text-[11px] font-mono text-cyan-400 hover:text-cyan-300 transition-colors cursor-pointer shrink-0 ml-2"
+                      className="text-[11px] font-mono text-blue-400 hover:text-blue-300 transition-colors cursor-pointer shrink-0 ml-2"
                     >
                       {allGroupSelected ? 'Deselect Group' : 'Select Group'}
                     </button>
@@ -502,14 +502,14 @@ export const EditPlanModal: React.FC<EditPlanModalProps> = ({
                           disabled={isSubmitting}
                           className={`p-2.5 rounded-lg border text-left flex items-start gap-2.5 transition-all cursor-pointer min-h-[44px] ${
                             isChecked
-                              ? 'bg-cyan-950/40 border-cyan-500/60 text-slate-100 shadow-xs'
+                              ? 'bg-blue-950/40 border-blue-500/60 text-slate-100 shadow-xs'
                               : 'bg-slate-900/60 border-slate-800/70 text-slate-400 hover:border-slate-700 hover:text-slate-300'
                           }`}
                         >
                           <div
                             className={`w-4 h-4 rounded mt-0.5 flex items-center justify-center shrink-0 transition-colors ${
                               isChecked
-                                ? 'bg-cyan-500 text-slate-950'
+                                ? 'bg-blue-600 text-white'
                                 : 'border border-slate-600 bg-slate-950'
                             }`}
                           >
@@ -550,7 +550,7 @@ export const EditPlanModal: React.FC<EditPlanModalProps> = ({
             disabled={isSubmitting}
             rows={2}
             placeholder={`Provide a clear operational explanation for the platform cryptographic audit trail (min ${minReasonLength} chars)...`}
-            className="w-full px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition-all font-sans min-h-[72px]"
+            className="w-full px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-sans min-h-[72px]"
           />
           <div className="flex justify-between text-[11px] text-slate-500">
             <span>Minimum {minReasonLength} characters required for compliance</span>

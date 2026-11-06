@@ -163,10 +163,10 @@ export const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({
       <button
         type="button"
         onClick={() => setIsEditSubModalOpen(true)}
-        className="min-h-[44px] px-3.5 py-2 rounded-lg text-xs font-medium bg-cyan-950/60 hover:bg-cyan-900/60 border border-cyan-800/60 text-cyan-300 flex items-center justify-center gap-1.5 transition-colors cursor-pointer w-full sm:w-auto shadow-xs active:scale-95"
+        className="min-h-[44px] px-3.5 py-2 rounded-lg text-xs font-medium bg-blue-950/60 hover:bg-blue-900/60 border border-blue-800/60 text-blue-300 flex items-center justify-center gap-1.5 transition-colors cursor-pointer w-full sm:w-auto shadow-xs active:scale-95"
         title="Edit subscription parameters and plan tier"
       >
-        <Sliders className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+        <Sliders className="w-3.5 h-3.5 text-blue-400 shrink-0" />
         <span className="truncate">Edit Subscription</span>
       </button>
 
@@ -222,7 +222,7 @@ export const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({
             />
           )}
           {overview?.subscription && (
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-slate-800 text-cyan-300 border border-slate-700">
+            <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-blue-950/70 text-blue-300 border border-blue-800/70">
               {overview.subscription.planName}
             </span>
           )}
@@ -266,7 +266,7 @@ export const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({
             className="p-1.5 px-2.5 rounded-lg border border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors cursor-pointer flex items-center gap-1.5 text-xs shrink-0"
             title="Refresh tenant data"
           >
-            <RotateCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-cyan-400' : ''}`} />
+            <RotateCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-blue-400' : ''}`} />
             <span className="hidden sm:inline">Refresh</span>
           </button>
         </div>
@@ -314,7 +314,7 @@ export const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({
             {/* 1. Live Entity & Financial Stats Grid (Compact p-2 sm:p-3, font-mono) */}
             <div>
               <h3 className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <Layers className="w-3.5 h-3.5 text-cyan-400" />
+                <Layers className="w-3.5 h-3.5 text-blue-400" />
                 <span>Tenant Activity & Volume</span>
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-2.5">
@@ -414,7 +414,7 @@ export const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({
             <div className="p-2.5 sm:p-3.5 bg-slate-950/90 border border-slate-800/90 rounded-lg space-y-2.5">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 text-cyan-400" />
+                  <CreditCard className="w-4 h-4 text-blue-400" />
                   <span className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
                     SaaS Subscription State
                   </span>
@@ -423,10 +423,10 @@ export const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsEditSubModalOpen(true)}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-300 border border-cyan-800/60 font-mono text-[11px] transition-all cursor-pointer shadow-xs active:scale-95"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-blue-950/60 hover:bg-blue-900/60 text-blue-300 border border-blue-800/60 font-mono text-[11px] transition-all cursor-pointer shadow-xs active:scale-95"
                     title="Edit subscription parameters"
                   >
-                    <Sliders className="w-3 h-3 text-cyan-400" />
+                    <Sliders className="w-3 h-3 text-blue-400" />
                     <span>Edit</span>
                   </button>
                   {overview.subscription ? (
@@ -444,7 +444,7 @@ export const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({
                     <span className="font-semibold text-slate-100 block truncate">
                       {overview.subscription.planName}
                     </span>
-                    <span className="text-[10px] text-cyan-400 block font-mono truncate">
+                    <span className="text-[10px] text-blue-400 block font-mono truncate">
                       {overview.subscription.planCode}
                     </span>
                   </div>
@@ -544,7 +544,7 @@ export const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({
             {/* 4. Entitlements & Write Status */}
             <div className="p-2.5 sm:p-3 bg-slate-950/70 border border-slate-800/80 rounded-lg flex items-center justify-between text-xs flex-wrap gap-2">
               <div className="flex items-center gap-2">
-                <Shield className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                <Shield className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                 <span className="text-slate-400">Platform Write Access:</span>
                 <span
                   className={`font-semibold font-mono text-xs ${

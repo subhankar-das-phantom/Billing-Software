@@ -125,3 +125,143 @@ export async function getActiveOffers(
     next(error);
   }
 }
+
+/**
+ * POST /api/saas/offers/validate
+ * POST /api/saas/offers/validate-promo
+ * Validate a promotional voucher / coupon code for the requesting tenant.
+ */
+export async function validatePromoCode(
+  req: SaaSRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        valid: false,
+        message: 'Authentication required to validate promotional voucher',
+      });
+      return;
+    }
+
+    const tenantId = getTenantId(req);
+    if (!tenantId) {
+      res.status(401).json({
+        success: false,
+        valid: false,
+        message: 'Authentication required to validate promotional voucher',
+      });
+      return;
+    }
+
+    const { promoCode, planCode: requestedPlanCode, durationMonths } = req.body || {};
+
+    if (!promoCode || typeof promoCode !== 'string' || !promoCode.trim()) {
+      res.status(400).json({
+        success: false,
+        valid: false,
+        message: 'Please enter a promotional voucher code.',
+      });
+      return;
+    }
+
+    const cleanedCode = promoCode.trim();
+    const tenantObjId = new Types.ObjectId(tenantId.toString());
+
+    // 1. Resolve tenant's active subscription (plan code and status)
+    const subscription = await getActiveSubscription(tenantId.toString());
+    const currentPlanCode =
+      subscription?.currentPricingSnapshot?.planCode ||
+      (subscription?.planId as any)?.code ||
+      null;
+    const status = subscription?.status || null;
+
+    const now = new Date();
+
+    // 2. Build audience match condition
+    const audienceConditions: Record<string, unknown>[] = [
+      { targetAudience: 'ALL_TENANTS' },
+      { targetAudience: 'SPECIFIC_TENANTS', targetTenantIds: tenantObjId },
+    ];
+
+    const planCodesToCheck = Array.from(
+      new Set(
+        [requestedPlanCode, currentPlanCode].filter(
+          (c): c is string => typeof c === 'string' && Boolean(c),
+        ),
+      ),
+    );
+
+    if (planCodesToCheck.length > 0) {
+      audienceConditions.push({
+        targetAudience: 'BY_PLAN',
+        targetPlanCodes: { $in: planCodesToCheck },
+      });
+    }
+
+    if (status) {
+      audienceConditions.push({
+        targetAudience: 'BY_STATUS',
+        targetStatuses: status,
+      });
+    }
+
+    // 3. Resolve active campaign with matching promoCode
+    const escapedCode = cleanedCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const campaign = await PlatformOfferCampaign.findOne({
+      isActive: true,
+      startsAt: { $lte: now },
+      expiresAt: { $gte: now },
+      promoCode: new RegExp('^' + escapedCode + '$', 'i'),
+      $or: audienceConditions,
+    }).lean();
+
+    if (!campaign) {
+      res.status(400).json({
+        success: false,
+        valid: false,
+        message: 'Invalid or expired promotional voucher code.',
+      });
+      return;
+    }
+
+    // 4. Calculate discount details based on discountType & discountValue
+    let discountDescription = '';
+    switch (campaign.discountType) {
+      case 'PERCENTAGE':
+        discountDescription = `${campaign.discountValue}% OFF`;
+        break;
+      case 'FLAT':
+        discountDescription = `₹${campaign.discountValue} FLAT OFF`;
+        break;
+      case 'BONUS_DAYS':
+        discountDescription = `+${campaign.discountValue} Extra Days Free`;
+        break;
+      case 'NONE':
+      default:
+        discountDescription = 'Promotional Offer';
+        break;
+    }
+
+    res.status(200).json({
+      success: true,
+      valid: true,
+      campaign: {
+        _id: campaign._id,
+        title: campaign.title,
+        promoCode: campaign.promoCode || cleanedCode.toUpperCase(),
+        discountType: campaign.discountType,
+        discountValue: campaign.discountValue,
+        discountDescription,
+        message: campaign.message,
+        bannerStyle: campaign.bannerStyle,
+        expiresAt: campaign.expiresAt,
+      },
+      message: 'Promo code applied successfully!',
+    });
+  } catch (error) {
+    next(error);
+  }
+}

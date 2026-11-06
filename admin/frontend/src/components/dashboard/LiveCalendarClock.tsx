@@ -61,8 +61,8 @@ export const LiveCalendarClock: React.FC<LiveCalendarClockProps> = ({
         className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-950/70 border border-slate-800 text-xs font-mono text-slate-300 shadow-xs ${className}`}
         title={`Indian Standard Time (IST): ${date}`}
       >
-        {showIcon && <Clock className="w-3.5 h-3.5 text-cyan-400 shrink-0" />}
-        <span className="text-cyan-400 font-semibold tracking-tight">{time}</span>
+        {showIcon && <Clock className="w-3.5 h-3.5 text-blue-400 shrink-0" />}
+        <span className="text-blue-400 font-semibold tracking-tight">{time}</span>
         {showZone && <span className="text-[10px] text-slate-500 font-medium">IST</span>}
         {showDate && <span className="text-[11px] text-slate-400 ml-1">({date})</span>}
       </div>
@@ -72,7 +72,7 @@ export const LiveCalendarClock: React.FC<LiveCalendarClockProps> = ({
   if (variant === 'minimal') {
     return (
       <span className={`font-mono text-xs ${className}`}>
-        <span className="text-cyan-400 font-semibold">{time}</span>
+        <span className="text-blue-400 font-semibold">{time}</span>
         {showZone && <span className="text-slate-500 text-[10px] ml-1">IST</span>}
       </span>
     );
@@ -84,7 +84,7 @@ export const LiveCalendarClock: React.FC<LiveCalendarClockProps> = ({
       title={`Indian Standard Time (IST): ${date}`}
     >
       {showIcon && <Clock className="w-3.5 h-3.5 text-slate-500 shrink-0" />}
-      <span className="text-cyan-400 font-semibold">{time}</span>
+      <span className="text-blue-400 font-semibold">{time}</span>
       {showZone && <span className="text-slate-500 text-[10px]">IST</span>}
       {showDate && <span className="text-slate-400 text-[11px]">({date})</span>}
     </div>

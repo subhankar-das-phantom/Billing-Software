@@ -4,7 +4,7 @@
  */
 
 import express from 'express';
-import { getActiveOffers } from '../controllers/offerController';
+import { getActiveOffers, validatePromoCode } from '../controllers/offerController';
 
 const { protect } = require('../../middleware/auth');
 
@@ -15,5 +15,7 @@ router.use(protect);
 
 router.get('/active', getActiveOffers);
 router.get('/', getActiveOffers);
+router.post('/validate', validatePromoCode);
+router.post('/validate-promo', validatePromoCode);
 
 export default router;

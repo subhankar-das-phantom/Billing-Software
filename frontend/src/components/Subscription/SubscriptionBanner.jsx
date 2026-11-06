@@ -83,6 +83,7 @@ export default function SubscriptionBanner() {
     if (!code) return;
     try {
       navigator.clipboard.writeText(code);
+      sessionStorage.setItem('copied_promo_code', code);
       setCopiedCode(code);
       setTimeout(() => {
         setCopiedCode(null);
@@ -337,7 +338,12 @@ export default function SubscriptionBanner() {
                 <button
                   type="button"
                   onClick={() => {
-                    navigate(activePromo.ctaUrl || '/subscription');
+                    navigate(
+                      activePromo.ctaUrl ||
+                        (activePromo.promoCode
+                          ? `/subscription?promo=${encodeURIComponent(activePromo.promoCode)}`
+                          : '/subscription'),
+                    );
                   }}
                   className="w-full sm:w-auto px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold bg-cyan-600 hover:bg-cyan-500 text-slate-950 transition-all active:scale-95 flex items-center justify-center gap-1.5 shadow-sm cursor-pointer min-h-[44px] sm:min-h-[36px]"
                 >

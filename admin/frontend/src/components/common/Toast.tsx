@@ -60,7 +60,7 @@ export const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
       bg: 'bg-slate-900/95',
       border: 'border-slate-700/80',
       text: 'text-slate-200',
-      iconText: 'text-cyan-400',
+      iconText: 'text-blue-400',
       icon: Info,
     },
   }[toast.type];

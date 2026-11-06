@@ -276,9 +276,9 @@ export const EditSubscriptionModal: React.FC<EditSubscriptionModalProps> = ({
         type="button"
         onClick={() => handleSubmit()}
         disabled={!canSubmit}
-        className="min-h-[44px] w-full sm:w-auto px-5 py-2.5 rounded-lg text-xs font-semibold bg-cyan-500 hover:bg-cyan-400 active:bg-cyan-600 text-slate-950 shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+        className="min-h-[44px] w-full sm:w-auto px-5 py-2.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
       >
-        <Sparkles className="w-3.5 h-3.5 text-slate-950 shrink-0" />
+        <Sparkles className="w-3.5 h-3.5 text-white shrink-0" />
         <span>{isSubmitting ? 'Saving Changes...' : 'Save Subscription Changes'}</span>
       </button>
     </div>
@@ -290,7 +290,7 @@ export const EditSubscriptionModal: React.FC<EditSubscriptionModalProps> = ({
       onClose={handleClose}
       title={
         <div className="flex items-center gap-2 flex-wrap min-w-0">
-          <CreditCard className="w-4 h-4 text-cyan-400 shrink-0" />
+          <CreditCard className="w-4 h-4 text-blue-400 shrink-0" />
           <span className="font-bold text-slate-100 truncate text-sm sm:text-base">
             Modify Tenant Subscription
           </span>
@@ -354,17 +354,17 @@ export const EditSubscriptionModal: React.FC<EditSubscriptionModalProps> = ({
           {/* Plan Tier Selection */}
           <div className="space-y-1">
             <label className="block text-xs font-medium text-slate-300 flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5 text-cyan-400" />
+              <Layers className="w-3.5 h-3.5 text-blue-400" />
               <span>Assigned Plan Tier</span> <span className="text-rose-400">*</span>
             </label>
             <select
               value={selectedPlanId}
               onChange={(e) => setSelectedPlanId(e.target.value)}
               disabled={isSubmitting}
-              className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 focus:outline-none focus:border-cyan-500 transition-all font-sans cursor-pointer"
+              className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-sans cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {availablePlans.map((p) => (
-                <option key={p._id} value={p._id} className="bg-slate-900 text-slate-100">
+                <option key={p._id} value={p._id} className="bg-slate-900 text-slate-100 py-1">
                   {p.name} ({p.code.toUpperCase()}) — ₹{p.baseMonthlyPrice}/mo
                 </option>
               ))}
@@ -381,10 +381,10 @@ export const EditSubscriptionModal: React.FC<EditSubscriptionModalProps> = ({
               value={status}
               onChange={(e) => setStatus(e.target.value as any)}
               disabled={isSubmitting}
-              className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 focus:outline-none focus:border-cyan-500 transition-all font-sans cursor-pointer"
+              className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-sans cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {SUBSCRIPTION_STATUSES.map((s) => (
-                <option key={s.value} value={s.value} className="bg-slate-900 text-slate-100">
+                <option key={s.value} value={s.value} className="bg-slate-900 text-slate-100 py-1">
                   {s.label.toUpperCase()} — {s.desc}
                 </option>
               ))}
@@ -396,7 +396,7 @@ export const EditSubscriptionModal: React.FC<EditSubscriptionModalProps> = ({
         <div className="space-y-2 p-3 bg-slate-950/60 border border-slate-800 rounded-xl">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <label className="block text-xs font-medium text-slate-300 flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 text-cyan-400" />
+              <Calendar className="w-3.5 h-3.5 text-blue-400" />
               <span>Expiration Date (`expiresAt`)</span> <span className="text-rose-400">*</span>
             </label>
 
@@ -406,28 +406,28 @@ export const EditSubscriptionModal: React.FC<EditSubscriptionModalProps> = ({
               <button
                 type="button"
                 onClick={() => extendExpiryByDays(15)}
-                className="px-2 py-1 text-[11px] rounded bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-slate-700 transition-colors cursor-pointer"
+                className="px-2 py-1 text-[11px] rounded bg-slate-900 hover:bg-slate-800 text-blue-300 border border-slate-700 transition-colors cursor-pointer"
               >
                 +15 Days
               </button>
               <button
                 type="button"
                 onClick={() => extendExpiryByMonths(1)}
-                className="px-2 py-1 text-[11px] rounded bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-slate-700 transition-colors cursor-pointer"
+                className="px-2 py-1 text-[11px] rounded bg-slate-900 hover:bg-slate-800 text-blue-300 border border-slate-700 transition-colors cursor-pointer"
               >
                 +1 Month
               </button>
               <button
                 type="button"
                 onClick={() => extendExpiryByMonths(3)}
-                className="px-2 py-1 text-[11px] rounded bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-slate-700 transition-colors cursor-pointer"
+                className="px-2 py-1 text-[11px] rounded bg-slate-900 hover:bg-slate-800 text-blue-300 border border-slate-700 transition-colors cursor-pointer"
               >
                 +3 Months
               </button>
               <button
                 type="button"
                 onClick={() => extendExpiryByMonths(12)}
-                className="px-2 py-1 text-[11px] rounded bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-slate-700 transition-colors cursor-pointer"
+                className="px-2 py-1 text-[11px] rounded bg-slate-900 hover:bg-slate-800 text-blue-300 border border-slate-700 transition-colors cursor-pointer"
               >
                 +1 Year
               </button>
@@ -439,7 +439,7 @@ export const EditSubscriptionModal: React.FC<EditSubscriptionModalProps> = ({
             value={expiresAt}
             onChange={(e) => setExpiresAt(e.target.value)}
             disabled={isSubmitting}
-            className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 focus:outline-none focus:border-cyan-500 transition-all font-mono"
+            className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-mono"
           />
         </div>
 
@@ -474,7 +474,7 @@ export const EditSubscriptionModal: React.FC<EditSubscriptionModalProps> = ({
                 value={graceDays}
                 onChange={(e) => setGraceDays(parseInt(e.target.value, 10) || 1)}
                 disabled={isSubmitting}
-                className="w-16 min-h-[36px] px-2 py-1 bg-slate-900 border border-slate-700 rounded text-xs font-mono text-center text-slate-100"
+                className="w-16 min-h-[36px] px-2 py-1 bg-slate-900 border border-slate-700 rounded text-xs font-mono text-center text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
               />
             </div>
             <p className="text-[10px] text-slate-500">
@@ -515,10 +515,10 @@ export const EditSubscriptionModal: React.FC<EditSubscriptionModalProps> = ({
         <div className="space-y-1 p-3 bg-slate-950/60 border border-slate-800 rounded-xl">
           <div className="flex items-center justify-between flex-wrap gap-1">
             <label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
-              <DollarSign className="w-3.5 h-3.5 text-cyan-400" />
+              <DollarSign className="w-3.5 h-3.5 text-blue-400" />
               <span>Custom Monthly Rate Override (₹)</span>
             </label>
-            <div className="text-[11px] font-mono text-cyan-400 flex items-center gap-1">
+            <div className="text-[11px] font-mono text-blue-400 flex items-center gap-1">
               <span>Effective:</span>
               <CurrencyDisplay amount={effectiveMonthlyPrice} size="sm" />
               <span className="text-slate-500">/ mo</span>
@@ -533,7 +533,7 @@ export const EditSubscriptionModal: React.FC<EditSubscriptionModalProps> = ({
             onChange={(e) => setCustomPricing(e.target.value)}
             disabled={isSubmitting}
             placeholder={`Leave blank to use catalog plan rate (₹${selectedPlan?.baseMonthlyPrice || 0})`}
-            className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition-all"
+            className="w-full min-h-[44px] px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
           />
           <p className="text-[10px] text-slate-500">
             Special negotiated enterprise fee. If empty, the base price of the chosen plan is applied.
@@ -551,7 +551,7 @@ export const EditSubscriptionModal: React.FC<EditSubscriptionModalProps> = ({
             disabled={isSubmitting}
             rows={2}
             placeholder={`Provide a clear operational explanation for this subscription modification (min ${minReasonLength} chars)...`}
-            className="w-full px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition-all font-sans min-h-[72px]"
+            className="w-full px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-sans min-h-[72px]"
           />
           <div className="flex justify-between text-[11px] text-slate-500">
             <span>Minimum {minReasonLength} characters required for compliance</span>

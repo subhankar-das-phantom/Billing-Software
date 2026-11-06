@@ -26,7 +26,8 @@ export interface DashboardHeroProps {
   onRefresh: () => void;
   onOpenOnboardModal: () => void;
   onOpenDiagnosticModal: () => void;
-  canOnboardTenant?: boolean;
+  canOnboardAdmin?: boolean;
+  canOnboardTenant?: boolean; // legacy alias
   canStartDiagnostic?: boolean;
   clusterStatus?: 'HEALTHY' | 'DEGRADED';
   className?: string;
@@ -91,6 +92,7 @@ export const DashboardHero: React.FC<DashboardHeroProps> = ({
   onRefresh,
   onOpenOnboardModal,
   onOpenDiagnosticModal,
+  canOnboardAdmin,
   canOnboardTenant = true,
   canStartDiagnostic = true,
   clusterStatus = 'HEALTHY',
@@ -108,10 +110,10 @@ export const DashboardHero: React.FC<DashboardHeroProps> = ({
         <div className="space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-xl sm:text-2xl font-bold text-slate-100 tracking-tight flex items-center gap-2">
-              <Layers className="w-5 h-5 text-cyan-400" />
+              <Layers className="w-5 h-5 text-blue-400" />
               Platform Command Center
             </h1>
-            <span className="px-2 py-0.5 text-[10px] font-mono font-semibold uppercase bg-slate-800 text-cyan-400 border border-slate-700/80 rounded-md">
+            <span className="px-2 py-0.5 text-[10px] font-mono font-semibold uppercase bg-slate-800 text-blue-400 border border-slate-700/80 rounded-md">
               SUPER ADMIN
             </span>
           </div>
@@ -122,7 +124,7 @@ export const DashboardHero: React.FC<DashboardHeroProps> = ({
               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-950/80 border border-slate-800 font-mono text-[11px] text-slate-300"
               title="Indian Financial Year & Current Active Quarter (IST)"
             >
-              <Calendar className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+              <Calendar className="w-3.5 h-3.5 text-blue-400 shrink-0" />
               <span className="font-semibold text-slate-200">{financialContext}</span>
             </div>
 
@@ -143,8 +145,8 @@ export const DashboardHero: React.FC<DashboardHeroProps> = ({
           >
             {isSyncing ? (
               <>
-                <RefreshCw className="w-3.5 h-3.5 text-cyan-400 animate-spin" />
-                <span className="text-cyan-300">Syncing...</span>
+                <RefreshCw className="w-3.5 h-3.5 text-blue-400 animate-spin" />
+                <span className="text-blue-300">Syncing...</span>
               </>
             ) : (
               <>
@@ -158,21 +160,26 @@ export const DashboardHero: React.FC<DashboardHeroProps> = ({
             )}
           </button>
 
-          {/* Primary Action 1: Onboard Tenant (Primary Blue) */}
-          <button
-            type="button"
-            onClick={onOpenOnboardModal}
-            disabled={!canOnboardTenant}
-            className={`inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold shadow-xs transition-all cursor-pointer min-h-[44px] sm:min-h-[38px] ${
-              canOnboardTenant
-                ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/30 border border-blue-500/70 active:scale-[0.98]'
-                : 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed opacity-60'
-            }`}
-            title={canOnboardTenant ? 'Onboard new tenant enterprise' : 'Requires USERS_MANAGE permission'}
-          >
-            <UserPlus className="w-4 h-4 shrink-0" />
-            <span>Onboard Tenant</span>
-          </button>
+          {/* Primary Action 1: Onboard Platform Admin / Operator (Primary Blue) */}
+          {(() => {
+            const hasAdminPerm = canOnboardAdmin ?? canOnboardTenant;
+            return (
+              <button
+                type="button"
+                onClick={onOpenOnboardModal}
+                disabled={!hasAdminPerm}
+                className={`inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold shadow-xs transition-all cursor-pointer min-h-[44px] sm:min-h-[38px] ${
+                  hasAdminPerm
+                    ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/30 border border-blue-500/70 active:scale-[0.98]'
+                    : 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed opacity-60'
+                }`}
+                title={hasAdminPerm ? 'Onboard new platform admin or operator' : 'Requires USERS_MANAGE permission'}
+              >
+                <UserPlus className="w-4 h-4 shrink-0" />
+                <span>Onboard Admin</span>
+              </button>
+            );
+          })()}
 
           {/* Primary Action 2: Start Diagnostic (Amber) */}
           <button
@@ -210,7 +217,7 @@ export const DashboardHero: React.FC<DashboardHeroProps> = ({
                     onClick={() => onTimeHorizonChange(horizon)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-all cursor-pointer shrink-0 min-h-[38px] sm:min-h-[32px] flex items-center justify-center ${
                       isActive
-                        ? 'bg-cyan-950/80 border border-cyan-500/70 text-cyan-300 font-semibold shadow-xs'
+                        ? 'bg-blue-950/80 border border-blue-500/70 text-blue-300 font-semibold shadow-xs'
                         : 'bg-slate-950/60 hover:bg-slate-800/80 border border-slate-800 text-slate-400 hover:text-slate-200'
                     }`}
                   >

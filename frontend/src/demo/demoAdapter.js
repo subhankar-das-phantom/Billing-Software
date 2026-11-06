@@ -81,6 +81,71 @@ export const demoMockAdapter = async (config) => {
         config
       };
     }
+    if (path === '/saas/offers/validate' || path === '/saas/offers/validate-promo') {
+      let body = {};
+      try {
+        body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
+      } catch {
+        body = {};
+      }
+      const code = (body.promoCode || '').trim().toUpperCase();
+      if (code === 'DIWALI50') {
+        return {
+          data: {
+            success: true,
+            valid: true,
+            campaign: {
+              title: 'Festive Launch Discount — 50% OFF',
+              promoCode: 'DIWALI50',
+              discountType: 'PERCENTAGE',
+              discountValue: 50,
+              discountDescription: '50% OFF',
+              message: 'Apply voucher code DIWALI50 during upgrade or renewal to unlock 50% discount on all plans.',
+            },
+            message: 'Promo code applied successfully!',
+          },
+          status: 200,
+          statusText: 'OK',
+          headers: { 'content-type': 'application/json' },
+          config,
+        };
+      } else if (code === 'SAVE100') {
+        return {
+          data: {
+            success: true,
+            valid: true,
+            campaign: {
+              title: 'Special Flat Savings',
+              promoCode: 'SAVE100',
+              discountType: 'FLAT',
+              discountValue: 100,
+              discountDescription: '₹100 FLAT OFF',
+              message: 'Get ₹100 flat discount with voucher code SAVE100.',
+            },
+            message: 'Promo code applied successfully!',
+          },
+          status: 200,
+          statusText: 'OK',
+          headers: { 'content-type': 'application/json' },
+          config,
+        };
+      } else {
+        const err = new Error('Invalid or expired promotional voucher code.');
+        err.response = {
+          data: {
+            success: false,
+            valid: false,
+            message: 'Invalid or expired promotional voucher code.',
+          },
+          status: 400,
+          statusText: 'Bad Request',
+          headers: { 'content-type': 'application/json' },
+          config,
+        };
+        err.isAxiosError = true;
+        return Promise.reject(err);
+      }
+    }
 
     const message =
       'Demo Mode is read-only. Sign up for a free 14-day trial to perform live operations!';
@@ -131,6 +196,38 @@ export const demoMockAdapter = async (config) => {
       plans: DEMO_PLANS,
       trialDays: 14,
       minStartingPrice: 299,
+    };
+  } else if (path === '/saas/offers/active' || path === '/saas/offers') {
+    const demoOffers = [
+      {
+        _id: 'demo_offer_diwali50',
+        title: 'Festive Launch Discount — 50% OFF',
+        message: 'Apply voucher code DIWALI50 during upgrade or renewal to unlock 50% discount on all plans.',
+        type: 'PROMOTIONAL_OFFER',
+        promoCode: 'DIWALI50',
+        discountType: 'PERCENTAGE',
+        discountValue: 50,
+        bannerStyle: 'emerald',
+        priority: 'HIGH',
+        isDismissible: true,
+      },
+      {
+        _id: 'demo_offer_save100',
+        title: 'Special Flat Savings',
+        message: 'Get ₹100 flat discount with voucher code SAVE100.',
+        type: 'DISCOUNT_COUPON',
+        promoCode: 'SAVE100',
+        discountType: 'FLAT',
+        discountValue: 100,
+        bannerStyle: 'blue',
+        priority: 'NORMAL',
+        isDismissible: true,
+      },
+    ];
+    responseData = {
+      success: true,
+      offers: demoOffers,
+      data: demoOffers,
     };
   }
 

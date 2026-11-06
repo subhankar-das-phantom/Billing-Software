@@ -353,7 +353,7 @@ export const DashboardPage: React.FC = () => {
         onRefresh={handleRefreshAll}
         onOpenOnboardModal={() => setIsUserModalOpen(true)}
         onOpenDiagnosticModal={() => setIsSupportModalOpen(true)}
-        canOnboardTenant={canOnboardUsers}
+        canOnboardAdmin={canOnboardUsers}
         canStartDiagnostic={canLaunchSupport}
         clusterStatus={overviewData?.systemHealth?.status ?? 'HEALTHY'}
       />
@@ -378,7 +378,7 @@ export const DashboardPage: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div>
             <h2 className="text-sm font-semibold text-slate-100 tracking-tight flex items-center gap-2">
-              <Layers className="w-4 h-4 text-cyan-400" />
+              <Layers className="w-4 h-4 text-blue-400" />
               Tenant Subscription Lifecycle & Churn Prevention
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
@@ -388,7 +388,7 @@ export const DashboardPage: React.FC = () => {
 
           <Link
             to="/subscriptions"
-            className="text-xs font-mono text-cyan-400 hover:text-cyan-300 flex items-center gap-1 self-start sm:self-auto"
+            className="text-xs font-mono text-blue-400 hover:text-blue-300 flex items-center gap-1 self-start sm:self-auto"
           >
             Subscriptions Manager <ExternalLink className="w-3 h-3" />
           </Link>
@@ -546,7 +546,7 @@ export const DashboardPage: React.FC = () => {
                 <UserPlus className="w-4 h-4" />
               </div>
               <div className="min-w-0">
-                <div className="text-xs font-semibold text-slate-200 group-hover:text-cyan-400 transition-colors truncate">
+                <div className="text-xs font-semibold text-slate-200 group-hover:text-blue-400 transition-colors truncate">
                   Onboard Platform User
                 </div>
                 <div className="text-[11px] text-slate-400 mt-0.5 leading-snug">
@@ -571,7 +571,7 @@ export const DashboardPage: React.FC = () => {
                 <Headphones className="w-4 h-4" />
               </div>
               <div className="min-w-0">
-                <div className="text-xs font-semibold text-slate-200 group-hover:text-cyan-400 transition-colors truncate">
+                <div className="text-xs font-semibold text-slate-200 group-hover:text-blue-400 transition-colors truncate">
                   Launch Support Session
                 </div>
                 <div className="text-[11px] text-slate-400 mt-0.5 leading-snug">
@@ -589,7 +589,7 @@ export const DashboardPage: React.FC = () => {
                 <ShieldCheck className="w-4 h-4" />
               </div>
               <div className="min-w-0">
-                <div className="text-xs font-semibold text-slate-200 group-hover:text-cyan-400 transition-colors truncate">
+                <div className="text-xs font-semibold text-slate-200 group-hover:text-blue-400 transition-colors truncate">
                   Inspect Audit Trail
                 </div>
                 <div className="text-[11px] text-slate-400 mt-0.5 leading-snug">
@@ -607,7 +607,7 @@ export const DashboardPage: React.FC = () => {
                 <Sliders className="w-4 h-4" />
               </div>
               <div className="min-w-0">
-                <div className="text-xs font-semibold text-slate-200 group-hover:text-cyan-400 transition-colors truncate">
+                <div className="text-xs font-semibold text-slate-200 group-hover:text-blue-400 transition-colors truncate">
                   Feature Overrides
                 </div>
                 <div className="text-[11px] text-slate-400 mt-0.5 leading-snug">
@@ -624,7 +624,7 @@ export const DashboardPage: React.FC = () => {
               type="button"
               onClick={handleRefreshAll}
               disabled={isRefreshingAll}
-              className="text-cyan-400 hover:text-cyan-300 font-mono text-[11px] flex items-center gap-1 cursor-pointer disabled:opacity-50 min-h-[32px]"
+              className="text-blue-400 hover:text-blue-300 font-mono text-[11px] flex items-center gap-1 cursor-pointer disabled:opacity-50 min-h-[32px]"
             >
               <RefreshCw className={`w-3 h-3 ${isRefreshingAll ? 'animate-spin' : ''}`} />
               Re-scan DB
@@ -703,7 +703,7 @@ export const DashboardPage: React.FC = () => {
               <span className="text-slate-400 flex items-center gap-1.5">
                 <Info className="w-3.5 h-3.5 text-slate-500" /> Operator Active Context
               </span>
-              <span className="font-mono text-cyan-400 truncate max-w-[200px]" title={user?.email}>
+              <span className="font-mono text-blue-400 truncate max-w-[200px]" title={user?.email}>
                 {user?.email || 'operator@platform.internal'} ({user?.role || 'SUPER_ADMIN'})
               </span>
             </div>
@@ -718,7 +718,7 @@ export const DashboardPage: React.FC = () => {
         <div className="p-4 border-b border-slate-800/90 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div>
             <h2 className="text-sm font-semibold text-slate-100 tracking-tight flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-cyan-400" />
+              <ShieldCheck className="w-4 h-4 text-blue-400" />
               Recent Platform Activity & Cryptographic Log Stream
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
@@ -728,7 +728,7 @@ export const DashboardPage: React.FC = () => {
 
           <Link
             to="/audit"
-            className="text-xs font-mono text-cyan-400 hover:text-cyan-300 flex items-center gap-1 self-start sm:self-auto"
+            className="text-xs font-mono text-blue-400 hover:text-blue-300 flex items-center gap-1 self-start sm:self-auto"
           >
             Full Keyset Audit Explorer <ArrowRight className="w-3 h-3" />
           </Link>
@@ -798,7 +798,7 @@ export const DashboardPage: React.FC = () => {
                     >
                       {/* Seq / Hash snippet */}
                       <td className="py-2.5 px-4 font-mono text-[11px]">
-                        <span className="text-cyan-400 font-semibold">#{log.sequence}</span>
+                        <span className="text-blue-400 font-semibold">#{log.sequence}</span>
                         <span className="text-slate-500 ml-1.5" title={log.hash}>
                           {log.hash ? `${log.hash.substring(0, 7)}…` : 'GENESIS'}
                         </span>
@@ -812,7 +812,7 @@ export const DashboardPage: React.FC = () => {
                       {/* Operator Email */}
                       <td className="py-2.5 px-4 text-slate-300 font-medium truncate max-w-[180px]">
                         <div className="flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
                           <span className="truncate" title={log.actorEmail}>
                             {log.actorEmail || 'SYSTEM'}
                           </span>
@@ -850,7 +850,7 @@ export const DashboardPage: React.FC = () => {
                             e.stopPropagation();
                             setSelectedAuditLog(log);
                           }}
-                          className="p-1 rounded-md text-slate-400 hover:text-cyan-300 hover:bg-slate-800 transition-colors cursor-pointer"
+                          className="p-1 rounded-md text-slate-400 hover:text-blue-300 hover:bg-slate-800 transition-colors cursor-pointer"
                           title="Inspect full cryptographic record"
                         >
                           <Eye className="w-3.5 h-3.5" />
@@ -901,7 +901,7 @@ export const DashboardPage: React.FC = () => {
               onChange={(e) => setSupportTenantId(e.target.value)}
               placeholder="e.g. 670bc23fa819..."
               required
-              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono text-xs"
+              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 font-mono text-xs"
             />
             {tenantCandidates && tenantCandidates.length > 0 && (
               <div className="pt-1 flex flex-wrap gap-1 items-center">
@@ -931,7 +931,7 @@ export const DashboardPage: React.FC = () => {
               placeholder="e.g. Investigating GSTIN invoice validation failure reported in Ticket #49102"
               rows={3}
               required
-              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 text-xs resize-none"
+              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-xs resize-none"
             />
           </div>
 
@@ -946,7 +946,7 @@ export const DashboardPage: React.FC = () => {
                   onClick={() => setSupportDuration(hours)}
                   className={`py-1.5 rounded-lg border font-mono text-xs transition-colors cursor-pointer min-h-[38px] ${
                     supportDuration === hours
-                      ? 'bg-cyan-950/70 border-cyan-500/80 text-cyan-300 font-semibold'
+                      ? 'bg-blue-950/70 border-blue-500/80 text-blue-300 font-semibold'
                       : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
                   }`}
                 >
@@ -968,7 +968,7 @@ export const DashboardPage: React.FC = () => {
             <button
               type="submit"
               disabled={supportIsSubmitting}
-              className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-semibold transition-colors disabled:opacity-50 cursor-pointer min-h-[38px]"
+              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-colors disabled:opacity-50 cursor-pointer min-h-[38px]"
             >
               {supportIsSubmitting ? 'Starting Session...' : 'Authorize Support Session'}
             </button>
@@ -1015,7 +1015,7 @@ export const DashboardPage: React.FC = () => {
                 onChange={(e) => setUserFullName(e.target.value)}
                 placeholder="e.g. Ramesh Kumar"
                 required
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 text-xs"
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-xs"
               />
             </div>
 
@@ -1028,7 +1028,7 @@ export const DashboardPage: React.FC = () => {
                 onChange={(e) => setUserEmail(e.target.value)}
                 placeholder="ramesh@bharatenterprise.in"
                 required
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 text-xs"
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-xs"
               />
             </div>
           </div>
@@ -1043,7 +1043,7 @@ export const DashboardPage: React.FC = () => {
                 onChange={(e) => setUserPassword(e.target.value)}
                 placeholder="••••••••••••"
                 required
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono text-xs"
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 font-mono text-xs"
               />
             </div>
 
@@ -1053,7 +1053,7 @@ export const DashboardPage: React.FC = () => {
               <select
                 value={userRole}
                 onChange={(e) => setUserRole(e.target.value as PlatformRole)}
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-slate-100 focus:outline-none focus:border-cyan-500 text-xs cursor-pointer"
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-xs cursor-pointer"
               >
                 <option value={PlatformRole.PLATFORM_ADMIN}>Platform Admin (High Privilege)</option>
                 <option value={PlatformRole.SUPPORT_ADMIN}>Support Admin</option>
@@ -1073,7 +1073,7 @@ export const DashboardPage: React.FC = () => {
             <Link
               to="/users"
               onClick={() => setIsUserModalOpen(false)}
-              className="text-cyan-400 hover:text-cyan-300 font-mono text-xs flex items-center gap-1"
+              className="text-blue-400 hover:text-blue-300 font-mono text-xs flex items-center gap-1"
             >
               Full Users Directory →
             </Link>
@@ -1089,7 +1089,7 @@ export const DashboardPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={userIsSubmitting}
-                className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-semibold transition-colors disabled:opacity-50 cursor-pointer min-h-[38px]"
+                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-colors disabled:opacity-50 cursor-pointer min-h-[38px]"
               >
                 {userIsSubmitting ? 'Onboarding...' : 'Create Platform User'}
               </button>
@@ -1125,7 +1125,7 @@ export const DashboardPage: React.FC = () => {
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-slate-500">Actor Email:</span>
-                <span className="text-cyan-400">{selectedAuditLog.actorEmail || 'SYSTEM'}</span>
+                <span className="text-blue-400">{selectedAuditLog.actorEmail || 'SYSTEM'}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-slate-500">Actor Role:</span>
