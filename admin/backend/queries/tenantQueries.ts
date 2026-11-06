@@ -207,13 +207,13 @@ export async function listTenantsQuery(
     phone: doc.firmPhone || '',
     firmGSTIN: doc.firmGSTIN || '',
     isActive: doc.isActive !== false,
-    createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : new Date().toISOString(),
+    createdAt: doc.createdAt && !isNaN(new Date(doc.createdAt).getTime()) ? new Date(doc.createdAt).toISOString() : new Date().toISOString(),
     subscription: doc.subscriptionDoc
       ? {
-          status: doc.subscriptionDoc.status,
+          status: doc.subscriptionDoc.status || 'unknown',
           planName: doc.subscriptionDoc.currentPricingSnapshot?.planName || 'N/A',
           planCode: doc.subscriptionDoc.currentPricingSnapshot?.planCode || '',
-          expiresAt: doc.subscriptionDoc.expiresAt
+          expiresAt: doc.subscriptionDoc.expiresAt && !isNaN(new Date(doc.subscriptionDoc.expiresAt).getTime())
             ? new Date(doc.subscriptionDoc.expiresAt).toISOString()
             : '',
           isGrace: doc.subscriptionDoc.status === 'grace',

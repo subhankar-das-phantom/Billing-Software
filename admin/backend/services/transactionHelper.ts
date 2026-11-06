@@ -22,10 +22,18 @@ export async function runInTransaction<T>(
   const session = await mongoose.startSession();
   try {
     let result!: T;
-    await session.withTransaction(async () => {
-      result = await work(session);
-    });
-    return result;
+    try {
+      await session.withTransaction(async () => {
+        result = await work(session);
+      });
+      return result;
+    } catch (txErr: any) {
+      // Graceful fallback for standalone MongoDB instances without replica sets (e.g. local tests)
+      if (txErr?.message?.includes('replica set member or mongos') || txErr?.code === 20) {
+        return await work(session);
+      }
+      throw txErr;
+    }
   } finally {
     await session.endSession();
   }

@@ -7,6 +7,7 @@ import { Router } from 'express';
 import {
   startSession,
   endSession,
+  revokeSession,
   getActiveSession,
   listSessions,
 } from '../controllers/platformSupportController';
@@ -55,6 +56,18 @@ router.post(
   '/sessions/:id/end',
   requirePlatformPermission(PlatformPermission.SUPPORT_END),
   endSession
+);
+
+// Revoke an active diagnostic support session with zero-window tolerance
+router.post(
+  '/:id/revoke',
+  requirePlatformPermission(PlatformPermission.SUPPORT_END),
+  revokeSession
+);
+router.post(
+  '/sessions/:id/revoke',
+  requirePlatformPermission(PlatformPermission.SUPPORT_END),
+  revokeSession
 );
 
 export default router;

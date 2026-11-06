@@ -11,7 +11,7 @@ interface CurrencyDisplayProps {
   currencySymbol?: string;
   className?: string;
   colorCode?: boolean; // Green for positive, Rose for negative
-  size?: 'sm' | 'base' | 'lg' | 'xl' | '2xl';
+  size?: 'sm' | 'md' | 'base' | 'lg' | 'xl' | '2xl';
   decimals?: number;
 }
 
@@ -39,6 +39,7 @@ export const CurrencyDisplay: React.FC<CurrencyDisplayProps> = ({
 
   const sizeClasses = {
     sm: 'text-xs',
+    md: 'text-sm',
     base: 'text-sm',
     lg: 'text-base font-semibold',
     xl: 'text-lg font-bold',

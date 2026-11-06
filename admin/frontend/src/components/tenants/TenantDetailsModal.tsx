@@ -2,6 +2,8 @@
  * Bharat Enterprise Billing System — Tenant Details Inspection Modal
  * High-density inspection modal displaying live entity metrics, financial totals,
  * subscription lifecycle state, and firm profile metadata.
+ * Mobile-first touch ergonomics: 2x2 action grid on mobile, min 44px touch targets,
+ * compact font-mono metric cells, and integration with enhanced dual-mode Modal.
  */
 
 import React, { useState } from 'react';
@@ -134,80 +136,146 @@ export const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({
     refetchUsage();
   };
 
+  // Structured 2x2 Action Grid on Mobile / Horizontal flex on Desktop
+  const modalFooter = overview ? (
+    <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-between w-full">
+      {/* Action 1: Status Toggle */}
+      <button
+        type="button"
+        onClick={() => {
+          onClose();
+          onToggleStatus(overview.tenantId, overview.firmName, overview.isActive);
+        }}
+        className={`min-h-[44px] px-3.5 py-2 rounded-lg text-xs font-medium border flex items-center justify-center gap-1.5 transition-colors cursor-pointer w-full sm:w-auto ${
+          overview.isActive
+            ? 'border-rose-800/80 text-rose-300 hover:bg-rose-950/60 active:bg-rose-900/60'
+            : 'border-emerald-800/80 text-emerald-300 hover:bg-emerald-950/60 active:bg-emerald-900/60'
+        }`}
+      >
+        <Power className="w-3.5 h-3.5 shrink-0" />
+        <span className="truncate">{overview.isActive ? 'Suspend Firm' : 'Reactivate Firm'}</span>
+      </button>
+
+      {/* Action 2: Copy Tenant ID */}
+      <button
+        type="button"
+        onClick={handleCopyId}
+        className="min-h-[44px] px-3.5 py-2 rounded-lg text-xs font-medium border border-slate-800 text-slate-300 hover:text-slate-100 hover:bg-slate-800/80 active:bg-slate-700/80 flex items-center justify-center gap-1.5 transition-colors cursor-pointer w-full sm:w-auto"
+      >
+        {copiedId ? (
+          <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+        ) : (
+          <Copy className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+        )}
+        <span className="truncate">{copiedId ? 'Copied ID' : 'Copy ID'}</span>
+      </button>
+
+      {/* Action 3: Diagnostic Session (Primary CTA) */}
+      <button
+        type="button"
+        onClick={() => {
+          onClose();
+          onStartDiagnostic(overview.tenantId, overview.firmName);
+        }}
+        className="min-h-[44px] px-4 py-2 rounded-lg text-xs font-semibold bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-slate-950 flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs w-full sm:w-auto"
+      >
+        <Headphones className="w-3.5 h-3.5 text-slate-950 shrink-0" />
+        <span className="truncate">Diagnostics</span>
+      </button>
+
+      {/* Action 4: Close Dialog */}
+      <button
+        type="button"
+        onClick={onClose}
+        className="min-h-[44px] px-4 py-2 rounded-lg text-xs font-medium text-slate-300 hover:text-slate-100 hover:bg-slate-800 border border-slate-800/80 transition-colors cursor-pointer flex items-center justify-center w-full sm:w-auto"
+      >
+        Close
+      </button>
+    </div>
+  ) : (
+    <div className="flex justify-end w-full">
+      <button
+        type="button"
+        onClick={onClose}
+        className="min-h-[44px] px-4 py-2 rounded-lg text-xs font-medium text-slate-300 hover:text-slate-100 hover:bg-slate-800 transition-colors cursor-pointer"
+      >
+        Close
+      </button>
+    </div>
+  );
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title=""
+      title={
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
+          <span className="font-bold text-slate-100 truncate text-sm sm:text-base">
+            {overview?.firmName || 'Tenant Inspection'}
+          </span>
+          {overview && (
+            <StatusBadge
+              variant={overview.isActive ? 'emerald' : 'rose'}
+              label={overview.isActive ? 'Active' : 'Suspended'}
+              dot
+            />
+          )}
+          {overview?.subscription && (
+            <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-slate-800 text-cyan-300 border border-slate-700">
+              {overview.subscription.planName}
+            </span>
+          )}
+        </div>
+      }
+      description={
+        overview ? (
+          <span className="flex items-center gap-2 flex-wrap text-slate-400 text-xs">
+            <span className="font-mono text-[11px] text-slate-400">ID: {tenantId}</span>
+            <span className="text-slate-600">•</span>
+            <span>Joined {formatDate(overview.createdAt)}</span>
+          </span>
+        ) : undefined
+      }
       maxWidth="2xl"
+      footer={modalFooter}
     >
-      <div className="space-y-5">
-        {/* Modal Custom Top Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-800">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-base font-bold text-slate-100 tracking-tight truncate">
-                {overview?.firmName || 'Tenant Inspection'}
-              </h2>
-              {overview && (
-                <StatusBadge
-                  variant={overview.isActive ? 'emerald' : 'rose'}
-                  label={overview.isActive ? 'Active Firm' : 'Suspended'}
-                  dot
-                />
-              )}
-              {overview?.subscription && (
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-slate-800 text-cyan-300 border border-slate-700">
-                  {overview.subscription.planName}
-                </span>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2 mt-1 text-xs text-slate-400">
-              <span className="font-mono text-[11px] text-slate-400">ID: {tenantId}</span>
-              <button
-                type="button"
-                onClick={handleCopyId}
-                className="p-1 rounded text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
-                title="Copy tenant ID"
-              >
-                {copiedId ? (
-                  <Check className="w-3 h-3 text-emerald-400" />
-                ) : (
-                  <Copy className="w-3 h-3" />
-                )}
-              </button>
-              <span className="text-slate-600">•</span>
-              <span>Joined {formatDate(overview?.createdAt)}</span>
-            </div>
+      <div className="space-y-4">
+        {/* Top Quick Status & Refresh Control Bar */}
+        <div className="flex items-center justify-between pb-3 border-b border-slate-800/80 text-xs text-slate-400">
+          <div className="flex items-center gap-2 truncate">
+            <span>Last Activity:</span>
+            <span className="text-slate-200 font-mono text-[11px]">
+              {formatDateTime(overview?.lastLogin)}
+            </span>
           </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={handleRefresh}
-              disabled={isLoading}
-              className="p-1.5 rounded-lg border border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors cursor-pointer"
-              title="Refresh tenant data"
-            >
-              <RotateCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-cyan-400' : ''}`} />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={isLoading}
+            className="p-1.5 px-2.5 rounded-lg border border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors cursor-pointer flex items-center gap-1.5 text-xs shrink-0"
+            title="Refresh tenant data"
+          >
+            <RotateCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-cyan-400' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
         </div>
 
         {/* Loading State Skeleton */}
         {isLoading && (
-          <div className="space-y-4 py-6">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="p-3 bg-slate-950/60 border border-slate-800 rounded-lg animate-pulse space-y-2">
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              {[...Array(6)].map((_, i) => (
+                <div
+                  key={i}
+                  className="p-2.5 sm:p-3 bg-slate-950/60 border border-slate-800 rounded-lg animate-pulse space-y-2"
+                >
                   <div className="h-3 bg-slate-800 rounded w-16" />
                   <div className="h-6 bg-slate-800 rounded w-24" />
                 </div>
               ))}
             </div>
-            <div className="h-28 bg-slate-950/60 border border-slate-800 rounded-lg animate-pulse" />
-            <div className="h-36 bg-slate-950/60 border border-slate-800 rounded-lg animate-pulse" />
+            <div className="h-24 bg-slate-950/60 border border-slate-800 rounded-lg animate-pulse" />
+            <div className="h-32 bg-slate-950/60 border border-slate-800 rounded-lg animate-pulse" />
           </div>
         )}
 
@@ -222,7 +290,7 @@ export const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({
             <button
               type="button"
               onClick={handleRefresh}
-              className="mt-2 px-3 py-1 bg-rose-800/60 hover:bg-rose-700/60 text-rose-100 rounded text-xs font-medium cursor-pointer"
+              className="mt-2 min-h-[44px] px-4 py-2 bg-rose-800/60 hover:bg-rose-700/60 text-rose-100 rounded-lg text-xs font-medium cursor-pointer"
             >
               Retry Inspection
             </button>
@@ -232,107 +300,107 @@ export const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({
         {/* Main Content Pane */}
         {!isLoading && !isError && overview && (
           <div className="space-y-4">
-            {/* 1. Live Entity & Financial Stats Grid */}
+            {/* 1. Live Entity & Financial Stats Grid (Compact p-2 sm:p-3, font-mono) */}
             <div>
               <h3 className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                 <Layers className="w-3.5 h-3.5 text-cyan-400" />
                 <span>Tenant Activity & Volume</span>
               </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-2.5">
                 {/* Total Sales Volume */}
-                <div className="col-span-2 sm:col-span-1 p-3 bg-slate-950 border border-slate-800/90 rounded-lg flex flex-col justify-between">
+                <div className="col-span-2 sm:col-span-1 p-2 sm:p-3 bg-slate-950/90 border border-slate-800/90 rounded-lg flex flex-col justify-between">
                   <div className="flex items-center justify-between text-[11px] text-slate-400">
                     <span>Total Sales Volume</span>
                     <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
                   </div>
-                  <div className="mt-2">
+                  <div className="mt-1.5 sm:mt-2">
                     <CurrencyDisplay
                       amount={usage?.financials?.totalSalesVolume ?? 0}
                       size="lg"
                       colorCode
                     />
-                    <div className="text-[10px] text-slate-500 mt-0.5">
-                      {usage?.financials?.totalInvoicesCount ?? 0} total invoices
+                    <div className="text-[10px] text-slate-500 mt-0.5 font-mono">
+                      {(usage?.financials?.totalInvoicesCount ?? 0).toLocaleString('en-IN')} total invoices
                     </div>
                   </div>
                 </div>
 
                 {/* Invoices Count */}
-                <div className="p-3 bg-slate-950 border border-slate-800/90 rounded-lg flex flex-col justify-between">
+                <div className="p-2 sm:p-3 bg-slate-950/90 border border-slate-800/90 rounded-lg flex flex-col justify-between">
                   <div className="flex items-center justify-between text-[11px] text-slate-400">
                     <span>Invoices Issued</span>
                     <FileText className="w-3.5 h-3.5 text-sky-400" />
                   </div>
-                  <div className="mt-2">
-                    <span className="text-lg font-mono font-bold text-slate-100">
+                  <div className="mt-1.5 sm:mt-2">
+                    <span className="text-base sm:text-lg font-mono font-bold text-slate-100">
                       {(usage?.counts?.invoices ?? 0).toLocaleString('en-IN')}
                     </span>
-                    <div className="text-[10px] text-slate-500 mt-0.5">Active billed transactions</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5 truncate">Active billed</div>
                   </div>
                 </div>
 
                 {/* Customers Count */}
-                <div className="p-3 bg-slate-950 border border-slate-800/90 rounded-lg flex flex-col justify-between">
+                <div className="p-2 sm:p-3 bg-slate-950/90 border border-slate-800/90 rounded-lg flex flex-col justify-between">
                   <div className="flex items-center justify-between text-[11px] text-slate-400">
                     <span>Customers</span>
                     <Users className="w-3.5 h-3.5 text-indigo-400" />
                   </div>
-                  <div className="mt-2">
-                    <span className="text-lg font-mono font-bold text-slate-100">
+                  <div className="mt-1.5 sm:mt-2">
+                    <span className="text-base sm:text-lg font-mono font-bold text-slate-100">
                       {(usage?.counts?.customers ?? 0).toLocaleString('en-IN')}
                     </span>
-                    <div className="text-[10px] text-slate-500 mt-0.5">Direct buyer profiles</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5 truncate">Direct buyer profiles</div>
                   </div>
                 </div>
 
                 {/* Products Count */}
-                <div className="p-3 bg-slate-950 border border-slate-800/90 rounded-lg flex flex-col justify-between">
+                <div className="p-2 sm:p-3 bg-slate-950/90 border border-slate-800/90 rounded-lg flex flex-col justify-between">
                   <div className="flex items-center justify-between text-[11px] text-slate-400">
                     <span>Products in Catalog</span>
                     <Package className="w-3.5 h-3.5 text-amber-400" />
                   </div>
-                  <div className="mt-2">
-                    <span className="text-lg font-mono font-bold text-slate-100">
+                  <div className="mt-1.5 sm:mt-2">
+                    <span className="text-base sm:text-lg font-mono font-bold text-slate-100">
                       {(usage?.counts?.products ?? 0).toLocaleString('en-IN')}
                     </span>
-                    <div className="text-[10px] text-slate-500 mt-0.5">
-                      {(usage?.counts?.batches ?? 0).toLocaleString('en-IN')} inventory batches
+                    <div className="text-[10px] text-slate-500 mt-0.5 truncate font-mono">
+                      {(usage?.counts?.batches ?? 0).toLocaleString('en-IN')} batches
                     </div>
                   </div>
                 </div>
 
                 {/* Employees Count */}
-                <div className="p-3 bg-slate-950 border border-slate-800/90 rounded-lg flex flex-col justify-between">
+                <div className="p-2 sm:p-3 bg-slate-950/90 border border-slate-800/90 rounded-lg flex flex-col justify-between">
                   <div className="flex items-center justify-between text-[11px] text-slate-400">
                     <span>Team Members</span>
                     <Briefcase className="w-3.5 h-3.5 text-teal-400" />
                   </div>
-                  <div className="mt-2">
-                    <span className="text-lg font-mono font-bold text-slate-100">
+                  <div className="mt-1.5 sm:mt-2">
+                    <span className="text-base sm:text-lg font-mono font-bold text-slate-100">
                       {(usage?.counts?.employees ?? 0).toLocaleString('en-IN')}
                     </span>
-                    <div className="text-[10px] text-slate-500 mt-0.5">Staff & operator seats</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5 truncate">Staff & operator seats</div>
                   </div>
                 </div>
 
                 {/* Suppliers Count */}
-                <div className="p-3 bg-slate-950 border border-slate-800/90 rounded-lg flex flex-col justify-between">
+                <div className="p-2 sm:p-3 bg-slate-950/90 border border-slate-800/90 rounded-lg flex flex-col justify-between">
                   <div className="flex items-center justify-between text-[11px] text-slate-400">
                     <span>Suppliers</span>
                     <Building2 className="w-3.5 h-3.5 text-rose-400" />
                   </div>
-                  <div className="mt-2">
-                    <span className="text-lg font-mono font-bold text-slate-100">
+                  <div className="mt-1.5 sm:mt-2">
+                    <span className="text-base sm:text-lg font-mono font-bold text-slate-100">
                       {(usage?.counts?.suppliers ?? 0).toLocaleString('en-IN')}
                     </span>
-                    <div className="text-[10px] text-slate-500 mt-0.5">Registered vendors</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5 truncate">Registered vendors</div>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* 2. Subscription Snapshot */}
-            <div className="p-3.5 bg-slate-950 border border-slate-800/90 rounded-lg space-y-3">
+            <div className="p-2.5 sm:p-3.5 bg-slate-950/90 border border-slate-800/90 rounded-lg space-y-2.5">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
                   <CreditCard className="w-4 h-4 text-cyan-400" />
@@ -341,30 +409,27 @@ export const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({
                   </span>
                 </div>
                 {overview.subscription ? (
-                  <StatusBadge
-                    status={overview.subscription.status}
-                    dot
-                  />
+                  <StatusBadge status={overview.subscription.status} dot />
                 ) : (
                   <StatusBadge variant="slate" label="NO ACTIVE SUBSCRIPTION" dot />
                 )}
               </div>
 
               {overview.subscription ? (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs pt-1 border-t border-slate-800/60">
-                  <div>
-                    <span className="text-slate-500 block text-[11px]">Active Plan</span>
-                    <span className="font-semibold text-slate-100">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5 text-xs pt-1 border-t border-slate-800/60">
+                  <div className="p-2 rounded bg-slate-900/60 border border-slate-800/60">
+                    <span className="text-slate-500 block text-[10px] sm:text-[11px]">Active Plan</span>
+                    <span className="font-semibold text-slate-100 block truncate">
                       {overview.subscription.planName}
                     </span>
-                    <span className="text-[10px] text-slate-400 block font-mono">
+                    <span className="text-[10px] text-cyan-400 block font-mono truncate">
                       {overview.subscription.planCode}
                     </span>
                   </div>
 
-                  <div>
-                    <span className="text-slate-500 block text-[11px]">Expires On</span>
-                    <span className="font-semibold text-slate-100">
+                  <div className="p-2 rounded bg-slate-900/60 border border-slate-800/60">
+                    <span className="text-slate-500 block text-[10px] sm:text-[11px]">Expires On</span>
+                    <span className="font-semibold text-slate-100 block font-mono text-xs">
                       {formatDate(overview.subscription.expiresAt)}
                     </span>
                     <span className="text-[10px] text-amber-400 block font-mono">
@@ -372,8 +437,8 @@ export const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({
                     </span>
                   </div>
 
-                  <div>
-                    <span className="text-slate-500 block text-[11px]">Monthly Price</span>
+                  <div className="p-2 rounded bg-slate-900/60 border border-slate-800/60">
+                    <span className="text-slate-500 block text-[10px] sm:text-[11px]">Monthly Price</span>
                     <CurrencyDisplay
                       amount={overview.subscription.finalAmount || overview.subscription.baseMonthlyPrice}
                       size="sm"
@@ -383,15 +448,16 @@ export const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({
                     </span>
                   </div>
 
-                  <div>
-                    <span className="text-slate-500 block text-[11px]">Auto Renew</span>
+                  <div className="p-2 rounded bg-slate-900/60 border border-slate-800/60">
+                    <span className="text-slate-500 block text-[10px] sm:text-[11px]">Auto Renew</span>
                     <span
-                      className={`font-semibold ${
+                      className={`font-semibold font-mono text-xs block ${
                         overview.subscription.autoRenew ? 'text-emerald-400' : 'text-slate-400'
                       }`}
                     >
                       {overview.subscription.autoRenew ? 'Enabled' : 'Disabled'}
                     </span>
+                    <span className="text-[10px] text-slate-500 block">Renewal state</span>
                   </div>
                 </div>
               ) : (
@@ -402,23 +468,27 @@ export const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({
             </div>
 
             {/* 3. Firm Profile & Metadata */}
-            <div className="p-3.5 bg-slate-950 border border-slate-800/90 rounded-lg space-y-2.5">
+            <div className="p-2.5 sm:p-3.5 bg-slate-950/90 border border-slate-800/90 rounded-lg space-y-2">
               <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
                 <Building2 className="w-3.5 h-3.5 text-slate-400" />
                 <span>Firm Profile & Contact Records</span>
               </h4>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs">
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2 text-slate-300">
                     <Mail className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                     <span className="text-slate-400">Admin Email:</span>
-                    <span className="font-mono text-slate-200 select-all truncate">{overview.email}</span>
+                    <span className="font-mono text-slate-200 select-all truncate text-[11px]">
+                      {overview.email}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 text-slate-300">
                     <Phone className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                     <span className="text-slate-400">Firm Phone:</span>
-                    <span className="font-mono text-slate-200 select-all">{overview.firmPhone || 'N/A'}</span>
+                    <span className="font-mono text-slate-200 select-all text-[11px]">
+                      {overview.firmPhone || 'N/A'}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 text-slate-300">
                     <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0" />
@@ -430,32 +500,32 @@ export const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2 text-slate-300">
                     <span className="text-slate-400">GSTIN:</span>
-                    <span className="font-mono text-slate-200 select-all font-semibold">
+                    <span className="font-mono text-slate-200 select-all font-semibold text-[11px]">
                       {overview.firmGSTIN || 'Unregistered'}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-slate-300">
-                    <span className="text-slate-400">Drug License (DL):</span>
-                    <span className="font-mono text-slate-200 select-all">
+                    <span className="text-slate-400">Drug License:</span>
+                    <span className="font-mono text-slate-200 select-all text-[11px]">
                       {overview.firmDL || 'N/A'}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-slate-300">
                     <Clock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                     <span className="text-slate-400">Last Login:</span>
-                    <span className="text-slate-200">{formatDateTime(overview.lastLogin)}</span>
+                    <span className="text-slate-200 font-mono text-[11px]">{formatDateTime(overview.lastLogin)}</span>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* 4. Entitlements & Write Status */}
-            <div className="p-3 bg-slate-950/70 border border-slate-800/80 rounded-lg flex items-center justify-between text-xs flex-wrap gap-2">
+            <div className="p-2.5 sm:p-3 bg-slate-950/70 border border-slate-800/80 rounded-lg flex items-center justify-between text-xs flex-wrap gap-2">
               <div className="flex items-center gap-2">
-                <Shield className="w-3.5 h-3.5 text-cyan-400" />
+                <Shield className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
                 <span className="text-slate-400">Platform Write Access:</span>
                 <span
-                  className={`font-semibold ${
+                  className={`font-semibold font-mono text-xs ${
                     overview.effectiveAccess?.canWrite ? 'text-emerald-400' : 'text-rose-400'
                   }`}
                 >
@@ -469,52 +539,6 @@ export const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({
             </div>
           </div>
         )}
-
-        {/* Modal Action Footer */}
-        <div className="flex items-center justify-between pt-3 border-t border-slate-800 gap-2 flex-wrap">
-          <div className="flex items-center gap-2">
-            {overview && (
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  onToggleStatus(overview.tenantId, overview.firmName, overview.isActive);
-                }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-colors cursor-pointer ${
-                  overview.isActive
-                    ? 'border-rose-800/80 text-rose-300 hover:bg-rose-950/60'
-                    : 'border-emerald-800/80 text-emerald-300 hover:bg-emerald-950/60'
-                }`}
-              >
-                <Power className="w-3.5 h-3.5" />
-                <span>{overview.isActive ? 'Suspend Firm' : 'Reactivate Firm'}</span>
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            {overview && (
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  onStartDiagnostic(overview.tenantId, overview.firmName);
-                }}
-                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
-              >
-                <Headphones className="w-3.5 h-3.5 text-slate-950" />
-                <span>Diagnostic Session</span>
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-300 hover:text-slate-100 hover:bg-slate-800 transition-colors cursor-pointer"
-            >
-              Close
-            </button>
-          </div>
-        </div>
       </div>
     </Modal>
   );

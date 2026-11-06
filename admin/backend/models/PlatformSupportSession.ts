@@ -3,7 +3,7 @@
  * Scoped, time-bounded, non-impersonating diagnostic session tracking.
  */
 
-import mongoose, { Schema, Model, HydratedDocument } from 'mongoose';
+import mongoose, { Schema, Model, HydratedDocument, Types } from 'mongoose';
 import { IPlatformSupportSession, SupportSessionStatus, PlatformPermission } from '../types';
 
 export type PlatformSupportSessionDocument = HydratedDocument<IPlatformSupportSession>;
@@ -29,6 +29,7 @@ const platformSupportSessionSchema = new Schema<IPlatformSupportSession, Platfor
       ref: 'Admin',
       required: [true, 'targetTenantId is required'],
       index: true,
+      alias: 'tenantId',
     },
     reason: {
       type: String,
@@ -50,6 +51,17 @@ const platformSupportSessionSchema = new Schema<IPlatformSupportSession, Platfor
     isReadOnly: {
       type: Boolean,
       default: true,
+      required: true,
+    },
+    isRevoked: {
+      type: Boolean,
+      default: false,
+      required: true,
+      index: true,
+    },
+    allowedScope: {
+      type: [String],
+      default: ['READ_ONLY'],
       required: true,
     },
     startedAt: {
@@ -78,13 +90,26 @@ const platformSupportSessionSchema = new Schema<IPlatformSupportSession, Platfor
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
 );
+
+// Explicit virtual for tenantId to ensure 100% parity with targetTenantId
+platformSupportSessionSchema.virtual('tenantId')
+  .get(function (this: IPlatformSupportSession) {
+    return this.targetTenantId;
+  })
+  .set(function (this: IPlatformSupportSession, val: Types.ObjectId) {
+    this.targetTenantId = val;
+  });
 
 // Compound indexes for performant lookups & lifecycle sweeps
 platformSupportSessionSchema.index({ operatorId: 1, status: 1 });
 platformSupportSessionSchema.index({ targetTenantId: 1, createdAt: -1 });
 platformSupportSessionSchema.index({ status: 1, expiresAt: 1 });
+platformSupportSessionSchema.index({ operatorId: 1, isRevoked: 1 });
+platformSupportSessionSchema.index({ targetTenantId: 1, isRevoked: 1 });
 
 export const PlatformSupportSession: PlatformSupportSessionModel =
   (mongoose.models.PlatformSupportSession as PlatformSupportSessionModel) ||

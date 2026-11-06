@@ -5,9 +5,11 @@
 
 import { Response } from 'express';
 import { PlatformUser } from '../models/PlatformUser';
+import PlatformSupportSession from '../models/PlatformSupportSession';
 import { PlatformRole, PlatformPermission, canManageRole, hasPermission } from '../permissions';
 import { logPlatformAudit } from '../services/platformAuditService';
 import type { PlatformRequest } from '../types';
+import { SupportSessionStatus } from '../types';
 
 /**
  * GET /api/platform/users
@@ -187,8 +189,8 @@ export async function createUser(req: PlatformRequest, res: Response): Promise<v
         customPermissions: newUser.customPermissions,
         isActive: newUser.isActive,
       },
-      ipAddress: (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '',
-      userAgent: req.headers['user-agent'] || '',
+      ipAddress: (req.headers && (req.headers['x-forwarded-for'] as string)) || req.socket?.remoteAddress || '',
+      userAgent: (req.headers && (req.headers['user-agent'] as string)) || '',
       severity: 'INFO',
     });
 
@@ -336,6 +338,22 @@ export async function updateUser(req: PlatformRequest, res: Response): Promise<v
     }
     if (isActive !== undefined && typeof isActive === 'boolean') {
       targetUser.isActive = isActive;
+      // Cascading Invalidation: if operator is suspended (isActive === false), immediately invalidate all active support sessions
+      if (isActive === false) {
+        await PlatformSupportSession.updateMany(
+          {
+            $or: [{ operatorId: targetUser._id }, { endedBy: targetUser._id }],
+            status: SupportSessionStatus.ACTIVE,
+          },
+          {
+            $set: {
+              status: SupportSessionStatus.REVOKED,
+              isRevoked: true,
+              endedAt: new Date(),
+            },
+          }
+        );
+      }
     }
     if (mustChangePassword !== undefined && typeof mustChangePassword === 'boolean') {
       targetUser.mustChangePassword = mustChangePassword;
@@ -373,8 +391,8 @@ export async function updateUser(req: PlatformRequest, res: Response): Promise<v
       reason: reason || 'Platform user account updated',
       before: beforeSnapshot,
       after: afterSnapshot,
-      ipAddress: (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '',
-      userAgent: req.headers['user-agent'] || '',
+      ipAddress: (req.headers && (req.headers['x-forwarded-for'] as string)) || req.socket?.remoteAddress || '',
+      userAgent: (req.headers && (req.headers['user-agent'] as string)) || '',
       severity: isSecuritySensitiveChange ? 'WARNING' : 'INFO',
     });
 

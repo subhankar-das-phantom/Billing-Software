@@ -60,6 +60,7 @@ const subscriptionPaymentSchema = new Schema(
     gatewayPaymentId: {
       type: String,
       trim: true,
+      unique: true,
       sparse: true,
     },
     gatewaySignature: {
@@ -96,6 +97,7 @@ const subscriptionPaymentSchema = new Schema(
 // Indexes
 subscriptionPaymentSchema.index({ tenantId: 1, createdAt: -1 });
 subscriptionPaymentSchema.index({ paymentStatus: 1 });
+
 
 
 

@@ -5,6 +5,7 @@
 
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import { Types } from 'mongoose';
 import PlatformUser, { PlatformUserDocument } from '../models/PlatformUser';
 import PlatformSession from '../models/PlatformSession';
@@ -14,6 +15,12 @@ import { IPlatformUser, IPlatformSession } from '../types';
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const LOCKOUT_THRESHOLD = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
+/**
+ * Pre-computed valid 12-round bcrypt hash for constant-time dummy verification.
+ * Prevents user enumeration by ensuring non-existent accounts take the same cryptographic time as existing accounts.
+ */
+const DUMMY_BCRYPT_HASH = '$2a$12$K7L/K0T2tD0Pq1vFf1KzeOHh2Y7vC/sC44G5R01y7yP9z3.gC7m3q';
 
 let hasWarnedMissingJwtSecret = false;
 
@@ -44,13 +51,14 @@ export function getPlatformJwtSecret(): string {
  */
 export function sanitizePlatformUser(user: IPlatformUser | PlatformUserDocument): Record<string, unknown> {
   const raw = typeof (user as any).toObject === 'function' ? (user as any).toObject() : user;
+  const isLocked = Boolean(raw.isLocked ?? (raw.lockUntil && new Date(raw.lockUntil).getTime() > Date.now()));
   const {
     password: _p,
     mfaSecret: _m,
     mfaBackupCodes: _b,
     ...clean
   } = raw;
-  return clean;
+  return { ...clean, isLocked };
 }
 
 /**
@@ -117,37 +125,51 @@ export async function login(
   const user = await PlatformUser.findOne({ email: normalizedEmail }).select('+password +mfaSecret');
 
   if (!user) {
+    // Constant-time dummy verification against user enumeration timing attacks
+    await bcrypt.compare(password, DUMMY_BCRYPT_HASH);
     const error: any = new Error('Invalid email or password');
     error.statusCode = 401;
     throw error;
   }
 
-  if (!user.isActive) {
-    const error: any = new Error('Platform account has been deactivated. Please contact platform owner.');
-    error.statusCode = 403;
-    throw error;
-  }
-
   // Brute-force lockout check
-  if (user.lockUntil && user.lockUntil > new Date()) {
-    const remainingMinutes = Math.max(1, Math.ceil((user.lockUntil.getTime() - Date.now()) / (60 * 1000)));
-    const error: any = new Error(`Account is temporarily locked due to multiple failed login attempts. Try again in ${remainingMinutes} minute(s).`);
-    error.statusCode = 423;
-    error.code = 'ACCOUNT_LOCKED';
-    throw error;
+  if (user.lockUntil) {
+    if (user.lockUntil.getTime() > Date.now()) {
+      const remainingMinutes = Math.max(1, Math.ceil((user.lockUntil.getTime() - Date.now()) / (60 * 1000)));
+      const error: any = new Error(`Account is temporarily locked due to multiple failed login attempts. Try again in ${remainingMinutes} minute(s).`);
+      error.statusCode = 423;
+      error.code = 'ACCOUNT_LOCKED';
+      error.isLocked = true;
+      throw error;
+    } else {
+      // Auto-unlock: lockout duration has elapsed
+      user.lockUntil = null;
+      user.failedLoginAttempts = 0;
+    }
   }
 
   // Verify password
   const isMatch = await user.comparePassword(password);
   if (!isMatch) {
     user.failedLoginAttempts = (user.failedLoginAttempts || 0) + 1;
+    let isNowLocked = false;
     if (user.failedLoginAttempts >= LOCKOUT_THRESHOLD) {
       user.lockUntil = new Date(Date.now() + LOCKOUT_DURATION_MS);
+      isNowLocked = true;
     }
     await user.save();
 
     const error: any = new Error('Invalid email or password');
     error.statusCode = 401;
+    if (isNowLocked) {
+      error.isLocked = true;
+    }
+    throw error;
+  }
+
+  if (!user.isActive) {
+    const error: any = new Error('Platform account has been deactivated. Please contact platform owner.');
+    error.statusCode = 403;
     throw error;
   }
 
@@ -225,13 +247,25 @@ export async function verifyMfaAndLogin(
     throw error;
   }
 
-  if (isBackupCode) {
-    const valid = await mfaService.verifyAndConsumeBackupCode(user, code);
-    if (!valid) {
-      const error: any = new Error('Invalid or already used backup code');
-      error.statusCode = 401;
+  // Brute-force lockout check on MFA stage
+  if (user.lockUntil) {
+    if (user.lockUntil.getTime() > Date.now()) {
+      const remainingMinutes = Math.max(1, Math.ceil((user.lockUntil.getTime() - Date.now()) / (60 * 1000)));
+      const error: any = new Error(`Account is temporarily locked due to multiple failed login attempts. Try again in ${remainingMinutes} minute(s).`);
+      error.statusCode = 423;
+      error.code = 'ACCOUNT_LOCKED';
+      error.isLocked = true;
       throw error;
+    } else {
+      // Auto-unlock: lockout duration has elapsed
+      user.lockUntil = null;
+      user.failedLoginAttempts = 0;
     }
+  }
+
+  let isValid = false;
+  if (isBackupCode) {
+    isValid = await mfaService.verifyAndConsumeBackupCode(user, code);
   } else {
     if (!user.mfaSecret) {
       const error: any = new Error('MFA is not configured for this user');
@@ -239,13 +273,34 @@ export async function verifyMfaAndLogin(
       throw error;
     }
     const plainSecret = mfaService.decryptSecret(user.mfaSecret);
-    const valid = mfaService.verifyTotp(plainSecret, code);
-    if (!valid) {
-      const error: any = new Error('Invalid MFA verification code');
-      error.statusCode = 401;
-      throw error;
-    }
+    isValid = mfaService.verifyTotp(plainSecret, code);
   }
+
+  if (!isValid) {
+    user.failedLoginAttempts = (user.failedLoginAttempts || 0) + 1;
+    let isNowLocked = false;
+    if (user.failedLoginAttempts >= LOCKOUT_THRESHOLD) {
+      user.lockUntil = new Date(Date.now() + LOCKOUT_DURATION_MS);
+      isNowLocked = true;
+    }
+    await user.save();
+
+    const errorMessage = isBackupCode
+      ? 'Invalid or already used backup code'
+      : 'Invalid MFA verification code';
+    const error: any = new Error(errorMessage);
+    error.statusCode = 401;
+    if (isNowLocked) {
+      error.isLocked = true;
+    }
+    throw error;
+  }
+
+  // Reset lockout counters upon successful MFA verification
+  user.failedLoginAttempts = 0;
+  user.lockUntil = null;
+  user.lastLoginAt = new Date();
+  await user.save();
 
   const { session, token } = await createPlatformSessionAndJwt(user, ipAddress, userAgent);
 

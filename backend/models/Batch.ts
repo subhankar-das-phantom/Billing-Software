@@ -3,6 +3,9 @@ import mongoose, { Document, Schema, Model } from 'mongoose';
 export interface IBatch extends Document {
   tenantId: mongoose.Types.ObjectId;
   productId: mongoose.Types.ObjectId;
+  storeId?: string | null;
+  branchId?: string | null;
+  warehouseLocation?: string | null;
   batchNo: string | null;
   expiryDate: Date | null;
   rate: number;
@@ -31,6 +34,24 @@ const batchSchema = new Schema<IBatch>(
       type: Schema.Types.ObjectId,
       ref: 'Product',
       required: true,
+      index: true
+    },
+    storeId: {
+      type: String,
+      trim: true,
+      default: null,
+      index: true
+    },
+    branchId: {
+      type: String,
+      trim: true,
+      default: null,
+      index: true
+    },
+    warehouseLocation: {
+      type: String,
+      trim: true,
+      default: null,
       index: true
     },
     batchNo: {
@@ -92,6 +113,9 @@ const batchSchema = new Schema<IBatch>(
 batchSchema.index({ tenantId: 1, productId: 1, remainingQty: 1, expiryDate: 1 });
 batchSchema.index({ tenantId: 1, productId: 1 });
 batchSchema.index({ tenantId: 1, batchNo: 1 });
+batchSchema.index({ tenantId: 1, storeId: 1, productId: 1, remainingQty: 1 });
+batchSchema.index({ tenantId: 1, branchId: 1, productId: 1 });
+batchSchema.index({ tenantId: 1, warehouseLocation: 1 });
 
 const Batch: Model<IBatch> = mongoose.model<IBatch>('Batch', batchSchema);
 export default Batch;

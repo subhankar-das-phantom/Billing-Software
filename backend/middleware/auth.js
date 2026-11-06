@@ -73,9 +73,10 @@ const protect = async (req, res, next) => {
       const tenantAdmin = await Admin.findById(employee.createdByAdmin).select('isActive');
       if (!tenantAdmin || tenantAdmin.isActive !== true) {
         clearAuthCookie(res);
-        return res.status(401).json({
+        return res.status(403).json({
           success: false,
-          message: 'Tenant organization account is inactive or not found.'
+          code: 'TENANT_SUSPENDED',
+          message: 'Tenant organization account is suspended or inactive.'
         });
       }
 
@@ -99,9 +100,10 @@ const protect = async (req, res, next) => {
       // Check if admin is active (if field exists)
       if (admin.isActive === false) {
         clearAuthCookie(res);
-        return res.status(401).json({
+        return res.status(403).json({
           success: false,
-          message: 'Account has been deactivated'
+          code: 'TENANT_SUSPENDED',
+          message: 'Account has been deactivated or suspended'
         });
       }
 

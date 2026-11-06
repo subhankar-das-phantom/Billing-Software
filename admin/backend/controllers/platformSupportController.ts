@@ -8,6 +8,7 @@ import { PlatformRequest, SupportSessionStatus } from '../types';
 import {
   startSupportSession,
   endSupportSession,
+  revokeSupportSession,
   getActiveSupportSession,
   listSupportSessions,
 } from '../services/supportSessionService';
@@ -105,6 +106,48 @@ export async function endSession(req: PlatformRequest, res: Response): Promise<v
     res.status(400).json({
       success: false,
       error: error.message || 'Failed to end support session',
+    });
+  }
+}
+
+/**
+ * Revokes an active diagnostic support session with zero-window tolerance.
+ * POST /api/platform/support/sessions/:id/revoke
+ */
+export async function revokeSession(req: PlatformRequest, res: Response): Promise<void> {
+  try {
+    const operator = req.platformUser;
+    if (!operator) {
+      res.status(401).json({
+        success: false,
+        error: 'Authentication required. Platform operator not resolved.',
+      });
+      return;
+    }
+
+    const { id } = req.params;
+    const { reason } = req.body || {};
+
+    if (!id) {
+      res.status(400).json({
+        success: false,
+        error: 'Session ID or session code is required.',
+      });
+      return;
+    }
+
+    const sessionId = Array.isArray(id) ? id[0]! : id;
+    const session = await revokeSupportSession(sessionId, operator._id, reason);
+
+    res.status(200).json({
+      success: true,
+      message: 'Support session revoked successfully',
+      data: session,
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      error: error.message || 'Failed to revoke support session',
     });
   }
 }

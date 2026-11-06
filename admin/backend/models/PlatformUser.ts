@@ -9,6 +9,7 @@ import { IPlatformUser, PlatformRole, PlatformPermission } from '../types';
 
 export interface IPlatformUserMethods {
   comparePassword(candidate: string): Promise<boolean>;
+  isLocked?: boolean;
 }
 
 export type PlatformUserDocument = HydratedDocument<IPlatformUser, IPlatformUserMethods>;
@@ -113,6 +114,14 @@ platformUserSchema.methods.comparePassword = async function (candidate: string):
   }
   return bcrypt.compare(candidate, this.password);
 };
+
+// Virtual to determine whether the account is currently locked
+platformUserSchema.virtual('isLocked').get(function (this: any) {
+  return !!(this.lockUntil && new Date(this.lockUntil).getTime() > Date.now());
+});
+
+platformUserSchema.set('toJSON', { virtuals: true });
+platformUserSchema.set('toObject', { virtuals: true });
 
 export const PlatformUser: PlatformUserModel =
   (mongoose.models.PlatformUser as PlatformUserModel) ||

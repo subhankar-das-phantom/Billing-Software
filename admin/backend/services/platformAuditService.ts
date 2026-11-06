@@ -118,7 +118,8 @@ export async function logPlatformAudit(
   }
 
   // 2. Optimistic Concurrency Control (OCC) loop to advance hash chain
-  const MAX_ATTEMPTS = 5;
+  // Support high concurrency bursts (e.g. 20+ simultaneous workers) with robust retry ceiling
+  const MAX_ATTEMPTS = 30;
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     head = await PlatformAuditHead.findOne({ scope }).session(session || null);
     if (!head) {
@@ -227,13 +228,64 @@ export async function verifyAuditChain(
     filter.sequence = seqFilter;
   }
 
+  // Pre-query snapshot of audit head to detect tail truncation or complete chain deletion
+  const headSnapshot = await PlatformAuditHead.findOne({ scope }).lean();
+
   const logs = await PlatformAuditLog.find(filter).sort({ sequence: 1 }).lean();
 
   if (logs.length === 0) {
+    if (headSnapshot && headSnapshot.lastSequence > 0 && startSequence === undefined) {
+      return {
+        valid: false,
+        verifiedCount: 0,
+        error: `Scope "${scope}" expects ${headSnapshot.lastSequence} audit logs according to audit head, but 0 logs were found. All logs were deleted.`,
+        scope,
+      };
+    }
     return {
       valid: true,
       verifiedCount: 0,
       scope,
+    };
+  }
+
+  // Check 1: Missing genesis block (chain starts after sequence 1 when verifying from beginning)
+  if ((startSequence === undefined || startSequence === 1) && logs[0]!.sequence !== 1) {
+    return {
+      valid: false,
+      verifiedCount: 0,
+      error: `Missing genesis block. Chain for scope "${scope}" starts at sequence ${logs[0]!.sequence} instead of sequence 1. Genesis block has been deleted or truncated.`,
+      scope,
+      startSequence: logs[0]!.sequence,
+      endSequence: logs[logs.length - 1]!.sequence,
+    };
+  }
+
+  // Check 2: Windowed start boundary integrity
+  if (startSequence !== undefined && logs[0]!.sequence !== startSequence) {
+    return {
+      valid: false,
+      verifiedCount: 0,
+      error: `Expected audit chain verification to start at sequence ${startSequence}, but first matching log is sequence ${logs[0]!.sequence}. Prior records are missing.`,
+      scope,
+      startSequence: logs[0]!.sequence,
+      endSequence: logs[logs.length - 1]!.sequence,
+    };
+  }
+
+  // Check 3: Tail truncation (latest entries deleted while head records higher sequence)
+  if (
+    endSequence === undefined &&
+    headSnapshot &&
+    headSnapshot.lastSequence > logs[logs.length - 1]!.sequence
+  ) {
+    return {
+      valid: false,
+      verifiedCount: logs.length,
+      error: `Tail truncation detected for scope "${scope}". Audit head records sequence ${headSnapshot.lastSequence}, but audit chain terminates at sequence ${logs[logs.length - 1]!.sequence}.`,
+      scope,
+      startSequence: logs[0]!.sequence,
+      endSequence: logs[logs.length - 1]!.sequence,
     };
   }
 

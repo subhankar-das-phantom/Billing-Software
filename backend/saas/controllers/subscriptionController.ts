@@ -23,10 +23,10 @@ import { processReferralReward } from '../services/referralService';
 import { createNotification } from '../services/notificationService';
 
 const getTenantId = require('../../utils/getTenantId');
-const {
-  validatePaymentVerification,
-  validateWebhookSignature,
-} = require('razorpay/dist/utils/razorpay-utils.js');
+import {
+  verifyPaymentSignature,
+  processRazorpayWebhook,
+} from '../../../admin/backend/services/platformSubscriptionService';
 
 // ─── Razorpay SDK (lazy-loaded) ──────────────────────────────────
 
@@ -365,18 +365,18 @@ export async function verifyPayment(
     }
 
     const signatureValid = isAutoRenew
-      ? validatePaymentVerification(
-          {
-            payment_id: razorpay_payment_id,
-            subscription_id: razorpay_subscription_id,
-          },
-          razorpay_signature,
-          keySecret,
-        )
-      : crypto
-          .createHmac('sha256', keySecret)
-          .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-          .digest('hex') === razorpay_signature;
+      ? verifyPaymentSignature({
+          subscriptionId: razorpay_subscription_id,
+          paymentId: razorpay_payment_id,
+          signature: razorpay_signature,
+          secret: keySecret,
+        })
+      : verifyPaymentSignature({
+          orderId: razorpay_order_id,
+          paymentId: razorpay_payment_id,
+          signature: razorpay_signature,
+          secret: keySecret,
+        });
 
     if (!signatureValid) {
       // Mark payment as failed
@@ -390,16 +390,37 @@ export async function verifyPayment(
       return;
     }
 
-    // Payment verified — update payment record
-    payment.gatewayPaymentId = razorpay_payment_id;
-    payment.gatewaySignature = razorpay_signature;
-    if (isAutoRenew) {
-      payment.gatewaySubscriptionId = razorpay_subscription_id;
-      payment.billingMode = 'auto';
+    // Payment verified — atomically update payment record to prevent duplicate concurrent verification races
+    const claimedPayment = await SubscriptionPayment.findOneAndUpdate(
+      {
+        _id: payment._id,
+        paymentStatus: { $ne: PaymentStatus.COMPLETED },
+      },
+      {
+        $set: {
+          gatewayPaymentId: razorpay_payment_id,
+          gatewaySignature: razorpay_signature,
+          ...(isAutoRenew
+            ? { gatewaySubscriptionId: razorpay_subscription_id, billingMode: 'auto' }
+            : {}),
+          paymentStatus: PaymentStatus.COMPLETED,
+          paidAt: new Date(),
+        },
+      },
+      { new: true },
+    );
+
+    if (!claimedPayment) {
+      // Payment was already claimed and activated by a concurrent verify call or webhook
+      const activeSubscription = await getActiveSubscription(tenantId.toString());
+      res.status(200).json({
+        success: true,
+        message: 'Payment already verified and subscription activated',
+        subscription: activeSubscription,
+        proratedDaysAdded: 0,
+      });
+      return;
     }
-    payment.paymentStatus = PaymentStatus.COMPLETED;
-    payment.paidAt = new Date();
-    await payment.save();
 
     const razorpay = getRazorpay();
     const gatewaySubscription = await fetchRazorpaySubscription(
@@ -531,96 +552,17 @@ export async function handleRazorpayWebhook(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
-    const signature = req.headers['x-razorpay-signature'];
-    const eventId = req.headers['x-razorpay-event-id'];
-
-    if (!webhookSecret) {
-      res.status(503).json({
-        success: false,
-        message: 'Razorpay webhook secret not configured',
-      });
-      return;
-    }
+    const signature = (req.headers['x-razorpay-signature'] ||
+      req.headers['X-Razorpay-Signature']) as string | undefined;
+    const eventId = (req.headers['x-razorpay-event-id'] ||
+      req.headers['X-Razorpay-Event-Id']) as string | undefined;
 
     const rawBody = Buffer.isBuffer(req.body)
       ? req.body
-      : Buffer.from(JSON.stringify(req.body || {}));
+      : Buffer.from(typeof req.body === 'string' ? req.body : JSON.stringify(req.body || {}));
 
-    if (!validateWebhookSignature(rawBody, signature, webhookSecret)) {
-      res.status(400).json({
-        success: false,
-        message: 'Invalid webhook signature',
-      });
-      return;
-    }
-
-    const event = JSON.parse(rawBody.toString('utf8'));
-    const eventName = event.event;
-    const subscriptionEntity = event.payload?.subscription?.entity || null;
-    const paymentEntity = event.payload?.payment?.entity || null;
-    const invoiceEntity = event.payload?.invoice?.entity || null;
-    const gatewaySubscriptionId =
-      subscriptionEntity?.id ||
-      paymentEntity?.subscription_id ||
-      invoiceEntity?.subscription_id;
-
-    if (!gatewaySubscriptionId) {
-      res.status(200).json({ success: true, ignored: true });
-      return;
-    }
-
-    if (subscriptionEntity) {
-      await updateAutoRenewStatus(gatewaySubscriptionId, subscriptionEntity);
-    }
-
-    if (
-      paymentEntity &&
-      ['subscription.charged', 'payment.captured', 'invoice.paid'].includes(eventName)
-    ) {
-      const pendingPayment = await SubscriptionPayment.findOne({
-        gatewaySubscriptionId,
-        paymentStatus: PaymentStatus.PENDING,
-      }).sort({ createdAt: -1 });
-
-      if (pendingPayment) {
-        await activatePendingAutoRenewPayment(
-          pendingPayment,
-          paymentEntity,
-          subscriptionEntity,
-          eventId,
-        );
-      } else {
-        await applyAutoRenewalCycle(
-          gatewaySubscriptionId,
-          paymentEntity,
-          eventId,
-          subscriptionEntity,
-        );
-      }
-    }
-
-    if (paymentEntity && eventName === 'payment.failed') {
-      await SubscriptionPayment.findOneAndUpdate(
-        {
-          gatewaySubscriptionId,
-          paymentStatus: PaymentStatus.PENDING,
-        },
-        {
-          $set: {
-            paymentStatus: PaymentStatus.FAILED,
-            gatewayPaymentId: paymentEntity.id,
-            gatewayEventId: eventId,
-            metadata: {
-              failureReason: paymentEntity.error_description,
-              errorCode: paymentEntity.error_code,
-            },
-          },
-        },
-      );
-    }
-
-    res.status(200).json({ success: true });
+    const result = await processRazorpayWebhook(rawBody, signature, eventId);
+    res.status(result.statusCode).json(result.body);
   } catch (error) {
     next(error);
   }

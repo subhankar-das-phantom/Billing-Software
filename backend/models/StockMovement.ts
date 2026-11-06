@@ -4,6 +4,9 @@ export interface IStockMovement extends Document {
   tenantId: mongoose.Types.ObjectId;
   productId: mongoose.Types.ObjectId;
   batchId: mongoose.Types.ObjectId | null;
+  storeId?: string | null;
+  branchId?: string | null;
+  warehouseLocation?: string | null;
   type: 'PURCHASE' | 'OPENING_STOCK' | 'MANUAL_ADJUSTMENT_IN' | 'MANUAL_ADJUSTMENT_OUT' | 'SALE' | 'SALE_REVERSAL' | 'SALE_RETURN' | 'PURCHASE_RETURN';
   quantity: number;
   rate: number;
@@ -35,6 +38,24 @@ const stockMovementSchema = new Schema<IStockMovement>(
     batchId: {
       type: Schema.Types.ObjectId,
       ref: 'Batch',
+      default: null,
+      index: true
+    },
+    storeId: {
+      type: String,
+      trim: true,
+      default: null,
+      index: true
+    },
+    branchId: {
+      type: String,
+      trim: true,
+      default: null,
+      index: true
+    },
+    warehouseLocation: {
+      type: String,
+      trim: true,
       default: null,
       index: true
     },
@@ -94,6 +115,9 @@ stockMovementSchema.index({ tenantId: 1, batchId: 1, createdAt: -1 });
 stockMovementSchema.index({ tenantId: 1, type: 1, createdAt: -1 });
 stockMovementSchema.index({ tenantId: 1, createdAt: -1 });
 stockMovementSchema.index({ tenantId: 1, referenceType: 1, referenceId: 1 });
+stockMovementSchema.index({ tenantId: 1, storeId: 1, createdAt: -1 });
+stockMovementSchema.index({ tenantId: 1, branchId: 1, createdAt: -1 });
+stockMovementSchema.index({ tenantId: 1, warehouseLocation: 1 });
 
 const StockMovement: Model<IStockMovement> = mongoose.model<IStockMovement>('StockMovement', stockMovementSchema);
 export default StockMovement;

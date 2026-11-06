@@ -132,6 +132,23 @@ if (process.env.NODE_ENV === 'development') {
 const verifyRequestOrigin = require('./middleware/csrfProtection');
 app.use(verifyRequestOrigin);
 
+// Enforce diagnostic support session bounds across business plane (anti-impersonation & read-only gating)
+const { enforceSupportSessionBounds } = require('../admin/backend/middleware/supportSessionMiddleware');
+app.use('/api', (req, res, next) => {
+  if (
+    req.supportSession ||
+    req.headers['x-support-session-code'] ||
+    req.headers['x-support-session-id'] ||
+    req.query?.supportSessionCode ||
+    req.query?.supportSessionId ||
+    req.body?.supportSessionCode ||
+    req.body?.supportSessionId
+  ) {
+    return enforceSupportSessionBounds(req, res, next);
+  }
+  next();
+});
+
 // Mount routes with rate limiting
 app.use('/api/auth', authLimiter, require('./routes/auth'));
 app.use('/api/employees', generalLimiter, require('./routes/employees'));

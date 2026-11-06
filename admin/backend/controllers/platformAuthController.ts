@@ -6,9 +6,10 @@
 import { Response } from 'express';
 import * as platformAuthService from '../auth/platformAuthService';
 import * as mfaService from '../auth/mfaService';
-import { getPlatformCookieOptions } from '../middleware/platformAuthMiddleware';
+import { getPlatformCookieOptions, requirePlatformAuth } from '../middleware/platformAuthMiddleware';
 import PlatformUser from '../models/PlatformUser';
 import { PlatformRequest } from '../types';
+import { extractClientIp } from '../utils/clientIp';
 
 /**
  * POST /api/platform/auth/login
@@ -16,7 +17,7 @@ import { PlatformRequest } from '../types';
 export async function login(req: PlatformRequest, res: Response): Promise<void> {
   try {
     const { email, password } = req.body || {};
-    const ipAddress = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '';
+    const ipAddress = extractClientIp(req);
     const userAgent = req.headers['user-agent'] || '';
 
     const result = await platformAuthService.login(email, password, ipAddress, userAgent);
@@ -39,6 +40,7 @@ export async function login(req: PlatformRequest, res: Response): Promise<void> 
       mfaRequired: false,
       user: result.user,
       session: result.session,
+      token: result.token,
     });
   } catch (error: any) {
     const status = error.statusCode || 401;
@@ -46,6 +48,7 @@ export async function login(req: PlatformRequest, res: Response): Promise<void> 
       success: false,
       error: error.message || 'Login failed',
       code: error.code,
+      isLocked: Boolean(error.isLocked || status === 423),
     });
   }
 }
@@ -56,29 +59,56 @@ export async function login(req: PlatformRequest, res: Response): Promise<void> 
 export async function verifyMfa(req: PlatformRequest, res: Response): Promise<void> {
   try {
     const { mfaPendingToken, code, isBackupCode } = req.body || {};
-    const ipAddress = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '';
+    const ipAddress = extractClientIp(req);
     const userAgent = req.headers['user-agent'] || '';
 
-    const result = await platformAuthService.verifyMfaAndLogin(
-      mfaPendingToken,
-      code,
-      Boolean(isBackupCode),
-      ipAddress,
-      userAgent
-    );
+    // 1. If mfaPendingToken is provided, complete 2FA login challenge
+    if (mfaPendingToken) {
+      const result = await platformAuthService.verifyMfaAndLogin(
+        mfaPendingToken,
+        code,
+        Boolean(isBackupCode),
+        ipAddress,
+        userAgent
+      );
 
-    res.cookie('platform_token', result.token, getPlatformCookieOptions());
+      res.cookie('platform_token', result.token, getPlatformCookieOptions());
 
-    res.status(200).json({
-      success: true,
-      user: result.user,
-      session: result.session,
+      res.status(200).json({
+        success: true,
+        user: result.user,
+        session: result.session,
+        token: result.token,
+      });
+      return;
+    }
+
+    // 2. If mfaPendingToken is not provided, check if an authenticated operator is confirming MFA setup
+    if (!req.platformUser && (req.cookies?.platform_token || req.headers.authorization)) {
+      await new Promise<void>((resolve, reject) => {
+        requirePlatformAuth(req, res, (err?: any) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+      if (res.headersSent) return;
+    }
+
+    if (req.platformUser) {
+      return await enableMfa(req, res);
+    }
+
+    res.status(400).json({
+      success: false,
+      error: 'MFA token and verification code are required',
     });
   } catch (error: any) {
     const status = error.statusCode || 401;
     res.status(status).json({
       success: false,
       error: error.message || 'MFA verification failed',
+      code: error.code,
+      isLocked: Boolean(error.isLocked || status === 423),
     });
   }
 }

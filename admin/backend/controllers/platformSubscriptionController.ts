@@ -17,7 +17,23 @@ import {
   suspendSubscription as suspendSubscriptionDomain,
   resumeSubscription as resumeSubscriptionDomain,
 } from '../../../backend/saas/services/subscriptionService';
+import {
+  reconcilePayment as reconcilePaymentDomain,
+  handleRazorpayWebhook as handleRazorpayWebhookDomain,
+  processRazorpayWebhook,
+  verifyWebhookSignature,
+  verifyPaymentSignature,
+  timingSafeCompare,
+} from '../services/platformSubscriptionService';
 import { resolveEffectiveFeatures } from '../services/featureOverrideService';
+export {
+  handleRazorpayWebhookDomain as handleRazorpayWebhook,
+  processRazorpayWebhook,
+  verifyWebhookSignature,
+  verifyPaymentSignature,
+  timingSafeCompare,
+};
+import { invalidatePlatformDashboardCache } from '../queries/dashboardQueries';
 import { logPlatformAudit } from '../services/platformAuditService';
 import {
   PlatformRequest,
@@ -139,14 +155,14 @@ export async function listSubscriptions(
 
     const now = new Date();
     const formatted = subscriptions.map((sub) => {
-      const expiresAt = new Date(sub.expiresAt);
-      const daysRemaining = Math.max(
-        0,
-        Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
-      );
+      const expiresAt = sub.expiresAt ? new Date(sub.expiresAt) : null;
+      const expiryTime = expiresAt && !isNaN(expiresAt.getTime()) ? expiresAt.getTime() : 0;
+      const daysRemaining = expiryTime > 0
+        ? Math.max(0, Math.ceil((expiryTime - now.getTime()) / (1000 * 60 * 60 * 24)))
+        : 0;
       const isGrace =
         sub.status === SubscriptionStatus.GRACE ||
-        (now > expiresAt && new Date(sub.graceUntil) >= now);
+        (now.getTime() > expiryTime && sub.graceUntil && new Date(sub.graceUntil) >= now);
 
       return {
         ...sub,
@@ -224,11 +240,11 @@ export async function getSubscriptionById(
       ]);
 
     const now = new Date();
-    const expiresAt = new Date(subscription.expiresAt);
-    const daysRemaining = Math.max(
-      0,
-      Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
-    );
+    const expiresAt = subscription.expiresAt ? new Date(subscription.expiresAt) : null;
+    const expiryTime = expiresAt && !isNaN(expiresAt.getTime()) ? expiresAt.getTime() : 0;
+    const daysRemaining = expiryTime > 0
+      ? Math.max(0, Math.ceil((expiryTime - now.getTime()) / (1000 * 60 * 60 * 24)))
+      : 0;
 
     res.status(200).json({
       success: true,
@@ -240,7 +256,7 @@ export async function getSubscriptionById(
           daysRemaining,
           isGrace:
             subscription.status === SubscriptionStatus.GRACE ||
-            (now > expiresAt && new Date(subscription.graceUntil) >= now),
+            (now.getTime() > expiryTime && subscription.graceUntil && new Date(subscription.graceUntil) >= now),
         },
         payments,
         adjustments,
@@ -322,6 +338,8 @@ export async function activateSubscription(
       manualPayment._id.toString(),
       { autoRenew: false },
     );
+
+    invalidatePlatformDashboardCache();
 
     // Audit logging
     await logPlatformAudit({
@@ -408,6 +426,8 @@ export async function adjustSubscription(
       operator?._id ? operator._id.toString() : tenantId.toString(),
     );
 
+    invalidatePlatformDashboardCache();
+
     await logPlatformAudit({
       actorId: operator?._id || null,
       actorEmail: operator?.email || 'platform@bharatenterprise.com',
@@ -493,6 +513,8 @@ export async function toggleSubscriptionStatus(
       });
     }
 
+    invalidatePlatformDashboardCache();
+
     res.status(200).json({
       success: true,
       message: `Subscription ${action}ed successfully`,
@@ -516,128 +538,11 @@ export async function reconcilePayment(
     const { paymentId, reason } = req.body;
     const operator = req.platformUser;
 
-    if (!paymentId || typeof paymentId !== 'string' || paymentId.trim().length === 0) {
-      res.status(400).json({ success: false, message: 'Valid payment ID is required' });
-      return;
-    }
-
-    if (!reason || typeof reason !== 'string' || reason.trim().length < 10) {
-      res.status(400).json({
-        success: false,
-        message: 'A valid operational reason (minimum 10 characters) is required',
-      });
-      return;
-    }
-
-    const cleanPaymentId = paymentId.trim();
-
-    // ─── Phase 1: Verify Payment Existence & Gateway Status ───────
-    const query = Types.ObjectId.isValid(cleanPaymentId)
-      ? { $or: [{ _id: new Types.ObjectId(cleanPaymentId) }, { gatewayPaymentId: cleanPaymentId }] }
-      : { gatewayPaymentId: cleanPaymentId };
-
-    const existingPayment = await SubscriptionPayment.findOne(query).lean();
-    if (!existingPayment) {
-      res.status(404).json({ success: false, message: 'Subscription payment record not found' });
-      return;
-    }
-
-    if (existingPayment.paymentStatus === PaymentStatus.COMPLETED) {
-      res.status(200).json({
-        success: true,
-        message: 'Payment has already been completed and reconciled',
-        data: { payment: existingPayment },
-      });
-      return;
-    }
-
-    // If Razorpay payment, query gateway API if available
-    const razorpay = getRazorpayInstance();
-    if (
-      existingPayment.paymentGateway === PaymentGateway.RAZORPAY &&
-      existingPayment.gatewayPaymentId &&
-      razorpay
-    ) {
-      try {
-        const remotePayment = await razorpay.payments.fetch(existingPayment.gatewayPaymentId);
-        if (remotePayment.status !== 'captured') {
-          res.status(400).json({
-            success: false,
-            message: `Gateway payment status is "${remotePayment.status}", not "captured". Cannot reconcile incomplete payment.`,
-          });
-          return;
-        }
-      } catch (err: any) {
-        // If fetch fails with 404 or auth error, report it
-        res.status(502).json({
-          success: false,
-          message: `Razorpay verification failed: ${err.message || 'Gateway query error'}`,
-        });
-        return;
-      }
-    }
-
-    // ─── Phase 2: Atomically Claim & Reconcile Payment ─────────────
-    const claimedPayment = await SubscriptionPayment.findOneAndUpdate(
-      {
-        _id: existingPayment._id,
-        paymentStatus: { $ne: PaymentStatus.COMPLETED },
-      },
-      {
-        $set: {
-          paymentStatus: PaymentStatus.COMPLETED,
-          paidAt: new Date(),
-          'metadata.reconciledAt': new Date(),
-          'metadata.reconciledBy': operator?._id,
-          'metadata.reconcileReason': reason,
-        },
-      },
-      { new: true },
-    );
-
-    if (!claimedPayment) {
-      res.status(409).json({
-        success: false,
-        message: 'Payment was already reconciled concurrently by another process',
-      });
-      return;
-    }
-
-    // Activate subscription linked to this claimed payment
-    const activation = await activateSubscriptionDomain(
-      claimedPayment.tenantId.toString(),
-      claimedPayment.planId.toString(),
-      claimedPayment.durationMonths,
-      claimedPayment._id.toString(),
-      { autoRenew: false },
-    );
-
-    // Audit log
-    await logPlatformAudit({
-      actorId: operator?._id || null,
-      actorEmail: operator?.email || 'platform@bharatenterprise.com',
-      actorRole: operator?.role || 'PLATFORM_ADMIN',
-      action: 'SUBSCRIPTION.PAYMENT_RECONCILED',
-      targetType: 'SubscriptionPayment',
-      targetId: claimedPayment._id.toString(),
-      targetTenantId: claimedPayment.tenantId,
-      reason,
-      before: { paymentStatus: existingPayment.paymentStatus },
-      after: {
-        paymentStatus: claimedPayment.paymentStatus,
-        subscriptionId: activation.subscription._id,
-        paidAt: claimedPayment.paidAt,
-      },
-      severity: 'WARNING',
-    });
-
-    res.status(200).json({
-      success: true,
-      message: 'Payment reconciled and subscription activated successfully',
-      data: {
-        payment: claimedPayment,
-        subscription: activation.subscription,
-      },
+    const result = await reconcilePaymentDomain(paymentId, reason, operator);
+    res.status(result.statusCode).json({
+      success: result.success,
+      message: result.message,
+      data: result.data,
     });
   } catch (error) {
     next(error);

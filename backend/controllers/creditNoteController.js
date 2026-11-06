@@ -9,44 +9,53 @@ const { getAttribution } = require('../middleware/auth');
 const getTenantId = require('../utils/getTenantId');
 const Batch = require('../models/Batch');
 const inventoryService = require('../services/inventoryService');
+const invoiceService = require('../services/invoiceService').default || require('../services/invoiceService');
 
 // @desc    Create credit note (sales return)
 // @route   POST /api/credit-notes
 // @access  Private
 exports.createCreditNote = async (req, res, next) => {
+  const { invoiceId, items, reason } = req.body;
+  const tenantId = getTenantId(req);
+
+  // 1. Validate invoice exists and belongs strictly to authenticated tenant (pre-transaction BOLA guard)
+  const invoice = await Invoice.findOne({
+    _id: invoiceId,
+    tenantId
+  });
+  if (!invoice) {
+    return res.status(404).json({
+      success: false,
+      message: 'Invoice not found'
+    });
+  }
+
+  if (invoice.status === 'Cancelled') {
+    return res.status(400).json({
+      success: false,
+      message: 'Cannot create credit note for a cancelled invoice'
+    });
+  }
+
   const session = await mongoose.startSession();
-  session.startTransaction();
+  let hasActiveTransaction = false;
+  try {
+    session.startTransaction();
+    hasActiveTransaction = true;
+  } catch {
+    // Standalone MongoDB without replica set
+  }
 
   try {
-    const { invoiceId, items, reason } = req.body;
-    const tenantId = getTenantId(req);
-
     const tenant = await Admin.findById(tenantId).select('preferences').lean();
     const enableBatchTracking = tenant?.preferences?.enableBatchTracking === true;
 
-    // 1. Validate invoice
-    const invoice = await Invoice.findOne({
-      _id: invoiceId,
-      tenantId
-    }).session(session);
-    if (!invoice) {
-      await session.abortTransaction();
-      return res.status(404).json({
-        success: false,
-        message: 'Invoice not found'
-      });
-    }
-
-    if (invoice.status === 'Cancelled') {
-      await session.abortTransaction();
-      return res.status(400).json({
-        success: false,
-        message: 'Cannot create credit note for a cancelled invoice'
-      });
-    }
-
     // 2. Get existing credit notes for this invoice to check already-returned quantities
-    const existingCreditNotes = await CreditNote.find({ invoiceId, tenantId }).session(session);
+    const existingCreditNotesQuery = CreditNote.find({ invoiceId, tenantId });
+    if (hasActiveTransaction) {
+      existingCreditNotesQuery.session(session);
+    }
+    const existingCreditNotes = await existingCreditNotesQuery;
     const alreadyReturned = {};
     for (const cn of existingCreditNotes) {
       for (const item of cn.items) {
@@ -129,14 +138,7 @@ exports.createCreditNote = async (req, res, next) => {
     }
 
     // 4. Generate credit note number upfront so audit records carry the final ID
-    const lastCN = await CreditNote.findOne({ tenantId }).sort({ createdAt: -1 }).session(session);
-    let creditNoteNumber;
-    if (lastCN && lastCN.creditNoteNumber) {
-      const lastNum = parseInt(lastCN.creditNoteNumber.split('-').pop());
-      creditNoteNumber = `CN-${new Date().getFullYear()}-${String(isNaN(lastNum) ? 1 : lastNum + 1).padStart(4, '0')}`;
-    } else {
-      creditNoteNumber = `CN-${new Date().getFullYear()}-0001`;
-    }
+    const creditNoteNumber = await invoiceService.generateNextCreditNoteNumber(tenantId);
 
     const attribution = getAttribution(req);
 
@@ -266,14 +268,20 @@ exports.createCreditNote = async (req, res, next) => {
       { session }
     );
 
-    await session.commitTransaction();
+    if (hasActiveTransaction) {
+      await session.commitTransaction();
+    }
 
     res.status(201).json({
       success: true,
       creditNote: creditNote[0]
     });
   } catch (error) {
-    await session.abortTransaction();
+    if (hasActiveTransaction) {
+      try {
+        await session.abortTransaction();
+      } catch {}
+    }
     next(error);
   } finally {
     session.endSession();

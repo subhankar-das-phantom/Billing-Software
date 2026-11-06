@@ -2,21 +2,25 @@
  * Bharat Enterprise Billing System — Platform Control Plane Dashboard
  * High-density executive overview, cross-tenant telemetry, contracted MRR tracking,
  * subscription lifecycle distribution, and tamper-evident audit inspection.
+ *
+ * Modularized Architecture:
+ * - DashboardHero: Indian financial context (Q3 FY2026-27), live sync pulse, time horizon pills, primary CTAs.
+ * - DashboardKPIGrid: 5-card bento grid with exact paise precision (MRR, Tenants, Revenue, Diagnostics, Audit).
+ * - LiveCalendarClock: Isolated leaf component preventing whole-tree timer re-rendering.
+ * - Subscription Lifecycle & Churn Breakdown.
+ * - Administrative Quick Actions & Real-Time Telemetry Diagnostic Matrix.
+ * - Recent Keyset Cryptographic Audit Stream with full state inspection modals.
  */
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Building2,
-  TrendingUp,
-  Activity,
   ShieldCheck,
   RefreshCw,
   UserPlus,
   Headphones,
   Sliders,
-  Clock,
   Database,
   Server,
   Layers,
@@ -31,7 +35,6 @@ import {
   Zap,
 } from 'lucide-react';
 import api from '../services/api';
-import CurrencyDisplay from '../components/common/CurrencyDisplay';
 import StatusBadge, { StatusVariant } from '../components/common/StatusBadge';
 import Modal from '../components/common/Modal';
 import { usePlatformAuth } from '../contexts/PlatformAuthContext';
@@ -42,7 +45,11 @@ import {
   type AuditLog,
   type AuditSeverity,
   type TenantListItemDTO,
+  type ActiveSupportSession,
 } from '../types';
+import DashboardHero, { DashboardTimeHorizon } from '../components/dashboard/DashboardHero';
+import DashboardKPIGrid from '../components/dashboard/DashboardKPIGrid';
+import LiveCalendarClock from '../components/dashboard/LiveCalendarClock';
 
 // Helper to determine semantic badge color based on audit action
 function getActionBadgeVariant(action: string): StatusVariant {
@@ -81,63 +88,22 @@ export const DashboardPage: React.FC = () => {
   const canOnboardUsers = hasPermission(PlatformPermission.USERS_MANAGE);
   const canLaunchSupport = hasPermission(PlatformPermission.SUPPORT_START);
 
-  // ─── Live IST Clock State ───────────────────────────────────────
-  const [istTime, setIstTime] = useState<string>(() => {
-    return new Date().toLocaleTimeString('en-IN', {
-      timeZone: 'Asia/Kolkata',
-      hour12: false,
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
-  });
+  // Time horizon filter state
+  const [timeHorizon, setTimeHorizon] = useState<DashboardTimeHorizon>('Today');
 
-  const [istDate, setIstDate] = useState<string>(() => {
-    return new Date().toLocaleDateString('en-IN', {
-      timeZone: 'Asia/Kolkata',
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
-  });
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const now = new Date();
-      setIstTime(
-        now.toLocaleTimeString('en-IN', {
-          timeZone: 'Asia/Kolkata',
-          hour12: false,
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-        })
-      );
-      setIstDate(
-        now.toLocaleDateString('en-IN', {
-          timeZone: 'Asia/Kolkata',
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-        })
-      );
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  // ─── Modal States ──────────────────────────────────────────────
+  // Modal States
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [selectedAuditLog, setSelectedAuditLog] = useState<AuditLog | null>(null);
 
-  // ─── Quick Support Session Form State ──────────────────────────
+  // Quick Support Session Form State
   const [supportTenantId, setSupportTenantId] = useState('');
   const [supportReason, setSupportReason] = useState('');
   const [supportDuration, setSupportDuration] = useState(2);
   const [supportIsSubmitting, setSupportIsSubmitting] = useState(false);
   const [supportError, setSupportError] = useState<string | null>(null);
 
-  // ─── Quick Platform User Form State ────────────────────────────
+  // Quick Platform User Form State
   const [userFullName, setUserFullName] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [userPassword, setUserPassword] = useState('');
@@ -199,7 +165,42 @@ export const DashboardPage: React.FC = () => {
     staleTime: 60000,
   });
 
-  // ─── 4. Query: Optional Tenant List for Support Launcher ────────
+  // ─── 4. Query: Active Support Sessions Count ────────────────────
+  const { data: activeSupportSession } = useQuery({
+    queryKey: ['platform-support-active-session-summary'],
+    queryFn: async () => {
+      try {
+        const res = await api.get<{ success: boolean; data: ActiveSupportSession | null }>(
+          '/support/sessions/active'
+        );
+        return res.data.data;
+      } catch {
+        return null;
+      }
+    },
+    staleTime: 15000,
+  });
+
+  // ─── 5. Query: Emergency Bypass Status Check ───────────────────
+  const { data: featureOverridesData } = useQuery({
+    queryKey: ['platform-features-bypass-summary'],
+    queryFn: async () => {
+      try {
+        const res = await api.get<{
+          success: boolean;
+          data: {
+            effectiveAccess?: { emergencyBypassActive: boolean };
+          };
+        }>('/features');
+        return res.data.data;
+      } catch {
+        return null;
+      }
+    },
+    staleTime: 30000,
+  });
+
+  // ─── 6. Query: Optional Tenant List for Support Launcher ────────
   const { data: tenantCandidates } = useQuery({
     queryKey: ['platform-tenants-quick-candidates'],
     queryFn: async () => {
@@ -221,6 +222,8 @@ export const DashboardPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['platform-dashboard-overview'] }),
       queryClient.invalidateQueries({ queryKey: ['platform-audit-recent'] }),
       queryClient.invalidateQueries({ queryKey: ['platform-audit-verify'] }),
+      queryClient.invalidateQueries({ queryKey: ['platform-support-active-session-summary'] }),
+      queryClient.invalidateQueries({ queryKey: ['platform-features-bypass-summary'] }),
     ]);
   }, [refetchOverview, refetchAudit, refetchVerify, queryClient]);
 
@@ -333,178 +336,43 @@ export const DashboardPage: React.FC = () => {
     return Math.floor(diff / 1000);
   }, [overviewData?.systemHealth?.cacheTimestamp]);
 
+  const latestAuditSequence = recentAuditLogs?.[0]?.sequence ?? 0;
+  const activeEmergencyBypassCount = featureOverridesData?.effectiveAccess?.emergencyBypassActive ? 1 : 0;
+  const activeSupportSessionsCount = activeSupportSession ? 1 : 0;
+
   return (
     <div className="space-y-6">
       {/* ═══════════════════════════════════════════════════════════════
-          HEADER: Platform Telemetry & Live Controls
+          MODULE 1: DASHBOARD COMMAND HERO
+          Indian financial calendar context, live sync indicator, time horizon, and CTAs
           ═══════════════════════════════════════════════════════════════ */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-4 border-b border-slate-800">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-xl font-bold text-slate-100 tracking-tight">Platform Control Plane & Telemetry</h1>
-            <span className="px-2 py-0.5 text-[10px] font-mono uppercase bg-slate-800 text-cyan-400 border border-slate-700/80 rounded-sm">
-              SUPER ADMIN
-            </span>
-          </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Real-time cross-tenant health, contracted MRR, system telemetry, and cryptographically verified audit trails.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2.5">
-          {/* System Cluster Status */}
-          <StatusBadge
-            variant={overviewData?.systemHealth?.status === 'HEALTHY' ? 'emerald' : 'amber'}
-            label={overviewData?.systemHealth?.status ? `CLUSTER: ${overviewData.systemHealth.status}` : 'CLUSTER: ONLINE'}
-            dot
-            pulse={overviewData?.systemHealth?.status === 'DEGRADED'}
-          />
-
-          {/* Cryptographic Hash Chain Status Badge */}
-          <StatusBadge
-            variant={verificationData?.valid === false ? 'rose' : 'emerald'}
-            label={
-              verificationData?.valid === false
-                ? 'CHAIN FRACTURE'
-                : isVerifyLoading
-                ? 'VERIFYING...'
-                : 'HASH CHAIN VERIFIED'
-            }
-            dot
-          />
-
-          {/* Refresh Telemetry Button */}
-          <button
-            type="button"
-            onClick={handleRefreshAll}
-            disabled={isRefreshingAll}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/80 hover:border-slate-600 transition-all shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Bypass 30s TTL cache and force immediate parallel database re-scan"
-          >
-            <RefreshCw
-              className={`w-3.5 h-3.5 text-cyan-400 ${isRefreshingAll ? 'animate-spin' : ''}`}
-            />
-            <span className="font-mono">{isRefreshingAll ? 'Scanning...' : 'Refresh Telemetry'}</span>
-          </button>
-        </div>
-      </div>
+      <DashboardHero
+        timeHorizon={timeHorizon}
+        onTimeHorizonChange={setTimeHorizon}
+        isSyncing={isRefreshingAll}
+        onRefresh={handleRefreshAll}
+        onOpenOnboardModal={() => setIsUserModalOpen(true)}
+        onOpenDiagnosticModal={() => setIsSupportModalOpen(true)}
+        canOnboardTenant={canOnboardUsers}
+        canStartDiagnostic={canLaunchSupport}
+        clusterStatus={overviewData?.systemHealth?.status ?? 'HEALTHY'}
+      />
 
       {/* ═══════════════════════════════════════════════════════════════
-          SECTION 1: TOP KPI SUMMARY STRIP (4 High-Density Metric Cards)
+          MODULE 2: 5-CARD HIGH-DENSITY BENTO KPI GRID
+          Contracted MRR, Active Tenants, Today's Revenue, Support Diagnostics, Cryptographic Audit
           ═══════════════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Total Registered Tenants */}
-        <div className="p-4 bg-slate-900 border border-slate-800/90 rounded-xl space-y-2.5 shadow-xs hover:border-slate-700/80 transition-colors">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-medium">Total Registered Tenants</span>
-            <div className="w-7 h-7 rounded-lg bg-cyan-950/60 border border-cyan-800/60 flex items-center justify-center">
-              <Building2 className="w-3.5 h-3.5 text-cyan-400" />
-            </div>
-          </div>
-          <div className="text-2xl font-bold font-mono text-slate-100 tracking-tight">
-            {isOverviewLoading ? '—' : totalTenantCount}
-          </div>
-          <div className="flex items-center justify-between text-[11px] text-slate-400 pt-0.5 border-t border-slate-800/60">
-            <div className="flex items-center gap-2">
-              <span className="text-emerald-400 font-mono font-medium">{activeCount}</span> active
-              <span>•</span>
-              <span className="text-amber-400 font-mono font-medium">{trialCount}</span> trial
-              <span>•</span>
-              <span className="text-rose-400 font-mono font-medium">{suspendedCount}</span> suspended
-            </div>
-            <Link
-              to="/tenants"
-              className="text-cyan-400 hover:text-cyan-300 font-mono text-[10px] flex items-center gap-0.5"
-            >
-              List <ArrowRight className="w-2.5 h-2.5" />
-            </Link>
-          </div>
-        </div>
-
-        {/* Card 2: Contracted MRR (Monthly Recurring Revenue) */}
-        <div className="p-4 bg-slate-900 border border-slate-800/90 rounded-xl space-y-2.5 shadow-xs hover:border-slate-700/80 transition-colors">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-medium">Contracted MRR</span>
-            <div className="w-7 h-7 rounded-lg bg-emerald-950/60 border border-emerald-800/60 flex items-center justify-center">
-              <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
-            </div>
-          </div>
-          <div>
-            <CurrencyDisplay
-              amount={overviewData?.mrr?.contractedMRR ?? 0}
-              size="2xl"
-              decimals={2}
-              className="text-emerald-400"
-            />
-          </div>
-          <div className="flex items-center justify-between text-[11px] text-slate-400 pt-0.5 border-t border-slate-800/60">
-            <div className="font-mono">
-              ARR: <CurrencyDisplay amount={overviewData?.mrr?.arr ?? 0} size="sm" decimals={2} className="text-slate-200" />
-            </div>
-            <span className="font-mono text-[10px] text-slate-500">
-              {overviewData?.mrr?.activeSubscriptionsCount ?? 0} plans
-            </span>
-          </div>
-        </div>
-
-        {/* Card 3: Today's Revenue & Collections */}
-        <div className="p-4 bg-slate-900 border border-slate-800/90 rounded-xl space-y-2.5 shadow-xs hover:border-slate-700/80 transition-colors">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-medium">Collected Today (IST)</span>
-            <div className="w-7 h-7 rounded-lg bg-purple-950/60 border border-purple-800/60 flex items-center justify-center">
-              <Activity className="w-3.5 h-3.5 text-purple-400" />
-            </div>
-          </div>
-          <div>
-            <CurrencyDisplay
-              amount={overviewData?.revenue?.today ?? 0}
-              size="2xl"
-              decimals={2}
-              className="text-slate-100"
-            />
-          </div>
-          <div className="flex items-center justify-between text-[11px] text-slate-400 pt-0.5 border-t border-slate-800/60">
-            <div className="font-mono text-slate-300">
-              <span className="text-emerald-400 font-semibold">{overviewData?.revenue?.todayPaymentsCount ?? 0}</span> payments
-            </div>
-            <div className="font-mono text-[10px] text-slate-400 truncate">
-              MTD: <CurrencyDisplay amount={overviewData?.revenue?.thisMonth ?? 0} size="sm" decimals={2} />
-            </div>
-          </div>
-        </div>
-
-        {/* Card 4: Cryptographic Hash Chain Status */}
-        <div className="p-4 bg-slate-900 border border-slate-800/90 rounded-xl space-y-2.5 shadow-xs hover:border-slate-700/80 transition-colors">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-medium">Cryptographic Audit Chain</span>
-            <div className="w-7 h-7 rounded-lg bg-cyan-950/60 border border-cyan-800/60 flex items-center justify-center">
-              <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
-            </div>
-          </div>
-          <div className="flex items-center gap-2 pt-0.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0 shadow-sm shadow-emerald-400/50" />
-            <span className="text-sm font-bold font-mono text-emerald-400 tracking-tight">
-              {verificationData?.valid === false ? 'CHAIN FRACTURE DETECTED' : 'CHAIN INTEGRITY 100%'}
-            </span>
-          </div>
-          <div className="flex items-center justify-between text-[11px] text-slate-400 pt-0.5 border-t border-slate-800/60">
-            <span className="font-mono text-[10px] text-slate-400">
-              {verificationData?.verifiedCount !== undefined
-                ? `${verificationData.verifiedCount} blocks verified`
-                : 'Zero fractures detected'}
-            </span>
-            <Link
-              to="/audit"
-              className="text-cyan-400 hover:text-cyan-300 font-mono text-[10px] flex items-center gap-0.5"
-            >
-              Verify <ArrowRight className="w-2.5 h-2.5" />
-            </Link>
-          </div>
-        </div>
-      </div>
+      <DashboardKPIGrid
+        overviewData={overviewData}
+        verificationData={verificationData}
+        activeSupportSessionsCount={activeSupportSessionsCount}
+        activeEmergencyBypassCount={activeEmergencyBypassCount}
+        latestAuditSequence={latestAuditSequence}
+        isLoading={isOverviewLoading || isVerifyLoading}
+      />
 
       {/* ═══════════════════════════════════════════════════════════════
-          SECTION 2: PLAN & SUBSCRIPTION HEALTH BREAKDOWN
+          MODULE 3: PLAN & SUBSCRIPTION HEALTH BREAKDOWN
           ═══════════════════════════════════════════════════════════════ */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -643,7 +511,7 @@ export const DashboardPage: React.FC = () => {
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════
-          SECTION 3: MIDDLE GRID (Quick Actions + Telemetry Diagnostics)
+          MODULE 4: QUICK ACTIONS + TELEMETRY DIAGNOSTICS
           ═══════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Column: Quick Actions Panel */}
@@ -668,7 +536,7 @@ export const DashboardPage: React.FC = () => {
               onClick={() => setIsUserModalOpen(true)}
               disabled={!canOnboardUsers}
               title={canOnboardUsers ? 'Onboard new operator' : 'Requires USERS_MANAGE permission'}
-              className={`p-3 rounded-lg border text-left transition-all group flex items-start gap-3 cursor-pointer ${
+              className={`p-3 rounded-lg border text-left transition-all group flex items-start gap-3 cursor-pointer min-h-[44px] ${
                 canOnboardUsers
                   ? 'bg-slate-950/70 hover:bg-slate-800/80 border-slate-800 hover:border-slate-700'
                   : 'bg-slate-950/40 border-slate-800/50 opacity-60 cursor-not-allowed'
@@ -693,7 +561,7 @@ export const DashboardPage: React.FC = () => {
               onClick={() => setIsSupportModalOpen(true)}
               disabled={!canLaunchSupport}
               title={canLaunchSupport ? 'Launch diagnostic support session' : 'Requires SUPPORT_START permission'}
-              className={`p-3 rounded-lg border text-left transition-all group flex items-start gap-3 cursor-pointer ${
+              className={`p-3 rounded-lg border text-left transition-all group flex items-start gap-3 cursor-pointer min-h-[44px] ${
                 canLaunchSupport
                   ? 'bg-slate-950/70 hover:bg-slate-800/80 border-slate-800 hover:border-slate-700'
                   : 'bg-slate-950/40 border-slate-800/50 opacity-60 cursor-not-allowed'
@@ -715,7 +583,7 @@ export const DashboardPage: React.FC = () => {
             {/* Action 3: Inspect Audit Trail */}
             <Link
               to="/audit"
-              className="p-3 rounded-lg bg-slate-950/70 hover:bg-slate-800/80 border border-slate-800 hover:border-slate-700 text-left transition-all group flex items-start gap-3"
+              className="p-3 rounded-lg bg-slate-950/70 hover:bg-slate-800/80 border border-slate-800 hover:border-slate-700 text-left transition-all group flex items-start gap-3 min-h-[44px]"
             >
               <div className="p-2 rounded-md bg-emerald-950/60 border border-emerald-800/60 text-emerald-400 group-hover:text-emerald-300 shrink-0">
                 <ShieldCheck className="w-4 h-4" />
@@ -733,7 +601,7 @@ export const DashboardPage: React.FC = () => {
             {/* Action 4: Manage Feature Overrides */}
             <Link
               to="/features"
-              className="p-3 rounded-lg bg-slate-950/70 hover:bg-slate-800/80 border border-slate-800 hover:border-slate-700 text-left transition-all group flex items-start gap-3"
+              className="p-3 rounded-lg bg-slate-950/70 hover:bg-slate-800/80 border border-slate-800 hover:border-slate-700 text-left transition-all group flex items-start gap-3 min-h-[44px]"
             >
               <div className="p-2 rounded-md bg-purple-950/60 border border-purple-800/60 text-purple-400 group-hover:text-purple-300 shrink-0">
                 <Sliders className="w-4 h-4" />
@@ -756,7 +624,7 @@ export const DashboardPage: React.FC = () => {
               type="button"
               onClick={handleRefreshAll}
               disabled={isRefreshingAll}
-              className="text-cyan-400 hover:text-cyan-300 font-mono text-[11px] flex items-center gap-1 cursor-pointer disabled:opacity-50"
+              className="text-cyan-400 hover:text-cyan-300 font-mono text-[11px] flex items-center gap-1 cursor-pointer disabled:opacity-50 min-h-[32px]"
             >
               <RefreshCw className={`w-3 h-3 ${isRefreshingAll ? 'animate-spin' : ''}`} />
               Re-scan DB
@@ -814,15 +682,12 @@ export const DashboardPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Current IST Timestamp Clock */}
+            {/* Isolated Live IST Clock Leaf (Zero Re-render on page tree) */}
             <div className="py-2 flex items-center justify-between">
               <span className="text-slate-400 flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-slate-500" /> Indian Standard Time (IST)
+                <LiveCalendarClock showIcon={true} showDate={true} />
               </span>
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-cyan-400 font-semibold">{istTime}</span>
-                <span className="text-[11px] font-mono text-slate-400">({istDate})</span>
-              </div>
+              <span className="text-[10px] font-mono uppercase text-slate-500">Live Tick</span>
             </div>
 
             {/* Cryptographic Standard */}
@@ -847,7 +712,7 @@ export const DashboardPage: React.FC = () => {
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════
-          SECTION 4: RECENT PLATFORM ACTIVITY STREAM (Audit Logs limit=5)
+          MODULE 5: RECENT PLATFORM ACTIVITY STREAM (Audit Logs limit=5)
           ═══════════════════════════════════════════════════════════════ */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-xs space-y-0">
         <div className="p-4 border-b border-slate-800/90 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -1046,7 +911,7 @@ export const DashboardPage: React.FC = () => {
                     key={candidate.tenantId}
                     type="button"
                     onClick={() => setSupportTenantId(candidate.tenantId)}
-                    className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                    className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
                   >
                     {candidate.firmName}
                   </button>
@@ -1079,7 +944,7 @@ export const DashboardPage: React.FC = () => {
                   key={hours}
                   type="button"
                   onClick={() => setSupportDuration(hours)}
-                  className={`py-1.5 rounded-lg border font-mono text-xs transition-colors cursor-pointer ${
+                  className={`py-1.5 rounded-lg border font-mono text-xs transition-colors cursor-pointer min-h-[38px] ${
                     supportDuration === hours
                       ? 'bg-cyan-950/70 border-cyan-500/80 text-cyan-300 font-semibold'
                       : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
@@ -1096,14 +961,14 @@ export const DashboardPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsSupportModalOpen(false)}
-              className="px-4 py-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+              className="px-4 py-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors cursor-pointer min-h-[38px]"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={supportIsSubmitting}
-              className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+              className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-semibold transition-colors disabled:opacity-50 cursor-pointer min-h-[38px]"
             >
               {supportIsSubmitting ? 'Starting Session...' : 'Authorize Support Session'}
             </button>
@@ -1217,14 +1082,14 @@ export const DashboardPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsUserModalOpen(false)}
-                className="px-4 py-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+                className="px-4 py-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors cursor-pointer min-h-[38px]"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={userIsSubmitting}
-                className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+                className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-semibold transition-colors disabled:opacity-50 cursor-pointer min-h-[38px]"
               >
                 {userIsSubmitting ? 'Onboarding...' : 'Create Platform User'}
               </button>
@@ -1329,7 +1194,7 @@ export const DashboardPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setSelectedAuditLog(null)}
-                className="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-sans text-xs transition-colors"
+                className="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-sans text-xs transition-colors cursor-pointer min-h-[38px]"
               >
                 Close Record
               </button>

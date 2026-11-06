@@ -6,12 +6,13 @@
 import { Router } from 'express';
 import * as platformAuthController from '../controllers/platformAuthController';
 import { requirePlatformAuth, authenticatePlatform } from '../middleware/platformAuthMiddleware';
+import { platformAuthRateLimiter } from '../middleware/platformRateLimitMiddleware';
 
 const router = Router();
 
 // Public auth endpoints
-router.post('/login', platformAuthController.login);
-router.post('/mfa/verify', platformAuthController.verifyMfa);
+router.post('/login', platformAuthRateLimiter, platformAuthController.login);
+router.post('/mfa/verify', platformAuthRateLimiter, platformAuthController.verifyMfa);
 router.post('/logout', authenticatePlatform, platformAuthController.logout);
 
 // Protected endpoints requiring active platform session

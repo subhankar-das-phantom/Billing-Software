@@ -53,8 +53,21 @@ export const PlatformAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [user, setUser] = useState<PlatformUser | null>(() => {
     try {
       const cached = localStorage.getItem(USER_CACHE_STORAGE_KEY);
-      return cached ? (JSON.parse(cached) as PlatformUser) : null;
+      if (cached === null) return null;
+      if (!cached.trim()) {
+        localStorage.removeItem(USER_CACHE_STORAGE_KEY);
+        return null;
+      }
+      const parsed = JSON.parse(cached);
+      if (parsed && typeof parsed === 'object' && parsed._id && parsed.role) {
+        return parsed as PlatformUser;
+      }
+      localStorage.removeItem(USER_CACHE_STORAGE_KEY);
+      return null;
     } catch {
+      try {
+        localStorage.removeItem(USER_CACHE_STORAGE_KEY);
+      } catch {}
       return null;
     }
   });
@@ -65,15 +78,27 @@ export const PlatformAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
     useState<ActiveSupportSession | null>(() => {
       try {
         const cached = sessionStorage.getItem(SUPPORT_SESSION_STORAGE_KEY);
-        if (!cached) return null;
-        const parsed = JSON.parse(cached) as ActiveSupportSession;
-        // Verify not already expired
-        if (new Date(parsed.expiresAt).getTime() < Date.now()) {
+        if (cached === null) return null;
+        if (!cached.trim()) {
           sessionStorage.removeItem(SUPPORT_SESSION_STORAGE_KEY);
           return null;
         }
-        return parsed;
+        const parsed = JSON.parse(cached);
+        if (!parsed || typeof parsed !== 'object' || !parsed.expiresAt || !parsed.sessionCode) {
+          sessionStorage.removeItem(SUPPORT_SESSION_STORAGE_KEY);
+          return null;
+        }
+        const expiryMs = new Date(parsed.expiresAt).getTime();
+        // Verify not already expired or invalid timestamp
+        if (isNaN(expiryMs) || expiryMs < Date.now()) {
+          sessionStorage.removeItem(SUPPORT_SESSION_STORAGE_KEY);
+          return null;
+        }
+        return parsed as ActiveSupportSession;
       } catch {
+        try {
+          sessionStorage.removeItem(SUPPORT_SESSION_STORAGE_KEY);
+        } catch {}
         return null;
       }
     });

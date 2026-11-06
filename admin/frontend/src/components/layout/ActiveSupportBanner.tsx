@@ -20,7 +20,15 @@ export const SupportCountdownTimer = memo(function SupportCountdownTimer({
   onExpire?: () => void;
 }) {
   const calculateRemaining = () => {
-    const remainingMs = Math.max(0, new Date(expiresAt).getTime() - Date.now());
+    const expiryTime = expiresAt ? new Date(expiresAt).getTime() : NaN;
+    if (isNaN(expiryTime)) {
+      return {
+        totalMs: 0,
+        formatted: '00:00',
+        isUrgent: true,
+      };
+    }
+    const remainingMs = Math.max(0, expiryTime - Date.now());
     const totalSeconds = Math.floor(remainingMs / 1000);
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;

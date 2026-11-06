@@ -25,8 +25,21 @@ export const SubscriptionProvider = ({ children }) => {
     try {
       if (isDemoModeActive()) return DEMO_SUBSCRIPTION;
       const saved = localStorage.getItem('cached_subscription');
-      return saved ? JSON.parse(saved) : null;
+      if (saved === null) return null;
+      if (!saved.trim()) {
+        localStorage.removeItem('cached_subscription');
+        return null;
+      }
+      const parsed = JSON.parse(saved);
+      if (parsed && typeof parsed === 'object') {
+        return parsed;
+      }
+      localStorage.removeItem('cached_subscription');
+      return null;
     } catch {
+      try {
+        localStorage.removeItem('cached_subscription');
+      } catch {}
       return null;
     }
   });

@@ -18,6 +18,8 @@ import {
   getTenantFinancials,
   suspendTenant,
   unsuspendTenant,
+  createTenant,
+  deleteTenant,
 } from '../controllers/platformTenantController';
 
 const router = Router();
@@ -40,6 +42,12 @@ router.get('/:id/financials', requirePlatformPermission(PlatformPermission.TENAN
 
 // Mutation / lifecycle endpoints
 router.post(
+  '/',
+  requirePlatformPermission(PlatformPermission.TENANTS_MANAGE),
+  createTenant
+);
+
+router.post(
   '/:id/suspend',
   requirePlatformPermission(PlatformPermission.TENANTS_SUSPEND),
   requireReason(10),
@@ -58,6 +66,13 @@ router.post(
   requirePlatformPermission(PlatformPermission.TENANTS_REACTIVATE),
   requireReason(10),
   unsuspendTenant
+);
+
+router.delete(
+  '/:id',
+  requirePlatformPermission(PlatformPermission.TENANTS_MANAGE),
+  requireReason(10),
+  deleteTenant
 );
 
 export default router;

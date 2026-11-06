@@ -16,5 +16,6 @@ router.use(requirePlatformAuth);
 
 router.get('/', requirePlatformPermission(PlatformPermission.AUDIT_VIEW), getAuditLogs);
 router.get('/verify', requirePlatformPermission(PlatformPermission.AUDIT_VIEW), verifyAuditScope);
+router.get('/verify-chain', requirePlatformPermission(PlatformPermission.AUDIT_VIEW), verifyAuditScope);
 
 export default router;

@@ -150,9 +150,16 @@ const invoiceSchema = new mongoose.Schema({
       type: Number,
       required: true
     },
+    roundOff: {
+      type: Number,
+      default: 0
+    },
     netTotal: {
       type: Number,
       required: true
+    },
+    finalTotal: {
+      type: Number
     },
     amountInWords: {
       type: String
@@ -171,6 +178,25 @@ const invoiceSchema = new mongoose.Schema({
   notes: {
     type: String,
     default: ''
+  },
+  // Multi-store & Cash Register tracking
+  storeId: {
+    type: String,
+    trim: true,
+    default: null,
+    index: true
+  },
+  branchId: {
+    type: String,
+    trim: true,
+    default: null,
+    index: true
+  },
+  registerId: {
+    type: String,
+    trim: true,
+    default: null,
+    index: true
   },
   createRequestId: {
     type: String,
@@ -227,5 +253,10 @@ invoiceSchema.index(
   { tenantId: 1, 'customer._id': 1, invoiceDate: -1 },
   { partialFilterExpression: { status: { $ne: 'Cancelled' } } }
 );
+
+// Multi-store & Cash Register indexes
+invoiceSchema.index({ tenantId: 1, storeId: 1, createdAt: -1 });
+invoiceSchema.index({ tenantId: 1, registerId: 1, createdAt: -1 });
+invoiceSchema.index({ tenantId: 1, storeId: 1, registerId: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Invoice', invoiceSchema);

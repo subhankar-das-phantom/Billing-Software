@@ -1,24 +1,78 @@
 /**
  * Bharat Enterprise Billing System — Platform Control Plane Main Layout
- * High-density layout shell: Top navbar + Sidebar + Active Support Banner + Content Outlet.
+ * High-density layout shell: Top navbar + Collapsible/Rail Sidebar + Active Support Banner + Command Palette + Content Outlet.
+ *
+ * Guarantees:
+ *   - Synchronous Frame-0 pre-seeding of sidebar collapse state from localStorage ('platform_sidebar_collapsed')
+ *   - Dynamic content margin offset (md:ml-[68px] vs md:ml-64) with smooth transition
+ *   - Global Command Palette (Ctrl+K / ⌘K) and hotkey dispatch via useKeyboardShortcuts
+ *   - Max-width expansion to max-w-[1600px] mx-auto for enterprise monitors
+ *   - GPU-accelerated page transitions on <Outlet />
  */
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Outlet } from 'react-router-dom';
-import { Menu, Shield, AlertTriangle, X } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
+import { AlertTriangle, X } from 'lucide-react';
 import Sidebar from './Sidebar';
+import PlatformHeader from './PlatformHeader';
 import ActiveSupportBanner from './ActiveSupportBanner';
-import { usePlatformAuth } from '../../contexts/PlatformAuthContext';
+import { CommandPalette } from '../common/CommandPalette';
+import { PageTransition } from '../common/PageTransition';
+import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import {
   PLATFORM_FORBIDDEN_EVENT,
   type PlatformForbiddenDetail,
 } from '../../services/api';
 
+const SIDEBAR_COLLAPSED_STORAGE_KEY = 'platform_sidebar_collapsed';
+
 export const PlatformLayout: React.FC = () => {
-  const { user } = usePlatformAuth();
+  const location = useLocation();
+
+  // Synchronous Frame-0 pre-seeding of sidebar collapse from localStorage
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      return localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [forbiddenToast, setForbiddenToast] = useState<PlatformForbiddenDetail | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Toggle desktop sidebar collapse and persist to localStorage
+  const toggleSidebarCollapse = useCallback(() => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, String(next));
+      } catch {
+        // Ignore storage exceptions in sandboxed environments
+      }
+      return next;
+    });
+  }, []);
+
+  // Listen to centralized keyboard shortcuts (Ctrl+K, Ctrl+B, Escape)
+  useKeyboardShortcuts({
+    onOpenCommandPalette: () => setCommandPaletteOpen((prev) => !prev),
+    onToggleSidebar: toggleSidebarCollapse,
+    onEscape: () => {
+      if (commandPaletteOpen) {
+        setCommandPaletteOpen(false);
+        return true;
+      }
+      if (sidebarOpen) {
+        setSidebarOpen(false);
+        return true;
+      }
+    },
+    escapePriority: 10,
+  });
 
   // Listen to decoupled 403 Forbidden events dispatched by Axios interceptor
   useEffect(() => {
@@ -45,50 +99,39 @@ export const PlatformLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex font-sans">
-      {/* Mobile Backdrop */}
+      {/* ── Mobile Backdrop ── */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-30 bg-black/60 backdrop-blur-xs md:hidden"
+          className="fixed inset-0 z-30 bg-black/70 backdrop-blur-xs md:hidden animate-in fade-in duration-150"
           onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
         />
       )}
 
-      {/* Sidebar (fixed w-64 on desktop) */}
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      {/* ── Navigation Sidebar (Collapsible Desktop Rail + Mobile Sheet Drawer) ── */}
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={toggleSidebarCollapse}
+      />
 
-      {/* Main Content Column (offset by md:ml-64 to clear fixed desktop sidebar) */}
-      <div className="flex-1 flex flex-col md:ml-64 min-w-0 min-h-screen">
-        {/* 1. Zero-CLS Active Support Banner */}
+      {/* ── Main Content Column (Offset dynamically by md:ml-[68px] or md:ml-64) ── */}
+      <div
+        className={`flex-1 flex flex-col min-w-0 min-h-screen transition-[margin-left] duration-300 ease-in-out ${
+          isSidebarCollapsed ? 'md:ml-[68px]' : 'md:ml-64'
+        }`}
+      >
+        {/* 1. Zero-CLS Active Support Diagnostic Banner */}
         <ActiveSupportBanner />
 
-        {/* 2. Platform Top Navbar */}
-        <header className="h-14 min-h-[56px] border-b border-slate-800/80 bg-slate-900/90 backdrop-blur-xs sticky top-0 z-20 px-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {/* Mobile hamburger menu toggle */}
-            <button
-              type="button"
-              onClick={() => setSidebarOpen(true)}
-              className="md:hidden p-1.5 rounded-md text-slate-400 hover:text-slate-100 hover:bg-slate-800"
-              aria-label="Open navigation sidebar"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-mono uppercase bg-slate-800 text-cyan-400 border border-slate-700/80">
-                <Shield className="w-3.5 h-3.5" />
-                <span>Production Control Plane</span>
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="text-right hidden sm:block">
-              <div className="text-xs font-medium text-slate-200">{user?.fullName}</div>
-              <div className="text-[10px] text-slate-400 font-mono">{user?.role}</div>
-            </div>
-          </div>
-        </header>
+        {/* 2. Platform Main Header with Breadcrumbs, Fiscal Calendar, and Profile Dropdown */}
+        <PlatformHeader
+          isSidebarCollapsed={isSidebarCollapsed}
+          onToggleSidebarCollapse={toggleSidebarCollapse}
+          onOpenMobileSidebar={() => setSidebarOpen(true)}
+          onOpenCommandPalette={() => setCommandPaletteOpen(true)}
+        />
 
         {/* 3. Non-intrusive 403 Forbidden Toast */}
         {forbiddenToast && (
@@ -105,6 +148,7 @@ export const PlatformLayout: React.FC = () => {
                 type="button"
                 onClick={() => setForbiddenToast(null)}
                 className="text-amber-400 hover:text-amber-200 p-1 -mr-1 -mt-1 cursor-pointer"
+                aria-label="Dismiss alert"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -112,13 +156,22 @@ export const PlatformLayout: React.FC = () => {
           </div>
         )}
 
-        {/* 4. Scrollable Main Content Pane */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
-          <div className="max-w-7xl mx-auto space-y-6">
-            <Outlet />
+        {/* 4. High-Density Scrollable Main Content Pane */}
+        <main className="flex-1 p-3 sm:p-5 lg:p-7 overflow-y-auto">
+          <div className="max-w-[1600px] mx-auto space-y-6">
+            <PageTransition key={location.pathname}>
+              <Outlet />
+            </PageTransition>
           </div>
         </main>
       </div>
+
+      {/* ── Global Command Palette (Ctrl+K / ⌘K) ── */}
+      <CommandPalette
+        isOpen={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+        onToggleSidebar={toggleSidebarCollapse}
+      />
     </div>
   );
 };

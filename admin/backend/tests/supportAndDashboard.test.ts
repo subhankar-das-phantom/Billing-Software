@@ -133,6 +133,8 @@ describe('Phase 9: Support Session Bounds Middleware — Anti-Impersonation & Re
     permissionsSnapshot: [PlatformPermission.SUPPORT_START, PlatformPermission.SUPPORT_OPERATE],
     status: SupportSessionStatus.ACTIVE,
     isReadOnly: true,
+    isRevoked: false,
+    allowedScope: ['tenant'],
     startedAt: new Date(),
     expiresAt: new Date(Date.now() + 2 * 3600 * 1000),
     endedAt: null,

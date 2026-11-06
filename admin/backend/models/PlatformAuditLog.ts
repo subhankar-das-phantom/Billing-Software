@@ -56,6 +56,7 @@ platformAuditLogSchema.pre('updateOne' as any, blockMutation);
 platformAuditLogSchema.pre('updateMany' as any, blockMutation);
 platformAuditLogSchema.pre('replaceOne' as any, blockMutation);
 platformAuditLogSchema.pre('findOneAndUpdate' as any, blockMutation);
+platformAuditLogSchema.pre('findOneAndReplace' as any, blockMutation);
 platformAuditLogSchema.pre('deleteOne' as any, blockMutation);
 platformAuditLogSchema.pre('deleteMany' as any, blockMutation);
 platformAuditLogSchema.pre('findOneAndDelete' as any, blockMutation);

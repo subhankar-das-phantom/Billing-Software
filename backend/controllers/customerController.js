@@ -69,7 +69,7 @@ exports.getCustomerLedger = async (req, res, next) => {
           } 
         },
         { 
-          $project: { _id: 0, debit: '$totals.netTotal', credit: { $literal: 0 } } 
+          $project: { _id: 0, debit: { $ifNull: ['$totals.finalTotal', '$totals.netTotal'] }, credit: { $literal: 0 } } 
         },
         {
           $unionWith: {
@@ -142,7 +142,7 @@ exports.getCustomerLedger = async (req, res, next) => {
         $project: { 
           date: '$invoiceDate', 
           type: { $literal: 'Invoice' }, 
-          debit: '$totals.netTotal', 
+          debit: { $ifNull: ['$totals.finalTotal', '$totals.netTotal'] }, 
           credit: { $literal: 0 }, 
           ref: '$invoiceNumber', 
           linkId: '$_id', 
@@ -449,13 +449,13 @@ exports.getCustomers = async (req, res, next) => {
 
       const [invoiceOutstanding, manualOutstanding, creditNoteDeductions] = await Promise.all([
         Invoice.aggregate([
-          { $match: { tenantId, 'customer._id': { $in: customerIds }, status: { $ne: 'Cancelled' } } },
-          { $project: { customerId: '$customer._id', remaining: { $subtract: ['$totals.netTotal', { $ifNull: ['$paidAmount', 0] }] } } },
+          { $match: { tenantId, 'customer._id': { $in: customerIds }, status: { $ne: 'Cancelled' }, paymentType: 'Credit' } },
+          { $project: { customerId: '$customer._id', remaining: { $subtract: [{ $ifNull: ['$totals.finalTotal', '$totals.netTotal'] }, { $ifNull: ['$paidAmount', 0] }] } } },
           { $match: { remaining: { $gt: 0 } } },
           { $group: { _id: '$customerId', total: { $sum: '$remaining' } } }
         ]),
         ManualEntry.aggregate([
-          { $match: { tenantId, customer: { $in: customerIds }, entryType: 'opening_balance', paymentType: 'Credit' } },
+          { $match: { tenantId, customer: { $in: customerIds }, entryType: { $in: ['opening_balance', 'manual_bill'] }, paymentType: 'Credit' } },
           { $project: { customerId: '$customer', remaining: { $subtract: ['$amount', { $ifNull: ['$paidAmount', 0] }] } } },
           { $match: { remaining: { $gt: 0 } } },
           { $group: { _id: '$customerId', total: { $sum: '$remaining' } } }
@@ -550,13 +550,13 @@ exports.searchCustomers = async (req, res, next) => {
 
       const [invoiceOutstanding, manualOutstanding, creditNoteDeductions] = await Promise.all([
         Invoice.aggregate([
-          { $match: { tenantId, 'customer._id': { $in: customerIds }, status: { $ne: 'Cancelled' } } },
-          { $project: { customerId: '$customer._id', remaining: { $subtract: ['$totals.netTotal', { $ifNull: ['$paidAmount', 0] }] } } },
+          { $match: { tenantId, 'customer._id': { $in: customerIds }, status: { $ne: 'Cancelled' }, paymentType: 'Credit' } },
+          { $project: { customerId: '$customer._id', remaining: { $subtract: [{ $ifNull: ['$totals.finalTotal', '$totals.netTotal'] }, { $ifNull: ['$paidAmount', 0] }] } } },
           { $match: { remaining: { $gt: 0 } } },
           { $group: { _id: '$customerId', total: { $sum: '$remaining' } } }
         ]),
         ManualEntry.aggregate([
-          { $match: { tenantId, customer: { $in: customerIds }, entryType: 'opening_balance', paymentType: 'Credit' } },
+          { $match: { tenantId, customer: { $in: customerIds }, entryType: { $in: ['opening_balance', 'manual_bill'] }, paymentType: 'Credit' } },
           { $project: { customerId: '$customer', remaining: { $subtract: ['$amount', { $ifNull: ['$paidAmount', 0] }] } } },
           { $match: { remaining: { $gt: 0 } } },
           { $group: { _id: '$customerId', total: { $sum: '$remaining' } } }
@@ -629,16 +629,17 @@ exports.getCustomer = async (req, res, next) => {
         tenantId, 
         'customer._id': customer._id, 
         status: { $ne: 'Cancelled' },
-        $expr: { $gt: ["$totals.netTotal", "$paidAmount"] }
+        paymentType: 'Credit',
+        $expr: { $gt: [{ $ifNull: ["$totals.finalTotal", "$totals.netTotal"] }, { $ifNull: ["$paidAmount", 0] }] }
       }),
       Invoice.aggregate([
-        { $match: { tenantId, 'customer._id': customer._id, status: { $ne: 'Cancelled' } } },
-        { $project: { remaining: { $subtract: ['$totals.netTotal', { $ifNull: ['$paidAmount', 0] }] } } },
+        { $match: { tenantId, 'customer._id': customer._id, status: { $ne: 'Cancelled' }, paymentType: 'Credit' } },
+        { $project: { remaining: { $subtract: [{ $ifNull: ['$totals.finalTotal', '$totals.netTotal'] }, { $ifNull: ['$paidAmount', 0] }] } } },
         { $match: { remaining: { $gt: 0 } } },
         { $group: { _id: null, total: { $sum: '$remaining' } } }
       ]),
       ManualEntry.aggregate([
-        { $match: { tenantId, customer: customer._id, entryType: 'opening_balance', paymentType: 'Credit' } },
+        { $match: { tenantId, customer: customer._id, entryType: { $in: ['opening_balance', 'manual_bill'] }, paymentType: 'Credit' } },
         { $project: { remaining: { $subtract: ['$amount', { $ifNull: ['$paidAmount', 0] }] } } },
         { $match: { remaining: { $gt: 0 } } },
         { $group: { _id: null, total: { $sum: '$remaining' } } }
@@ -680,7 +681,7 @@ exports.getCustomer = async (req, res, next) => {
     };
 
     // Kept for backward compatibility if old clients request it
-    const includeInvoices = req.query.includeInvoices === 'true';
+    const includeInvoices = req.query?.includeInvoices === 'true';
     let invoices = [];
 
     if (includeInvoices) {

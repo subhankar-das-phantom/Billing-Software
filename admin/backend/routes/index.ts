@@ -14,6 +14,7 @@ import auditRoutes from './auditRoutes';
 import userRoutes from './userRoutes';
 import dashboardRoutes from './dashboardRoutes';
 import { authenticatePlatform, requirePasswordChanged } from '../middleware/platformAuthMiddleware';
+import { enforceSupportSessionBounds } from '../middleware/supportSessionMiddleware';
 
 const platformRouter = Router();
 
@@ -33,6 +34,7 @@ platformRouter.use('/auth', authRoutes);
 // 2. Control Plane Gate: All non-auth modules require verified session & resolved temporary password
 platformRouter.use(authenticatePlatform);
 platformRouter.use(requirePasswordChanged);
+platformRouter.use(enforceSupportSessionBounds);
 
 // 3. Mount platform business modules
 platformRouter.use('/tenants', tenantRoutes);

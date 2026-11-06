@@ -172,6 +172,16 @@ exports.getCollections = async (req, res, next) => {
       entryType: { $in: ['payment_adjustment', 'credit_adjustment'] }
     };
 
+    if (req.query.storeId) {
+      basePaymentQuery.storeId = String(req.query.storeId).trim();
+    }
+    if (req.query.branchId) {
+      basePaymentQuery.branchId = String(req.query.branchId).trim();
+    }
+    if (req.query.registerId) {
+      basePaymentQuery.registerId = String(req.query.registerId).trim();
+    }
+
     if (startOfDay || endOfDay) {
       basePaymentQuery.paymentDate = {};
       baseMeQuery.entryDate = {};
@@ -437,6 +447,21 @@ exports.createPayment = async (req, res, next) => {
     const { invoiceId, amount, paymentDate, paymentMethod, referenceNumber, notes } = req.body;
     const tenantId = getTenantId(req);
 
+    const rawNum = Number(amount);
+    if (!Number.isFinite(rawNum) || Number.isNaN(rawNum) || rawNum <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment amount must be greater than 0'
+      });
+    }
+
+    if (req.body.currency && String(req.body.currency).trim().toUpperCase() !== 'INR') {
+      return res.status(400).json({
+        success: false,
+        message: 'Unsupported currency: only INR is accepted'
+      });
+    }
+
     const normalizedAmount = getRoundedNumber(amount);
     if (normalizedAmount <= 0) {
       return res.status(400).json({
@@ -527,7 +552,10 @@ exports.createPayment = async (req, res, next) => {
           invoiceDate: invoice.invoiceDate,
           netTotal: invoice.totals?.netTotal
         },
-        createdBy: getAttribution(req)
+        createdBy: getAttribution(req),
+        storeId: req.body.storeId || invoice.storeId || null,
+        branchId: req.body.branchId || invoice.branchId || null,
+        registerId: req.body.registerId || invoice.registerId || null,
       }], { session });
 
       createdPaymentDoc = payment;
@@ -579,8 +607,11 @@ exports.createPayment = async (req, res, next) => {
         const { invoiceId, amount, paymentDate, paymentMethod, referenceNumber, notes } = req.body;
         const tenantId = getTenantId(req);
         const invoice = await Invoice.findOne({ _id: invoiceId, tenantId });
-        if (!invoice || invoice.status === 'Cancelled') {
-          return res.status(400).json({ success: false, message: 'Invalid or cancelled invoice' });
+        if (!invoice) {
+          return res.status(404).json({ success: false, message: 'Invoice not found' });
+        }
+        if (invoice.status === 'Cancelled') {
+          return res.status(400).json({ success: false, message: 'Cannot record payment for cancelled invoice' });
         }
         const creditNoteTotal = await getInvoiceCreditNoteTotal(invoice._id, tenantId);
         const normalizedAmount = getRoundedNumber(amount);
@@ -601,7 +632,10 @@ exports.createPayment = async (req, res, next) => {
             invoiceDate: invoice.invoiceDate,
             netTotal: invoice.totals?.netTotal
           },
-          createdBy: getAttribution(req)
+          createdBy: getAttribution(req),
+        storeId: req.body.storeId || invoice.storeId || null,
+        branchId: req.body.branchId || invoice.branchId || null,
+        registerId: req.body.registerId || invoice.registerId || null,
         });
 
         await Invoice.findOneAndUpdate({
@@ -992,6 +1026,13 @@ exports.updatePayment = async (req, res, next) => {
 
       // If amount is being changed, validate it
       if (amount !== undefined) {
+        const rawNum = Number(amount);
+        if (!Number.isFinite(rawNum) || Number.isNaN(rawNum) || rawNum <= 0) {
+          const err = new Error('Payment amount must be greater than 0');
+          err.statusCode = 400;
+          throw err;
+        }
+
         const newAmount = round2(amount);
         if (newAmount <= 0) {
           const err = new Error('Payment amount must be greater than 0');

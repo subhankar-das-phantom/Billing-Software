@@ -6,6 +6,7 @@
 import crypto from 'crypto';
 import { Types } from 'mongoose';
 import PlatformSupportSession from '../models/PlatformSupportSession';
+import PlatformUser from '../models/PlatformUser';
 import { logPlatformAudit } from './platformAuditService';
 import { ROLE_PERMISSIONS } from '../permissions';
 import {
@@ -131,6 +132,8 @@ export async function startSupportSession(
     permissionsSnapshot,
     status: SupportSessionStatus.ACTIVE,
     isReadOnly: true,
+    isRevoked: false,
+    allowedScope: ['READ_ONLY'],
     startedAt,
     expiresAt,
     endedAt: null,
@@ -212,8 +215,57 @@ export async function endSupportSession(
 }
 
 /**
+ * Immediately revokes an active diagnostic support session with zero-window tolerance.
+ */
+export async function revokeSupportSession(
+  sessionIdOrCode: Types.ObjectId | string,
+  operatorId: Types.ObjectId | string,
+  reason?: string
+): Promise<IPlatformSupportSession> {
+  const query = Types.ObjectId.isValid(sessionIdOrCode.toString()) && sessionIdOrCode.toString().length === 24
+    ? { _id: new Types.ObjectId(sessionIdOrCode.toString()) }
+    : { sessionCode: sessionIdOrCode.toString() };
+
+  const session = await PlatformSupportSession.findOne(query);
+
+  if (!session) {
+    throw new Error('Support session not found.');
+  }
+
+  const actorObjectId = new Types.ObjectId(operatorId.toString());
+
+  session.status = SupportSessionStatus.REVOKED;
+  session.isRevoked = true;
+  session.endedAt = new Date();
+  session.endedBy = actorObjectId;
+  await session.save();
+
+  await logPlatformAudit({
+    action: 'SUPPORT_SESSION.REVOKE',
+    actorId: actorObjectId,
+    actorEmail: 'operator',
+    actorRole: 'SUPPORT',
+    targetType: 'PlatformSupportSession',
+    targetId: session._id.toString(),
+    targetTenantId: session.targetTenantId,
+    supportSessionId: session.sessionCode,
+    reason: reason || 'Diagnostic support session revoked by operator.',
+    severity: 'WARNING',
+    after: {
+      status: session.status,
+      isRevoked: session.isRevoked,
+      endedAt: session.endedAt.toISOString(),
+      actionsPerformed: session.actionsPerformed,
+    },
+  });
+
+  return session;
+}
+
+/**
  * Retrieves the currently active support session for an operator.
- * Automatically marks and expires sessions whose expiration deadline has passed.
+ * Automatically marks and expires sessions whose expiration deadline has passed,
+ * or immediately invalidates if the operator has been suspended.
  */
 export async function getActiveSupportSession(
   operatorId: Types.ObjectId | string
@@ -223,9 +275,20 @@ export async function getActiveSupportSession(
   const session = await PlatformSupportSession.findOne({
     operatorId: operatorObjectId,
     status: SupportSessionStatus.ACTIVE,
+    isRevoked: false,
   });
 
   if (!session) {
+    return null;
+  }
+
+  // Operator suspension cascading invalidation check
+  const operator = await PlatformUser.findById(operatorObjectId).select('isActive').lean();
+  if (!operator || operator.isActive === false) {
+    session.status = SupportSessionStatus.REVOKED;
+    session.isRevoked = true;
+    session.endedAt = new Date();
+    await session.save();
     return null;
   }
 

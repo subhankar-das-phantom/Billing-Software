@@ -1,5 +1,6 @@
 import mongoose, { ClientSession } from 'mongoose';
 import Batch from '../models/Batch';
+// @ts-ignore
 import Product from '../models/Product';
 import Admin from '../models/Admin';
 import ProductInventoryMigration from '../models/ProductInventoryMigration';
@@ -30,6 +31,9 @@ export const recordStockMovement = async (
     tenantId: mongoose.Types.ObjectId | string;
     productId: mongoose.Types.ObjectId | string;
     batchId?: mongoose.Types.ObjectId | string | null;
+    storeId?: string | null;
+    branchId?: string | null;
+    warehouseLocation?: string | null;
     type: StockMovementType;
     quantity: number;
     rate?: number;
@@ -38,10 +42,10 @@ export const recordStockMovement = async (
     referenceId?: string | null;
     createdBy?: { user: mongoose.Types.ObjectId | string; userModel: 'Admin' | 'Employee' };
   },
-  session?: ClientSession
+  session?: ClientSession | null
 ): Promise<void> => {
   const movement = new StockMovement(data);
-  if (session) {
+  if (session && session.inTransaction && session.inTransaction()) {
     await movement.save({ session });
   } else {
     await movement.save();
@@ -68,6 +72,9 @@ export interface AllocationOptions {
   migratedProductIds?: Set<string>;
   stockMovementsCollector?: any[];
   knownProduct?: any;
+  storeId?: string | null;
+  branchId?: string | null;
+  warehouseLocation?: string | null;
 }
 
 export const allocateFifoStock = async (
@@ -76,24 +83,37 @@ export const allocateFifoStock = async (
   quantity: number,
   invoiceId: mongoose.Types.ObjectId | string,
   invoiceNumber: string,
-  session: ClientSession,
+  session?: ClientSession | null,
   options?: AllocationOptions
 ): Promise<AllocationRecord[]> => {
   const pidStr = productId.toString();
   const isMigrated = options?.migratedProductIds?.has(pidStr);
   if (!isMigrated) {
-    await ensureProductMigratedToBatch(tenantId, productId, session, options?.isBatchTrackingEnabled);
+    await ensureProductMigratedToBatch(tenantId, productId, session as any, options?.isBatchTrackingEnabled);
   }
 
-  // Get all active batches sorted by earliest expiry first (FIFO)
-  const batches = await Batch.find({
+  // Get all active batches sorted by earliest expiry first (FIFO) scoped to store/branch boundaries
+  const batchQuery: any = {
     tenantId,
     productId,
     remainingQty: { $gt: 0 },
     isActive: true
-  })
-    .sort({ expiryDate: 1, createdAt: 1 })
-    .session(session);
+  };
+  if (options?.storeId !== undefined) {
+    batchQuery.storeId = options.storeId;
+  }
+  if (options?.branchId !== undefined) {
+    batchQuery.branchId = options.branchId;
+  }
+  if (options?.warehouseLocation !== undefined) {
+    batchQuery.warehouseLocation = options.warehouseLocation;
+  }
+
+  let batchesFind = Batch.find(batchQuery).sort({ expiryDate: 1, createdAt: 1 });
+  if (session && session.inTransaction && session.inTransaction()) {
+    batchesFind = batchesFind.session(session);
+  }
+  const batches = await batchesFind;
 
   const totalAvailable = batches.reduce((sum, b) => sum + b.remainingQty, 0);
 
@@ -110,10 +130,14 @@ export const allocateFifoStock = async (
     const take = Math.min(batch.remainingQty, remaining);
 
     // Deduct stock from this batch
+    const batchUpdateOpts: any = {};
+    if (session && session.inTransaction && session.inTransaction()) {
+      batchUpdateOpts.session = session;
+    }
     await Batch.findByIdAndUpdate(
       batch._id,
       { $inc: { remainingQty: -take } },
-      { session }
+      batchUpdateOpts
     );
 
     consumptionRecords.push({
@@ -130,6 +154,9 @@ export const allocateFifoStock = async (
       tenantId,
       productId,
       batchId: batch._id,
+      storeId: batch.storeId || options?.storeId || null,
+      branchId: batch.branchId || options?.branchId || null,
+      warehouseLocation: batch.warehouseLocation || options?.warehouseLocation || null,
       type: 'SALE' as const,
       quantity: take,
       rate: batch.rate || 0,
@@ -150,11 +177,19 @@ export const allocateFifoStock = async (
 
   // Deduct from parent product and add history
   const ProductModel = mongoose.model('Product');
-  const product = options?.knownProduct || await ProductModel.findOne({ _id: productId, tenantId }).session(session);
+  let productFind = ProductModel.findOne({ _id: productId, tenantId });
+  if (session && session.inTransaction && session.inTransaction()) {
+    productFind = productFind.session(session);
+  }
+  const product = options?.knownProduct || await productFind;
   if (product) {
     const previousQty = product.currentStockQty;
     const newQty = previousQty - quantity;
 
+    const prodUpdateOpts: any = {};
+    if (session && session.inTransaction && session.inTransaction()) {
+      prodUpdateOpts.session = session;
+    }
     await ProductModel.updateOne(
       { _id: productId, tenantId },
       {
@@ -171,7 +206,7 @@ export const allocateFifoStock = async (
           }
         }
       },
-      { session }
+      prodUpdateOpts
     );
 
     // Record StockMovement for FREE stock mode (if no batches were consumed, or as a general product movement)
@@ -206,13 +241,13 @@ export const allocateManualStock = async (
   quantity: number,
   invoiceId: mongoose.Types.ObjectId | string,
   invoiceNumber: string,
-  session: ClientSession,
+  session?: ClientSession | null,
   options?: AllocationOptions
 ): Promise<AllocationRecord[]> => {
   const pidStr = productId.toString();
   const isMigrated = options?.migratedProductIds?.has(pidStr);
   if (!isMigrated) {
-    await ensureProductMigratedToBatch(tenantId, productId, session, options?.isBatchTrackingEnabled);
+    await ensureProductMigratedToBatch(tenantId, productId, session as any, options?.isBatchTrackingEnabled);
   }
 
   let totalAllocated = 0;
@@ -223,15 +258,30 @@ export const allocateManualStock = async (
       throw new Error(`Invalid manual allocation quantity for batch ${alloc.batchId}`);
     }
 
-    const batch = await Batch.findOne({
+    const batchQuery: any = {
       _id: alloc.batchId,
       tenantId,
       productId,
       isActive: true
-    }).session(session);
+    };
+    if (options?.storeId !== undefined) {
+      batchQuery.storeId = options.storeId;
+    }
+    if (options?.branchId !== undefined) {
+      batchQuery.branchId = options.branchId;
+    }
+    if (options?.warehouseLocation !== undefined) {
+      batchQuery.warehouseLocation = options.warehouseLocation;
+    }
+
+    let batchFind = Batch.findOne(batchQuery);
+    if (session && session.inTransaction && session.inTransaction()) {
+      batchFind = batchFind.session(session);
+    }
+    const batch = await batchFind;
 
     if (!batch) {
-      throw new Error(`Batch not found or does not belong to this product/tenant: ${alloc.batchId}`);
+      throw new Error(`Batch not found or does not belong to this product/tenant/store: ${alloc.batchId}`);
     }
 
     if (batch.remainingQty < alloc.quantity) {
@@ -239,10 +289,14 @@ export const allocateManualStock = async (
     }
 
     // Deduct stock from this batch
+    const manualUpdateOpts: any = {};
+    if (session && session.inTransaction && session.inTransaction()) {
+      manualUpdateOpts.session = session;
+    }
     await Batch.findByIdAndUpdate(
       batch._id,
       { $inc: { remainingQty: -alloc.quantity } },
-      { session }
+      manualUpdateOpts
     );
 
     consumptionRecords.push({
@@ -283,11 +337,19 @@ export const allocateManualStock = async (
 
   // Deduct from parent product and add history
   const ProductModel = mongoose.model('Product');
-  const product = options?.knownProduct || await ProductModel.findOne({ _id: productId, tenantId }).session(session);
+  let productFind = ProductModel.findOne({ _id: productId, tenantId });
+  if (session && session.inTransaction && session.inTransaction()) {
+    productFind = productFind.session(session);
+  }
+  const product = options?.knownProduct || await productFind;
   if (product) {
     const previousQty = product.currentStockQty;
     const newQty = previousQty - quantity;
 
+    const prodUpdateOpts: any = {};
+    if (session && session.inTransaction && session.inTransaction()) {
+      prodUpdateOpts.session = session;
+    }
     await ProductModel.updateOne(
       { _id: productId, tenantId },
       {
@@ -304,7 +366,7 @@ export const allocateManualStock = async (
           }
         }
       },
-      { session }
+      prodUpdateOpts
     );
   }
 

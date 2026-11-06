@@ -1,31 +1,38 @@
 /**
  * Bharat Enterprise Billing System — Platform Feature Overrides & Entitlements
  * Fine-grained per-tenant capability grants, commercial gating exceptions,
- * and high-severity emergency commercial bypass administration.
+ * high-severity emergency commercial bypass administration with statutory 72-hour safeguards,
+ * and high-density dual desktop table / mobile collapsible card views with 2x2 action matrix.
  */
 
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Sliders,
-  ShieldAlert,
-  ShieldCheck,
   RefreshCw,
-  Search,
   Plus,
   Trash2,
-  AlertTriangle,
   Copy,
   Check,
-  CheckCircle2,
   Zap,
+  Eye,
+  Clock,
+  UserCheck,
+  Building2,
+  X,
+  Lock,
+  Unlock,
 } from 'lucide-react';
 import api from '../services/api';
 import StatusBadge from '../components/common/StatusBadge';
 import Modal from '../components/common/Modal';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import { Toast, ToastMessage } from '../components/common/Toast';
+import CollapsibleMobileCard from '../components/common/CollapsibleMobileCard';
+import AnimatedCounter from '../components/common/AnimatedCounter';
+import SearchInput from '../components/common/SearchInput';
 import { usePlatformAuth } from '../contexts/PlatformAuthContext';
+import { useListFilterParams } from '../hooks/useListFilterParams';
 import {
   PlatformPermission,
   OverrideType,
@@ -119,6 +126,12 @@ export const FeaturesPage: React.FC = () => {
     grantedBy: string;
   } | null>(null);
 
+  // Quick Emergency Bypass Card Toggle
+  const [showQuickBypassCard, setShowQuickBypassCard] = useState(false);
+  const [quickBypassTenantId, setQuickBypassTenantId] = useState('');
+  const [quickBypassHours, setQuickBypassHours] = useState(24);
+  const [quickBypassReason, setQuickBypassReason] = useState('');
+
   // Permissions
   const canManageOverrides = hasPermission(PlatformPermission.FEATURE_OVERRIDES_MANAGE);
   const canManageEmergencyBypass = hasPermission(PlatformPermission.EMERGENCY_BYPASS_MANAGE);
@@ -140,12 +153,19 @@ export const FeaturesPage: React.FC = () => {
   });
 
   // ═══════════════════════════════════════════════════════════════════
-  // 2. SEARCH & FILTER STATE
+  // 2. SEARCH & FILTER STATE via useListFilterParams
   // ═══════════════════════════════════════════════════════════════════
-  const [searchQuery, setSearchQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'ALL' | 'ALLOW' | 'DENY'>('ALL');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE_ONLY' | 'INACTIVE_ONLY'>('ACTIVE_ONLY');
-  const [featureFilter, setFeatureFilter] = useState<string>('ALL');
+  const { params, setParam, resetParams } = useListFilterParams({
+    search: '',
+    type: 'ALL',
+    status: 'ACTIVE_ONLY',
+    feature: 'ALL',
+  });
+
+  const searchQuery = params.search || '';
+  const typeFilter = (params.type || 'ALL') as 'ALL' | 'ALLOW' | 'DENY';
+  const statusFilter = (params.status || 'ACTIVE_ONLY') as 'ALL' | 'ACTIVE_ONLY' | 'INACTIVE_ONLY';
+  const featureFilter = params.feature || 'ALL';
 
   const filteredOverrides = useMemo(() => {
     if (!overridesData) return [];
@@ -168,12 +188,13 @@ export const FeaturesPage: React.FC = () => {
       // Search Query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
-        const tenantStr = typeof item.tenantId === 'string' ? item.tenantId : item.tenantId._id;
+        const tenantStr = typeof item.tenantId === 'string' ? item.tenantId : item.tenantId?._id || '';
+        const firmStr = typeof item.tenantId === 'object' && item.tenantId?.firmName ? item.tenantId.firmName.toLowerCase() : '';
         const grantedByEmail =
           typeof item.createdBy === 'object' && item.createdBy !== null
             ? item.createdBy.email.toLowerCase()
             : '';
-        const matchTenant = tenantStr.toLowerCase().includes(q);
+        const matchTenant = tenantStr.toLowerCase().includes(q) || firmStr.includes(q);
         const matchFeature = item.feature.toLowerCase().includes(q);
         const matchReason = item.reason.toLowerCase().includes(q);
         const matchGranted = grantedByEmail.includes(q);
@@ -222,13 +243,13 @@ export const FeaturesPage: React.FC = () => {
 
   const isEmergencyBypassSelected = grantFeature === EMERGENCY_BYPASS_FEATURE;
 
-  const openGrantModal = (prefillTenantId?: string) => {
+  const openGrantModal = (prefillTenantId?: string, forceBypass?: boolean) => {
     setGrantTenantId(prefillTenantId || '');
-    setGrantFeature(ENTERPRISE_FEATURES[0]);
+    setGrantFeature(forceBypass ? EMERGENCY_BYPASS_FEATURE : ENTERPRISE_FEATURES[0]);
     setGrantType(OverrideType.ALLOW);
-    setGrantDurationHours(24);
+    setGrantDurationHours(forceBypass ? 24 : 24);
     setIsIndefinite(false);
-    setGrantReason('');
+    setGrantReason(forceBypass ? 'Emergency unthrottled incident bypass authorized.' : '');
     setGrantError(null);
     setIsGrantModalOpen(true);
   };
@@ -236,7 +257,7 @@ export const FeaturesPage: React.FC = () => {
   const grantMutation = useMutation({
     mutationFn: async () => {
       if (isEmergencyBypassSelected) {
-        // Enforce 72h max ceiling for emergency bypass
+        // Enforce 72h statutory maximum ceiling for emergency bypass
         if (grantDurationHours > 72 || grantDurationHours <= 0) {
           throw new Error('Emergency commercial bypass duration must be between 1 and 72 hours.');
         }
@@ -308,6 +329,42 @@ export const FeaturesPage: React.FC = () => {
     grantMutation.mutate();
   };
 
+  // Quick Bypass Mutation
+  const quickBypassMutation = useMutation({
+    mutationFn: async () => {
+      if (quickBypassHours > 72 || quickBypassHours <= 0) {
+        throw new Error('Statutory safeguard: Bypass duration must be between 1 and 72 hours.');
+      }
+      const payload = {
+        tenantId: quickBypassTenantId.trim(),
+        durationHours: Number(quickBypassHours),
+        reason: quickBypassReason.trim(),
+      };
+      const res = await api.post('/feature-overrides/emergency-bypass', payload);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['platform-feature-overrides'] });
+      setShowQuickBypassCard(false);
+      setQuickBypassTenantId('');
+      setQuickBypassReason('');
+      setToast({
+        id: Date.now().toString(),
+        type: 'success',
+        title: 'Emergency Commercial Bypass Activated',
+        message: data.message || '72h ceiling safeguard engaged. Tenant unthrottled.',
+      });
+    },
+    onError: (err: any) => {
+      setToast({
+        id: Date.now().toString(),
+        type: 'error',
+        title: 'Emergency Bypass Failed',
+        message: err.response?.data?.message || err.response?.data?.error || err.message || 'Operation failed.',
+      });
+    },
+  });
+
   // ═══════════════════════════════════════════════════════════════════
   // 4. REVOKE OVERRIDE ACTION & CONFIRM DIALOG STATE
   // ═══════════════════════════════════════════════════════════════════
@@ -373,7 +430,7 @@ export const FeaturesPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
           <button
             type="button"
             onClick={() => queryClient.invalidateQueries({ queryKey: ['platform-feature-overrides'] })}
@@ -384,6 +441,17 @@ export const FeaturesPage: React.FC = () => {
             <RefreshCw className={`w-3.5 h-3.5 text-cyan-400 ${isOverridesFetching ? 'animate-spin' : ''}`} />
             <span className="font-mono">Sync Overrides</span>
           </button>
+
+          {canManageEmergencyBypass && (
+            <button
+              type="button"
+              onClick={() => setShowQuickBypassCard(!showQuickBypassCard)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-300 bg-amber-950/80 hover:bg-amber-900/80 border border-amber-700/80 transition-all shadow-xs cursor-pointer"
+            >
+              <Zap className="w-3.5 h-3.5 text-amber-400" />
+              <span>Emergency 72h Bypass</span>
+            </button>
+          )}
 
           {canManageOverrides && (
             <button
@@ -404,22 +472,30 @@ export const FeaturesPage: React.FC = () => {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
         <div className="p-3.5 bg-slate-900 border border-slate-800/80 rounded-xl space-y-1">
           <span className="text-[11px] font-mono text-slate-400">Total Registered</span>
-          <div className="text-xl font-bold font-mono text-slate-100">{stats.total}</div>
+          <div className="text-xl font-bold font-mono text-slate-100">
+            <AnimatedCounter target={stats.total} />
+          </div>
         </div>
 
         <div className="p-3.5 bg-slate-900 border border-slate-800/80 rounded-xl space-y-1">
           <span className="text-[11px] font-mono text-slate-400">Active Overrides</span>
-          <div className="text-xl font-bold font-mono text-emerald-400">{stats.active}</div>
+          <div className="text-xl font-bold font-mono text-emerald-400">
+            <AnimatedCounter target={stats.active} />
+          </div>
         </div>
 
         <div className="p-3.5 bg-slate-900 border border-slate-800/80 rounded-xl space-y-1">
           <span className="text-[11px] font-mono text-slate-400">Entitlement Allows</span>
-          <div className="text-xl font-bold font-mono text-cyan-400">{stats.allow}</div>
+          <div className="text-xl font-bold font-mono text-cyan-400">
+            <AnimatedCounter target={stats.allow} />
+          </div>
         </div>
 
         <div className="p-3.5 bg-slate-900 border border-slate-800/80 rounded-xl space-y-1">
           <span className="text-[11px] font-mono text-slate-400">Explicit Locks (Deny)</span>
-          <div className="text-xl font-bold font-mono text-rose-400">{stats.deny}</div>
+          <div className="text-xl font-bold font-mono text-rose-400">
+            <AnimatedCounter target={stats.deny} />
+          </div>
         </div>
       </div>
 
@@ -444,7 +520,111 @@ export const FeaturesPage: React.FC = () => {
       )}
 
       {/* ─────────────────────────────────────────────────────────────
-          SECTION: Active Overrides Table
+          SECTION: Emergency Commercial Bypass Quick-Action Card (72h Safeguard)
+          ───────────────────────────────────────────────────────────── */}
+      {showQuickBypassCard && (
+        <div className="p-5 bg-amber-950/40 border border-amber-700/80 rounded-xl space-y-4 shadow-lg">
+          <div className="flex items-center justify-between pb-3 border-b border-amber-800/60">
+            <div className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-amber-400" />
+              <div>
+                <h3 className="text-sm font-bold text-amber-200">
+                  Emergency Commercial Bypass Authorization
+                </h3>
+                <p className="text-xs text-amber-400/80">
+                  Statutory safeguard: Strict 72-hour hard ceiling enforced. Bypasses all plan gating immediately.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowQuickBypassCard(false)}
+              className="text-amber-400 hover:text-amber-200 min-w-[36px] min-h-[36px] flex items-center justify-center cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              quickBypassMutation.mutate();
+            }}
+            className="space-y-3 text-xs"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <label className="text-slate-300 font-medium block">
+                  Target Tenant ID <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={quickBypassTenantId}
+                  onChange={(e) => setQuickBypassTenantId(e.target.value)}
+                  placeholder="65f1a2b3c4d5e6f7a8b9c0d1"
+                  className="w-full bg-slate-950 border border-amber-800/80 focus:border-amber-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none min-h-[44px]"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-slate-300 font-medium block">
+                    Duration (1 to 72 hours max) <span className="text-rose-400">*</span>
+                  </label>
+                  <span className="font-mono text-amber-400 font-bold">{quickBypassHours} Hours</span>
+                </div>
+                <input
+                  type="number"
+                  min="1"
+                  max="72"
+                  value={quickBypassHours}
+                  onChange={(e) => setQuickBypassHours(Math.min(72, Math.max(1, parseInt(e.target.value, 10) || 1)))}
+                  className="w-full bg-slate-950 border border-amber-800/80 focus:border-amber-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none min-h-[44px]"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-slate-300 font-medium block">
+                  Audit Justification <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={quickBypassReason}
+                  onChange={(e) => setQuickBypassReason(e.target.value)}
+                  placeholder="e.g. Critical GST e-invoicing deadline buffer"
+                  className="w-full bg-slate-950 border border-amber-800/80 focus:border-amber-500 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none min-h-[44px]"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <button
+                type="submit"
+                disabled={quickBypassMutation.isPending || !quickBypassTenantId.trim() || quickBypassReason.trim().length < 10}
+                className="px-4 py-2 min-h-[44px] rounded-lg bg-amber-400 hover:bg-amber-300 disabled:opacity-40 text-slate-950 font-bold cursor-pointer inline-flex items-center gap-2"
+              >
+                {quickBypassMutation.isPending ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Engaging 72h Bypass...</span>
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-4 h-4" />
+                    <span>Authorize Emergency Bypass (72h Max)</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────
+          SECTION: Active Overrides Table & Dual Mobile View
           ───────────────────────────────────────────────────────────── */}
       <div className="bg-slate-900 border border-slate-800/80 rounded-xl overflow-hidden shadow-xs space-y-0">
         {/* Table Filters Toolbar */}
@@ -468,8 +648,8 @@ export const FeaturesPage: React.FC = () => {
                 <button
                   key={st.key}
                   type="button"
-                  onClick={() => setStatusFilter(st.key as any)}
-                  className={`px-2 py-0.5 rounded text-[10px] font-mono font-medium transition-colors cursor-pointer ${
+                  onClick={() => setParam('status', st.key)}
+                  className={`px-2 py-0.5 rounded text-[10px] font-mono font-medium transition-colors cursor-pointer min-h-[30px] flex items-center ${
                     statusFilter === st.key
                       ? 'bg-slate-800 text-cyan-300 border border-slate-700'
                       : 'text-slate-400 hover:text-slate-200'
@@ -486,8 +666,8 @@ export const FeaturesPage: React.FC = () => {
                 <button
                   key={tp}
                   type="button"
-                  onClick={() => setTypeFilter(tp)}
-                  className={`px-2 py-0.5 rounded text-[10px] font-mono font-medium transition-colors cursor-pointer ${
+                  onClick={() => setParam('type', tp)}
+                  className={`px-2 py-0.5 rounded text-[10px] font-mono font-medium transition-colors cursor-pointer min-h-[30px] flex items-center ${
                     typeFilter === tp
                       ? tp === 'ALLOW'
                         ? 'bg-emerald-950 text-emerald-300 border border-emerald-700'
@@ -505,8 +685,8 @@ export const FeaturesPage: React.FC = () => {
             {/* Feature Dropdown Filter */}
             <select
               value={featureFilter}
-              onChange={(e) => setFeatureFilter(e.target.value)}
-              className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-300 focus:outline-none focus:border-cyan-500 font-mono"
+              onChange={(e) => setParam('feature', e.target.value)}
+              className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-300 focus:outline-none focus:border-cyan-500 font-mono min-h-[36px]"
             >
               <option value="ALL">All Features</option>
               <option value={EMERGENCY_BYPASS_FEATURE}>EMERGENCY_BYPASS</option>
@@ -517,31 +697,18 @@ export const FeaturesPage: React.FC = () => {
               ))}
             </select>
 
-            {/* Search Input */}
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search tenant, reason, operator..."
-                className="bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg pl-8 pr-3 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none transition-colors w-48 sm:w-56 font-mono"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 text-xs cursor-pointer"
-                >
-                  ×
-                </button>
-              )}
-            </div>
+            {/* Debounced Search Input */}
+            <SearchInput
+              value={searchQuery}
+              onChange={(val) => setParam('search', val)}
+              placeholder="Search tenant, reason, operator..."
+              className="w-full sm:w-56"
+            />
           </div>
         </div>
 
-        {/* Table Content */}
-        <div className="overflow-x-auto">
+        {/* ─── A. DESKTOP VIEW (Table: md and up) ─── */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="border-b border-slate-800/80 bg-slate-950/60 text-slate-400 font-mono text-[11px] uppercase tracking-wider">
@@ -574,7 +741,7 @@ export const FeaturesPage: React.FC = () => {
                 </tr>
               ) : (
                 filteredOverrides.map((ov) => {
-                  const tenantIdStr = typeof ov.tenantId === 'string' ? ov.tenantId : ov.tenantId._id;
+                  const tenantIdStr = typeof ov.tenantId === 'string' ? ov.tenantId : ov.tenantId?._id || '';
                   const firmName = typeof ov.tenantId === 'object' && ov.tenantId?.firmName ? ov.tenantId.firmName : null;
 
                   const isExpired = ov.expiresAt ? new Date(ov.expiresAt).getTime() < Date.now() : false;
@@ -698,7 +865,7 @@ export const FeaturesPage: React.FC = () => {
                           >
                             {countdown.text}
                           </span>
-                          <span className="text-[10px] text-slate-400 block">
+                          <span className="text-[10px] text-slate-400 block truncate max-w-[130px]">
                             {formatISTDateTime(ov.expiresAt)}
                           </span>
                         </div>
@@ -708,20 +875,24 @@ export const FeaturesPage: React.FC = () => {
                       <td className="py-3 px-4">
                         <StatusBadge
                           variant={
-                            isEffectiveActive
-                              ? 'emerald'
+                            !ov.isActive
+                              ? 'slate'
                               : isExpired
+                              ? 'rose'
+                              : isEmergencyBypass
                               ? 'amber'
-                              : 'slate'
+                              : 'emerald'
                           }
                           label={
-                            isEffectiveActive
-                              ? 'ACTIVE'
+                            !ov.isActive
+                              ? 'REVOKED'
                               : isExpired
                               ? 'EXPIRED'
-                              : 'REVOKED'
+                              : isEmergencyBypass
+                              ? 'ACTIVE (BYPASS)'
+                              : 'ACTIVE'
                           }
-                          dot={isEffectiveActive}
+                          dot
                         />
                       </td>
 
@@ -731,14 +902,14 @@ export const FeaturesPage: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => initiateRevoke(ov)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-rose-950/70 hover:bg-rose-900 text-rose-300 border border-rose-800/80 font-mono text-[11px] transition-all cursor-pointer shadow-xs active:scale-95"
-                            title="Revoke active feature override"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-800/60 text-[11px] font-mono transition-colors cursor-pointer shadow-xs active:scale-95"
+                            title="Revoke capability grant immediately"
                           >
                             <Trash2 className="w-3 h-3 text-rose-400" />
                             <span>Revoke</span>
                           </button>
                         ) : (
-                          <span className="text-slate-400 font-mono text-[11px]">—</span>
+                          <span className="text-[11px] font-mono text-slate-600">—</span>
                         )}
                       </td>
                     </tr>
@@ -748,232 +919,401 @@ export const FeaturesPage: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        {/* ─── B. MOBILE VIEW (Collapsible Cards: < md) ─── */}
+        <div className="md:hidden p-3 space-y-3">
+          {isOverridesLoading && (
+            <div className="space-y-3">
+              {[...Array(4)].map((_, idx) => (
+                <div
+                  key={idx}
+                  className="p-3.5 rounded-xl border border-slate-800 bg-slate-900/60 animate-pulse space-y-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-slate-800 shrink-0" />
+                    <div className="flex-1 space-y-1.5">
+                      <div className="h-3.5 bg-slate-800 rounded w-36" />
+                      <div className="h-2.5 bg-slate-800/60 rounded w-24" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!isOverridesLoading && filteredOverrides.length === 0 && (
+            <div className="p-8 text-center text-xs space-y-3">
+              <Sliders className="w-8 h-8 text-slate-600 mx-auto" />
+              <p className="font-semibold text-slate-300">No feature overrides found</p>
+              <p className="text-slate-500">
+                {searchQuery || typeFilter !== 'ALL' || statusFilter !== 'ACTIVE_ONLY' || featureFilter !== 'ALL'
+                  ? 'No overrides match active filters.'
+                  : 'No overrides configured.'}
+              </p>
+              <button
+                type="button"
+                onClick={() => resetParams()}
+                className="px-4 py-2 min-h-[44px] rounded-lg bg-cyan-600 text-white font-medium cursor-pointer inline-flex items-center gap-2"
+              >
+                <X className="w-4 h-4" />
+                <span>Reset Filters</span>
+              </button>
+            </div>
+          )}
+
+          {!isOverridesLoading &&
+            filteredOverrides.map((ov) => {
+              const tenantIdStr = typeof ov.tenantId === 'string' ? ov.tenantId : ov.tenantId?._id || '';
+              const firmName = typeof ov.tenantId === 'object' && ov.tenantId?.firmName ? ov.tenantId.firmName : null;
+              const isExpired = ov.expiresAt ? new Date(ov.expiresAt).getTime() < Date.now() : false;
+              const isEffectiveActive = ov.isActive && !isExpired;
+              const isEmergencyBypass = ov.feature === EMERGENCY_BYPASS_FEATURE;
+              const countdown = getExpiryCountdown(ov.expiresAt);
+
+              const creatorEmail =
+                typeof ov.createdBy === 'object' && ov.createdBy !== null
+                  ? ov.createdBy.email
+                  : 'Platform Operator';
+
+              // Summary: 74-82px bounded height, single line text truncation
+              const cardSummary = (
+                <div className="flex items-center gap-3 min-w-0 pr-1">
+                  <div
+                    className={`w-9 h-9 rounded-lg border flex items-center justify-center font-bold text-xs shrink-0 select-none shadow-2xs ${
+                      isEmergencyBypass
+                        ? 'bg-amber-950/80 border-amber-700/80 text-amber-300'
+                        : ov.type === OverrideType.ALLOW
+                        ? 'bg-emerald-950/80 border-emerald-700/80 text-emerald-300'
+                        : 'bg-rose-950/80 border-rose-700/80 text-rose-300'
+                    }`}
+                  >
+                    {isEmergencyBypass ? <Zap className="w-4 h-4" /> : <Sliders className="w-4 h-4" />}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-slate-100 truncate text-xs block font-mono">
+                        {isEmergencyBypass ? 'EMERGENCY_BYPASS' : ov.feature}
+                      </span>
+                      <StatusBadge
+                        variant={ov.type === OverrideType.ALLOW ? 'emerald' : 'rose'}
+                        label={ov.type}
+                        size="sm"
+                        dot
+                      />
+                    </div>
+                    <div className="flex items-center justify-between gap-2 mt-0.5 text-[11px] font-mono text-slate-400">
+                      <span className="truncate">
+                        {firmName || tenantIdStr.slice(-8)}
+                      </span>
+                      <span
+                        className={`font-semibold shrink-0 ${
+                          countdown.isPast ? 'text-rose-400' : 'text-amber-300'
+                        }`}
+                      >
+                        {countdown.text}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+
+              return (
+                <CollapsibleMobileCard
+                  key={ov._id}
+                  id={ov._id}
+                  entityType="override"
+                  statusVariant={isEmergencyBypass ? 'warning' : isEffectiveActive ? 'active' : 'default'}
+                  summary={cardSummary}
+                >
+                  <div className="space-y-3 pt-2 text-xs">
+                    {/* Meta info grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2.5 bg-slate-950/60 rounded-lg border border-slate-800/80 font-mono text-[11px]">
+                      <div className="flex items-center gap-2 text-slate-300 truncate">
+                        <Building2 className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                        <span className="truncate select-all">{tenantIdStr}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-300">
+                        <Clock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                        <span>Expires: {formatISTDateTime(ov.expiresAt)}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-400 col-span-full">
+                        <UserCheck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                        <span className="truncate">Granted by: {creatorEmail}</span>
+                      </div>
+                      <div className="p-2 bg-slate-900/60 rounded border border-slate-800 col-span-full text-slate-300 font-sans">
+                        <span className="text-slate-400 font-mono text-[10px] block uppercase mb-0.5">
+                          Audit Justification
+                        </span>
+                        <p className="line-clamp-2">{ov.reason}</p>
+                      </div>
+                    </div>
+
+                    {/* Structured 2x2 Action Grid with min-h-[44px] touch targets */}
+                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800/60">
+                      {/* Action 1: Reason */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedReason({
+                            feature: ov.feature,
+                            reason: ov.reason,
+                            tenantId: tenantIdStr,
+                            grantedBy: creatorEmail,
+                          })
+                        }
+                        className="min-h-[44px] px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center gap-2 text-xs font-medium cursor-pointer transition-colors"
+                        aria-label="View full audit reason"
+                      >
+                        <Eye className="w-4 h-4 text-cyan-400" />
+                        <span>Reason</span>
+                      </button>
+
+                      {/* Action 2: Bypass */}
+                      <button
+                        type="button"
+                        onClick={() => openGrantModal(tenantIdStr, true)}
+                        disabled={!canManageEmergencyBypass}
+                        className="min-h-[44px] px-3 py-2 rounded-lg bg-amber-950/40 hover:bg-amber-900/50 active:bg-amber-900/60 text-amber-300 border border-amber-800/60 flex items-center justify-center gap-2 text-xs font-medium cursor-pointer disabled:opacity-40 transition-colors"
+                        aria-label="Trigger emergency commercial bypass"
+                      >
+                        <Zap className="w-4 h-4 text-amber-400" />
+                        <span>Bypass</span>
+                      </button>
+
+                      {/* Action 3: Copy ID */}
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(tenantIdStr, ov._id)}
+                        className="min-h-[44px] px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center gap-2 text-xs font-medium cursor-pointer transition-colors"
+                        aria-label="Copy Tenant ID"
+                      >
+                        {copiedId === ov._id ? (
+                          <>
+                            <Check className="w-4 h-4 text-emerald-400" />
+                            <span className="text-emerald-400 font-mono">Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-4 h-4 text-slate-400" />
+                            <span>Copy ID</span>
+                          </>
+                        )}
+                      </button>
+
+                      {/* Action 4: Revoke */}
+                      <button
+                        type="button"
+                        onClick={() => initiateRevoke(ov)}
+                        disabled={!isEffectiveActive || !canManageOverrides}
+                        className="min-h-[44px] px-3 py-2 rounded-lg bg-rose-950/40 hover:bg-rose-900/50 active:bg-rose-900/60 text-rose-300 border border-rose-800/60 flex items-center justify-center gap-2 text-xs font-medium cursor-pointer disabled:opacity-40 transition-colors"
+                        aria-label="Revoke override"
+                      >
+                        <Trash2 className="w-4 h-4 text-rose-400" />
+                        <span>Revoke</span>
+                      </button>
+                    </div>
+                  </div>
+                </CollapsibleMobileCard>
+              );
+            })}
+        </div>
       </div>
 
       {/* ─────────────────────────────────────────────────────────────
-          MODAL: "Grant Feature Override"
+          MODAL: Grant Feature Override / Emergency Commercial Bypass
           ───────────────────────────────────────────────────────────── */}
       <Modal
         isOpen={isGrantModalOpen}
         onClose={() => setIsGrantModalOpen(false)}
-        title="Grant Per-Tenant Feature Override"
+        title={isEmergencyBypassSelected ? 'Authorize Emergency Commercial Bypass' : 'Grant Tenant Feature Override'}
         maxWidth="lg"
       >
         <form onSubmit={handleGrantSubmit} className="space-y-4">
-          {/* Target Tenant ID */}
-          <div className="space-y-1.5">
-            <label htmlFor="grant-tenant-id" className="block text-xs font-medium text-slate-300">
-              Target Tenant Identifier <span className="text-rose-400">*</span>
-            </label>
-            <input
-              id="grant-tenant-id"
-              type="text"
-              value={grantTenantId}
-              onChange={(e) => setGrantTenantId(e.target.value)}
-              placeholder="e.g. 65f1a2b3c4d5e6f7a8b9c0d1"
-              className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none transition-colors"
-              required
-            />
-          </div>
-
-          {/* Feature Selector */}
-          <div className="space-y-1.5">
-            <label htmlFor="grant-feature" className="block text-xs font-medium text-slate-300">
-              Target Capability / Feature Selector <span className="text-rose-400">*</span>
-            </label>
-            <select
-              id="grant-feature"
-              value={grantFeature}
-              onChange={(e) => {
-                const nextFeat = e.target.value;
-                setGrantFeature(nextFeat);
-                if (nextFeat === EMERGENCY_BYPASS_FEATURE) {
-                  setGrantType(OverrideType.ALLOW);
-                  setIsIndefinite(false);
-                  if (grantDurationHours > 72) setGrantDurationHours(12);
-                }
-              }}
-              className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-3 py-2 text-xs text-slate-100 font-mono focus:outline-none transition-colors"
-            >
-              <optgroup label="High Severity Emergency Commercial Bypass">
-                <option value={EMERGENCY_BYPASS_FEATURE}>
-                  ⚡ EMERGENCY_BYPASS (Overrides all commercial subscription limits)
-                </option>
-              </optgroup>
-              <optgroup label="Enterprise Core Capabilities">
-                {ENTERPRISE_FEATURES.map((feat) => (
-                  <option key={feat} value={feat}>
-                    {feat}
-                  </option>
-                ))}
-              </optgroup>
-            </select>
-          </div>
-
-          {/* Emergency Bypass Warning Banner (If Selected) */}
-          {isEmergencyBypassSelected && (
-            <div className="p-3.5 bg-amber-950/70 border border-amber-800/90 rounded-lg flex items-start gap-3 text-xs text-amber-200">
-              <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+          {/* Statutory 72h Warning Callout for Emergency Bypass */}
+          {isEmergencyBypassSelected ? (
+            <div className="p-3.5 bg-amber-950/60 border border-amber-800/80 rounded-lg flex items-start gap-3 text-xs text-amber-200">
+              <Zap className="w-5 h-5 text-amber-400 shrink-0 mt-0.5 animate-pulse" />
               <div className="space-y-1">
-                <span className="font-bold text-amber-300">
-                  Critical Emergency Commercial Bypass Notice
-                </span>
-                <p className="leading-relaxed text-[11px] text-amber-200/90">
-                  This privilege enables unthrottled access across every enterprise module regardless of expired, suspended, or grace subscription states. SOC2 compliance strictly limits grants to a maximum of 72 hours.
+                <p className="font-semibold text-amber-100">
+                  CRITICAL: Emergency Commercial Bypass (Statutory 72-Hour Safeguard)
+                </p>
+                <p className="text-amber-300/90 leading-relaxed">
+                  This action overrides all plan gating and grants full unrestricted write/read access to the tenant. Under platform regulations, this bypass is <strong>hard-capped at a statutory ceiling of 72 hours max</strong> and requires an audited incident reason.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="p-3.5 bg-slate-950/80 border border-slate-800 rounded-lg flex items-start gap-3 text-xs text-slate-300">
+              <Sliders className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-semibold text-slate-200">
+                  Capability Entitlement Rule
+                </p>
+                <p className="text-slate-400 leading-relaxed">
+                  Configure explicit per-tenant capability overrides that take precedence over the subscription plan default.
                 </p>
               </div>
             </div>
           )}
 
-          {/* Override Type Selector (ALLOW vs DENY) */}
-          {!isEmergencyBypassSelected && (
+          <div className="space-y-3">
+            {/* Field: Target Tenant ID */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-slate-300">
-                Override Enforcement Type <span className="text-rose-400">*</span>
+              <label htmlFor="grant-tenant-id" className="block text-xs font-medium text-slate-300">
+                Target Tenant ID <span className="text-rose-400">*</span>
               </label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setGrantType(OverrideType.ALLOW)}
-                  className={`p-3 rounded-lg border text-left transition-all cursor-pointer ${
-                    grantType === OverrideType.ALLOW
-                      ? 'bg-emerald-950/70 border-emerald-600 text-emerald-200 shadow-xs'
-                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5 font-bold text-xs mb-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>ALLOW (Grant Access)</span>
-                  </div>
-                  <p className="text-[11px] text-slate-400 leading-tight">
-                    Explicitly authorizes capability even if excluded from current subscription plan.
-                  </p>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setGrantType(OverrideType.DENY)}
-                  className={`p-3 rounded-lg border text-left transition-all cursor-pointer ${
-                    grantType === OverrideType.DENY
-                      ? 'bg-rose-950/70 border-rose-600 text-rose-200 shadow-xs'
-                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5 font-bold text-xs mb-1">
-                    <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
-                    <span>DENY (Explicit Lock)</span>
-                  </div>
-                  <p className="text-[11px] text-slate-400 leading-tight">
-                    Locks capability even if included in current plan tier.
-                  </p>
-                </button>
-              </div>
+              <input
+                id="grant-tenant-id"
+                type="text"
+                value={grantTenantId}
+                onChange={(e) => setGrantTenantId(e.target.value)}
+                placeholder="65f1a2b3c4d5e6f7a8b9c0d1"
+                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none transition-colors min-h-[44px]"
+                required
+              />
             </div>
-          )}
 
-          {/* Duration & Expiration Selection */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label htmlFor="grant-duration" className="block text-xs font-medium text-slate-300">
-                Entitlement Expiry & Duration <span className="text-rose-400">*</span>
+            {/* Field: Feature */}
+            <div className="space-y-1.5">
+              <label htmlFor="grant-feature" className="block text-xs font-medium text-slate-300">
+                Entitlement Capability / Flag <span className="text-rose-400">*</span>
               </label>
-              {!isEmergencyBypassSelected && (
-                <label className="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={isIndefinite}
-                    onChange={(e) => setIsIndefinite(e.target.checked)}
-                    className="rounded border-slate-700 text-cyan-400 focus:ring-0 bg-slate-950"
-                  />
-                  <span className="font-mono text-[11px]">Permanent / Indefinite</span>
+              <select
+                id="grant-feature"
+                value={grantFeature}
+                onChange={(e) => setGrantFeature(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 focus:outline-none transition-colors min-h-[44px]"
+              >
+                {canManageEmergencyBypass && (
+                  <option value={EMERGENCY_BYPASS_FEATURE}>
+                    EMERGENCY_COMMERCIAL_BYPASS (Critical Incident Resolution)
+                  </option>
+                )}
+                {ENTERPRISE_FEATURES.map((feat) => (
+                  <option key={feat} value={feat}>
+                    {feat}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Field: Type (ALLOW / DENY) */}
+            {!isEmergencyBypassSelected && (
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium text-slate-300">
+                  Override Policy Type <span className="text-rose-400">*</span>
                 </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setGrantType(OverrideType.ALLOW)}
+                    className={`p-2.5 rounded-lg border text-xs font-medium flex items-center justify-center gap-2 cursor-pointer transition-all min-h-[44px] ${
+                      grantType === OverrideType.ALLOW
+                        ? 'bg-emerald-950/80 text-emerald-200 border-emerald-700/80 shadow-xs'
+                        : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200'
+                    }`}
+                  >
+                    <Unlock className="w-4 h-4 text-emerald-400" />
+                    <span>ALLOW (Grant Entitlement)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setGrantType(OverrideType.DENY)}
+                    className={`p-2.5 rounded-lg border text-xs font-medium flex items-center justify-center gap-2 cursor-pointer transition-all min-h-[44px] ${
+                      grantType === OverrideType.DENY
+                        ? 'bg-rose-950/80 text-rose-200 border-rose-700/80 shadow-xs'
+                        : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200'
+                    }`}
+                  >
+                    <Lock className="w-4 h-4 text-rose-400" />
+                    <span>DENY (Explicit Lockout)</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Field: Duration & Expiration */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-slate-300">
+                  Duration / Expiry Ceiling <span className="text-rose-400">*</span>
+                </label>
+                {!isEmergencyBypassSelected && (
+                  <label className="flex items-center gap-1.5 text-xs text-slate-400 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isIndefinite}
+                      onChange={(e) => setIsIndefinite(e.target.checked)}
+                      className="rounded border-slate-700 bg-slate-900 text-cyan-500 focus:ring-0"
+                    />
+                    <span>Indefinite / Permanent</span>
+                  </label>
+                )}
+              </div>
+
+              {!isIndefinite && (
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="1"
+                      max={isEmergencyBypassSelected ? 72 : 8760}
+                      value={grantDurationHours}
+                      onChange={(e) => setGrantDurationHours(parseInt(e.target.value, 10) || 1)}
+                      className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none transition-colors min-h-[44px]"
+                      required
+                    />
+                    <span className="text-xs text-slate-400 font-mono shrink-0">Hours</span>
+                  </div>
+                  {isEmergencyBypassSelected && (
+                    <p className="text-[11px] text-amber-400 font-mono">
+                      Statutory ceiling: Maximum 72 hours allowed for emergency bypass.
+                    </p>
+                  )}
+                </div>
               )}
             </div>
 
-            {!isIndefinite && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <input
-                    id="grant-duration"
-                    type="number"
-                    value={grantDurationHours}
-                    onChange={(e) => setGrantDurationHours(parseInt(e.target.value, 10) || 1)}
-                    max={isEmergencyBypassSelected ? 72 : 8760}
-                    min={1}
-                    className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 focus:outline-none transition-colors"
-                    required
-                  />
-                  <span className="text-xs text-slate-400 font-mono shrink-0">Hours</span>
-                </div>
-
-                {/* Preset Chips */}
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-[10px] font-mono text-slate-400">Presets:</span>
-                  {(isEmergencyBypassSelected ? [6, 12, 24, 48, 72] : [12, 24, 48, 168, 720]).map((h) => (
-                    <button
-                      key={h}
-                      type="button"
-                      onClick={() => setGrantDurationHours(h)}
-                      className={`text-[10px] font-mono px-2 py-0.5 rounded border transition-colors cursor-pointer ${
-                        grantDurationHours === h
-                          ? 'bg-cyan-950 text-cyan-300 border-cyan-700'
-                          : 'bg-slate-800/80 text-slate-300 border-slate-700/80 hover:bg-slate-700'
-                      }`}
-                    >
-                      {h >= 24 ? `${h / 24}d (${h}h)` : `${h}h`}
-                    </button>
-                  ))}
-                </div>
-
-                {isEmergencyBypassSelected && grantDurationHours > 72 && (
-                  <p className="text-[11px] text-rose-400 font-mono">
-                    Enforcement Error: Emergency Bypass duration cannot exceed 72 hours.
-                  </p>
-                )}
+            {/* Field: Mandatory Reason */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label htmlFor="grant-reason" className="block text-xs font-medium text-slate-300">
+                  Mandatory Audit Reason <span className="text-rose-400">*</span>
+                </label>
+                <span
+                  className={`text-[10px] font-mono ${
+                    grantReason.trim().length >= 10 ? 'text-emerald-400' : 'text-slate-400'
+                  }`}
+                >
+                  {grantReason.trim().length}/10 chars min
+                </span>
               </div>
-            )}
-          </div>
-
-          {/* Operational Reason (>= 10 chars) */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label htmlFor="grant-reason" className="block text-xs font-medium text-slate-300">
-                Operational Reason & Audit Justification <span className="text-rose-400">*</span>
-              </label>
-              <span
-                className={`text-[10px] font-mono ${
-                  grantReason.trim().length >= 10 ? 'text-emerald-400' : 'text-slate-400'
-                }`}
-              >
-                {grantReason.trim().length}/10 chars min
-              </span>
+              <textarea
+                id="grant-reason"
+                rows={3}
+                value={grantReason}
+                onChange={(e) => setGrantReason(e.target.value)}
+                placeholder="Operational justification for granting this override (e.g. Enabling E-Invoicing trial pending bank payment confirmation)..."
+                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none transition-colors"
+                required
+              />
             </div>
-            <textarea
-              id="grant-reason"
-              rows={3}
-              value={grantReason}
-              onChange={(e) => setGrantReason(e.target.value)}
-              placeholder="e.g. Granted temporary Inventory Ledger access to test beta release for Enterprise client."
-              className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg p-3 text-xs text-slate-100 placeholder-slate-600 focus:outline-none transition-colors resize-none"
-              required
-            />
           </div>
 
-          {/* Error Message Banner */}
           {grantError && (
-            <div className="p-3 bg-rose-950/70 border border-rose-800/80 rounded-lg text-xs text-rose-300 flex items-start gap-2">
-              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-              <span>{grantError}</span>
+            <div className="p-3 bg-rose-950/60 border border-rose-800/80 rounded-lg text-xs text-rose-300">
+              <span className="font-semibold">Grant Failed: </span>
+              {grantError}
             </div>
           )}
 
-          {/* Action Buttons */}
-          <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-800/80">
+          {/* Modal Actions */}
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
             <button
               type="button"
               onClick={() => setIsGrantModalOpen(false)}
-              disabled={grantMutation.isPending}
-              className="px-3.5 py-2 rounded-lg text-xs font-medium text-slate-300 hover:text-slate-100 transition-colors cursor-pointer"
+              className="px-4 py-2 min-h-[44px] rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 bg-slate-800/60 hover:bg-slate-800 transition-colors cursor-pointer"
             >
               Cancel
             </button>
@@ -982,26 +1322,79 @@ export const FeaturesPage: React.FC = () => {
               disabled={
                 grantMutation.isPending ||
                 !grantTenantId.trim() ||
-                (isEmergencyBypassSelected && grantDurationHours > 72) ||
+                (isEmergencyBypassSelected && (grantDurationHours <= 0 || grantDurationHours > 72)) ||
                 grantReason.trim().length < 10
               }
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold text-slate-950 bg-cyan-400 hover:bg-cyan-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs cursor-pointer active:scale-95"
+              className={`inline-flex items-center gap-2 px-5 py-2 min-h-[44px] rounded-lg text-xs font-semibold shadow-xs cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed transition-all ${
+                isEmergencyBypassSelected
+                  ? 'bg-amber-400 hover:bg-amber-300 text-slate-950'
+                  : 'bg-cyan-400 hover:bg-cyan-300 text-slate-950'
+              }`}
             >
               {grantMutation.isPending ? (
                 <>
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>Signing Override...</span>
+                  <span>Enforcing Policy...</span>
+                </>
+              ) : isEmergencyBypassSelected ? (
+                <>
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>Authorize 72h Emergency Bypass</span>
                 </>
               ) : (
                 <>
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>Authorize Override</span>
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Authorize & Grant Override</span>
                 </>
               )}
             </button>
           </div>
         </form>
       </Modal>
+
+      {/* ─────────────────────────────────────────────────────────────
+          MODAL: Full Reason Inspection Modal
+          ───────────────────────────────────────────────────────────── */}
+      {selectedReason && (
+        <Modal
+          isOpen={!!selectedReason}
+          onClose={() => setSelectedReason(null)}
+          title={`Audit Justification: ${selectedReason.feature}`}
+          maxWidth="md"
+        >
+          <div className="space-y-4 text-xs">
+            <div className="p-3 bg-slate-950/80 rounded-lg border border-slate-800 space-y-2 font-mono text-[11px]">
+              <div className="flex items-center justify-between text-slate-400">
+                <span>Tenant ID:</span>
+                <span className="text-cyan-400">{selectedReason.tenantId}</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-400">
+                <span>Granted By:</span>
+                <span className="text-slate-200">{selectedReason.grantedBy}</span>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="text-slate-400 font-semibold block text-[11px] uppercase tracking-wider font-mono">
+                Cryptographically Signed Reason
+              </span>
+              <div className="p-3.5 bg-slate-950 rounded-lg border border-slate-800 text-slate-200 leading-relaxed font-sans select-text whitespace-pre-wrap">
+                {selectedReason.reason}
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setSelectedReason(null)}
+                className="px-4 py-2 min-h-[44px] rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {/* ─────────────────────────────────────────────────────────────
           CONFIRM DIALOG: Revoke Override
@@ -1013,65 +1406,13 @@ export const FeaturesPage: React.FC = () => {
           setOverrideToRevoke(null);
         }}
         onConfirm={handleConfirmRevoke}
-        title="Revoke Tenant Feature Override"
-        description={`You are about to revoke the active "${overrideToRevoke?.feature}" override for tenant "${
-          typeof overrideToRevoke?.tenantId === 'string'
-            ? overrideToRevoke.tenantId
-            : overrideToRevoke?.tenantId?._id
-        }". Tenant access will immediately revert to their baseline SaaS subscription entitlements.`}
-        confirmLabel="Revoke Override"
+        title={`Revoke Override: ${overrideToRevoke?.feature || 'Feature'}`}
+        description="This will immediately deactivate the entitlement grant or lockout policy for this tenant. The firm will revert to baseline entitlements defined in their active SaaS subscription tier. This revocation is cryptographically signed to the platform audit log."
+        confirmLabel="Revoke Override Immediately"
         severity="danger"
         minReasonLength={10}
         isLoading={revokeMutation.isPending}
       />
-
-      {/* ─────────────────────────────────────────────────────────────
-          MODAL: Inspect Full Operational Reason
-          ───────────────────────────────────────────────────────────── */}
-      <Modal
-        isOpen={Boolean(selectedReason)}
-        onClose={() => setSelectedReason(null)}
-        title="Operational Justification & Audit Context"
-        maxWidth="md"
-      >
-        {selectedReason && (
-          <div className="space-y-4 text-xs font-mono">
-            <div className="p-3 bg-slate-950 border border-slate-800 rounded-lg space-y-2">
-              <div className="flex items-center justify-between text-slate-400">
-                <span>Feature:</span>
-                <span className="text-cyan-400 font-bold">{selectedReason.feature}</span>
-              </div>
-              <div className="flex items-center justify-between text-slate-400">
-                <span>Tenant ID:</span>
-                <span className="text-slate-200">{selectedReason.tenantId}</span>
-              </div>
-              <div className="flex items-center justify-between text-slate-400">
-                <span>Operator:</span>
-                <span className="text-slate-200">{selectedReason.grantedBy}</span>
-              </div>
-            </div>
-
-            <div className="space-y-1.5 font-sans">
-              <span className="text-xs font-medium text-slate-300 block">
-                SOC2 Recorded Operational Reason:
-              </span>
-              <div className="p-3.5 bg-slate-950 border border-slate-800 rounded-lg text-slate-200 leading-relaxed text-xs">
-                {selectedReason.reason}
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-2 border-t border-slate-800/80">
-              <button
-                type="button"
-                onClick={() => setSelectedReason(null)}
-                className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-300 bg-slate-800 hover:bg-slate-700 transition-colors cursor-pointer"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
     </div>
   );
 };

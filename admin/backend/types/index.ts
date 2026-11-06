@@ -49,6 +49,7 @@ export interface IPlatformUser {
   mustChangePassword: boolean;
   failedLoginAttempts: number;
   lockUntil?: Date | null;
+  isLocked?: boolean;
   mfaEnabled: boolean;
   mfaSecret?: string;
   mfaBackupCodes: Array<{
@@ -147,6 +148,7 @@ export enum SupportSessionStatus {
   ACTIVE  = 'ACTIVE',
   ENDED   = 'ENDED',
   EXPIRED = 'EXPIRED',
+  REVOKED = 'REVOKED',
 }
 
 export interface IPlatformSupportSession {
@@ -154,10 +156,13 @@ export interface IPlatformSupportSession {
   sessionCode: string; // Unique index
   operatorId: Types.ObjectId;
   targetTenantId: Types.ObjectId;
+  tenantId?: Types.ObjectId; // alias to targetTenantId
   reason: string;
   permissionsSnapshot: PlatformPermission[];
   status: SupportSessionStatus;
   isReadOnly: boolean;
+  isRevoked: boolean;
+  allowedScope: string[];
   startedAt: Date;
   expiresAt: Date;
   endedAt?: Date | null;

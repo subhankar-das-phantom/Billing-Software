@@ -92,13 +92,10 @@ export async function getSubscriptionInfo(
   // Recalculate actual status based on dates
   const actualStatus = resolveStatus(subscription, now);
 
-  const daysRemaining = Math.max(
-    0,
-    Math.ceil(
-      (new Date(subscription.expiresAt).getTime() - now.getTime()) /
-        (1000 * 60 * 60 * 24),
-    ),
-  );
+  const expiryTime = subscription.expiresAt ? new Date(subscription.expiresAt).getTime() : NaN;
+  const daysRemaining = (!isNaN(expiryTime) && expiryTime > 0)
+    ? Math.max(0, Math.ceil((expiryTime - now.getTime()) / (1000 * 60 * 60 * 24)))
+    : 0;
 
   const isGrace = actualStatus === SubscriptionStatus.GRACE;
 
@@ -139,7 +136,9 @@ export async function getSubscriptionInfo(
       features: resolvedFeatures,
     },
     canWrite,
-    expiresAt: new Date(subscription.expiresAt),
+    expiresAt: (subscription.expiresAt && !isNaN(new Date(subscription.expiresAt).getTime()))
+      ? new Date(subscription.expiresAt)
+      : new Date(0),
     daysRemaining,
     isGrace,
     subscriptionId: subscription._id,

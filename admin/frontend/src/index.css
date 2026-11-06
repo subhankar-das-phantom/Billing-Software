@@ -60,3 +60,49 @@
 .border-subtle {
   border-color: rgba(30, 41, 59, 0.8);
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Enterprise Pro Obsidian Utilities & Mobile Touch Ergonomics
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Glass Card Effect — Enterprise Pro Obsidian Styling (Zero GPU compositor stutter) */
+.glass-card {
+  @apply bg-slate-900/90 border border-slate-800/80 rounded-xl shadow-lg overflow-visible;
+}
+
+/* Dedicated min 44x44px target with pointer-events-none on inner icon */
+.card-toggle-trigger {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-toggle-trigger svg,
+.card-toggle-trigger > * {
+  pointer-events: none;
+}
+
+/* Accessible focus ring for high-contrast keyboard navigation */
+.focus-ring {
+  @apply outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950;
+}
+
+/* Cross-browser scrollbar hiding for horizontal pill containers */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Suppress sticky hover transforms and accidental sticky styles on touch devices */
+@media (hover: none) and (pointer: coarse) {
+  *:hover {
+    transform: none !important;
+  }
+}
+

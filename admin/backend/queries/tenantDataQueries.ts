@@ -115,8 +115,12 @@ export async function getTenantOverview(tenantIdInput: string | Types.ObjectId):
     .lean();
 
   const now = Date.now();
-  const subExpiresAt = subscription?.expiresAt ? new Date(subscription.expiresAt).getTime() : 0;
-  const daysRemaining = Math.max(0, Math.ceil((subExpiresAt - now) / (1000 * 60 * 60 * 24)));
+  const subExpiresAt = (subscription?.expiresAt && !isNaN(new Date(subscription.expiresAt).getTime()))
+    ? new Date(subscription.expiresAt).getTime()
+    : 0;
+  const daysRemaining = subExpiresAt > 0
+    ? Math.max(0, Math.ceil((subExpiresAt - now) / (1000 * 60 * 60 * 24)))
+    : 0;
 
   const subStatus = subscription?.status || 'none';
   const canWrite = ['active', 'trial', 'grace'].includes(subStatus);
@@ -130,8 +134,8 @@ export async function getTenantOverview(tenantIdInput: string | Types.ObjectId):
     firmDL: tenant.firmDL || '',
     email: tenant.email,
     isActive: tenant.isActive !== false,
-    createdAt: tenant.createdAt ? new Date(tenant.createdAt).toISOString() : new Date().toISOString(),
-    lastLogin: tenant.lastLogin ? new Date(tenant.lastLogin).toISOString() : null,
+    createdAt: (tenant.createdAt && !isNaN(new Date(tenant.createdAt).getTime())) ? new Date(tenant.createdAt).toISOString() : new Date().toISOString(),
+    lastLogin: (tenant.lastLogin && !isNaN(new Date(tenant.lastLogin).getTime())) ? new Date(tenant.lastLogin).toISOString() : null,
     preferences: {
       themeMode: tenant.preferences?.themeMode || 'dark',
       enableBatchTracking: tenant.preferences?.enableBatchTracking === true,
@@ -139,14 +143,14 @@ export async function getTenantOverview(tenantIdInput: string | Types.ObjectId):
     },
     subscription: subscription
       ? {
-          status: subscription.status,
+          status: subscription.status || 'unknown',
           planName: subscription.currentPricingSnapshot?.planName || 'N/A',
           planCode: subscription.currentPricingSnapshot?.planCode || '',
           baseMonthlyPrice: subscription.currentPricingSnapshot?.baseMonthlyPrice || 0,
           finalAmount: subscription.currentPricingSnapshot?.finalAmount || 0,
-          startedAt: subscription.startedAt ? new Date(subscription.startedAt).toISOString() : '',
-          expiresAt: subscription.expiresAt ? new Date(subscription.expiresAt).toISOString() : '',
-          graceUntil: subscription.graceUntil ? new Date(subscription.graceUntil).toISOString() : '',
+          startedAt: (subscription.startedAt && !isNaN(new Date(subscription.startedAt).getTime())) ? new Date(subscription.startedAt).toISOString() : '',
+          expiresAt: (subscription.expiresAt && !isNaN(new Date(subscription.expiresAt).getTime())) ? new Date(subscription.expiresAt).toISOString() : '',
+          graceUntil: (subscription.graceUntil && !isNaN(new Date(subscription.graceUntil).getTime())) ? new Date(subscription.graceUntil).toISOString() : '',
           autoRenew: subscription.autoRenew === true,
           billingMode: subscription.billingMode || 'manual',
           daysRemaining,

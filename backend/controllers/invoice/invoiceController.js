@@ -10,7 +10,10 @@ const { getAttribution } = require('../../middleware/auth');
 const { trackActivity, ACTIVITY_TYPES } = require('../../utils/activityTracker');
 const { invalidateGstReportCache } = require('../gstReportController');
 const getTenantId = require('../../utils/getTenantId');
+const invoiceService = require('../../services/invoiceService').default || require('../../services/invoiceService');
 
+const CREATE_INVOICE_TRANSACTION_RETRIES = 50;
+const CREATE_INVOICE_RETRY_BASE_DELAY_MS = 25;
 const UPDATE_INVOICE_TRANSACTION_RETRIES = 3;
 const UPDATE_INVOICE_RETRY_BASE_DELAY_MS = 150;
 
@@ -52,7 +55,14 @@ const hasTransientTransactionLabel = (error) => {
 
 const isRetryableInvoiceTransactionError = (error) => {
   const code = error?.code ?? error?.errorResponse?.code;
-  return code === 112 || hasTransientTransactionLabel(error);
+  const errmsg = String(error?.message || error?.errmsg || '');
+  return (
+    code === 112 ||
+    code === 251 ||
+    errmsg.includes('Write conflict') ||
+    errmsg.includes('WriteConflict') ||
+    hasTransientTransactionLabel(error)
+  );
 };
 
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
@@ -541,63 +551,57 @@ exports.createInvoice = async (req, res, next) => {
     }
   }
 
-  const session = await mongoose.startSession();
-  session.startTransaction();
+  let invoiceNumber = null;
 
-  try {
-    const { customerId, items, paymentType, notes, isBatchTrackingEnabled } = req.body;
-    const paymentTypeToUse = paymentType || 'Credit';
+  for (let attempt = 1; attempt <= CREATE_INVOICE_TRANSACTION_RETRIES; attempt += 1) {
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    // Validate customer
-    const customer = await Customer.findOne({
-      _id: customerId,
-      tenantId
-    }).session(session);
-    if (!customer) {
-      await session.abortTransaction();
-      return res.status(404).json({
-        success: false,
-        message: 'Customer not found'
-      });
-    }
+    try {
+      const { customerId, items, paymentType, notes, isBatchTrackingEnabled } = req.body;
+      const paymentTypeToUse = paymentType || 'Credit';
 
-    if (customer.isActive === false) {
-      await session.abortTransaction();
-      return res.status(400).json({
-        success: false,
-        message: 'Cannot create invoice for an inactive customer'
-      });
-    }
+      // Validate customer
+      const customer = await Customer.findOne({
+        _id: customerId,
+        tenantId
+      }).session(session);
+      if (!customer) {
+        await session.abortTransaction();
+        return res.status(404).json({
+          success: false,
+          message: 'Customer not found'
+        });
+      }
 
-    // Resolve firm info from the tenant admin.
-    const adminInfo = await Admin.findById(tenantId).session(session);
+      if (customer.isActive === false) {
+        await session.abortTransaction();
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot create invoice for an inactive customer'
+        });
+      }
 
-    if (!adminInfo) {
-      await session.abortTransaction();
-      return res.status(500).json({
-        success: false,
-        message: 'Firm settings not found'
-      });
-    }
+      // Resolve firm info from the tenant admin.
+      const adminInfo = await Admin.findById(tenantId).session(session);
 
-    const enableBatchTracking = adminInfo.preferences?.enableBatchTracking === true;
+      if (!adminInfo) {
+        await session.abortTransaction();
+        return res.status(500).json({
+          success: false,
+          message: 'Firm settings not found'
+        });
+      }
 
-    // Generate invoice number
-    const lastInvoice = await Invoice.findOne({ tenantId })
-      .sort({ createdAt: -1 })
-      .select('invoiceNumber')
-      .session(session);
-    let invoiceNumber;
-    if (lastInvoice) {
-      const lastNum = parseInt(String(lastInvoice.invoiceNumber || '').split('-').pop(), 10);
-      const nextNum = Number.isFinite(lastNum) ? lastNum + 1 : 1;
-      invoiceNumber = `INV-${new Date().getFullYear()}-${String(nextNum).padStart(4, '0')}`;
-    } else {
-      invoiceNumber = `INV-${new Date().getFullYear()}-0001`;
-    }
+      const enableBatchTracking = adminInfo.preferences?.enableBatchTracking === true;
 
-    // Batch load products once to avoid N+1 queries during validation and pricing.
-    const uniqueProductIds = [...new Set(items.map((item) => String(item.productId)))];
+      // Allocate sequential invoice number atomically once per creation attempt (preserved across transient WriteConflict retries)
+      if (!invoiceNumber) {
+        invoiceNumber = await invoiceService.generateNextInvoiceNumber(tenantId);
+      }
+
+      // Batch load products once to avoid N+1 queries during validation and pricing.
+      const uniqueProductIds = [...new Set(items.map((item) => String(item.productId)))];
     const products = await Product.find({
       _id: { $in: uniqueProductIds },
       tenantId
@@ -697,7 +701,10 @@ exports.createInvoice = async (req, res, next) => {
 
     // Calculate totals
     let totals = calculateInvoiceTotals(processedItems);
-    totals.amountInWords = numberToWords(totals.netTotal);
+    totals.amountInWords = numberToWords(totals.finalTotal ?? totals.netTotal);
+
+    const initialPaidAmount = paymentTypeToUse === 'Cash' ? (totals.finalTotal ?? totals.netTotal) : 0;
+    const initialPaymentStatus = paymentTypeToUse === 'Cash' ? 'Paid' : 'Unpaid';
 
     // Create invoice
     const invoice = await Invoice.create([{
@@ -723,6 +730,8 @@ exports.createInvoice = async (req, res, next) => {
       items: processedItems,
       totals,
       paymentType: paymentTypeToUse,
+      paidAmount: initialPaidAmount,
+      paymentStatus: initialPaymentStatus,
       notes,
       createRequestId: createRequestId || undefined,
       createdBy: getAttribution(req)
@@ -854,16 +863,21 @@ exports.createInvoice = async (req, res, next) => {
       }
 
       totals = calculateInvoiceTotals(batchExpandedItems);
-      totals.amountInWords = numberToWords(totals.netTotal);
+      totals.amountInWords = numberToWords(totals.finalTotal ?? totals.netTotal);
       invoice[0].items = batchExpandedItems;
       invoice[0].totals = totals;
+      if (paymentTypeToUse === 'Cash') {
+        invoice[0].paidAmount = totals.finalTotal ?? totals.netTotal;
+      }
       await invoice[0].save({ session });
     }
+
+    const effectivePayableTotal = totals.finalTotal ?? totals.netTotal;
 
     // Update customer stats
     const customerUpdate = {
       $inc: { 
-        totalPurchases: totals.netTotal,
+        totalPurchases: effectivePayableTotal,
         invoiceCount: 1
       },
       lastInvoiceDate: new Date()
@@ -871,7 +885,7 @@ exports.createInvoice = async (req, res, next) => {
 
     // If Credit invoice, add to outstanding balance
     if (paymentTypeToUse === 'Credit') {
-      customerUpdate.$inc.outstandingBalance = totals.netTotal;
+      customerUpdate.$inc.outstandingBalance = effectivePayableTotal;
     }
 
     await Customer.findOneAndUpdate(
@@ -891,9 +905,9 @@ exports.createInvoice = async (req, res, next) => {
     invalidateGstReportCache(invoice[0].invoiceDate);
 
     // Track employee activity
-    trackActivity(req, ACTIVITY_TYPES.INVOICE_CREATED, { amount: totals.netTotal });
+    trackActivity(req, ACTIVITY_TYPES.INVOICE_CREATED, { amount: effectivePayableTotal });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       invoice: invoice[0]
     });
@@ -918,10 +932,29 @@ exports.createInvoice = async (req, res, next) => {
       }
     }
 
-    next(error);
+    const isDuplicateInvoiceNumber =
+      error?.code === 11000
+      && (error?.keyPattern?.invoiceNumber || String(error?.message || '').includes('invoiceNumber'));
+
+    if (isDuplicateInvoiceNumber) {
+      invoiceNumber = null; // Re-allocate next number on duplicate collision
+    }
+
+    const shouldRetry =
+      (isRetryableInvoiceTransactionError(error) || isDuplicateInvoiceNumber)
+      && attempt < CREATE_INVOICE_TRANSACTION_RETRIES;
+
+    if (shouldRetry) {
+      const jitter = Math.floor(Math.random() * 45) + 15;
+      await sleep(jitter);
+      continue;
+    }
+
+    return next(error);
   } finally {
     session.endSession();
   }
+}
 };
 
 // =============================================================================
@@ -1294,7 +1327,18 @@ exports.updateInvoice = async (req, res, next) => {
 
     // ── STEP 7: Calculate totals ───────────────────────────────────────
     const totals = calculateInvoiceTotals(processedItems);
-    totals.amountInWords = numberToWords(totals.netTotal);
+    totals.amountInWords = numberToWords(totals.finalTotal ?? totals.netTotal);
+
+    // Negative / Overpayment Guardrail: Prevent reducing invoice total below already paid amount
+    const existingPaidAmount = getRoundedNumber(existingInvoice.paidAmount);
+    const newPayableTotal = totals.finalTotal ?? totals.netTotal;
+    if (existingPaidAmount > 0 && newPayableTotal < existingPaidAmount) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: `Invoice total (₹${newPayableTotal.toFixed(2)}) cannot be reduced below already paid amount (₹${existingPaidAmount.toFixed(2)})`
+      });
+    }
 
     // ── STEP 8: Resolve customer ───────────────────────────────────────
     let customer = existingInvoice.customer;
@@ -1336,7 +1380,6 @@ exports.updateInvoice = async (req, res, next) => {
     }
 
     // Recalculate paymentStatus based on new total vs existing paidAmount
-    const existingPaidAmount = getRoundedNumber(existingInvoice.paidAmount);
     const newPaymentStatus = derivePaymentStatus(totals.netTotal, existingPaidAmount);
 
     // Outstanding balance delta for Credit invoices

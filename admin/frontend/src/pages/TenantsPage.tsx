@@ -1,10 +1,12 @@
 /**
  * Bharat Enterprise Billing System — Platform Tenants Directory
  * Searchable, keyset-paginated directory of all tenant accounts on the platform.
- * Complete enterprise implementation with inspect modal, audited suspension, and support shortcuts.
+ * Complete enterprise implementation with inspect modal, audited suspension, support shortcuts,
+ * and high-density dual desktop table / mobile collapsible card views with 2x2 action matrix.
  */
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Building2,
@@ -12,19 +14,27 @@ import {
   Eye,
   Power,
   Headphones,
+  Sliders,
   ChevronLeft,
   ChevronRight,
   ShieldAlert,
   X,
+  Mail,
+  Phone,
+  Calendar,
+  CreditCard,
 } from 'lucide-react';
 import SearchInput from '../components/common/SearchInput';
 import StatusBadge from '../components/common/StatusBadge';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import Toast, { type ToastMessage } from '../components/common/Toast';
+import CollapsibleMobileCard from '../components/common/CollapsibleMobileCard';
 import TenantDetailsModal from '../components/tenants/TenantDetailsModal';
 import DiagnosticSessionModal from '../components/tenants/DiagnosticSessionModal';
+import AnimatedCounter from '../components/common/AnimatedCounter';
 import api from '../services/api';
 import { usePlatformAuth } from '../contexts/PlatformAuthContext';
+import { useListFilterParams } from '../hooks/useListFilterParams';
 import {
   PlatformPermission,
   type TenantListItemDTO,
@@ -50,6 +60,7 @@ function formatDate(dateStr?: string | null): string {
 }
 
 export const TenantsPage: React.FC = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { hasPermission } = usePlatformAuth();
 
@@ -58,9 +69,14 @@ export const TenantsPage: React.FC = () => {
   const canReactivate = hasPermission(PlatformPermission.TENANTS_REACTIVATE);
   const canStartSupport = hasPermission(PlatformPermission.SUPPORT_START);
 
-  // Filter and search states
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<StatusFilterType>('all');
+  // URL-synchronized filter state
+  const { params, setParam, resetParams } = useListFilterParams({
+    search: '',
+    status: 'all' as StatusFilterType,
+  });
+
+  const search = params.search;
+  const statusFilter = (params.status || 'all') as StatusFilterType;
 
   // Keyset cursor pagination traversal state
   const [cursor, setCursor] = useState<string | null>(null);
@@ -113,20 +129,20 @@ export const TenantsPage: React.FC = () => {
   } = useQuery<IPaginatedResponse<TenantListItemDTO>>({
     queryKey: ['platform', 'tenants', { limit: 25, search, status: statusFilter, cursor }],
     queryFn: async () => {
-      const params: Record<string, string | number> = {
+      const queryParams: Record<string, string | number> = {
         limit: 25,
       };
       if (search.trim()) {
-        params.search = search.trim();
+        queryParams.search = search.trim();
       }
       if (statusFilter !== 'all') {
-        params.status = statusFilter;
+        queryParams.status = statusFilter;
       }
       if (cursor) {
-        params.cursor = cursor;
+        queryParams.cursor = cursor;
       }
 
-      const res = await api.get<IPaginatedResponse<TenantListItemDTO>>('/tenants', { params });
+      const res = await api.get<IPaginatedResponse<TenantListItemDTO>>('/tenants', { params: queryParams });
       return res.data;
     },
     staleTime: 30000,
@@ -138,20 +154,19 @@ export const TenantsPage: React.FC = () => {
 
   // ─── Filter Handlers ─────────────────────────────────────────────
   const handleSearchChange = (newSearch: string) => {
-    setSearch(newSearch);
+    setParam('search', newSearch);
     setCursor(null);
     setCursorStack([]);
   };
 
   const handleStatusFilterChange = (newStatus: StatusFilterType) => {
-    setStatusFilter(newStatus);
+    setParam('status', newStatus);
     setCursor(null);
     setCursorStack([]);
   };
 
   const handleResetFilters = () => {
-    setSearch('');
-    setStatusFilter('all');
+    resetParams();
     setCursor(null);
     setCursorStack([]);
   };
@@ -265,6 +280,10 @@ export const TenantsPage: React.FC = () => {
     });
   };
 
+  const handleAdjustTenant = (tenant: TenantListItemDTO) => {
+    navigate(`/subscriptions?search=${encodeURIComponent(tenant.firmName || tenant.tenantId)}`);
+  };
+
   const currentPageNumber = cursorStack.length + 1;
 
   return (
@@ -276,11 +295,11 @@ export const TenantsPage: React.FC = () => {
             <h1 className="text-lg font-bold text-slate-100 tracking-tight">Tenants Directory</h1>
             {totalCount !== undefined ? (
               <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 shadow-2xs">
-                {totalCount.toLocaleString('en-IN')} total
+                <AnimatedCounter target={totalCount} /> total
               </span>
             ) : tenants.length > 0 ? (
               <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-slate-800 text-slate-300 border border-slate-700 shadow-2xs">
-                {tenants.length} loaded
+                <AnimatedCounter target={tenants.length} /> loaded
               </span>
             ) : null}
           </div>
@@ -374,9 +393,9 @@ export const TenantsPage: React.FC = () => {
         )}
       </div>
 
-      {/* 3. Interactive Data Table Container */}
+      {/* 3. Interactive Data Container: Desktop Table + Mobile Collapsible Cards */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-xs">
-        {/* Table Head Description */}
+        {/* Table/Directory Head */}
         <div className="p-4 border-b border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
           <div className="flex items-center gap-2 font-medium text-slate-300">
             <Building2 className="w-4 h-4 text-slate-400" />
@@ -389,15 +408,15 @@ export const TenantsPage: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-2">
+            <div className="flex items-center gap-2">
               <StatusBadge variant="emerald" label="Active" dot />
               <StatusBadge variant="rose" label="Suspended" dot />
             </div>
           </div>
         </div>
 
-        {/* Table Content */}
-        <div className="overflow-x-auto">
+        {/* ─── A. DESKTOP VIEW (Table: md and up) ─── */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="border-b border-slate-800/80 bg-slate-950/40 text-[11px] text-slate-400 uppercase tracking-wider font-semibold">
@@ -532,7 +551,7 @@ export const TenantsPage: React.FC = () => {
                                 </span>
                               ) : (
                                 <span className="font-mono text-slate-500">
-                                  ID: {tenant.tenantId.slice(-8)}
+                                  ID: {tenant.tenantId ? tenant.tenantId.slice(-8) : '—'}
                                 </span>
                               )}
                             </div>
@@ -590,7 +609,7 @@ export const TenantsPage: React.FC = () => {
                             <Eye className="w-3.5 h-3.5" />
                           </button>
 
-                          {/* Start Diagnostic Session */}
+                          {/* Diagnostic Session */}
                           <button
                             type="button"
                             onClick={() => handleStartDiagnostic(tenant.tenantId, tenant.firmName)}
@@ -604,6 +623,17 @@ export const TenantsPage: React.FC = () => {
                             aria-label={`Start Diagnostic Session for ${tenant.firmName}`}
                           >
                             <Headphones className="w-3.5 h-3.5" />
+                          </button>
+
+                          {/* Adjust Subscription */}
+                          <button
+                            type="button"
+                            onClick={() => handleAdjustTenant(tenant)}
+                            className="p-1.5 rounded-lg border border-slate-800 hover:border-cyan-600/60 bg-slate-950/60 hover:bg-cyan-950/40 text-cyan-400 hover:text-cyan-300 transition-colors cursor-pointer"
+                            title="Adjust Subscription Tenure"
+                            aria-label={`Adjust Subscription for ${tenant.firmName}`}
+                          >
+                            <Sliders className="w-3.5 h-3.5" />
                           </button>
 
                           {/* Suspend / Reactivate */}
@@ -644,6 +674,198 @@ export const TenantsPage: React.FC = () => {
           </table>
         </div>
 
+        {/* ─── B. MOBILE VIEW (Collapsible Cards: < md) ─── */}
+        <div className="md:hidden p-3 space-y-3">
+          {/* Mobile Loading Skeleton */}
+          {isLoading && (
+            <div className="space-y-3">
+              {[...Array(4)].map((_, idx) => (
+                <div
+                  key={idx}
+                  className="p-3.5 rounded-xl border border-slate-800 bg-slate-900/60 animate-pulse space-y-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-slate-800 shrink-0" />
+                    <div className="flex-1 space-y-1.5">
+                      <div className="h-3.5 bg-slate-800 rounded w-36" />
+                      <div className="h-2.5 bg-slate-800/60 rounded w-24" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Mobile Error State */}
+          {isError && !isLoading && (
+            <div className="p-6 text-center text-xs space-y-2">
+              <ShieldAlert className="w-8 h-8 text-rose-400 mx-auto" />
+              <p className="font-semibold text-rose-200">Failed to load platform tenants</p>
+              <button
+                type="button"
+                onClick={() => refetch()}
+                className="mt-2 px-4 py-2 min-h-[44px] rounded-lg bg-slate-800 text-slate-100 font-medium cursor-pointer"
+              >
+                Try Again
+              </button>
+            </div>
+          )}
+
+          {/* Mobile Empty State */}
+          {!isLoading && !isError && tenants.length === 0 && (
+            <div className="p-8 text-center text-xs space-y-3">
+              <Building2 className="w-8 h-8 text-slate-600 mx-auto" />
+              <p className="font-semibold text-slate-300">No tenants found</p>
+              <p className="text-slate-500">
+                {search || statusFilter !== 'all'
+                  ? 'No enterprise tenants match your filters.'
+                  : 'No registered tenants.'}
+              </p>
+              {(search || statusFilter !== 'all') && (
+                <button
+                  type="button"
+                  onClick={handleResetFilters}
+                  className="px-4 py-2 min-h-[44px] rounded-lg bg-cyan-600 text-white font-medium cursor-pointer inline-flex items-center gap-2"
+                >
+                  <X className="w-4 h-4" />
+                  <span>Reset Filters</span>
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Mobile Cards List */}
+          {!isLoading &&
+            !isError &&
+            tenants.map((tenant) => {
+              const initial = (tenant.firmName || 'T').charAt(0).toUpperCase();
+
+              // Summary component: 74-82px bounded height, single-line text truncation
+              const cardSummary = (
+                <div className="flex items-center gap-3 min-w-0 pr-1">
+                  <div className="w-9 h-9 rounded-lg bg-slate-800 border border-slate-700/80 flex items-center justify-center font-bold text-xs text-slate-200 shrink-0 select-none shadow-2xs">
+                    {initial}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-slate-100 truncate text-xs block">
+                        {tenant.firmName || 'Unnamed Firm'}
+                      </span>
+                      <StatusBadge
+                        variant={tenant.isActive ? 'emerald' : 'rose'}
+                        label={tenant.isActive ? 'Active' : 'Suspended'}
+                        dot
+                        size="sm"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-400 font-mono">
+                      <span className="truncate">
+                        {tenant.firmGSTIN ? `GST: ${tenant.firmGSTIN}` : `ID: ${tenant.tenantId?.slice(-8)}`}
+                      </span>
+                      {tenant.subscription?.planName && (
+                        <span className="px-1.5 py-0.2 rounded text-[10px] uppercase bg-slate-800 text-cyan-300 border border-slate-700 shrink-0">
+                          {tenant.subscription.planName}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+
+              return (
+                <CollapsibleMobileCard
+                  key={tenant.tenantId}
+                  id={tenant.tenantId}
+                  entityType="tenant"
+                  statusVariant={tenant.isActive ? 'default' : 'danger'}
+                  summary={cardSummary}
+                >
+                  {/* Expanded Content: Contact Meta & Structured 2x2 Action Grid */}
+                  <div className="space-y-3 pt-2 text-xs">
+                    {/* Compact Meta Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2.5 bg-slate-950/60 rounded-lg border border-slate-800/80 font-mono text-[11px]">
+                      <div className="flex items-center gap-2 text-slate-300 truncate">
+                        <Mail className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                        <span className="truncate select-all">{tenant.email || '—'}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-300">
+                        <Phone className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                        <span className="select-all">{tenant.phone || '—'}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-400">
+                        <Calendar className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                        <span>Registered {formatDate(tenant.createdAt)}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-400">
+                        <CreditCard className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                        <span>Plan: {tenant.subscription?.planName || 'Standard'}</span>
+                      </div>
+                    </div>
+
+                    {/* Structured 2x2 Action Grid with min-h-[44px] touch targets */}
+                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800/60">
+                      {/* Action 1: Inspect */}
+                      <button
+                        type="button"
+                        onClick={() => handleInspect(tenant.tenantId)}
+                        className="min-h-[44px] px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center gap-2 text-xs font-medium cursor-pointer transition-colors"
+                        aria-label={`Inspect ${tenant.firmName}`}
+                      >
+                        <Eye className="w-4 h-4 text-cyan-400" />
+                        <span>Inspect</span>
+                      </button>
+
+                      {/* Action 2: Diagnostic */}
+                      <button
+                        type="button"
+                        onClick={() => handleStartDiagnostic(tenant.tenantId, tenant.firmName)}
+                        disabled={!canStartSupport}
+                        className="min-h-[44px] px-3 py-2 rounded-lg bg-amber-950/40 hover:bg-amber-900/50 active:bg-amber-900/60 text-amber-300 border border-amber-800/60 flex items-center justify-center gap-2 text-xs font-medium cursor-pointer disabled:opacity-40 transition-colors"
+                        aria-label={`Start diagnostic session for ${tenant.firmName}`}
+                      >
+                        <Headphones className="w-4 h-4 text-amber-400" />
+                        <span>Diagnostic</span>
+                      </button>
+
+                      {/* Action 3: Adjust */}
+                      <button
+                        type="button"
+                        onClick={() => handleAdjustTenant(tenant)}
+                        className="min-h-[44px] px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-700 text-cyan-300 border border-slate-700 flex items-center justify-center gap-2 text-xs font-medium cursor-pointer transition-colors"
+                        aria-label={`Adjust subscription for ${tenant.firmName}`}
+                      >
+                        <Sliders className="w-4 h-4 text-cyan-400" />
+                        <span>Adjust</span>
+                      </button>
+
+                      {/* Action 4: Suspend / Reactivate */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleInitiateStatusToggle(
+                            tenant.tenantId,
+                            tenant.firmName,
+                            tenant.isActive
+                          )
+                        }
+                        disabled={tenant.isActive ? !canSuspend : !canReactivate}
+                        className={`min-h-[44px] px-3 py-2 rounded-lg border flex items-center justify-center gap-2 text-xs font-medium cursor-pointer disabled:opacity-40 transition-colors ${
+                          tenant.isActive
+                            ? 'bg-rose-950/40 hover:bg-rose-900/50 active:bg-rose-900/60 text-rose-300 border-rose-800/60'
+                            : 'bg-emerald-950/40 hover:bg-emerald-900/50 active:bg-emerald-900/60 text-emerald-300 border-emerald-800/60'
+                        }`}
+                        aria-label={`${tenant.isActive ? 'Suspend' : 'Reactivate'} ${tenant.firmName}`}
+                      >
+                        <Power className="w-4 h-4" />
+                        <span>{tenant.isActive ? 'Suspend' : 'Reactivate'}</span>
+                      </button>
+                    </div>
+                  </div>
+                </CollapsibleMobileCard>
+              );
+            })}
+        </div>
+
         {/* 4. Keyset Pagination Controls Footer */}
         <div className="p-3.5 border-t border-slate-800/80 bg-slate-950/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-400">
           <div className="flex items-center gap-3">
@@ -666,7 +888,7 @@ export const TenantsPage: React.FC = () => {
               type="button"
               onClick={handlePrevPage}
               disabled={cursorStack.length === 0 || isLoading || isFetching}
-              className="px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900 text-slate-300 hover:text-slate-100 hover:border-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1.5 cursor-pointer font-medium"
+              className="px-3 py-1.5 min-h-[38px] sm:min-h-0 rounded-lg border border-slate-800 bg-slate-900 text-slate-300 hover:text-slate-100 hover:border-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1.5 cursor-pointer font-medium"
               title="Navigate to previous page"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
@@ -682,7 +904,7 @@ export const TenantsPage: React.FC = () => {
               type="button"
               onClick={handleNextPage}
               disabled={!pagination?.hasNextPage || isLoading || isFetching}
-              className="px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900 text-slate-300 hover:text-slate-100 hover:border-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1.5 cursor-pointer font-medium"
+              className="px-3 py-1.5 min-h-[38px] sm:min-h-0 rounded-lg border border-slate-800 bg-slate-900 text-slate-300 hover:text-slate-100 hover:border-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1.5 cursor-pointer font-medium"
               title="Navigate to next page using keyset cursor"
             >
               <span>Next</span>

@@ -33,12 +33,15 @@ export const parseISTDateBoundary = (dateInput?: any, endOfDay = false): Date | 
 
 export const stockMovementService = {
   async getStockMovements(
-    tenantId: string,
+    tenantId: string | mongoose.Types.ObjectId,
     filters: GetStockMovementsFilter,
     page: number = 1,
     limit: number = 20
   ) {
-    const matchStage: any = { tenantId };
+    const normalizedTenantId = typeof tenantId === 'string' && mongoose.Types.ObjectId.isValid(tenantId)
+      ? new mongoose.Types.ObjectId(tenantId)
+      : tenantId;
+    const matchStage: any = { tenantId: normalizedTenantId };
 
     if (filters.productId) {
       if (mongoose.Types.ObjectId.isValid(filters.productId)) {
@@ -137,6 +140,7 @@ export const stockMovementService = {
       { $unwind: { path: '$admin', preserveNullAndEmptyArrays: true } },
       {
         $project: {
+          tenantId: 1,
           type: 1,
           quantity: 1,
           direction: {

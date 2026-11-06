@@ -1,6 +1,8 @@
 /**
  * Bharat Enterprise Billing System — Diagnostic Support Session Modal
  * Time-bounded, audited support session initiator pre-filled with tenant credentials.
+ * Mobile-first touch ergonomics: 44px touch targets on duration selector & inputs,
+ * structured action buttons in pinned sticky bottom bar, and responsive stacking.
  */
 
 import React, { useState } from 'react';
@@ -50,8 +52,7 @@ export const DiagnosticSessionModal: React.FC<DiagnosticSessionModalProps> = ({
     onClose();
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitSession = async () => {
     if (!canSubmit) return;
 
     setIsSubmitting(true);
@@ -90,6 +91,33 @@ export const DiagnosticSessionModal: React.FC<DiagnosticSessionModalProps> = ({
     }
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    submitSession();
+  };
+
+  const footerContent = (
+    <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-end w-full">
+      <button
+        type="button"
+        onClick={handleClose}
+        disabled={isSubmitting}
+        className="min-h-[44px] w-full sm:w-auto px-4 py-2.5 rounded-lg text-xs font-medium text-slate-300 hover:text-slate-100 hover:bg-slate-800 border border-slate-800 transition-colors cursor-pointer flex items-center justify-center"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        onClick={submitSession}
+        disabled={!canSubmit}
+        className="min-h-[44px] w-full sm:w-auto px-5 py-2.5 rounded-lg text-xs font-semibold bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-slate-950 shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        <Headphones className="w-3.5 h-3.5 text-slate-950 shrink-0" />
+        <span>{isSubmitting ? 'Starting...' : 'Start Session'}</span>
+      </button>
+    </div>
+  );
+
   return (
     <Modal
       isOpen={isOpen}
@@ -97,17 +125,20 @@ export const DiagnosticSessionModal: React.FC<DiagnosticSessionModalProps> = ({
       title="Initiate Diagnostic Support Session"
       description="Start an audited, time-capped diagnostic session for this enterprise tenant."
       maxWidth="md"
+      footer={footerContent}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Tenant Summary Banner */}
         <div className="p-3 bg-slate-950 border border-slate-800 rounded-lg flex items-center justify-between text-xs">
-          <div>
+          <div className="min-w-0 pr-2">
             <span className="text-slate-400 block text-[11px]">Target Tenant Firm</span>
-            <span className="font-semibold text-slate-100 text-sm">{firmName || 'Unknown Firm'}</span>
+            <span className="font-semibold text-slate-100 text-sm truncate block">
+              {firmName || 'Unknown Firm'}
+            </span>
           </div>
-          <div className="text-right font-mono text-[11px] text-slate-400">
+          <div className="text-right font-mono text-[11px] text-slate-400 shrink-0">
             <span className="text-slate-500 block">Tenant ID</span>
-            <span className="bg-slate-900 px-2 py-0.5 rounded border border-slate-800 text-slate-300">
+            <span className="bg-slate-900 px-2 py-0.5 rounded border border-slate-800 text-slate-300 inline-block">
               {tenantId}
             </span>
           </div>
@@ -123,32 +154,35 @@ export const DiagnosticSessionModal: React.FC<DiagnosticSessionModalProps> = ({
           </p>
         </div>
 
-        {/* Duration Selection */}
+        {/* Duration Selection (44px touch targets) */}
         <div className="space-y-1.5">
           <label className="block text-xs font-medium text-slate-300 flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5 text-slate-400" />
             <span>Session Duration Ceiling</span>
           </label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {DURATION_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
                 type="button"
                 onClick={() => setDurationHours(opt.value)}
                 disabled={isSubmitting}
-                className={`px-3 py-2 text-xs rounded-lg border text-left transition-all cursor-pointer ${
+                className={`min-h-[44px] px-3.5 py-2.5 text-xs rounded-lg border text-left transition-all cursor-pointer flex items-center justify-between ${
                   durationHours === opt.value
                     ? 'bg-amber-500/10 border-amber-500/60 text-amber-300 font-medium shadow-xs ring-1 ring-amber-500/30'
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
                 }`}
               >
-                {opt.label}
+                <span>{opt.label}</span>
+                {durationHours === opt.value && (
+                  <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
+                )}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Operational Justification */}
+        {/* Operational Justification (44px min-h input target) */}
         <div className="space-y-1.5">
           <label className="block text-xs font-medium text-slate-300">
             Support Ticket / Diagnostic Reason <span className="text-rose-400">*</span>
@@ -159,7 +193,7 @@ export const DiagnosticSessionModal: React.FC<DiagnosticSessionModalProps> = ({
             disabled={isSubmitting}
             rows={3}
             placeholder="e.g. Investigating GST reconciliation discrepancy reported in ticket #SUP-8821..."
-            className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500 transition-all font-sans"
+            className="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500 transition-all font-sans min-h-[90px]"
           />
           <div className="flex justify-between text-[11px] text-slate-500">
             <span>Minimum {minReasonLength} characters required</span>
@@ -182,26 +216,6 @@ export const DiagnosticSessionModal: React.FC<DiagnosticSessionModalProps> = ({
             <span>{errorMessage}</span>
           </div>
         )}
-
-        {/* Form Actions */}
-        <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-800">
-          <button
-            type="button"
-            onClick={handleClose}
-            disabled={isSubmitting}
-            className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors cursor-pointer"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={!canSubmit}
-            className="px-4 py-1.5 rounded-lg text-xs font-medium bg-amber-600 hover:bg-amber-500 active:bg-amber-700 text-slate-950 font-semibold shadow-xs transition-all flex items-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <Headphones className="w-3.5 h-3.5 text-slate-950" />
-            <span>{isSubmitting ? 'Starting Session...' : 'Start Session'}</span>
-          </button>
-        </div>
       </form>
     </Modal>
   );

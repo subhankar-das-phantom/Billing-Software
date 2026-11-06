@@ -91,7 +91,34 @@ export function decodeAndVerifyKeysetCursor(
     throw new Error('Forged or corrupted pagination cursor: signature validation failed.');
   }
 
-  // 2. Validate sort field & direction alignment
+  // 2. Validate payload structure, entity ID and timestamp formats
+  if (
+    !payload ||
+    typeof payload !== 'object' ||
+    typeof payload.val === 'undefined' ||
+    typeof payload.id !== 'string'
+  ) {
+    throw new Error('Malformed pagination cursor: invalid payload schema.');
+  }
+
+  if (!/^[0-9a-fA-F]{24}$/.test(payload.id)) {
+    throw new Error('Malformed pagination cursor: invalid entity ID format in cursor.');
+  }
+
+  if (
+    payload.sortField === 'createdAt' ||
+    payload.sortField === 'paidAt' ||
+    payload.sortField === 'invoiceDate'
+  ) {
+    if (typeof payload.val === 'string') {
+      const timestamp = new Date(payload.val).getTime();
+      if (isNaN(timestamp)) {
+        throw new Error('Malformed pagination cursor: invalid timestamp value in cursor.');
+      }
+    }
+  }
+
+  // 3. Validate sort field & direction alignment
   if (options.expectedSortField && payload.sortField !== options.expectedSortField) {
     throw new Error(
       `Cursor sort field mismatch. Expected "${options.expectedSortField}", got "${payload.sortField}". Reset cursor when changing sort order.`,

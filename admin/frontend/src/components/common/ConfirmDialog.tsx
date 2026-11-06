@@ -2,6 +2,8 @@
  * Bharat Enterprise Billing System — ConfirmDialog Component
  * High-privilege action confirmation dialog requiring an explicit typed justification/reason.
  * Prevents accidental or un-audited state mutations across the platform.
+ * Mobile-first touch ergonomics: 44px touch targets, responsive button stacking on mobile
+ * (grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-end), and pinned action footer.
  */
 
 import React, { useState } from 'react';
@@ -52,18 +54,53 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     onClose();
   };
 
-  const handleConfirm = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleConfirmAction = async () => {
     if (!canSubmit) return;
     await onConfirm(reason.trim());
     handleClose();
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await handleConfirmAction();
+  };
+
   const isDanger = severity === 'danger';
 
+  const footerContent = (
+    <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-end w-full">
+      <button
+        type="button"
+        onClick={handleClose}
+        disabled={isLoading}
+        className="min-h-[44px] w-full sm:w-auto px-4 py-2.5 rounded-lg text-xs font-medium text-slate-300 hover:text-slate-100 hover:bg-slate-800 border border-slate-800 transition-colors cursor-pointer flex items-center justify-center"
+      >
+        {cancelLabel}
+      </button>
+      <button
+        type="button"
+        onClick={handleConfirmAction}
+        disabled={!canSubmit}
+        className={`min-h-[44px] w-full sm:w-auto px-5 py-2.5 rounded-lg text-xs font-semibold transition-all shadow-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center ${
+          isDanger
+            ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-900/30'
+            : 'bg-amber-600 hover:bg-amber-500 text-slate-950 shadow-amber-900/30 font-bold'
+        }`}
+      >
+        {isLoading ? 'Processing...' : confirmLabel}
+      </button>
+    </div>
+  );
+
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title={title} maxWidth="md">
-      <form onSubmit={handleConfirm} className="space-y-4">
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title={title}
+      maxWidth="md"
+      footer={footerContent}
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
         {/* Warning Banner */}
         <div
           className={`p-3 rounded-lg border flex items-start gap-3 text-xs ${
@@ -92,7 +129,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
               onChange={(e) => setKeywordInput(e.target.value)}
               disabled={isLoading}
               placeholder={requiredMatchKeyword}
-              className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none focus:border-rose-500"
+              className="w-full min-h-[44px] px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm font-mono text-slate-100 placeholder-slate-600 focus:outline-none focus:border-rose-500"
             />
           </div>
         )}
@@ -108,7 +145,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             disabled={isLoading}
             rows={3}
             placeholder={`Provide a clear explanation for the platform audit log (min ${minReasonLength} characters)...`}
-            className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition-all font-sans"
+            className="w-full min-h-[85px] px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-lg text-xs sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition-all font-sans"
           />
           <div className="flex justify-between text-[11px] text-slate-500">
             <span>Minimum {minReasonLength} characters required</span>
@@ -122,29 +159,6 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
               {reason.trim().length}/{minReasonLength}
             </span>
           </div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-800">
-          <button
-            type="button"
-            onClick={handleClose}
-            disabled={isLoading}
-            className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-300 hover:text-slate-100 hover:bg-slate-800 transition-colors cursor-pointer"
-          >
-            {cancelLabel}
-          </button>
-          <button
-            type="submit"
-            disabled={!canSubmit}
-            className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all shadow-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
-              isDanger
-                ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-900/30'
-                : 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-900/30'
-            }`}
-          >
-            {isLoading ? 'Processing...' : confirmLabel}
-          </button>
         </div>
       </form>
     </Modal>

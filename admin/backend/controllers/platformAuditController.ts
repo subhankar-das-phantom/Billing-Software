@@ -90,6 +90,7 @@ export async function getAuditLogs(req: PlatformRequest, res: Response): Promise
       const decodedCursor = decodeAndVerifyKeysetCursor(cursor, {
         expectedSortField: 'createdAt',
         expectedSortDirection: 'desc',
+        expectedTenantScope: (targetTenantId as string) || null,
         currentFilterSig,
       });
 

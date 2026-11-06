@@ -48,6 +48,25 @@ const paymentSchema = new mongoose.Schema({
     trim: true,
     default: ''
   },
+  // Multi-store & Cash Register tracking
+  storeId: {
+    type: String,
+    trim: true,
+    default: null,
+    index: true
+  },
+  branchId: {
+    type: String,
+    trim: true,
+    default: null,
+    index: true
+  },
+  registerId: {
+    type: String,
+    trim: true,
+    default: null,
+    index: true
+  },
   // Invoice snapshot at time of payment (for reference)
   invoiceSnapshot: {
     invoiceNumber: String,
@@ -84,5 +103,9 @@ paymentSchema.index({ tenantId: 1, customer: 1, paymentDate: -1 });
 // Search acceleration indexes
 paymentSchema.index({ tenantId: 1, referenceNumber: 1 });
 paymentSchema.index({ tenantId: 1, 'invoiceSnapshot.invoiceNumber': 1 });
+// Multi-store & Cash Register indexes
+paymentSchema.index({ tenantId: 1, storeId: 1, paymentDate: -1 });
+paymentSchema.index({ tenantId: 1, registerId: 1, paymentDate: -1 });
+paymentSchema.index({ tenantId: 1, storeId: 1, registerId: 1, paymentDate: -1 });
 
 module.exports = mongoose.model('Payment', paymentSchema);

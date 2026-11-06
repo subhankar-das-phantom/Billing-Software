@@ -1,7 +1,8 @@
 /**
  * Bharat Enterprise Billing System — Platform Subscriptions & SaaS Governance
  * SaaS plan pricing tier matrix, manual tenure adjustments with role-based ceilings,
- * two-phase gateway payment reconciliation, and active subscription directory.
+ * two-phase gateway payment reconciliation, animated MRR metrics with exact paise precision,
+ * and high-density dual desktop table / mobile collapsible card views with 2x2 action matrix.
  */
 
 import React, { useState, useMemo } from 'react';
@@ -10,7 +11,6 @@ import {
   CreditCard,
   Sliders,
   RefreshCw,
-  Search,
   CheckCircle2,
   AlertTriangle,
   Layers,
@@ -18,13 +18,23 @@ import {
   Check,
   Copy,
   X,
+  Eye,
+  TrendingUp,
+  Building2,
+  Calendar,
+  Clock,
+  Mail,
 } from 'lucide-react';
 import api from '../services/api';
 import CurrencyDisplay from '../components/common/CurrencyDisplay';
 import StatusBadge, { StatusVariant } from '../components/common/StatusBadge';
 import Modal from '../components/common/Modal';
 import { Toast, ToastMessage } from '../components/common/Toast';
+import CollapsibleMobileCard from '../components/common/CollapsibleMobileCard';
+import AnimatedCounter from '../components/common/AnimatedCounter';
+import SearchInput from '../components/common/SearchInput';
 import { usePlatformAuth } from '../contexts/PlatformAuthContext';
+import { useListFilterParams } from '../hooks/useListFilterParams';
 import {
   PlatformRole,
   type SaaSPlan,
@@ -151,6 +161,21 @@ function getSubscriptionBadgeVariant(status?: string): StatusVariant {
   }
 }
 
+function mapStatusToCardVariant(status?: string): 'default' | 'active' | 'warning' | 'danger' | 'neutral' {
+  switch (status?.toLowerCase()) {
+    case 'active':
+      return 'active';
+    case 'trial':
+    case 'grace':
+      return 'warning';
+    case 'suspended':
+    case 'expired':
+      return 'danger';
+    default:
+      return 'default';
+  }
+}
+
 export const SubscriptionsPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { user } = usePlatformAuth();
@@ -166,6 +191,9 @@ export const SubscriptionsPage: React.FC = () => {
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };
+
+  // Inspect modal state
+  const [inspectRecord, setInspectRecord] = useState<SubscriptionRecord | null>(null);
 
   // ═══════════════════════════════════════════════════════════════════
   // SECTION 1: SaaS Plans Matrix Strip
@@ -271,7 +299,6 @@ export const SubscriptionsPage: React.FC = () => {
         paymentId: reconcilePaymentId.trim(),
         reason: reconcileReason.trim(),
       };
-      // Calls POST /api/platform/subscriptions/reconcile
       const res = await api.post<{
         success: boolean;
         message: string;
@@ -313,12 +340,26 @@ export const SubscriptionsPage: React.FC = () => {
     reconcileMutation.mutate();
   };
 
+  const handleInitiateReconcileForTenant = (tenantId: string) => {
+    setReconcilePaymentId(tenantId);
+    const element = document.getElementById('reconciliation-section');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   // ═══════════════════════════════════════════════════════════════════
-  // SECTION 4: Subscriptions Directory Table
+  // SECTION 4: Subscriptions Directory Table & URL Query State
   // ═══════════════════════════════════════════════════════════════════
-  const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState<string>('ALL');
-  const [searchQuery, setSearchQuery] = useState('');
+  const { params, setParam, resetParams } = useListFilterParams({
+    page: 1,
+    status: 'ALL',
+    search: '',
+  });
+
+  const page = Number(params.page) || 1;
+  const statusFilter = (params.status || 'ALL').toUpperCase();
+  const searchQuery = params.search || '';
 
   const {
     data: subscriptionsData,
@@ -327,16 +368,16 @@ export const SubscriptionsPage: React.FC = () => {
   } = useQuery({
     queryKey: ['platform-subscriptions', page, statusFilter, searchQuery],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      params.append('page', page.toString());
-      params.append('limit', '10');
+      const queryParams = new URLSearchParams();
+      queryParams.append('page', page.toString());
+      queryParams.append('limit', '10');
       if (statusFilter !== 'ALL') {
-        params.append('status', statusFilter.toLowerCase());
+        queryParams.append('status', statusFilter.toLowerCase());
       }
       if (searchQuery.trim()) {
-        params.append('search', searchQuery.trim());
+        queryParams.append('search', searchQuery.trim());
       }
-      const res = await api.get<SubscriptionsListResponse>(`/subscriptions?${params.toString()}`);
+      const res = await api.get<SubscriptionsListResponse>(`/subscriptions?${queryParams.toString()}`);
       return res.data;
     },
     staleTime: 30000,
@@ -354,6 +395,40 @@ export const SubscriptionsPage: React.FC = () => {
     if (!plans) return [];
     return [...plans].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
   }, [plans]);
+
+  // Financial MRR calculations with exact paise precision
+  const financialMetrics = useMemo(() => {
+    const subs = subscriptionsData?.data ?? [];
+    let activeCount = 0;
+    let graceCount = 0;
+    let expiringCount = 0;
+    let estimatedMRR = 0;
+
+    for (const sub of subs) {
+      const isSubActive = sub.status?.toLowerCase() === 'active';
+      if (isSubActive) {
+        activeCount++;
+        const planPrice = sub.plan?.baseMonthlyPrice ?? 0;
+        estimatedMRR += planPrice;
+      }
+      if (sub.isGrace || sub.status?.toLowerCase() === 'grace') {
+        graceCount++;
+      }
+      if (sub.daysRemaining > 0 && sub.daysRemaining <= 14) {
+        expiringCount++;
+      }
+    }
+
+    const arpt = activeCount > 0 ? estimatedMRR / activeCount : 0;
+
+    return {
+      activeCount,
+      graceCount,
+      expiringCount,
+      estimatedMRR,
+      arpt,
+    };
+  }, [subscriptionsData]);
 
   return (
     <div className="space-y-8 select-text">
@@ -396,6 +471,83 @@ export const SubscriptionsPage: React.FC = () => {
             <Sliders className="w-3.5 h-3.5" />
             <span>Adjust Subscription</span>
           </button>
+        </div>
+      </div>
+
+      {/* ─────────────────────────────────────────────────────────────
+          SECTION 0: Animated MRR & Subscription KPI Cards (Paise Precision)
+          ───────────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {/* Card 1: Estimated MRR */}
+        <div className="p-4 rounded-xl bg-slate-900 border border-slate-800/80 shadow-xs space-y-1">
+          <div className="flex items-center justify-between text-xs text-slate-400">
+            <span className="font-medium">Page Estimated MRR</span>
+            <TrendingUp className="w-4 h-4 text-emerald-400" />
+          </div>
+          <div className="text-lg sm:text-xl font-bold text-slate-100 font-mono tracking-tight flex items-baseline gap-0.5">
+            <AnimatedCounter
+              target={financialMetrics.estimatedMRR}
+              isCurrency
+              prefix="₹"
+              decimals={2}
+              className="text-emerald-400"
+            />
+          </div>
+          <p className="text-[11px] text-slate-500 font-mono">
+            Across {financialMetrics.activeCount} active subscriptions
+          </p>
+        </div>
+
+        {/* Card 2: Active Subscriptions */}
+        <div className="p-4 rounded-xl bg-slate-900 border border-slate-800/80 shadow-xs space-y-1">
+          <div className="flex items-center justify-between text-xs text-slate-400">
+            <span className="font-medium">Active Accounts</span>
+            <CheckCircle2 className="w-4 h-4 text-cyan-400" />
+          </div>
+          <div className="text-lg sm:text-xl font-bold text-slate-100 font-mono tracking-tight">
+            <AnimatedCounter target={financialMetrics.activeCount} decimals={0} />
+            <span className="text-xs text-slate-400 font-sans font-normal ml-1.5">
+              / {subscriptionsData?.pagination?.total ?? 0} total
+            </span>
+          </div>
+          <p className="text-[11px] text-slate-500 font-mono">
+            {subscriptionsData?.pagination?.total ? Math.round((financialMetrics.activeCount / subscriptionsData.pagination.total) * 100) : 0}% active ratio
+          </p>
+        </div>
+
+        {/* Card 3: Grace & Trials */}
+        <div className="p-4 rounded-xl bg-slate-900 border border-slate-800/80 shadow-xs space-y-1">
+          <div className="flex items-center justify-between text-xs text-slate-400">
+            <span className="font-medium">Grace / Buffer</span>
+            <AlertTriangle className="w-4 h-4 text-amber-400" />
+          </div>
+          <div className="text-lg sm:text-xl font-bold text-amber-300 font-mono tracking-tight">
+            <AnimatedCounter target={financialMetrics.graceCount} decimals={0} />
+            <span className="text-xs text-slate-400 font-sans font-normal ml-1.5">tenants</span>
+          </div>
+          <p className="text-[11px] text-slate-500 font-mono">
+            Automated 7-day grace period
+          </p>
+        </div>
+
+        {/* Card 4: Avg Revenue Per Tenant (ARPT) */}
+        <div className="p-4 rounded-xl bg-slate-900 border border-slate-800/80 shadow-xs space-y-1">
+          <div className="flex items-center justify-between text-xs text-slate-400">
+            <span className="font-medium">Avg Revenue / Tenant</span>
+            <CreditCard className="w-4 h-4 text-sky-400" />
+          </div>
+          <div className="text-lg sm:text-xl font-bold text-slate-100 font-mono tracking-tight">
+            <AnimatedCounter
+              target={financialMetrics.arpt}
+              isCurrency
+              prefix="₹"
+              decimals={2}
+              className="text-sky-300"
+            />
+          </div>
+          <p className="text-[11px] text-slate-500 font-mono">
+            Monthly run-rate basis
+          </p>
         </div>
       </div>
 
@@ -525,7 +677,7 @@ export const SubscriptionsPage: React.FC = () => {
       {/* ─────────────────────────────────────────────────────────────
           SECTION 2: Payment Reconciliation Section
           ───────────────────────────────────────────────────────────── */}
-      <div className="bg-slate-900 border border-slate-800/80 rounded-xl p-5 sm:p-6 space-y-4 shadow-xs">
+      <div id="reconciliation-section" className="bg-slate-900 border border-slate-800/80 rounded-xl p-5 sm:p-6 space-y-4 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-800/80">
           <div>
             <div className="flex items-center gap-2">
@@ -556,7 +708,7 @@ export const SubscriptionsPage: React.FC = () => {
                 value={reconcilePaymentId}
                 onChange={(e) => setReconcilePaymentId(e.target.value)}
                 placeholder="e.g. pay_N29Xz78dE or 65f1a2b3c4d5e6f7a8b9c0d1"
-                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none transition-colors"
+                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none transition-colors min-h-[44px]"
                 required
               />
               <p className="text-[11px] text-slate-400">
@@ -583,20 +735,18 @@ export const SubscriptionsPage: React.FC = () => {
                 type="text"
                 value={reconcileReason}
                 onChange={(e) => setReconcileReason(e.target.value)}
-                placeholder="e.g. Gateway webhook delayed; customer confirmed bank transaction UTR."
-                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none transition-colors"
+                placeholder="Reason for payment claim (e.g. Gateway webhook timeout resolved via UTR)"
+                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none transition-colors min-h-[44px]"
                 required
               />
               <p className="text-[11px] text-slate-400">
-                Mandatory SOC2 justification recorded permanently in Platform Audit Trail.
+                Logged to immutable cryptographic platform audit trail.
               </p>
             </div>
           </div>
 
-          {/* Error Banner */}
           {reconcileError && (
-            <div className="p-3 bg-rose-950/70 border border-rose-800/80 rounded-lg flex items-start gap-2.5 text-xs text-rose-300">
-              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+            <div className="p-3 bg-rose-950/60 border border-rose-800/80 rounded-lg text-xs text-rose-300 flex items-center justify-between">
               <div className="flex-1">
                 <span className="font-semibold">Reconciliation Rejected: </span>
                 {reconcileError}
@@ -604,7 +754,7 @@ export const SubscriptionsPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setReconcileError(null)}
-                className="text-rose-400 hover:text-rose-200 cursor-pointer"
+                className="text-rose-400 hover:text-rose-200 cursor-pointer min-w-[32px] min-h-[32px] flex items-center justify-center"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -619,7 +769,7 @@ export const SubscriptionsPage: React.FC = () => {
                 !reconcilePaymentId.trim() ||
                 reconcileReason.trim().length < 10
               }
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold text-slate-950 bg-emerald-400 hover:bg-emerald-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs cursor-pointer active:scale-95"
+              className="inline-flex items-center gap-2 px-4 py-2 min-h-[44px] rounded-lg text-xs font-semibold text-slate-950 bg-emerald-400 hover:bg-emerald-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs cursor-pointer active:scale-95"
             >
               {reconcileMutation.isPending ? (
                 <>
@@ -715,7 +865,7 @@ export const SubscriptionsPage: React.FC = () => {
       </div>
 
       {/* ─────────────────────────────────────────────────────────────
-          SECTION 3: Subscriptions Directory Table
+          SECTION 3: Subscriptions Directory Table & Dual Mobile View
           ───────────────────────────────────────────────────────────── */}
       <div className="bg-slate-900 border border-slate-800/80 rounded-xl overflow-hidden shadow-xs space-y-0">
         {/* Table Filter & Search Header */}
@@ -729,16 +879,16 @@ export const SubscriptionsPage: React.FC = () => {
 
           <div className="flex flex-wrap items-center gap-2">
             {/* Status Filter Pills */}
-            <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
+            <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 overflow-x-auto">
               {['ALL', 'ACTIVE', 'TRIAL', 'GRACE', 'EXPIRED', 'SUSPENDED'].map((st) => (
                 <button
                   key={st}
                   type="button"
                   onClick={() => {
-                    setStatusFilter(st);
-                    setPage(1);
+                    setParam('status', st);
+                    setParam('page', 1);
                   }}
-                  className={`px-2 py-0.5 rounded text-[10px] font-mono font-medium transition-colors cursor-pointer ${
+                  className={`px-2 py-0.5 rounded text-[10px] font-mono font-medium transition-colors cursor-pointer min-h-[32px] flex items-center ${
                     statusFilter === st
                       ? 'bg-slate-800 text-cyan-300 border border-slate-700'
                       : 'text-slate-400 hover:text-slate-200'
@@ -750,33 +900,20 @@ export const SubscriptionsPage: React.FC = () => {
             </div>
 
             {/* Debounced Search Input */}
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setPage(1);
-                }}
-                placeholder="Search firm, email, tenant..."
-                className="bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg pl-8 pr-3 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none transition-colors w-48 sm:w-60 font-mono"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 text-xs cursor-pointer"
-                >
-                  ×
-                </button>
-              )}
-            </div>
+            <SearchInput
+              value={searchQuery}
+              onChange={(val) => {
+                setParam('search', val);
+                setParam('page', 1);
+              }}
+              placeholder="Search firm, email, tenant..."
+              className="w-full sm:w-60"
+            />
           </div>
         </div>
 
-        {/* Table Content */}
-        <div className="overflow-x-auto">
+        {/* ─── A. DESKTOP VIEW (Table: md and up) ─── */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="border-b border-slate-800/80 bg-slate-950/60 text-slate-400 font-mono text-[11px] uppercase tracking-wider">
@@ -816,9 +953,14 @@ export const SubscriptionsPage: React.FC = () => {
                       {/* Tenant Firm & ID */}
                       <td className="py-3 px-4">
                         <div className="space-y-0.5">
-                          <span className="font-semibold text-slate-200 block truncate max-w-[200px]">
+                          <button
+                            type="button"
+                            onClick={() => setInspectRecord(sub)}
+                            className="font-semibold text-slate-200 hover:text-cyan-400 text-left block truncate max-w-[200px] cursor-pointer"
+                            title="Inspect subscription record"
+                          >
                             {firmName}
-                          </span>
+                          </button>
                           <div className="flex items-center gap-1.5 font-mono text-[10px] text-slate-400">
                             <span className="truncate max-w-[130px]">{tenantIdStr}</span>
                             <button
@@ -853,7 +995,7 @@ export const SubscriptionsPage: React.FC = () => {
                       <td className="py-3 px-4">
                         <StatusBadge
                           variant={getSubscriptionBadgeVariant(sub.status)}
-                          label={sub.status.toUpperCase()}
+                          label={sub.status ? sub.status.toUpperCase() : 'UNKNOWN'}
                           dot
                         />
                       </td>
@@ -888,15 +1030,30 @@ export const SubscriptionsPage: React.FC = () => {
 
                       {/* Actions */}
                       <td className="py-3 px-4 text-right">
-                        <button
-                          type="button"
-                          onClick={() => openAdjustModal(tenantIdStr)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 hover:border-cyan-500/60 font-mono text-[11px] transition-all cursor-pointer shadow-xs active:scale-95"
-                          title="Authorize manual days extension or deduction"
-                        >
-                          <Sliders className="w-3 h-3" />
-                          <span>Adjust</span>
-                        </button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          {/* Inspect */}
+                          <button
+                            type="button"
+                            onClick={() => setInspectRecord(sub)}
+                            className="p-1.5 rounded-lg border border-slate-800 hover:border-slate-700 bg-slate-950/60 hover:bg-slate-800 text-slate-300 hover:text-slate-100 transition-colors cursor-pointer"
+                            title="Inspect subscription details"
+                            aria-label={`Inspect subscription for ${firmName}`}
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+
+                          {/* Adjust */}
+                          <button
+                            type="button"
+                            onClick={() => openAdjustModal(tenantIdStr)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 hover:border-cyan-500/60 font-mono text-[11px] transition-all cursor-pointer shadow-xs active:scale-95"
+                            title="Authorize manual days extension or deduction"
+                            aria-label={`Adjust tenure for ${firmName}`}
+                          >
+                            <Sliders className="w-3 h-3" />
+                            <span>Adjust</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -904,6 +1061,185 @@ export const SubscriptionsPage: React.FC = () => {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* ─── B. MOBILE VIEW (Collapsible Cards: < md) ─── */}
+        <div className="md:hidden p-3 space-y-3">
+          {isSubscriptionsLoading && (
+            <div className="space-y-3">
+              {[...Array(4)].map((_, idx) => (
+                <div
+                  key={idx}
+                  className="p-3.5 rounded-xl border border-slate-800 bg-slate-900/60 animate-pulse space-y-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-slate-800 shrink-0" />
+                    <div className="flex-1 space-y-1.5">
+                      <div className="h-3.5 bg-slate-800 rounded w-36" />
+                      <div className="h-2.5 bg-slate-800/60 rounded w-24" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!isSubscriptionsLoading && (!subscriptionsData?.data || subscriptionsData.data.length === 0) && (
+            <div className="p-8 text-center text-xs space-y-3">
+              <CreditCard className="w-8 h-8 text-slate-600 mx-auto" />
+              <p className="font-semibold text-slate-300">No subscriptions found</p>
+              <p className="text-slate-500">
+                {searchQuery || statusFilter !== 'ALL'
+                  ? 'No subscriptions match your active filters.'
+                  : 'No subscription records available.'}
+              </p>
+              {(searchQuery || statusFilter !== 'ALL') && (
+                <button
+                  type="button"
+                  onClick={() => resetParams()}
+                  className="px-4 py-2 min-h-[44px] rounded-lg bg-cyan-600 text-white font-medium cursor-pointer inline-flex items-center gap-2"
+                >
+                  <X className="w-4 h-4" />
+                  <span>Reset Filters</span>
+                </button>
+              )}
+            </div>
+          )}
+
+          {!isSubscriptionsLoading &&
+            subscriptionsData?.data &&
+            subscriptionsData.data.map((sub) => {
+              const firmName = sub.tenant?.firmName || 'Unnamed Firm';
+              const tenantIdStr = sub.tenantId;
+
+              // Summary: 74-82px bounded height, single-line truncation
+              const cardSummary = (
+                <div className="flex items-center gap-3 min-w-0 pr-1">
+                  <div className="w-9 h-9 rounded-lg bg-slate-800 border border-slate-700/80 flex items-center justify-center font-bold text-xs text-cyan-300 shrink-0 select-none shadow-2xs">
+                    <CreditCard className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-slate-100 truncate text-xs block">
+                        {firmName}
+                      </span>
+                      <StatusBadge
+                        variant={getSubscriptionBadgeVariant(sub.status)}
+                        label={sub.status ? sub.status.toUpperCase() : 'UNKNOWN'}
+                        dot
+                        size="sm"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between gap-2 mt-0.5 text-[11px] font-mono">
+                      <span className="text-slate-400 truncate">
+                        {sub.plan?.name || 'Standard'} • {sub.billingMode || 'MANUAL'}
+                      </span>
+                      <span
+                        className={`font-semibold shrink-0 ${
+                          sub.daysRemaining > 14
+                            ? 'text-emerald-400'
+                            : sub.daysRemaining > 0
+                            ? 'text-amber-400'
+                            : 'text-rose-400'
+                        }`}
+                      >
+                        {sub.daysRemaining}d left
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+
+              return (
+                <CollapsibleMobileCard
+                  key={sub._id}
+                  id={sub._id}
+                  entityType="subscription"
+                  statusVariant={mapStatusToCardVariant(sub.status)}
+                  summary={cardSummary}
+                >
+                  <div className="space-y-3 pt-2 text-xs">
+                    {/* Meta info grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2.5 bg-slate-950/60 rounded-lg border border-slate-800/80 font-mono text-[11px]">
+                      <div className="flex items-center gap-2 text-slate-300 truncate">
+                        <Building2 className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                        <span className="truncate select-all">{tenantIdStr}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-300">
+                        <Calendar className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                        <span>Expires: {formatISTDate(sub.expiresAt)}</span>
+                      </div>
+                      {sub.graceUntil && (
+                        <div className="flex items-center gap-2 text-amber-300">
+                          <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                          <span>Grace: {formatISTDate(sub.graceUntil)}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 text-slate-400">
+                        <Mail className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                        <span className="truncate">{sub.tenant?.email || '—'}</span>
+                      </div>
+                    </div>
+
+                    {/* Structured 2x2 Action Grid (min-h-[44px] touch targets) */}
+                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800/60">
+                      {/* Action 1: Adjust */}
+                      <button
+                        type="button"
+                        onClick={() => openAdjustModal(tenantIdStr)}
+                        className="min-h-[44px] px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-700 text-cyan-300 border border-slate-700 flex items-center justify-center gap-2 text-xs font-medium cursor-pointer transition-colors"
+                        aria-label={`Adjust subscription for ${firmName}`}
+                      >
+                        <Sliders className="w-4 h-4 text-cyan-400" />
+                        <span>Adjust</span>
+                      </button>
+
+                      {/* Action 2: Reconcile */}
+                      <button
+                        type="button"
+                        onClick={() => handleInitiateReconcileForTenant(tenantIdStr)}
+                        className="min-h-[44px] px-3 py-2 rounded-lg bg-emerald-950/40 hover:bg-emerald-900/50 active:bg-emerald-900/60 text-emerald-300 border border-emerald-800/60 flex items-center justify-center gap-2 text-xs font-medium cursor-pointer transition-colors"
+                        aria-label={`Reconcile payment for ${firmName}`}
+                      >
+                        <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                        <span>Reconcile</span>
+                      </button>
+
+                      {/* Action 3: Copy ID */}
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(tenantIdStr, sub._id)}
+                        className="min-h-[44px] px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center gap-2 text-xs font-medium cursor-pointer transition-colors"
+                        aria-label="Copy Tenant ID"
+                      >
+                        {copiedId === sub._id ? (
+                          <>
+                            <Check className="w-4 h-4 text-emerald-400" />
+                            <span className="text-emerald-400 font-mono">Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-4 h-4 text-slate-400" />
+                            <span>Copy ID</span>
+                          </>
+                        )}
+                      </button>
+
+                      {/* Action 4: Inspect */}
+                      <button
+                        type="button"
+                        onClick={() => setInspectRecord(sub)}
+                        className="min-h-[44px] px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center gap-2 text-xs font-medium cursor-pointer transition-colors"
+                        aria-label={`Inspect details for ${firmName}`}
+                      >
+                        <Eye className="w-4 h-4 text-indigo-400" />
+                        <span>Inspect</span>
+                      </button>
+                    </div>
+                  </div>
+                </CollapsibleMobileCard>
+              );
+            })}
         </div>
 
         {/* Keyset / Page Navigation Bar */}
@@ -915,17 +1251,17 @@ export const SubscriptionsPage: React.FC = () => {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                onClick={() => setParam('page', Math.max(1, page - 1))}
                 disabled={page <= 1}
-                className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-slate-300 border border-slate-700 transition-colors cursor-pointer"
+                className="px-3 py-1.5 min-h-[38px] sm:min-h-0 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-slate-300 border border-slate-700 transition-colors cursor-pointer"
               >
                 Previous
               </button>
               <button
                 type="button"
-                onClick={() => setPage((p) => p + 1)}
+                onClick={() => setParam('page', page + 1)}
                 disabled={page >= (subscriptionsData.pagination.totalPages || 1)}
-                className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-slate-300 border border-slate-700 transition-colors cursor-pointer"
+                className="px-3 py-1.5 min-h-[38px] sm:min-h-0 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-slate-300 border border-slate-700 transition-colors cursor-pointer"
               >
                 Next
               </button>
@@ -949,145 +1285,132 @@ export const SubscriptionsPage: React.FC = () => {
             <div className="p-3.5 bg-amber-950/60 border border-amber-800/80 rounded-lg flex items-start gap-3 text-xs text-amber-200">
               <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <span className="font-bold text-amber-300">Support Admin 14-Day Ceiling Enforcement</span>
-                <p className="leading-relaxed text-[11px] text-amber-300/90">
-                  Your current platform role (<span className="font-mono font-semibold">SUPPORT_ADMIN</span>) is governed by a strict ±14 day maximum adjustment ceiling per grant. Platform Owner / Platform Admin retain unrestricted tenure privileges.
+                <p className="font-semibold text-amber-100">
+                  Role Privilege Ceiling Active: Support Admin
+                </p>
+                <p className="text-amber-300/90 leading-relaxed">
+                  Support Admins are authorized for a statutory maximum ceiling of <strong>±14 days</strong> per tenure adjustment. Platform Owner credentials are required for longer overrides.
                 </p>
               </div>
             </div>
           ) : (
-            <div className="p-3 bg-slate-950/80 border border-slate-800 rounded-lg flex items-start gap-2.5 text-xs text-slate-300">
-              <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-              <div>
-                <span className="font-semibold text-slate-100">Elevated Platform Privileges: </span>
-                As <span className="font-mono text-cyan-400 font-medium">{user?.role}</span>, you possess unlimited tenure adjustment authority. All operations are signed into the immutable platform audit trail.
+            <div className="p-3.5 bg-slate-950/80 border border-slate-800 rounded-lg flex items-start gap-3 text-xs text-slate-300">
+              <Sliders className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-semibold text-slate-200">
+                  Platform Operator Tenure Extension
+                </p>
+                <p className="text-slate-400 leading-relaxed">
+                  This action directly recalculates the tenant subscription expiration and grace timestamps. Every adjustment is permanently signed in the platform audit log.
+                </p>
               </div>
             </div>
           )}
 
-          {/* Tenant ID Input */}
-          <div className="space-y-1.5">
-            <label htmlFor="adjust-tenant-id" className="block text-xs font-medium text-slate-300">
-              Target Tenant Identifier <span className="text-rose-400">*</span>
-            </label>
-            <input
-              id="adjust-tenant-id"
-              type="text"
-              value={adjustTenantId}
-              onChange={(e) => setAdjustTenantId(e.target.value)}
-              placeholder="e.g. 65f1a2b3c4d5e6f7a8b9c0d1"
-              className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none transition-colors"
-              required
-            />
-          </div>
-
-          {/* Adjustment Days (+/-) */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label htmlFor="adjust-days" className="block text-xs font-medium text-slate-300">
-                Adjustment Days (+/-) <span className="text-rose-400">*</span>
+          {/* Form Fields */}
+          <div className="space-y-3">
+            {/* Field: Tenant ID */}
+            <div className="space-y-1.5">
+              <label htmlFor="adjust-tenant-id" className="block text-xs font-medium text-slate-300">
+                Target Tenant ID <span className="text-rose-400">*</span>
               </label>
-              <span className="text-[11px] font-mono text-slate-400">
-                {adjustDays > 0 ? `+${adjustDays} Days Extension` : `${adjustDays} Days Deduction`}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
               <input
-                id="adjust-days"
-                type="number"
-                value={adjustDays}
-                onChange={(e) => setAdjustDays(parseInt(e.target.value, 10) || 0)}
-                max={isSupportAdmin ? 14 : 365}
-                min={isSupportAdmin ? -14 : -365}
-                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 focus:outline-none transition-colors"
+                id="adjust-tenant-id"
+                type="text"
+                value={adjustTenantId}
+                onChange={(e) => setAdjustTenantId(e.target.value)}
+                placeholder="65f1a2b3c4d5e6f7a8b9c0d1"
+                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none transition-colors min-h-[44px]"
                 required
               />
             </div>
 
-            {/* Quick Preset Chips */}
-            <div className="flex flex-wrap items-center gap-1.5 pt-1">
-              <span className="text-[10px] font-mono text-slate-400">Presets:</span>
-              {[7, 14, ...(isSupportAdmin ? [] : [30, 60]), -7].map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => setAdjustDays(preset)}
-                  className={`text-[10px] font-mono px-2 py-0.5 rounded border transition-colors cursor-pointer ${
-                    adjustDays === preset
-                      ? 'bg-cyan-950 text-cyan-300 border-cyan-700'
-                      : 'bg-slate-800/80 text-slate-300 border-slate-700/80 hover:bg-slate-700'
+            {/* Field: Days To Add */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label htmlFor="adjust-days" className="block text-xs font-medium text-slate-300">
+                  Tenure Days Adjustment (Positive = Extend, Negative = Deduct){' '}
+                  <span className="text-rose-400">*</span>
+                </label>
+                <span className="text-[11px] font-mono text-cyan-400">
+                  {adjustDays > 0 ? `+${adjustDays}` : adjustDays} Days
+                </span>
+              </div>
+              <input
+                id="adjust-days"
+                type="number"
+                step="1"
+                value={adjustDays}
+                onChange={(e) => setAdjustDays(parseInt(e.target.value, 10) || 0)}
+                max={isSupportAdmin ? 14 : 365}
+                min={isSupportAdmin ? -14 : -365}
+                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none transition-colors min-h-[44px]"
+                required
+              />
+              {isCeilingExceeded && (
+                <p className="text-[11px] text-rose-400 font-mono">
+                  Error: Support Admin ceiling exceeded (Max ±14 days allowed).
+                </p>
+              )}
+            </div>
+
+            {/* Field: Adjustment Type */}
+            <div className="space-y-1.5">
+              <label htmlFor="adjust-type" className="block text-xs font-medium text-slate-300">
+                Classification Type <span className="text-rose-400">*</span>
+              </label>
+              <select
+                id="adjust-type"
+                value={adjustType}
+                onChange={(e) => setAdjustType(e.target.value as any)}
+                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none transition-colors min-h-[44px]"
+              >
+                <option value="manual_bonus">Manual Bonus (Discretionary Extension)</option>
+                <option value="compensation">Incident Compensation (SLA / Downtime Credit)</option>
+                <option value="promotion">Promotional Campaign / Onboarding Trial</option>
+                <option value="referral_reward">Referral Reward Credit</option>
+              </select>
+            </div>
+
+            {/* Field: Reason */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label htmlFor="adjust-reason" className="block text-xs font-medium text-slate-300">
+                  Mandatory Audit Reason <span className="text-rose-400">*</span>
+                </label>
+                <span
+                  className={`text-[10px] font-mono ${
+                    adjustReason.trim().length >= 10 ? 'text-emerald-400' : 'text-slate-400'
                   }`}
                 >
-                  {preset > 0 ? `+${preset}d` : `${preset}d`}
-                </button>
-              ))}
+                  {adjustReason.trim().length}/10 chars min
+                </span>
+              </div>
+              <textarea
+                id="adjust-reason"
+                rows={3}
+                value={adjustReason}
+                onChange={(e) => setAdjustReason(e.target.value)}
+                placeholder="Detailed reason for tenure adjustment (e.g. Compensating customer for Razorpay webhook timeout during month-end billing)..."
+                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none transition-colors"
+                required
+              />
             </div>
-
-            {isCeilingExceeded && (
-              <p className="text-[11px] text-rose-400 font-mono">
-                Error: Support Admin cannot exceed ±14 days ceiling.
-              </p>
-            )}
           </div>
 
-          {/* Adjustment Type Selector */}
-          <div className="space-y-1.5">
-            <label htmlFor="adjust-type" className="block text-xs font-medium text-slate-300">
-              Adjustment Classification Category <span className="text-rose-400">*</span>
-            </label>
-            <select
-              id="adjust-type"
-              value={adjustType}
-              onChange={(e) => setAdjustType(e.target.value as any)}
-              className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none transition-colors"
-            >
-              <option value="manual_bonus">Administrative Manual Bonus</option>
-              <option value="compensation">Service Interruption Compensation</option>
-              <option value="promotion">Commercial Promotion / Marketing</option>
-              <option value="referral_reward">Referral Program Fulfillment</option>
-            </select>
-          </div>
-
-          {/* Operational Reason (>= 10 chars) */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label htmlFor="adjust-reason" className="block text-xs font-medium text-slate-300">
-                Operational Reason & Audit Justification <span className="text-rose-400">*</span>
-              </label>
-              <span
-                className={`text-[10px] font-mono ${
-                  adjustReason.trim().length >= 10 ? 'text-emerald-400' : 'text-slate-400'
-                }`}
-              >
-                {adjustReason.trim().length}/10 chars min
-              </span>
-            </div>
-            <textarea
-              id="adjust-reason"
-              rows={3}
-              value={adjustReason}
-              onChange={(e) => setAdjustReason(e.target.value)}
-              placeholder="e.g. Compensating customer for platform gateway outage during quarterly GST filing."
-              className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg p-3 text-xs text-slate-100 placeholder-slate-600 focus:outline-none transition-colors resize-none"
-              required
-            />
-          </div>
-
-          {/* Error Message */}
           {adjustError && (
-            <div className="p-3 bg-rose-950/70 border border-rose-800/80 rounded-lg text-xs text-rose-300 flex items-start gap-2">
-              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-              <span>{adjustError}</span>
+            <div className="p-3 bg-rose-950/60 border border-rose-800/80 rounded-lg text-xs text-rose-300">
+              <span className="font-semibold">Adjustment Error: </span>
+              {adjustError}
             </div>
           )}
 
-          {/* Action Buttons */}
-          <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-800/80">
+          {/* Modal Actions */}
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
             <button
               type="button"
               onClick={() => setIsAdjustModalOpen(false)}
-              disabled={adjustMutation.isPending}
-              className="px-3.5 py-2 rounded-lg text-xs font-medium text-slate-300 hover:text-slate-100 transition-colors cursor-pointer"
+              className="px-4 py-2 min-h-[44px] rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 bg-slate-800/60 hover:bg-slate-800 transition-colors cursor-pointer"
             >
               Cancel
             </button>
@@ -1100,23 +1423,125 @@ export const SubscriptionsPage: React.FC = () => {
                 isCeilingExceeded ||
                 adjustReason.trim().length < 10
               }
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold text-slate-950 bg-cyan-400 hover:bg-cyan-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs cursor-pointer active:scale-95"
+              className="inline-flex items-center gap-2 px-5 py-2 min-h-[44px] rounded-lg text-xs font-semibold text-slate-950 bg-cyan-400 hover:bg-cyan-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs cursor-pointer active:scale-95"
             >
               {adjustMutation.isPending ? (
                 <>
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>Applying Adjustment...</span>
+                  <span>Signing Adjustment...</span>
                 </>
               ) : (
                 <>
                   <Sliders className="w-3.5 h-3.5" />
-                  <span>Authorize Adjustment</span>
+                  <span>Authorize & Apply Adjustment</span>
                 </>
               )}
             </button>
           </div>
         </form>
       </Modal>
+
+      {/* ─────────────────────────────────────────────────────────────
+          MODAL: Inspect Subscription Record
+          ───────────────────────────────────────────────────────────── */}
+      {inspectRecord && (
+        <Modal
+          isOpen={!!inspectRecord}
+          onClose={() => setInspectRecord(null)}
+          title={`Subscription Details: ${inspectRecord.tenant?.firmName || 'Tenant'}`}
+          maxWidth="lg"
+        >
+          <div className="space-y-4 text-xs">
+            {/* Header snapshot */}
+            <div className="p-4 bg-slate-950/80 border border-slate-800 rounded-xl flex items-center justify-between">
+              <div className="space-y-1">
+                <span className="text-slate-400 text-[11px]">Subscription Plan</span>
+                <div className="text-base font-bold text-slate-100 flex items-center gap-2">
+                  <span>{inspectRecord.plan?.name || 'Custom Plan'}</span>
+                  <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-slate-800 text-cyan-300 border border-slate-700">
+                    {inspectRecord.plan?.code || '—'}
+                  </span>
+                </div>
+              </div>
+              <StatusBadge
+                variant={getSubscriptionBadgeVariant(inspectRecord.status)}
+                label={inspectRecord.status ? inspectRecord.status.toUpperCase() : 'UNKNOWN'}
+                dot
+              />
+            </div>
+
+            {/* Details Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 bg-slate-950/60 rounded-xl border border-slate-800/80 font-mono text-[11px]">
+              <div>
+                <span className="text-slate-400 block text-[10px] uppercase">Tenant Firm</span>
+                <span className="text-slate-200 font-semibold">{inspectRecord.tenant?.firmName || 'Unnamed Firm'}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[10px] uppercase">Tenant ID</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-cyan-400 truncate">{inspectRecord.tenantId}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(inspectRecord.tenantId, 'modal-tid')}
+                    className="text-slate-400 hover:text-slate-200 cursor-pointer"
+                  >
+                    {copiedId === 'modal-tid' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[10px] uppercase">Days Remaining</span>
+                <span className="text-emerald-400 font-bold">{inspectRecord.daysRemaining} Days</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[10px] uppercase">Billing Mode</span>
+                <span className="text-slate-200 uppercase">{inspectRecord.billingMode || 'MANUAL'}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[10px] uppercase">Started At (IST)</span>
+                <span className="text-slate-300">{formatISTDateTime(inspectRecord.startedAt)}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[10px] uppercase">Expires At (IST)</span>
+                <span className="text-emerald-300">{formatISTDateTime(inspectRecord.expiresAt)}</span>
+              </div>
+              {inspectRecord.graceUntil && (
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase">Grace Period Until</span>
+                  <span className="text-amber-300">{formatISTDateTime(inspectRecord.graceUntil)}</span>
+                </div>
+              )}
+              <div>
+                <span className="text-slate-400 block text-[10px] uppercase">Auto Renewal</span>
+                <span className="text-slate-200">{inspectRecord.autoRenew ? 'Active (Automatic)' : 'Manual Invoicing'}</span>
+              </div>
+            </div>
+
+            {/* Actions Footer */}
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => {
+                  const tid = inspectRecord.tenantId;
+                  setInspectRecord(null);
+                  openAdjustModal(tid);
+                }}
+                className="px-4 py-2 min-h-[44px] rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold cursor-pointer inline-flex items-center gap-1.5"
+              >
+                <Sliders className="w-4 h-4" />
+                <span>Adjust Tenure</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setInspectRecord(null)}
+                className="px-4 py-2 min-h-[44px] rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };
