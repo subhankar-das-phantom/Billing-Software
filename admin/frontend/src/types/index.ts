@@ -395,3 +395,76 @@ export function canManageRole(
   return actingLevel > targetLevel;
 }
 
+// ─── Platform Campaign & Notification Offers Contracts ─────────────
+export enum CampaignType {
+  PROMOTIONAL_OFFER = 'PROMOTIONAL_OFFER',
+  BROADCAST_ANNOUNCEMENT = 'BROADCAST_ANNOUNCEMENT',
+  SYSTEM_ALERT = 'SYSTEM_ALERT',
+  DISCOUNT_COUPON = 'DISCOUNT_COUPON',
+  FEATURE_RELEASE = 'FEATURE_RELEASE',
+}
+
+export enum TargetAudience {
+  ALL_TENANTS = 'ALL_TENANTS',
+  BY_PLAN = 'BY_PLAN',
+  BY_STATUS = 'BY_STATUS',
+  SPECIFIC_TENANTS = 'SPECIFIC_TENANTS',
+}
+
+export enum DiscountType {
+  PERCENTAGE = 'PERCENTAGE',
+  FLAT = 'FLAT',
+  BONUS_DAYS = 'BONUS_DAYS',
+  NONE = 'NONE',
+}
+
+export enum CampaignBannerStyle {
+  EMERALD = 'emerald',
+  BLUE = 'blue',
+  AMBER = 'amber',
+  ROSE = 'rose',
+  PURPLE = 'purple',
+}
+
+export enum CampaignPriority {
+  LOW = 'LOW',
+  NORMAL = 'NORMAL',
+  HIGH = 'HIGH',
+  URGENT = 'URGENT',
+}
+
+export interface PlatformOfferCampaign {
+  _id: string;
+  title: string;
+  message: string;
+  type: CampaignType;
+  targetAudience: TargetAudience;
+  targetPlanCodes?: string[];
+  targetStatuses?: string[];
+  targetTenantIds?: string[];
+  promoCode?: string;
+  discountType: DiscountType;
+  discountValue?: number;
+  bannerStyle: CampaignBannerStyle;
+  callToAction?: {
+    label: string;
+    url?: string;
+    route?: string;
+  };
+  isDismissible: boolean;
+  startsAt: string;
+  expiresAt: string;
+  isActive: boolean;
+  priority: CampaignPriority;
+  broadcastCount: number;
+  lastBroadcastAt?: string;
+  createdBy?: {
+    _id: string;
+    email: string;
+    fullName?: string;
+  } | string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+

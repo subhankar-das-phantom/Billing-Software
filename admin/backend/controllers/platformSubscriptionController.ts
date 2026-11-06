@@ -34,7 +34,10 @@ export {
   timingSafeCompare,
 };
 import { invalidatePlatformDashboardCache } from '../queries/dashboardQueries';
-import { logPlatformAudit } from '../services/platformAuditService';
+import { invalidatePricingCache } from '../../../backend/saas/services/pricingService';
+import { invalidateSubscriptionCache } from '../../../backend/saas/services/featureService';
+import * as auditService from '../services/platformAuditService';
+const { logPlatformAudit } = auditService;
 import {
   PlatformRequest,
   PlatformPermission,
@@ -342,7 +345,7 @@ export async function activateSubscription(
     invalidatePlatformDashboardCache();
 
     // Audit logging
-    await logPlatformAudit({
+    await auditService.logPlatformAudit({
       actorId: operator?._id || null,
       actorEmail: operator?.email || 'platform@bharatenterprise.com',
       actorRole: operator?.role || 'PLATFORM_ADMIN',
@@ -428,7 +431,7 @@ export async function adjustSubscription(
 
     invalidatePlatformDashboardCache();
 
-    await logPlatformAudit({
+    await auditService.logPlatformAudit({
       actorId: operator?._id || null,
       actorEmail: operator?.email || 'platform@bharatenterprise.com',
       actorRole: operator?.role || 'PLATFORM_ADMIN',
@@ -487,7 +490,7 @@ export async function toggleSubscriptionStatus(
     let updatedSubscription: any;
     if (action === 'suspend') {
       updatedSubscription = await suspendSubscriptionDomain(tenantId.toString(), reason);
-      await logPlatformAudit({
+      await auditService.logPlatformAudit({
         actorId: operator?._id || null,
         actorEmail: operator?.email || 'platform@bharatenterprise.com',
         actorRole: operator?.role || 'PLATFORM_ADMIN',
@@ -500,7 +503,7 @@ export async function toggleSubscriptionStatus(
       });
     } else {
       updatedSubscription = await resumeSubscriptionDomain(tenantId.toString(), reason);
-      await logPlatformAudit({
+      await auditService.logPlatformAudit({
         actorId: operator?._id || null,
         actorEmail: operator?.email || 'platform@bharatenterprise.com',
         actorRole: operator?.role || 'PLATFORM_ADMIN',
@@ -543,6 +546,180 @@ export async function reconcilePayment(
       success: result.success,
       message: result.message,
       data: result.data,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * PUT /api/platform/subscriptions/:id
+ * Direct update of tenant subscription: plan tier, custom expiry date, status transitions,
+ * auto-renew toggle, grace period days, custom pricing snapshot, with mandatory 10-char reason validation and audit logging.
+ */
+export async function updateSubscription(
+  req: PlatformRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const rawId = req.params.id;
+    const id = typeof rawId === 'string' ? rawId : (Array.isArray(rawId) ? rawId[0] : '');
+    const operator = req.platformUser;
+
+    if (!id || !Types.ObjectId.isValid(id)) {
+      res.status(400).json({ success: false, message: 'Invalid subscription ID' });
+      return;
+    }
+
+    const {
+      planId,
+      planCode,
+      status,
+      expiresAt,
+      graceUntil,
+      gracePeriodDays,
+      graceDays,
+      autoRenew,
+      customPrice,
+      reason,
+    } = req.body;
+
+    if (!reason || typeof reason !== 'string' || reason.trim().length < 10) {
+      res.status(400).json({
+        success: false,
+        message: 'A valid operational reason (minimum 10 characters) is required',
+      });
+      return;
+    }
+
+    const subscription = await Subscription.findById(id);
+    if (!subscription) {
+      res.status(404).json({ success: false, message: 'Subscription not found' });
+      return;
+    }
+
+    const priorState = subscription.toObject();
+
+    // 1. Plan tier change validation
+    let planChanged = false;
+    let targetPlan: any = null;
+    if (planId !== undefined || planCode !== undefined) {
+      if (planId && Types.ObjectId.isValid(planId)) {
+        targetPlan = await Plan.findById(planId).lean();
+      } else if (planCode) {
+        targetPlan = await Plan.findOne({ code: String(planCode).toLowerCase().trim() }).lean();
+      }
+      if (!targetPlan) {
+        res.status(400).json({ success: false, message: 'Specified plan tier not found' });
+        return;
+      }
+      subscription.planId = targetPlan._id;
+      planChanged = true;
+    }
+
+    // 2. Custom price or plan change updates currentPricingSnapshot
+    const numCustomPrice =
+      customPrice !== undefined && customPrice !== null ? Number(customPrice) : undefined;
+    if (numCustomPrice !== undefined && (isNaN(numCustomPrice) || numCustomPrice < 0)) {
+      res.status(400).json({ success: false, message: 'customPrice must be a non-negative number' });
+      return;
+    }
+
+    if (planChanged && targetPlan) {
+      subscription.currentPricingSnapshot = {
+        planName: targetPlan.name,
+        planCode: targetPlan.code,
+        baseMonthlyPrice:
+          numCustomPrice !== undefined ? numCustomPrice : targetPlan.baseMonthlyPrice,
+        durationMonths: subscription.currentPricingSnapshot?.durationMonths || 1,
+        discountApplied: subscription.currentPricingSnapshot?.discountApplied || 0,
+        finalAmount:
+          numCustomPrice !== undefined ? numCustomPrice : targetPlan.baseMonthlyPrice,
+        features: targetPlan.features,
+      };
+    } else if (numCustomPrice !== undefined && subscription.currentPricingSnapshot) {
+      subscription.currentPricingSnapshot.baseMonthlyPrice = numCustomPrice;
+      subscription.currentPricingSnapshot.finalAmount = numCustomPrice;
+    }
+
+    // 3. Custom expiry date
+    if (expiresAt !== undefined) {
+      const expDate = new Date(expiresAt);
+      if (isNaN(expDate.getTime())) {
+        res.status(400).json({ success: false, message: 'Invalid expiresAt date format' });
+        return;
+      }
+      subscription.expiresAt = expDate;
+    }
+
+    // 4. Status transition
+    if (status !== undefined) {
+      if (!Object.values(SubscriptionStatus).includes(status)) {
+        res.status(400).json({
+          success: false,
+          message: `Invalid status: must be one of ${Object.values(SubscriptionStatus).join(', ')}`,
+        });
+        return;
+      }
+      subscription.status = status;
+    }
+
+    // 5. Auto-renew toggle
+    if (autoRenew !== undefined) {
+      subscription.autoRenew = Boolean(autoRenew);
+    }
+
+    // 6. Grace period adjustment
+    const effectiveGraceDays = gracePeriodDays !== undefined ? gracePeriodDays : graceDays;
+    if (effectiveGraceDays !== undefined) {
+      const days = Number(effectiveGraceDays);
+      if (isNaN(days) || days < 0) {
+        res.status(400).json({
+          success: false,
+          message: 'gracePeriodDays must be a non-negative number',
+        });
+        return;
+      }
+      subscription.gracePeriodDays = days;
+      const baseDate = subscription.expiresAt || new Date();
+      subscription.graceUntil = new Date(
+        new Date(baseDate).getTime() + days * 24 * 60 * 60 * 1000,
+      );
+    } else if (graceUntil !== undefined) {
+      const gDate = new Date(graceUntil);
+      if (isNaN(gDate.getTime())) {
+        res.status(400).json({ success: false, message: 'Invalid graceUntil date format' });
+        return;
+      }
+      subscription.graceUntil = gDate;
+    }
+
+    await subscription.save();
+
+    // Invalidate caches across platform and tenant boundaries
+    invalidatePlatformDashboardCache();
+    invalidatePricingCache();
+    invalidateSubscriptionCache(subscription.tenantId.toString());
+
+    await auditService.logPlatformAudit({
+      actorId: operator?._id || null,
+      actorEmail: operator?.email || 'platform@bharatenterprise.com',
+      actorRole: operator?.role || 'PLATFORM_ADMIN',
+      action: 'SUBSCRIPTION.UPDATE',
+      targetType: 'Subscription',
+      targetId: subscription._id.toString(),
+      targetTenantId: subscription.tenantId,
+      reason,
+      before: priorState as unknown as Record<string, unknown>,
+      after: subscription.toObject() as unknown as Record<string, unknown>,
+      severity: 'WARNING',
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Subscription updated successfully',
+      data: subscription,
     });
   } catch (error) {
     next(error);

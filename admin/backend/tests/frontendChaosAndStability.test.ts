@@ -705,5 +705,195 @@ describe('Frontend Chaos, CLS Thrashing & DOM Hydration Breaker Test Suite', () 
         'FeaturesPage must lock grant submit button when grantMutation.isPending'
       );
     });
+
+    // 4.4 Rapid Double-Click Protection & Debounce on Platform Control Plane Modals
+    it('4.4 should verify EditPlanModal, EditSubscriptionModal, and CampaignModal enforce synchronous submit locks and disabled states', () => {
+      // 1. EditPlanModal
+      const editPlanPath = path.resolve(
+        process.cwd(),
+        'admin/frontend/src/components/subscriptions/EditPlanModal.tsx'
+      );
+      assert.ok(fs.existsSync(editPlanPath), 'EditPlanModal.tsx must exist');
+      const planContent = fs.readFileSync(editPlanPath, 'utf8');
+
+      assert.ok(
+        planContent.includes('isSubmittingRef = useRef(false)'),
+        'EditPlanModal must declare isSubmittingRef lock'
+      );
+      assert.ok(
+        planContent.includes('if (!canSubmit || isSubmittingRef.current) return'),
+        'EditPlanModal must synchronously block concurrent submission triggers'
+      );
+      assert.ok(
+        planContent.includes('disabled={!canSubmit}'),
+        'EditPlanModal submit button must declare disabled={!canSubmit}'
+      );
+      assert.ok(
+        planContent.includes('minReasonLength = 10'),
+        'EditPlanModal must enforce minimum 10-character operational reason'
+      );
+
+      // 2. EditSubscriptionModal
+      const editSubPath = path.resolve(
+        process.cwd(),
+        'admin/frontend/src/components/subscriptions/EditSubscriptionModal.tsx'
+      );
+      assert.ok(fs.existsSync(editSubPath), 'EditSubscriptionModal.tsx must exist');
+      const subContent = fs.readFileSync(editSubPath, 'utf8');
+
+      assert.ok(
+        subContent.includes('isSubmittingRef = useRef(false)'),
+        'EditSubscriptionModal must declare isSubmittingRef lock'
+      );
+      assert.ok(
+        subContent.includes('if (!canSubmit || isSubmittingRef.current) return'),
+        'EditSubscriptionModal must synchronously block concurrent submission triggers'
+      );
+      assert.ok(
+        subContent.includes('disabled={!canSubmit}'),
+        'EditSubscriptionModal submit button must declare disabled={!canSubmit}'
+      );
+      assert.ok(
+        subContent.includes('minReasonLength = 10'),
+        'EditSubscriptionModal must enforce minimum 10-character operational reason'
+      );
+
+      // 3. CampaignModal
+      const campaignPath = path.resolve(
+        process.cwd(),
+        'admin/frontend/src/components/campaigns/CampaignModal.tsx'
+      );
+      assert.ok(fs.existsSync(campaignPath), 'CampaignModal.tsx must exist');
+      const campContent = fs.readFileSync(campaignPath, 'utf8');
+
+      assert.ok(
+        campContent.includes('isSubmittingRef = useRef(false)'),
+        'CampaignModal must declare isSubmittingRef lock'
+      );
+      assert.ok(
+        campContent.includes('if (!canSubmit || isSubmittingRef.current) return'),
+        'CampaignModal must synchronously block concurrent submission triggers'
+      );
+      assert.ok(
+        campContent.includes('disabled={!canSubmit}'),
+        'CampaignModal submit button must declare disabled={!canSubmit}'
+      );
+      assert.ok(
+        campContent.includes('minReasonLength = 10'),
+        'CampaignModal must enforce minimum 10-character operational reason'
+      );
+    });
+  });
+
+  // ═════════════════════════════════════════════════════════════════════
+  // SUITE 5: Color Scheme Token Contrast & Theme Stability
+  // ═════════════════════════════════════════════════════════════════════
+  describe('5. Color Scheme Token Contrast & Theme Stability', () => {
+    it('5.1 should verify canonical Obsidian zinc-standard color palette tokens in admin index.css', () => {
+      const cssPath = path.resolve(process.cwd(), 'admin/frontend/src/index.css');
+      assert.ok(fs.existsSync(cssPath), 'admin/frontend/src/index.css must exist');
+      const cssContent = fs.readFileSync(cssPath, 'utf8');
+
+      // Dark mode canvas & card tokens
+      assert.ok(
+        cssContent.includes('--color-slate-950: #09090b'),
+        'Slate 950 must map to #09090b (neutral obsidian canvas)'
+      );
+      assert.ok(
+        cssContent.includes('--color-slate-900: #141417'),
+        'Slate 900 must map to #141417 (primary card surface)'
+      );
+      assert.ok(
+        cssContent.includes('--color-slate-800: #262730'),
+        'Slate 800 must map to #262730 (secondary surface)'
+      );
+      assert.ok(
+        cssContent.includes('--color-slate-700: #333440'),
+        'Slate 700 must map to #333440 (crisp muted borders)'
+      );
+      assert.ok(
+        cssContent.includes('--color-slate-100: #f4f4f5'),
+        'Slate 100 must map to #f4f4f5 (high contrast titles)'
+      );
+      assert.ok(
+        cssContent.includes('--color-slate-50:  #ffffff') || cssContent.includes('--color-slate-50: #ffffff'),
+        'Slate 50 must map to #ffffff (boldest headings)'
+      );
+      assert.ok(
+        cssContent.includes('color-scheme: dark'),
+        'Must declare color-scheme: dark for root / .dark elements'
+      );
+    });
+
+    it('5.2 should verify WCAG AA/AAA-compliant light mode inversion tokens in admin index.css', () => {
+      const cssPath = path.resolve(process.cwd(), 'admin/frontend/src/index.css');
+      const cssContent = fs.readFileSync(cssPath, 'utf8');
+
+      // Light mode root selector
+      assert.ok(cssContent.includes('html.light'), 'Must define html.light theme inversion');
+
+      // Light mode canvas & surfaces
+      assert.ok(
+        cssContent.includes('--color-slate-950: #f1f5f9'),
+        'Light mode slate-950 canvas must invert to #f1f5f9'
+      );
+      assert.ok(
+        cssContent.includes('--color-slate-900: #ffffff'),
+        'Light mode slate-900 cards must invert to #ffffff'
+      );
+      assert.ok(
+        cssContent.includes('--color-slate-800: #e2e8f0'),
+        'Light mode slate-800 borders must invert to #e2e8f0'
+      );
+      assert.ok(
+        cssContent.includes('--color-slate-100: #0f172a'),
+        'Light mode slate-100 headings must invert to deep obsidian #0f172a'
+      );
+
+      // WCAG accessible amber / yellow semantic tokens (> 5:1 contrast on white)
+      assert.ok(
+        cssContent.includes('--color-amber-300: #b45309'),
+        'Light mode amber-300 must map to amber-700 (#b45309: 5.05:1 contrast)'
+      );
+      assert.ok(
+        cssContent.includes('--color-amber-400: #92400e'),
+        'Light mode amber-400 must map to amber-800 (#92400e: 7.47:1 contrast)'
+      );
+      assert.ok(
+        cssContent.includes('--color-yellow-300: #a16207'),
+        'Light mode yellow-300 must map to yellow-700 (#a16207: 5.08:1 contrast)'
+      );
+    });
+
+    it('5.3 should verify tenant SubscriptionBanner implements Zero CLS transitions and session storage persistence', () => {
+      const bannerPath = path.resolve(
+        process.cwd(),
+        'frontend/src/components/Subscription/SubscriptionBanner.jsx'
+      );
+      assert.ok(fs.existsSync(bannerPath), 'SubscriptionBanner.jsx must exist');
+      const bannerContent = fs.readFileSync(bannerPath, 'utf8');
+
+      // Active offers query
+      assert.ok(
+        bannerContent.includes('/saas/offers/active'),
+        'SubscriptionBanner must fetch promotional offers from /saas/offers/active'
+      );
+
+      // Session storage dismissal
+      assert.ok(
+        bannerContent.includes('sessionStorage'),
+        'SubscriptionBanner must persist offer dismissal in sessionStorage'
+      );
+
+      // GPU-accelerated Zero CLS transition
+      assert.ok(
+        bannerContent.includes('will-change-[transform,opacity]'),
+        'SubscriptionBanner must declare will-change-[transform,opacity]'
+      );
+      assert.ok(
+        bannerContent.includes('duration: 0.15'),
+        'SubscriptionBanner must use snappy 0.15s GPU transition'
+      );
+    });
   });
 });

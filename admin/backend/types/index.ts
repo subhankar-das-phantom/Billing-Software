@@ -304,3 +304,14 @@ export interface PlatformRequest extends Request {
   supportSession?: IPlatformSupportSession;
 }
 
+// ─── Platform Offer Campaign Exports ─────────────────────────────
+export {
+  CampaignType,
+  TargetAudience,
+  CampaignDiscountType,
+  BannerStyle,
+  CampaignPriority,
+  IPlatformOfferCampaign,
+} from '../models/PlatformOfferCampaign';
+
+

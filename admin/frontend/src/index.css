@@ -2,32 +2,120 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ═══════════════════════════════════════════════════════════════════
+   THEME PALETTE: Canonical Obsidian Zinc Standard (Linear / Vercel Standard)
+   ═══════════════════════════════════════════════════════════════════ */
 @theme {
-  --color-slate-950: #020617;
-  --color-slate-900: #0f172a;
-  --color-slate-850: #141f36;
-  --color-slate-800: #1e293b;
-  --color-slate-750: #253349;
-  --color-slate-700: #334155;
-  --color-slate-600: #475569;
-  --color-slate-500: #64748b;
-  --color-slate-400: #94a3b8;
-  --color-slate-300: #cbd5e1;
-  --color-slate-200: #e2e8f0;
-  --color-slate-100: #f8fafc;
+  --color-slate-950: #09090b; /* canvas: sleek neutral obsidian */
+  --color-slate-900: #141417; /* primary card, elevated surfaces & sidebar */
+  --color-slate-850: #1b1c21; /* inner panels / nested surface */
+  --color-slate-800: #262730; /* secondary surface, hover */
+  --color-slate-750: #2c2d38;
+  --color-slate-700: #333440; /* primary borders & dividers */
+  --color-slate-600: #454656; /* secondary borders */
+  --color-slate-500: #71717a; /* muted labels */
+  --color-slate-400: #a1a1aa; /* secondary text */
+  --color-slate-300: #d4d4d8; /* body text */
+  --color-slate-200: #e4e4e7; /* prominent text */
+  --color-slate-100: #f4f4f5; /* titles & subheadings */
+  --color-slate-50:  #ffffff; /* boldest headings */
+
+  --color-accent-400: #2dd4bf; /* teal-400 */
+  --color-accent-500: #14b8a6; /* teal-500 */
+  --color-accent-600: #0d9488; /* teal-600 */
+
+  --color-accent2-400: #22d3ee; /* cyan-400 */
+  --color-accent2-500: #06b6d4; /* cyan-500 */
+  --color-accent2-600: #0891b2; /* cyan-600 */
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   THEME: Canonical Obsidian Dark Mode Palette
+   ═══════════════════════════════════════════════════════════════════ */
+:root,
+.dark,
+html.dark {
+  --color-slate-950: #09090b;
+  --color-slate-900: #141417;
+  --color-slate-850: #1b1c21;
+  --color-slate-800: #262730;
+  --color-slate-750: #2c2d38;
+  --color-slate-700: #333440;
+  --color-slate-600: #454656;
+  --color-slate-500: #71717a;
+  --color-slate-400: #a1a1aa;
+  --color-slate-300: #d4d4d8;
+  --color-slate-200: #e4e4e7;
+  --color-slate-100: #f4f4f5;
   --color-slate-50:  #ffffff;
 
   --color-accent-400: #2dd4bf;
   --color-accent-500: #14b8a6;
   --color-accent-600: #0d9488;
+
+  --color-accent2-400: #22d3ee;
+  --color-accent2-500: #06b6d4;
+  --color-accent2-600: #0891b2;
+
+  color-scheme: dark;
 }
 
-:root {
-  --color-slate-950: #020617;
-  --color-slate-900: #0f172a;
-  --color-slate-850: #141f36;
-  --color-slate-800: #1e293b;
-  color-scheme: dark;
+/* ═══════════════════════════════════════════════════════════════════
+   THEME: Light Mode Inversion (WCAG AA/AAA Compliant)
+   ═══════════════════════════════════════════════════════════════════ */
+html.light {
+  /* Canvas & Surface Inversion */
+  --color-slate-950: #f1f5f9; /* canvas: crisp slate-100 */
+  --color-slate-900: #ffffff; /* primary card & surface background */
+  --color-slate-850: #f8fafc; /* subtle inner panel / nested surface */
+  --color-slate-800: #e2e8f0; /* primary borders & card boundaries */
+  --color-slate-750: #e2e8f0;
+  --color-slate-700: #cbd5e1; /* secondary borders & dividers */
+  --color-slate-600: #94a3b8; /* prominent borders / outlines */
+  --color-slate-500: #64748b; /* muted labels */
+  --color-slate-400: #475569; /* secondary text (WCAG AA > 5:1 contrast) */
+  --color-slate-300: #334155; /* body / subtle text */
+  --color-slate-200: #1e293b; /* prominent text */
+  --color-slate-100: #0f172a; /* titles & subheadings */
+  --color-slate-50:  #09090b; /* boldest headings */
+
+  /* Accessible Semantic Inversion for Amber & Yellow (> 5:1 on light) */
+  --color-amber-100: #fef3c7;
+  --color-amber-200: #d97706; /* amber-600 */
+  --color-amber-300: #b45309; /* amber-700: 5.05:1 on white */
+  --color-amber-400: #92400e; /* amber-800: 7.47:1 on white */
+  --color-amber-500: #78350f; /* amber-900 */
+  --color-yellow-100: #fef9c3;
+  --color-yellow-200: #ca8a04; /* yellow-600 */
+  --color-yellow-300: #a16207; /* yellow-700: 5.08:1 on white */
+  --color-yellow-400: #854d0e; /* yellow-800: 7.08:1 on white */
+  --color-yellow-500: #713f12; /* yellow-900 */
+
+  /* Accessible Semantic Inversion for Other Accents */
+  --color-blue-300: #1d4ed8;    /* blue-700 */
+  --color-blue-400: #2563eb;    /* blue-600 */
+  --color-indigo-300: #4338ca;  /* indigo-700 */
+  --color-indigo-400: #4f46e5;  /* indigo-600 */
+  --color-emerald-300: #047857; /* emerald-700 */
+  --color-emerald-400: #059669; /* emerald-600 */
+  --color-red-300: #b91c1c;     /* red-700 */
+  --color-red-400: #dc2626;     /* red-600 */
+  --color-rose-300: #be123c;    /* rose-700 */
+  --color-rose-400: #e11d48;    /* rose-600 */
+  --color-teal-300: #0f766e;    /* teal-700 */
+  --color-teal-400: #0d9488;    /* teal-600 */
+  --color-violet-300: #6d28d9;  /* violet-700 */
+  --color-violet-400: #7c3aed;  /* violet-600 */
+  --color-purple-300: #6d28d9;  /* purple-700 */
+  --color-purple-400: #7c3aed;  /* purple-600 */
+  --color-accent-400: #0d9488;  /* teal-600 */
+  --color-accent2-400: #0891b2; /* cyan-600 */
+
+  color-scheme: light;
+}
+
+body {
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -39,26 +127,26 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #020617;
+  background: var(--color-slate-950, #09090b);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: var(--color-slate-800, #262730);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: var(--color-slate-700, #333440);
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #1e293b #020617;
+  scrollbar-color: var(--color-slate-800, #262730) var(--color-slate-950, #09090b);
 }
 
 /* Subtle border utility for high-density cards */
 .border-subtle {
-  border-color: rgba(30, 41, 59, 0.8);
+  border-color: rgba(38, 39, 48, 0.8);
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -68,6 +156,12 @@
 /* Glass Card Effect — Enterprise Pro Obsidian Styling (Zero GPU compositor stutter) */
 .glass-card {
   @apply bg-slate-900/90 border border-slate-800/80 rounded-xl shadow-lg overflow-visible;
+}
+
+html.light .glass-card {
+  background-color: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.02) !important;
 }
 
 /* Dedicated min 44x44px target with pointer-events-none on inner icon */
@@ -105,4 +199,3 @@
     transform: none !important;
   }
 }
-

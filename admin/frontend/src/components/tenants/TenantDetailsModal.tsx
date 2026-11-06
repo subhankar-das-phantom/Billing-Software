@@ -27,10 +27,12 @@ import {
   Headphones,
   Power,
   RotateCw,
+  Sliders,
 } from 'lucide-react';
 import Modal from '../common/Modal';
 import StatusBadge from '../common/StatusBadge';
 import CurrencyDisplay from '../common/CurrencyDisplay';
+import { EditSubscriptionModal } from '../subscriptions/EditSubscriptionModal';
 import api from '../../services/api';
 import type { TenantOverviewDTO, TenantUsageDTO } from '../../types';
 
@@ -82,6 +84,7 @@ export const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({
   onToggleStatus,
 }) => {
   const [copiedId, setCopiedId] = useState(false);
+  const [isEditSubModalOpen, setIsEditSubModalOpen] = useState(false);
 
   // 1. Fetch Tenant Overview snapshot
   const {
@@ -156,18 +159,15 @@ export const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({
         <span className="truncate">{overview.isActive ? 'Suspend Firm' : 'Reactivate Firm'}</span>
       </button>
 
-      {/* Action 2: Copy Tenant ID */}
+      {/* Action 2: Edit Subscription */}
       <button
         type="button"
-        onClick={handleCopyId}
-        className="min-h-[44px] px-3.5 py-2 rounded-lg text-xs font-medium border border-slate-800 text-slate-300 hover:text-slate-100 hover:bg-slate-800/80 active:bg-slate-700/80 flex items-center justify-center gap-1.5 transition-colors cursor-pointer w-full sm:w-auto"
+        onClick={() => setIsEditSubModalOpen(true)}
+        className="min-h-[44px] px-3.5 py-2 rounded-lg text-xs font-medium bg-cyan-950/60 hover:bg-cyan-900/60 border border-cyan-800/60 text-cyan-300 flex items-center justify-center gap-1.5 transition-colors cursor-pointer w-full sm:w-auto shadow-xs active:scale-95"
+        title="Edit subscription parameters and plan tier"
       >
-        {copiedId ? (
-          <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-        ) : (
-          <Copy className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-        )}
-        <span className="truncate">{copiedId ? 'Copied ID' : 'Copy ID'}</span>
+        <Sliders className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+        <span className="truncate">Edit Subscription</span>
       </button>
 
       {/* Action 3: Diagnostic Session (Primary CTA) */}
@@ -205,7 +205,8 @@ export const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({
   );
 
   return (
-    <Modal
+    <>
+      <Modal
       isOpen={isOpen}
       onClose={onClose}
       title={
@@ -230,7 +231,17 @@ export const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({
       description={
         overview ? (
           <span className="flex items-center gap-2 flex-wrap text-slate-400 text-xs">
-            <span className="font-mono text-[11px] text-slate-400">ID: {tenantId}</span>
+            <span className="font-mono text-[11px] text-slate-400 flex items-center gap-1">
+              <span>ID: {tenantId}</span>
+              <button
+                type="button"
+                onClick={handleCopyId}
+                className="text-slate-500 hover:text-slate-300 p-0.5 cursor-pointer transition-colors"
+                title="Copy Tenant ID"
+              >
+                {copiedId ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+              </button>
+            </span>
             <span className="text-slate-600">•</span>
             <span>Joined {formatDate(overview.createdAt)}</span>
           </span>
@@ -408,11 +419,22 @@ export const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({
                     SaaS Subscription State
                   </span>
                 </div>
-                {overview.subscription ? (
-                  <StatusBadge status={overview.subscription.status} dot />
-                ) : (
-                  <StatusBadge variant="slate" label="NO ACTIVE SUBSCRIPTION" dot />
-                )}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditSubModalOpen(true)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-300 border border-cyan-800/60 font-mono text-[11px] transition-all cursor-pointer shadow-xs active:scale-95"
+                    title="Edit subscription parameters"
+                  >
+                    <Sliders className="w-3 h-3 text-cyan-400" />
+                    <span>Edit</span>
+                  </button>
+                  {overview.subscription ? (
+                    <StatusBadge status={overview.subscription.status} dot />
+                  ) : (
+                    <StatusBadge variant="slate" label="NO ACTIVE SUBSCRIPTION" dot />
+                  )}
+                </div>
               </div>
 
               {overview.subscription ? (
@@ -541,6 +563,33 @@ export const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({
         )}
       </div>
     </Modal>
+
+    {/* Direct Edit Subscription Modal */}
+    <EditSubscriptionModal
+      isOpen={isEditSubModalOpen}
+      onClose={() => setIsEditSubModalOpen(false)}
+      subscription={
+        overview
+          ? {
+              tenantId: overview.tenantId,
+              tenant: {
+                _id: overview.tenantId,
+                firmName: overview.firmName,
+                email: overview.email,
+              },
+              status: overview.subscription?.status || 'active',
+              expiresAt: overview.subscription?.expiresAt,
+              planCode: overview.subscription?.planCode,
+              autoRenew: overview.subscription?.autoRenew,
+              finalAmount: overview.subscription?.finalAmount || overview.subscription?.baseMonthlyPrice,
+            }
+          : null
+      }
+      onSuccess={() => {
+        handleRefresh();
+      }}
+    />
+  </>
   );
 };
 

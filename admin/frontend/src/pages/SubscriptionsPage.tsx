@@ -24,6 +24,8 @@ import {
   Calendar,
   Clock,
   Mail,
+  Edit3,
+  Plus,
 } from 'lucide-react';
 import api from '../services/api';
 import CurrencyDisplay from '../components/common/CurrencyDisplay';
@@ -35,6 +37,8 @@ import AnimatedCounter from '../components/common/AnimatedCounter';
 import SearchInput from '../components/common/SearchInput';
 import { usePlatformAuth } from '../contexts/PlatformAuthContext';
 import { useListFilterParams } from '../hooks/useListFilterParams';
+import EditPlanModal from '../components/subscriptions/EditPlanModal';
+import { EditSubscriptionModal } from '../components/subscriptions/EditSubscriptionModal';
 import {
   PlatformRole,
   type SaaSPlan,
@@ -194,6 +198,34 @@ export const SubscriptionsPage: React.FC = () => {
 
   // Inspect modal state
   const [inspectRecord, setInspectRecord] = useState<SubscriptionRecord | null>(null);
+
+  // SaaS Plan Editor Modal State
+  const [editingPlan, setEditingPlan] = useState<SaaSPlan | null>(null);
+  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
+
+  // Tenant Subscription Editor Modal State
+  const [editingSubscription, setEditingSubscription] = useState<SubscriptionRecord | null>(null);
+  const [isEditSubModalOpen, setIsEditSubModalOpen] = useState(false);
+
+  const handlePlanSaveSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['platform-plans'] });
+    setToast({
+      id: String(Date.now()),
+      type: 'success',
+      title: 'Pricing Plan Catalog Updated',
+      message: 'SaaS plan catalog parameters and feature entitlements saved.',
+    });
+  };
+
+  const handleSubSaveSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['platform-subscriptions'] });
+    setToast({
+      id: String(Date.now()),
+      type: 'success',
+      title: 'Subscription Synchronized',
+      message: 'Tenant subscription status, tenure, and entitlements have been updated.',
+    });
+  };
 
   // ═══════════════════════════════════════════════════════════════════
   // SECTION 1: SaaS Plans Matrix Strip
@@ -555,7 +587,7 @@ export const SubscriptionsPage: React.FC = () => {
           SECTION 1: SaaS Plans Matrix Strip
           ───────────────────────────────────────────────────────────── */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           <div className="flex items-center gap-2">
             <Layers className="w-4 h-4 text-cyan-400" />
             <h2 className="text-sm font-semibold text-slate-200 tracking-tight">SaaS Plans Matrix Strip</h2>
@@ -563,9 +595,23 @@ export const SubscriptionsPage: React.FC = () => {
               ({sortedPlans.length} Active Catalog Tiers)
             </span>
           </div>
-          <span className="text-[11px] text-slate-400 font-mono">
-            GET /api/platform/plans
-          </span>
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => {
+                setEditingPlan(null);
+                setIsPlanModalOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-cyan-300 bg-cyan-950/60 hover:bg-cyan-900/60 border border-cyan-800/60 transition-all shadow-xs cursor-pointer active:scale-95 min-h-[44px] sm:min-h-0"
+              title="Create new pricing plan tier"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Create Plan Tier</span>
+            </button>
+            <span className="text-[11px] text-slate-400 font-mono hidden sm:inline">
+              GET /api/platform/plans
+            </span>
+          </div>
         </div>
 
         {isPlansLoading ? (
@@ -663,9 +709,21 @@ export const SubscriptionsPage: React.FC = () => {
                   </div>
 
                   {/* Card Footer */}
-                  <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400 font-mono">
-                    <span>Billing: 30-Day Intervals</span>
-                    <span className="text-slate-400">Order #{plan.displayOrder || 0}</span>
+                  <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2 text-[11px] text-slate-400 font-mono">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingPlan(plan);
+                        setIsPlanModalOpen(true);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700/80 active:bg-slate-700 text-cyan-300 border border-slate-700/80 hover:border-cyan-500/60 font-sans text-xs font-medium transition-all cursor-pointer min-h-[44px] sm:min-h-0 active:scale-95"
+                      title={`Edit ${plan.name} configuration`}
+                      aria-label={`Edit ${plan.name} tier`}
+                    >
+                      <Edit3 className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Edit Plan</span>
+                    </button>
+                    <span className="text-slate-400 text-right">Order #{plan.displayOrder || 0}</span>
                   </div>
                 </div>
               );
@@ -1042,15 +1100,30 @@ export const SubscriptionsPage: React.FC = () => {
                             <Eye className="w-3.5 h-3.5" />
                           </button>
 
+                          {/* Edit Subscription */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingSubscription(sub);
+                              setIsEditSubModalOpen(true);
+                            }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-300 border border-cyan-800/60 hover:border-cyan-700 font-mono text-[11px] transition-all cursor-pointer shadow-xs active:scale-95"
+                            title="Edit subscription parameters"
+                            aria-label={`Edit subscription for ${firmName}`}
+                          >
+                            <Sliders className="w-3 h-3 text-cyan-400" />
+                            <span>Edit</span>
+                          </button>
+
                           {/* Adjust */}
                           <button
                             type="button"
                             onClick={() => openAdjustModal(tenantIdStr)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 hover:border-cyan-500/60 font-mono text-[11px] transition-all cursor-pointer shadow-xs active:scale-95"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-slate-100 border border-slate-700 hover:border-slate-600 font-mono text-[11px] transition-all cursor-pointer shadow-xs active:scale-95"
                             title="Authorize manual days extension or deduction"
                             aria-label={`Adjust tenure for ${firmName}`}
                           >
-                            <Sliders className="w-3 h-3" />
+                            <Clock className="w-3 h-3 text-slate-400" />
                             <span>Adjust</span>
                           </button>
                         </div>
@@ -1161,9 +1234,23 @@ export const SubscriptionsPage: React.FC = () => {
                   <div className="space-y-3 pt-2 text-xs">
                     {/* Meta info grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2.5 bg-slate-950/60 rounded-lg border border-slate-800/80 font-mono text-[11px]">
-                      <div className="flex items-center gap-2 text-slate-300 truncate">
-                        <Building2 className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                        <span className="truncate select-all">{tenantIdStr}</span>
+                      <div className="flex items-center justify-between gap-2 text-slate-300">
+                        <div className="flex items-center gap-1.5 truncate">
+                          <Building2 className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                          <span className="truncate select-all">{tenantIdStr}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(tenantIdStr, sub._id)}
+                          className="text-slate-400 hover:text-slate-200 transition-colors cursor-pointer shrink-0 p-1"
+                          title="Copy Tenant ID"
+                        >
+                          {copiedId === sub._id ? (
+                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
                       </div>
                       <div className="flex items-center gap-2 text-slate-300">
                         <Calendar className="w-3.5 h-3.5 text-slate-500 shrink-0" />
@@ -1183,18 +1270,32 @@ export const SubscriptionsPage: React.FC = () => {
 
                     {/* Structured 2x2 Action Grid (min-h-[44px] touch targets) */}
                     <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800/60">
-                      {/* Action 1: Adjust */}
+                      {/* Action 1: Edit */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingSubscription(sub);
+                          setIsEditSubModalOpen(true);
+                        }}
+                        className="min-h-[44px] px-3 py-2 rounded-lg bg-cyan-950/60 hover:bg-cyan-900/60 active:bg-cyan-900/80 text-cyan-300 border border-cyan-800/60 flex items-center justify-center gap-2 text-xs font-medium cursor-pointer transition-colors"
+                        aria-label={`Edit subscription for ${firmName}`}
+                      >
+                        <Sliders className="w-4 h-4 text-cyan-400" />
+                        <span>Edit</span>
+                      </button>
+
+                      {/* Action 2: Adjust */}
                       <button
                         type="button"
                         onClick={() => openAdjustModal(tenantIdStr)}
-                        className="min-h-[44px] px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-700 text-cyan-300 border border-slate-700 flex items-center justify-center gap-2 text-xs font-medium cursor-pointer transition-colors"
-                        aria-label={`Adjust subscription for ${firmName}`}
+                        className="min-h-[44px] px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center gap-2 text-xs font-medium cursor-pointer transition-colors"
+                        aria-label={`Adjust tenure for ${firmName}`}
                       >
-                        <Sliders className="w-4 h-4 text-cyan-400" />
+                        <Clock className="w-4 h-4 text-slate-400" />
                         <span>Adjust</span>
                       </button>
 
-                      {/* Action 2: Reconcile */}
+                      {/* Action 3: Reconcile */}
                       <button
                         type="button"
                         onClick={() => handleInitiateReconcileForTenant(tenantIdStr)}
@@ -1203,26 +1304,6 @@ export const SubscriptionsPage: React.FC = () => {
                       >
                         <ShieldCheck className="w-4 h-4 text-emerald-400" />
                         <span>Reconcile</span>
-                      </button>
-
-                      {/* Action 3: Copy ID */}
-                      <button
-                        type="button"
-                        onClick={() => handleCopy(tenantIdStr, sub._id)}
-                        className="min-h-[44px] px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center gap-2 text-xs font-medium cursor-pointer transition-colors"
-                        aria-label="Copy Tenant ID"
-                      >
-                        {copiedId === sub._id ? (
-                          <>
-                            <Check className="w-4 h-4 text-emerald-400" />
-                            <span className="text-emerald-400 font-mono">Copied!</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-4 h-4 text-slate-400" />
-                            <span>Copy ID</span>
-                          </>
-                        )}
                       </button>
 
                       {/* Action 4: Inspect */}
@@ -1518,7 +1599,20 @@ export const SubscriptionsPage: React.FC = () => {
             </div>
 
             {/* Actions Footer */}
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800 flex-wrap">
+              <button
+                type="button"
+                onClick={() => {
+                  const subToEdit = inspectRecord;
+                  setInspectRecord(null);
+                  setEditingSubscription(subToEdit);
+                  setIsEditSubModalOpen(true);
+                }}
+                className="px-4 py-2 min-h-[44px] rounded-lg bg-cyan-950/80 hover:bg-cyan-900/80 text-cyan-300 border border-cyan-800/80 font-medium cursor-pointer inline-flex items-center gap-1.5"
+              >
+                <Sliders className="w-4 h-4 text-cyan-400" />
+                <span>Edit Subscription</span>
+              </button>
               <button
                 type="button"
                 onClick={() => {
@@ -1528,7 +1622,7 @@ export const SubscriptionsPage: React.FC = () => {
                 }}
                 className="px-4 py-2 min-h-[44px] rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold cursor-pointer inline-flex items-center gap-1.5"
               >
-                <Sliders className="w-4 h-4" />
+                <Clock className="w-4 h-4" />
                 <span>Adjust Tenure</span>
               </button>
               <button
@@ -1542,6 +1636,25 @@ export const SubscriptionsPage: React.FC = () => {
           </div>
         </Modal>
       )}
+
+      {/* Edit / Create SaaS Plan Modal */}
+      <EditPlanModal
+        isOpen={isPlanModalOpen}
+        onClose={() => setIsPlanModalOpen(false)}
+        plan={editingPlan}
+        onSuccess={handlePlanSaveSuccess}
+      />
+
+      {/* Direct Edit Subscription Modal */}
+      <EditSubscriptionModal
+        isOpen={isEditSubModalOpen}
+        onClose={() => {
+          setIsEditSubModalOpen(false);
+          setEditingSubscription(null);
+        }}
+        subscription={editingSubscription}
+        onSuccess={handleSubSaveSuccess}
+      />
     </div>
   );
 };

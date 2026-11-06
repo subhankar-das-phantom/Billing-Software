@@ -13,6 +13,7 @@ import supportRoutes from './supportRoutes';
 import auditRoutes from './auditRoutes';
 import userRoutes from './userRoutes';
 import dashboardRoutes from './dashboardRoutes';
+import campaignRoutes from './campaignRoutes';
 import { authenticatePlatform, requirePasswordChanged } from '../middleware/platformAuthMiddleware';
 import { enforceSupportSessionBounds } from '../middleware/supportSessionMiddleware';
 
@@ -46,6 +47,8 @@ platformRouter.use('/support', supportRoutes);
 platformRouter.use('/audit', auditRoutes);
 platformRouter.use('/users', userRoutes);
 platformRouter.use('/dashboard', dashboardRoutes);
+platformRouter.use('/campaigns', campaignRoutes);
+platformRouter.use('/campaigns', campaignRoutes);
 
 module.exports = platformRouter;
 export default platformRouter;

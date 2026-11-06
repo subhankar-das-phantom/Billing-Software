@@ -28,13 +28,17 @@ interface LoginResult {
   user?: PlatformUser;
 }
 
-interface PlatformAuthContextType {
+export type ThemeMode = 'dark' | 'light' | 'system';
+
+export interface PlatformAuthContextType {
   user: PlatformUser | null;
   role: PlatformRole | null;
   session: PlatformSession | null;
   activeSupportSession: ActiveSupportSession | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  themeMode: ThemeMode;
+  setThemeMode: (mode: ThemeMode) => void;
   hasPermission: (permission: PlatformPermission) => boolean;
   login: (email: string, password: string) => Promise<LoginResult>;
   verifyMfa: (mfaPendingToken: string, code: string, isBackupCode?: boolean) => Promise<void>;
@@ -43,10 +47,14 @@ interface PlatformAuthContextType {
   setActiveSupportSession: (session: ActiveSupportSession | null) => void;
 }
 
+export type PlatformAuthContextValue = PlatformAuthContextType;
+
 const PlatformAuthContext = createContext<PlatformAuthContextType | undefined>(undefined);
 
 const SUPPORT_SESSION_STORAGE_KEY = 'cached_support_session';
 const USER_CACHE_STORAGE_KEY = 'cached_platform_user';
+const THEME_STORAGE_KEY = 'platform_theme';
+const FALLBACK_THEME_KEY = 'bharat-enterprise-theme';
 
 export const PlatformAuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // Synchronous Frame-0 pre-seeding to eliminate CLS and flash-of-unauthenticated-state
@@ -104,6 +112,62 @@ export const PlatformAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
     });
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // Synchronous Frame-0 pre-seeding for themeMode ('dark' | 'light' | 'system')
+  const [themeMode, setThemeModeState] = useState<ThemeMode>(() => {
+    try {
+      const saved =
+        localStorage.getItem(THEME_STORAGE_KEY) ||
+        localStorage.getItem(FALLBACK_THEME_KEY);
+      if (saved === 'light' || saved === 'dark' || saved === 'system') {
+        return saved;
+      }
+    } catch {}
+    return 'dark';
+  });
+
+  // Apply resolved theme class to document root
+  const applyTheme = useCallback((mode: ThemeMode) => {
+    try {
+      const root = document.documentElement;
+      root.classList.remove('dark', 'light');
+
+      let resolvedTheme: 'dark' | 'light' = mode === 'system'
+        ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+        : mode;
+
+      root.classList.add(resolvedTheme);
+      root.style.colorScheme = resolvedTheme;
+    } catch {}
+  }, []);
+
+  const setThemeMode = useCallback(
+    (mode: ThemeMode) => {
+      setThemeModeState(mode);
+      try {
+        localStorage.setItem(THEME_STORAGE_KEY, mode);
+        localStorage.setItem(FALLBACK_THEME_KEY, mode);
+      } catch {}
+      applyTheme(mode);
+    },
+    [applyTheme]
+  );
+
+  // Apply theme immediately on mount and whenever themeMode changes
+  useEffect(() => {
+    applyTheme(themeMode);
+  }, [themeMode, applyTheme]);
+
+  // Synchronize OS theme changes when themeMode is 'system'
+  useEffect(() => {
+    if (themeMode !== 'system' || typeof window === 'undefined' || !window.matchMedia) return;
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = () => {
+      applyTheme('system');
+    };
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, [themeMode, applyTheme]);
 
   // Synchronize active support session with sessionStorage
   const setActiveSupportSession = useCallback((newSession: ActiveSupportSession | null) => {
@@ -286,6 +350,8 @@ export const PlatformAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
         activeSupportSession,
         isLoading,
         isAuthenticated,
+        themeMode,
+        setThemeMode,
         hasPermission,
         login,
         verifyMfa,

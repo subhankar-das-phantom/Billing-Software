@@ -33,6 +33,7 @@ import {
   PanelLeft,
   RefreshCw,
   FolderOpen,
+  Megaphone,
 } from 'lucide-react';
 import { usePlatformAuth } from '../../contexts/PlatformAuthContext';
 import { PlatformPermission, PlatformRole } from '../../types';
@@ -139,6 +140,16 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         keywords: ['plans', 'billing', 'revenue', 'mrr', 'renewals', 'grace'],
       },
       {
+        id: 'nav-campaigns',
+        label: 'Campaigns & Offers',
+        description: 'Manage promotional banners, broadcast announcements, and discount vouchers',
+        category: 'Navigation',
+        icon: Megaphone,
+        path: '/campaigns',
+        permission: PlatformPermission.SUBSCRIPTIONS_VIEW,
+        keywords: ['campaigns', 'offers', 'promotions', 'discounts', 'broadcasts', 'vouchers', 'banners'],
+      },
+      {
         id: 'nav-features',
         label: 'Feature Overrides & Bypass',
         description: 'Commercial precedence overrides, enterprise flags, and emergency bypass',
@@ -196,6 +207,17 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         permission: PlatformPermission.TENANTS_MANAGE,
         badge: { text: 'Action', variant: 'emerald' },
         keywords: ['create', 'new', 'provision', 'firm', 'register'],
+      },
+      {
+        id: 'campaign-create',
+        label: 'Create New Campaign',
+        description: 'Draft a targeted promotional offer, announcement banner, or discount voucher',
+        category: 'Tenant Operations',
+        icon: Megaphone,
+        path: '/campaigns?create=true',
+        permission: PlatformPermission.SUBSCRIPTIONS_VIEW,
+        badge: { text: 'Action', variant: 'emerald' },
+        keywords: ['campaign', 'create', 'offer', 'promo', 'discount', 'announcement', 'broadcast'],
       },
       {
         id: 'tenant-filter-active',

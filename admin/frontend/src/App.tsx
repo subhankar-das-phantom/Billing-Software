@@ -13,6 +13,7 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import TenantsPage from './pages/TenantsPage';
 import SubscriptionsPage from './pages/SubscriptionsPage';
+import CampaignsPage from './pages/CampaignsPage';
 import FeaturesPage from './pages/FeaturesPage';
 import SupportPage from './pages/SupportPage';
 import AuditPage from './pages/AuditPage';
@@ -68,6 +69,14 @@ export const App: React.FC = () => {
                 element={
                   <ProtectedRoute requiredPermission={PlatformPermission.SUBSCRIPTIONS_VIEW}>
                     <SubscriptionsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="campaigns"
+                element={
+                  <ProtectedRoute requiredPermission={PlatformPermission.SUBSCRIPTIONS_VIEW}>
+                    <CampaignsPage />
                   </ProtectedRoute>
                 }
               />

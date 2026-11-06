@@ -15,6 +15,7 @@ import subscriptionRoutes from './subscription';
 import referralRoutes from './referral';
 import notificationRoutes from './notifications';
 import adminSaasRoutes from './adminSaas';
+import offersRoutes from './offers';
 
 const router = express.Router();
 
@@ -23,6 +24,7 @@ router.use('/subscription', subscriptionRoutes);
 router.use('/referral', referralRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/admin', adminSaasRoutes);
+router.use('/offers', offersRoutes);
 
 module.exports = router;
 export default router;

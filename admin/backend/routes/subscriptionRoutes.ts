@@ -11,6 +11,7 @@ import {
   adjustSubscription,
   toggleSubscriptionStatus,
   reconcilePayment,
+  updateSubscription,
 } from '../controllers/platformSubscriptionController';
 import { authenticatePlatform } from '../middleware/platformAuthMiddleware';
 import {
@@ -34,6 +35,13 @@ router.get(
   '/:id',
   requirePlatformPermission(PlatformPermission.SUBSCRIPTIONS_VIEW),
   getSubscriptionById,
+);
+
+router.put(
+  '/:id',
+  requirePlatformPermission(PlatformPermission.SUBSCRIPTIONS_MANAGE),
+  requireReason(10),
+  updateSubscription,
 );
 
 router.post(

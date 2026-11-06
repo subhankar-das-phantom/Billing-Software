@@ -25,6 +25,7 @@ import {
   ChevronRight,
   ShieldAlert,
   X,
+  Megaphone,
 } from 'lucide-react';
 import { usePlatformAuth } from '../../contexts/PlatformAuthContext';
 import { PlatformPermission, PlatformRole } from '../../types';
@@ -62,6 +63,14 @@ export const NAV_ITEMS: readonly NavItem[] = [
     permission: PlatformPermission.SUBSCRIPTIONS_VIEW,
     category: 'Revenue',
     shortcut: 'G S',
+  },
+  {
+    name: 'Campaigns & Offers',
+    to: '/campaigns',
+    icon: Megaphone,
+    permission: PlatformPermission.SUBSCRIPTIONS_VIEW,
+    category: 'Marketing',
+    shortcut: 'G C',
   },
   {
     name: 'Feature Overrides',

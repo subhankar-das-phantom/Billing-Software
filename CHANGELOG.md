@@ -117,6 +117,43 @@ For full release notes with implementation details, see [GitHub Releases](https:
   - `AuditPage.tsx`: Cryptographic audit log explorer with hash chain verification.
   - `UsersPage.tsx`: Platform operator directory with role privilege hierarchy controls.
 
+### 🎨 Canonical Obsidian Zinc-Standard Color Scheme Parity & Light Mode Inversion
+- **Unified Pro Obsidian Dark Palette (`admin/frontend/src/index.css`)**:
+  - Replaced Tailwind default blue-tinted slates with canonical Obsidian Zinc Standard tokens matching `frontend/src/index.css`: `#09090b` (canvas), `#141417` (cards & elevated surfaces), `#1b1c21` (nested panels), `#262730` (secondary surfaces, hover), `#333440` (primary borders), `#454656` (secondary borders), and `#71717a` - `#ffffff` (text hierarchy).
+  - Introduced standard accent tokens: `--color-accent-400: #2dd4bf` (teal-400), `--color-accent2-400: #22d3ee` (cyan-400).
+- **Accessible Light Mode Inversion (`html.light`)**:
+  - Remapped Tailwind v4 slate variables in light mode (`#f1f5f9` canvas, `#ffffff` surfaces, `#e2e8f0` borders).
+  - Remapped semantic amber and yellow tokens to deep golden amber (`#b45309`, `#92400e`) and rich ochre (`#a16207`, `#854d0e`), providing > 5:1 contrast (WCAG AA/AAA compliance) across all badges and alerts.
+- **Operator Theme Mode Preference & Sync (`PlatformAuthContext.tsx`, `PlatformHeader.tsx`)**:
+  - Added theme switching (`'dark' | 'light' | 'system'`) with synchronous Frame-0 pre-seeding from `localStorage` (`platform_theme`).
+  - Added accessible 3-way segmented control inside the GPU profile dropdown with `<Sun />`, `<Moon />`, and `<Laptop />` icons.
+
+### 💳 Direct SaaS Plan & Tenant Subscription Governance
+- **SaaS Plans Direct Editability & Creation (`EditPlanModal.tsx`, `platformPlanController.ts`)**:
+  - Platform Admins can create new catalog tiers or edit existing plans directly from the SaaS Plans Matrix Strip.
+  - Interactive Feature Entitlement Checklist categorized into 5 functional domains (Core Billing, Commercial Operations, Team & Access, Inventory Intelligence, Statutory & Analytics) with quick "Select All" / "Clear All" helpers.
+  - Form validation with exact paise `CurrencyDisplay` preview and mandatory 10-char operational justification.
+- **Tenant Subscription Direct Modification (`EditSubscriptionModal.tsx`, `platformSubscriptionController.ts`)**:
+  - Direct subscription editing endpoint: `PUT /api/platform/subscriptions/:id`.
+  - Supports updating plan tier, subscription status state machine (`trial`, `active`, `grace`, `expired`, `suspended`), custom expiry date (`expiresAt`) with quick extension pills (`+15D`, `+1M`, `+3M`, `+1Y`), grace period slider (1 to 30 days), auto-renew toggle, and custom monthly rate override.
+  - Automatically invalidates platform dashboard cache, pricing cache, and tenant subscription cache, logging `SUBSCRIPTION.UPDATE` to the append-only cryptographic audit ledger.
+
+### 📢 Platform Campaign Offers & Notification Management Console
+- **Mongoose Campaign Model & Performance Indexes (`PlatformOfferCampaign.ts`)**:
+  - Complete schema governing promotional offers, announcements, discount coupons, and system alerts.
+  - Attributes: `title`, `message`, `type`, `targetAudience` (`ALL_TENANTS`, `BY_PLAN`, `BY_STATUS`, `SPECIFIC_TENANTS`), `targetPlanCodes`, `targetStatuses`, `targetTenantIds`, `promoCode`, `discountType`, `discountValue`, `bannerStyle`, `callToAction`, `isDismissible`, `startsAt`, `expiresAt`, `isActive`, `priority`, `broadcastCount`.
+  - B-Tree compound indexes: `{ isActive: 1, startsAt: 1, expiresAt: 1 }`, `{ targetAudience: 1, isActive: 1 }`, `{ createdAt: -1 }`.
+- **Campaign CRUD & Broadcast Engine (`platformCampaignController.ts`, `campaignRoutes.ts`)**:
+  - Endpoints: `GET /api/platform/campaigns`, `GET /api/platform/campaigns/:id`, `POST /api/platform/campaigns`, `PUT /api/platform/campaigns/:id`, `DELETE /api/platform/campaigns/:id`, `POST /api/platform/campaigns/:id/broadcast`.
+  - Audience broadcast dispatcher queries matching tenants in `Admin` collection and bulk inserts in-app notification records into `Notification` collection with deduplication.
+- **Campaign Management Console (`CampaignsPage.tsx`, `CampaignModal.tsx`)**:
+  - Dual desktop table / mobile collapsible card views with 4-KPI metric strip (`Active Campaigns`, `Upcoming`, `Total Broadcasts`, `Active Promo Codes`) using `<AnimatedCounter>`.
+  - Real-time WYSIWYG live banner preview inside `CampaignModal` showing live theme swatches, priority badges, and CTA button.
+  - Mobile 2x2 action matrix: Edit, Broadcast, Toggle Status, and Copy Code (`min-h-[44px]` each).
+- **Tenant Business Plane Integration & Zero CLS (`offerController.ts`, `SubscriptionBanner.jsx`)**:
+  - Tenant API endpoint `GET /api/saas/offers/active` returning targeted active campaigns with 0 administrative data leakage.
+  - Enhanced tenant `SubscriptionBanner` to query active offers and display dismissible promotional banners with promo code copy affordances, GPU-accelerated opacity & subtle Y-glide, and `sessionStorage` persistence.
+
 ---
 
 ### 📁 Specific File Modifications & Creations

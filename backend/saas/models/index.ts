@@ -10,3 +10,5 @@ export { default as ReferralCampaign } from './ReferralCampaign';
 export { default as Referral } from './Referral';
 export { default as Notification } from './Notification';
 export { default as SystemSetting } from './SystemSetting';
+export { default as Campaign } from './Campaign';
+export { default as PlatformOfferCampaign } from '../../../admin/backend/models/PlatformOfferCampaign';

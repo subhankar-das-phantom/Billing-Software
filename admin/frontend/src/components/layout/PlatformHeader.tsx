@@ -21,6 +21,9 @@ import {
   Users,
   Shield,
   ShieldAlert,
+  Sun,
+  Moon,
+  Laptop,
 } from 'lucide-react';
 import { usePlatformAuth } from '../../contexts/PlatformAuthContext';
 import { PlatformRole } from '../../types';
@@ -110,7 +113,7 @@ export const PlatformHeader: React.FC<PlatformHeaderProps> = ({
   onOpenCommandPalette,
   isSyncing = false,
 }) => {
-  const { user, role, logout } = usePlatformAuth();
+  const { user, role, themeMode, setThemeMode, logout } = usePlatformAuth();
   const location = useLocation();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileDropdownRef = useRef<HTMLDivElement>(null);
@@ -399,6 +402,58 @@ export const PlatformHeader: React.FC<PlatformHeaderProps> = ({
                     <Users className="w-4 h-4 text-cyan-400 shrink-0" />
                     <span>Platform Team Directory</span>
                   </Link>
+                </div>
+
+                {/* Theme Mode Segmented Control */}
+                <div className="px-3 py-2 border-t border-slate-800/80 bg-slate-950/40">
+                  <div className="flex items-center justify-between text-xs text-slate-400 mb-1.5 font-medium">
+                    <span>Appearance</span>
+                    <span className="capitalize text-[10px] font-mono text-slate-400">{themeMode}</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1 p-1 bg-slate-900 border border-slate-800 rounded-lg">
+                    <button
+                      type="button"
+                      onClick={() => setThemeMode('light')}
+                      className={`flex items-center justify-center gap-1.5 py-1 px-2 rounded-md text-xs font-medium transition-all min-h-[36px] cursor-pointer ${
+                        themeMode === 'light'
+                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-xs'
+                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent'
+                      }`}
+                      aria-label="Light mode"
+                      title="Light Mode"
+                    >
+                      <Sun className="w-3.5 h-3.5 shrink-0" />
+                      <span className="text-[11px]">Light</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setThemeMode('dark')}
+                      className={`flex items-center justify-center gap-1.5 py-1 px-2 rounded-md text-xs font-medium transition-all min-h-[36px] cursor-pointer ${
+                        themeMode === 'dark'
+                          ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-xs'
+                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent'
+                      }`}
+                      aria-label="Dark mode"
+                      title="Dark Mode"
+                    >
+                      <Moon className="w-3.5 h-3.5 shrink-0" />
+                      <span className="text-[11px]">Dark</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setThemeMode('system')}
+                      className={`flex items-center justify-center gap-1.5 py-1 px-2 rounded-md text-xs font-medium transition-all min-h-[36px] cursor-pointer ${
+                        themeMode === 'system'
+                          ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-xs'
+                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent'
+                      }`}
+                      aria-label="System theme"
+                      title="System Theme"
+                    >
+                      <Laptop className="w-3.5 h-3.5 shrink-0" />
+                      <span className="text-[11px]">System</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Sign Out Bar */}
