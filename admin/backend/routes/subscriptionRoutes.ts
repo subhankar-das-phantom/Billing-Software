@@ -1,6 +1,7 @@
 /**
  * Bharat Enterprise Billing System — Platform Subscription Routes
- * Protected platform endpoints for subscription lifecycle, adjustments, and payment reconciliation.
+ * Protected platform endpoints for subscription lifecycle, adjustments, offline billing,
+ * payment verification queue, and statutory B2B GST tax invoice issuance.
  */
 
 import { Router } from 'express';
@@ -12,6 +13,13 @@ import {
   toggleSubscriptionStatus,
   reconcilePayment,
   updateSubscription,
+  allocateSubscription,
+  recordManualPayment,
+  getManualPaymentRequests,
+  approveManualPaymentRequest,
+  rejectManualPaymentRequest,
+  listPlatformInvoices,
+  getPlatformInvoiceById,
 } from '../controllers/platformSubscriptionController';
 import { authenticatePlatform } from '../middleware/platformAuthMiddleware';
 import {
@@ -25,6 +33,49 @@ const router = Router();
 // Protect all subscription management routes with platform authentication
 router.use(authenticatePlatform);
 
+// ─── Manual Payment Requests Queue ──────────────────────────────
+router.get(
+  '/manual-requests',
+  requirePlatformPermission(PlatformPermission.SUBSCRIPTIONS_VIEW),
+  getManualPaymentRequests,
+);
+
+router.post(
+  '/manual-requests/:id/approve',
+  requirePlatformPermission(PlatformPermission.SUBSCRIPTIONS_MANAGE),
+  requireReason(10),
+  approveManualPaymentRequest,
+);
+
+router.post(
+  '/manual-requests/:id/reject',
+  requirePlatformPermission(PlatformPermission.SUBSCRIPTIONS_MANAGE),
+  requireReason(10),
+  rejectManualPaymentRequest,
+);
+
+// ─── Statutory B2B GST Invoices ──────────────────────────────────
+router.get(
+  '/invoices',
+  requirePlatformPermission(PlatformPermission.SUBSCRIPTIONS_VIEW),
+  listPlatformInvoices,
+);
+
+router.get(
+  '/invoices/:id',
+  requirePlatformPermission(PlatformPermission.SUBSCRIPTIONS_VIEW),
+  getPlatformInvoiceById,
+);
+
+// ─── Manual Subscription Provisioning ───────────────────────────
+router.post(
+  '/allocate',
+  requirePlatformPermission(PlatformPermission.SUBSCRIPTIONS_MANAGE),
+  requireReason(10),
+  allocateSubscription,
+);
+
+// ─── Subscriptions Listing & Detail ──────────────────────────────
 router.get(
   '/',
   requirePlatformPermission(PlatformPermission.SUBSCRIPTIONS_VIEW),
@@ -44,6 +95,14 @@ router.put(
   updateSubscription,
 );
 
+router.post(
+  '/:id/record-payment',
+  requirePlatformPermission(PlatformPermission.SUBSCRIPTIONS_MANAGE),
+  requireReason(10),
+  recordManualPayment,
+);
+
+// ─── Adjustments & Actions ───────────────────────────────────────
 router.post(
   '/activate',
   requirePlatformPermission(PlatformPermission.SUBSCRIPTIONS_MANAGE),

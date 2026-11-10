@@ -97,6 +97,14 @@ export interface ISubscription {
   autoRenewStatus?: string;
   gracePeriodDays: number;
   currentPricingSnapshot: IPricingSnapshot;
+  lastPaymentId?: Types.ObjectId;
+  lastInvoiceId?: Types.ObjectId;
+  manualProvisioning?: {
+    isManual: boolean;
+    allocatedBy?: Types.ObjectId;
+    allocationReason?: string;
+    allocatedAt?: Date;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -106,7 +114,7 @@ export interface ISubscription {
 export interface ISubscriptionPayment {
   _id: Types.ObjectId;
   tenantId: Types.ObjectId;
-  subscriptionId: Types.ObjectId;
+  subscriptionId?: Types.ObjectId;
   planId: Types.ObjectId;
   durationMonths: number;
   baseAmount: number;
@@ -121,6 +129,28 @@ export interface ISubscriptionPayment {
   paymentStatus: PaymentStatus;
   billingMode?: 'manual' | 'auto';
   gatewayEventId?: string;
+  taxableAmount?: number;
+  gstRate?: number;
+  cgstAmount?: number;
+  sgstAmount?: number;
+  igstAmount?: number;
+  taxTotal?: number;
+  roundOff?: number;
+  finalAmountPaise?: number;
+  manualDetails?: {
+    mode: 'NEFT' | 'RTGS' | 'IMPS' | 'UPI' | 'CASH' | 'CHEQUE' | 'COMPLIMENTARY';
+    utrNumber?: string;
+    bankName?: string;
+    depositedToAccount?: string;
+    instrumentDate?: Date;
+    receiptUrl?: string;
+    clearedAt?: Date;
+    isComplimentary?: boolean;
+  };
+  platformInvoiceId?: Types.ObjectId;
+  platformInvoiceNumber?: string;
+  recordedBy?: Types.ObjectId;
+  operationalReason?: string;
   paidAt?: Date;
   metadata?: Record<string, unknown>;
   createdAt: Date;
@@ -257,3 +287,26 @@ export type SaaSHandler = (
   res: Response,
   next: NextFunction,
 ) => Promise<void> | void;
+
+// ─── Platform Invoice & Manual Requests ──────────────────────────
+
+export type {
+  IPlatformInvoice,
+  IPlatformInvoiceItem,
+  IPlatformInvoiceTotals,
+  IPlatformInvoiceIssuer,
+  IPlatformInvoiceRecipient,
+  TaxTreatmentType,
+  PlatformInvoiceStatus,
+} from '../models/PlatformInvoice';
+
+export type {
+  ISubscriptionManualRequest,
+  ManualPaymentRequestStatus,
+  ManualPaymentMode,
+} from '../models/SubscriptionManualRequest';
+
+export type {
+  IPlatformSequence,
+} from '../models/PlatformSequence';
+

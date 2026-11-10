@@ -58,6 +58,20 @@ const subscriptionSchema = new Schema(
       enum: ['manual', 'auto'],
       default: 'manual',
     },
+    lastPaymentId: {
+      type: Schema.Types.ObjectId,
+      ref: 'SubscriptionPayment',
+    },
+    lastInvoiceId: {
+      type: Schema.Types.ObjectId,
+      ref: 'PlatformInvoice',
+    },
+    manualProvisioning: {
+      isManual: { type: Boolean, default: false },
+      allocatedBy: { type: Schema.Types.ObjectId, ref: 'PlatformUser' },
+      allocationReason: { type: String },
+      allocatedAt: { type: Date },
+    },
     gatewaySubscriptionId: {
       type: String,
       trim: true,

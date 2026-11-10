@@ -10,6 +10,15 @@ import Subscription from '../../../backend/saas/models/Subscription';
 import Plan from '../../../backend/saas/models/Plan';
 import SubscriptionPayment from '../../../backend/saas/models/SubscriptionPayment';
 import SubscriptionAdjustment from '../../../backend/saas/models/SubscriptionAdjustment';
+import PlatformInvoice from '../../../backend/saas/models/PlatformInvoice';
+import SubscriptionManualRequest from '../../../backend/saas/models/SubscriptionManualRequest';
+import {
+  allocateSubscriptionWithTransaction,
+  recordSubscriptionPaymentWithTransaction,
+  approveManualPaymentRequestWithTransaction,
+  rejectManualPaymentRequest as rejectManualPaymentRequestService,
+} from '../services/manualSubscriptionService';
+import { extractClientIp } from '../utils/clientIp';
 import TenantFeatureOverride from '../models/TenantFeatureOverride';
 import {
   activateSubscription as activateSubscriptionDomain,
@@ -720,6 +729,371 @@ export async function updateSubscription(
       success: true,
       message: 'Subscription updated successfully',
       data: subscription,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * POST /api/platform/subscriptions/allocate
+ * Manually provisions or stacks a subscription for a tenant with optional offline payment recording.
+ */
+export async function allocateSubscription(
+  req: PlatformRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const operator = req.platformUser;
+    const { tenantId, planId, durationMonths, reason, paymentDetails, autoRenew } = req.body;
+
+    if (!tenantId || !Types.ObjectId.isValid(tenantId)) {
+      res.status(400).json({ success: false, message: 'Valid tenantId is required' });
+      return;
+    }
+    if (!planId || !Types.ObjectId.isValid(planId)) {
+      res.status(400).json({ success: false, message: 'Valid planId is required' });
+      return;
+    }
+    const months = Number(durationMonths);
+    if (!months || months < 1) {
+      res.status(400).json({ success: false, message: 'durationMonths must be at least 1' });
+      return;
+    }
+
+    const operatorId = new Types.ObjectId(operator?._id?.toString() || new Types.ObjectId());
+    const operatorEmail = operator?.email || 'platform@bharatenterprise.com';
+    const operatorRole = operator?.role || 'PLATFORM_ADMIN';
+
+    const result = await allocateSubscriptionWithTransaction({
+      tenantId,
+      planId,
+      durationMonths: months,
+      operatorId,
+      operatorEmail,
+      operatorRole,
+      reason: reason || (req as any).reason,
+      paymentDetails,
+      autoRenew: !!autoRenew,
+      ipAddress: extractClientIp(req),
+      userAgent: (req.headers['user-agent'] as string) || '',
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Subscription allocated successfully',
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * POST /api/platform/subscriptions/:id/record-payment
+ * Records an offline payment and extends tenure for an existing subscription.
+ */
+export async function recordManualPayment(
+  req: PlatformRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const operator = req.platformUser;
+    const id = (Array.isArray(req.params.id) ? req.params.id[0] : req.params.id) as string;
+    const { reason, planId, durationMonths, paymentDetails } = req.body;
+
+    if (!id || !Types.ObjectId.isValid(id)) {
+      res.status(400).json({ success: false, message: 'Valid subscription id is required' });
+      return;
+    }
+    const months = Number(durationMonths);
+    if (!months || months < 1) {
+      res.status(400).json({ success: false, message: 'durationMonths must be at least 1' });
+      return;
+    }
+    if (!paymentDetails || typeof paymentDetails !== 'object') {
+      res.status(400).json({ success: false, message: 'paymentDetails object is required' });
+      return;
+    }
+
+    const operatorId = new Types.ObjectId(operator?._id?.toString() || new Types.ObjectId());
+    const operatorEmail = operator?.email || 'platform@bharatenterprise.com';
+    const operatorRole = operator?.role || 'PLATFORM_ADMIN';
+
+    const result = await recordSubscriptionPaymentWithTransaction({
+      subscriptionId: id,
+      operatorId,
+      operatorEmail,
+      operatorRole,
+      reason: reason || (req as any).reason,
+      planId,
+      durationMonths: months,
+      paymentDetails,
+      ipAddress: extractClientIp(req),
+      userAgent: (req.headers['user-agent'] as string) || '',
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Offline payment recorded and subscription extended successfully',
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * GET /api/platform/subscriptions/manual-requests
+ * Lists tenant payment verification requests with Zero N+1 lookups.
+ */
+export async function getManualPaymentRequests(
+  req: PlatformRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
+    const skip = (page - 1) * limit;
+
+    const filter: Record<string, unknown> = {};
+    if (req.query.status) {
+      filter.status = req.query.status;
+    }
+    if (req.query.tenantId && Types.ObjectId.isValid(req.query.tenantId as string)) {
+      filter.tenantId = new Types.ObjectId(req.query.tenantId as string);
+    }
+    if (req.query.search && typeof req.query.search === 'string' && req.query.search.trim()) {
+      const s = req.query.search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      filter.$or = [
+        { utrNumber: new RegExp(s, 'i') },
+        { bankName: new RegExp(s, 'i') },
+        { notes: new RegExp(s, 'i') },
+      ];
+    }
+
+    const [requests, total] = await Promise.all([
+      SubscriptionManualRequest.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      SubscriptionManualRequest.countDocuments(filter),
+    ]);
+
+    // Zero N+1: batch lookups for tenants and plans
+    const tenantIds = Array.from(
+      new Set(requests.map((r: any) => r.tenantId?.toString()).filter(Boolean)),
+    );
+    const planIds = Array.from(
+      new Set(requests.map((r: any) => r.planId?.toString()).filter(Boolean)),
+    );
+
+    const Admin = getAdminModel();
+    const [tenants, plans] = await Promise.all([
+      Admin.find(
+        { _id: { $in: tenantIds } },
+        { firmName: 1, email: 1, firmPhone: 1, firmGSTIN: 1 },
+      ).lean(),
+      Plan.find({ _id: { $in: planIds } }, { name: 1, code: 1, baseMonthlyPrice: 1 }).lean(),
+    ]);
+
+    const tenantMap = new Map(tenants.map((t: any) => [t._id.toString(), t]));
+    const planMap = new Map(plans.map((p: any) => [p._id.toString(), p]));
+
+    const enriched = requests.map((r: any) => ({
+      ...r,
+      tenant: tenantMap.get(r.tenantId?.toString()) || null,
+      plan: planMap.get(r.planId?.toString()) || null,
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: enriched,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * POST /api/platform/subscriptions/manual-requests/:id/approve
+ * Approves a tenant payment verification request and activates subscription.
+ */
+export async function approveManualPaymentRequest(
+  req: PlatformRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const operator = req.platformUser;
+    const id = (Array.isArray(req.params.id) ? req.params.id[0] : req.params.id) as string;
+    const { reason } = req.body;
+
+    if (!id || !Types.ObjectId.isValid(id)) {
+      res.status(400).json({ success: false, message: 'Valid request id is required' });
+      return;
+    }
+
+    const operatorId = new Types.ObjectId(operator?._id?.toString() || new Types.ObjectId());
+    const operatorEmail = operator?.email || 'platform@bharatenterprise.com';
+    const operatorRole = operator?.role || 'PLATFORM_ADMIN';
+
+    const result = await approveManualPaymentRequestWithTransaction({
+      requestId: id,
+      operatorId,
+      operatorEmail,
+      operatorRole,
+      reason: reason || (req as any).reason,
+      ipAddress: extractClientIp(req),
+      userAgent: (req.headers['user-agent'] as string) || '',
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Payment verification approved and subscription activated',
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * POST /api/platform/subscriptions/manual-requests/:id/reject
+ * Rejects a tenant payment verification request with operator reason.
+ */
+export async function rejectManualPaymentRequest(
+  req: PlatformRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const operator = req.platformUser;
+    const id = (Array.isArray(req.params.id) ? req.params.id[0] : req.params.id) as string;
+    const { reason } = req.body;
+
+    if (!id || !Types.ObjectId.isValid(id)) {
+      res.status(400).json({ success: false, message: 'Valid request id is required' });
+      return;
+    }
+
+    const operatorId = new Types.ObjectId(operator?._id?.toString() || new Types.ObjectId());
+    const operatorEmail = operator?.email || 'platform@bharatenterprise.com';
+    const operatorRole = operator?.role || 'PLATFORM_ADMIN';
+
+    const result = await rejectManualPaymentRequestService({
+      requestId: id,
+      operatorId,
+      operatorEmail,
+      operatorRole,
+      reason: reason || (req as any).reason,
+      ipAddress: extractClientIp(req),
+      userAgent: (req.headers['user-agent'] as string) || '',
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Payment verification request rejected',
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * GET /api/platform/subscriptions/invoices
+ * Lists statutory B2B GST tax invoices with filtering and pagination.
+ */
+export async function listPlatformInvoices(
+  req: PlatformRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
+    const skip = (page - 1) * limit;
+
+    const filter: Record<string, unknown> = {};
+    if (req.query.financialYear) {
+      filter.financialYear = req.query.financialYear;
+    }
+    if (req.query.status) {
+      filter.status = req.query.status;
+    }
+    if (req.query.tenantId && Types.ObjectId.isValid(req.query.tenantId as string)) {
+      filter['recipient.tenantId'] = new Types.ObjectId(req.query.tenantId as string);
+    }
+    if (req.query.search && typeof req.query.search === 'string' && req.query.search.trim()) {
+      const s = req.query.search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      filter.$or = [
+        { invoiceNumber: new RegExp(s, 'i') },
+        { 'recipient.firmName': new RegExp(s, 'i') },
+        { 'recipient.firmGSTIN': new RegExp(s, 'i') },
+        { 'payment.utrNumber': new RegExp(s, 'i') },
+      ];
+    }
+
+    const [invoices, total] = await Promise.all([
+      PlatformInvoice.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      PlatformInvoice.countDocuments(filter),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: invoices,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * GET /api/platform/subscriptions/invoices/:id
+ * Fetches full statutory B2B GST tax invoice details.
+ */
+export async function getPlatformInvoiceById(
+  req: PlatformRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const id = (Array.isArray(req.params.id) ? req.params.id[0] : req.params.id) as string;
+    if (!id || !Types.ObjectId.isValid(id)) {
+      res.status(400).json({ success: false, message: 'Valid invoice id is required' });
+      return;
+    }
+
+    const invoice = await PlatformInvoice.findById(id).lean();
+    if (!invoice) {
+      res.status(404).json({ success: false, message: 'Platform invoice not found' });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: invoice,
     });
   } catch (error) {
     next(error);

@@ -83,6 +83,75 @@ const subscriptionPaymentSchema = new Schema(
       trim: true,
       sparse: true,
     },
+    taxableAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    gstRate: {
+      type: Number,
+      default: 18.0,
+      min: 0,
+    },
+    cgstAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    sgstAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    igstAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    taxTotal: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    roundOff: {
+      type: Number,
+      default: 0,
+    },
+    finalAmountPaise: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    manualDetails: {
+      mode: {
+        type: String,
+        enum: ['NEFT', 'RTGS', 'IMPS', 'UPI', 'CASH', 'CHEQUE', 'COMPLIMENTARY'],
+        default: 'UPI',
+      },
+      utrNumber: { type: String, trim: true, uppercase: true },
+      bankName: { type: String, trim: true },
+      depositedToAccount: { type: String, trim: true },
+      instrumentDate: { type: Date },
+      receiptUrl: { type: String, trim: true },
+      clearedAt: { type: Date },
+      isComplimentary: { type: Boolean, default: false },
+    },
+    platformInvoiceId: {
+      type: Schema.Types.ObjectId,
+      ref: 'PlatformInvoice',
+    },
+    platformInvoiceNumber: {
+      type: String,
+      trim: true,
+    },
+    recordedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'PlatformUser',
+    },
+    operationalReason: {
+      type: String,
+      trim: true,
+    },
     paidAt: {
       type: Date,
     },
@@ -97,6 +166,8 @@ const subscriptionPaymentSchema = new Schema(
 // Indexes
 subscriptionPaymentSchema.index({ tenantId: 1, createdAt: -1 });
 subscriptionPaymentSchema.index({ paymentStatus: 1 });
+subscriptionPaymentSchema.index({ 'manualDetails.utrNumber': 1 }, { sparse: true });
+subscriptionPaymentSchema.index({ platformInvoiceId: 1 }, { sparse: true });
 
 
 
