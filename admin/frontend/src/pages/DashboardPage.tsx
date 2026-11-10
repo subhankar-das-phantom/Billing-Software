@@ -542,7 +542,7 @@ export const DashboardPage: React.FC = () => {
                   : 'bg-slate-950/40 border-slate-800/50 opacity-60 cursor-not-allowed'
               }`}
             >
-              <div className="p-2 rounded-md bg-sky-950/60 border border-sky-800/60 text-sky-400 group-hover:text-sky-300 shrink-0">
+              <div className="p-2 rounded-md bg-sky-500/15 border border-sky-500/30 text-sky-400 group-hover:text-sky-300 shrink-0">
                 <UserPlus className="w-4 h-4" />
               </div>
               <div className="min-w-0">
@@ -567,7 +567,7 @@ export const DashboardPage: React.FC = () => {
                   : 'bg-slate-950/40 border-slate-800/50 opacity-60 cursor-not-allowed'
               }`}
             >
-              <div className="p-2 rounded-md bg-amber-950/60 border border-amber-800/60 text-amber-400 group-hover:text-amber-300 shrink-0">
+              <div className="p-2 rounded-md bg-amber-500/15 border border-amber-500/30 text-amber-400 group-hover:text-amber-300 shrink-0">
                 <Headphones className="w-4 h-4" />
               </div>
               <div className="min-w-0">
@@ -585,7 +585,7 @@ export const DashboardPage: React.FC = () => {
               to="/audit"
               className="p-3 rounded-lg bg-slate-950/70 hover:bg-slate-800/80 border border-slate-800 hover:border-slate-700 text-left transition-all group flex items-start gap-3 min-h-[44px]"
             >
-              <div className="p-2 rounded-md bg-emerald-950/60 border border-emerald-800/60 text-emerald-400 group-hover:text-emerald-300 shrink-0">
+              <div className="p-2 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 group-hover:text-emerald-300 shrink-0">
                 <ShieldCheck className="w-4 h-4" />
               </div>
               <div className="min-w-0">
@@ -603,7 +603,7 @@ export const DashboardPage: React.FC = () => {
               to="/features"
               className="p-3 rounded-lg bg-slate-950/70 hover:bg-slate-800/80 border border-slate-800 hover:border-slate-700 text-left transition-all group flex items-start gap-3 min-h-[44px]"
             >
-              <div className="p-2 rounded-md bg-purple-950/60 border border-purple-800/60 text-purple-400 group-hover:text-purple-300 shrink-0">
+              <div className="p-2 rounded-md bg-purple-500/15 border border-purple-500/30 text-purple-400 group-hover:text-purple-300 shrink-0">
                 <Sliders className="w-4 h-4" />
               </div>
               <div className="min-w-0">
@@ -670,10 +670,10 @@ export const DashboardPage: React.FC = () => {
               </span>
               <div className="flex items-center gap-1.5">
                 <span
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-mono ${
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-mono border ${
                     overviewData?.systemHealth?.isCached
-                      ? 'bg-amber-950/70 text-amber-300 border border-amber-800/60'
-                      : 'bg-emerald-950/70 text-emerald-300 border border-emerald-800/60'
+                      ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                      : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
                   }`}
                 >
                   {overviewData?.systemHealth?.isCached ? 'CACHE HIT' : 'DIRECT DB SCAN'}
