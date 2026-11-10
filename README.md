@@ -34,6 +34,8 @@ Version 3.0.0 delivers a ground-up dual-plane architectural transformation, esta
   Permanently retired legacy `/api/saas/admin/*` and mutating plan administration routes with HTTP 410 Gone. Closed employee authentication bypass on suspended or deactivated tenants via fail-closed checks in authentication middleware (`backend/middleware/auth.js`).
 - **🖥️ Standalone Super Admin Console**  
   A modern, high-density React 19 + TypeScript + Tailwind CSS v4 + Vite console running independently on port 5174. Features zero-CLS GPU-accelerated layout banners with isolated timer subscriptions, universal 300ms search debouncing with instant clear affordance, and responsive touch-first management views.
+- **💳 Sovereign Manual Billing & Statutory B2B GST Tax Invoicing**  
+  Full offline revenue control plane (accommodating offline payment gateways): Super Admin direct plan allocation, manual offline payment recording (NEFT/RTGS/IMPS/UPI/Cash/Cheque), and statutory B2B GST tax invoices (`PlatformInvoice`) under SAC Code `998313` conforming to Section 31 CGST Act 2017 & Rule 46 with integer paise precision and intra/inter-state tax splitting. Supported on the tenant portal with verified platform banking credentials, instant UPI QR transfers, UTR payment proof submission, and self-service tax invoice downloads for Input Tax Credit (ITC).
 
 ---
 

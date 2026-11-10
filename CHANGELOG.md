@@ -154,6 +154,27 @@ For full release notes with implementation details, see [GitHub Releases](https:
   - Tenant API endpoint `GET /api/saas/offers/active` returning targeted active campaigns with 0 administrative data leakage.
   - Enhanced tenant `SubscriptionBanner` to query active offers and display dismissible promotional banners with promo code copy affordances, GPU-accelerated opacity & subtle Y-glide, and `sessionStorage` persistence.
 
+### 💳 Sovereign Manual Billing & Super Admin Offline Revenue Control Plane
+- **Offline B2B SaaS Monetization & Direct Banking Rails**:
+  - In response to inactive payment gateways (Razorpay offline), engineered an autonomous manual revenue engine supporting direct bank transfers (NEFT, RTGS, IMPS), UPI QR payments, Cash, Cheque, and Complimentary enterprise grants.
+- **Statutory B2B GST Tax Invoicing Engine (`PlatformInvoice.ts`, `platformTaxInvoiceService.ts`)**:
+  - Full compliance with Section 31 of CGST Act, 2017 & Rule 46 under SAC Code `998313` (Information Technology Software Services).
+  - Timezone-immune Indian Financial Year calculation (`getIndianFinancialYear`, e.g. `2026-27`) with gapless, monotonic sequence counter (`PlatformSequence`, e.g. `BE/26-27/00001`).
+  - Dynamic Place of Supply (POS) evaluator: Determines Intra-State supply (CGST 9% + SGST 9%) vs Inter-State supply (IGST 18%) anchored to platform state code (`27 - Maharashtra`).
+  - Strict integer paise precision (`amountPaise`) with mathematical round-off integrity and Indian English currency words converter (`numberToIndianWordsPaise`).
+- **Super Admin Subscription Provisioning & Offline Payment Recording (`AllocateSubscriptionModal.tsx`, `RecordSubscriptionPaymentModal.tsx`)**:
+  - `AllocateSubscriptionModal`: Searchable debounced tenant autocomplete, dynamic plan tier selection, duration presets (+15d, 1m, 3m, 6m, 1y, custom date), lifecycle state override (`active`, `trial`, `grace`), offline payment capture with UTR reference, live GST tax calculation, and min 10-char audit reason.
+  - `RecordSubscriptionPaymentModal`: Contextual renewal / plan upgrade tool with automatic co-terminous tenure stacking (`existingExpiry + duration`), commercial discount deductions, and 1-click B2B tax invoice generation.
+- **Tri-Tab SaaS Revenue Hub (`SubscriptionsPage.tsx`)**:
+  - Re-architected `SubscriptionsPage` into three high-density operational tabs:
+    - **Tab 1: All Subscriptions**: Directory table and mobile cards with quick action buttons ("+ Allocate Plan", "Record Payment").
+    - **Tab 2: Pending Payment Proofs (Queue)**: Real-time verification queue displaying tenant details, claimed UTR, declared amount vs expected price with discrepancy alert, and 1-click "Approve & Issue Invoice" or "Reject" with reason.
+    - **Tab 3: Tax Invoices & Payment Ledger**: Comprehensive ledger of issued `PlatformInvoice` records with FY filters, search, and slide-over `TaxInvoiceDrawer` inspection.
+- **Dual-Tab Tenant Billing Center (`SubscriptionPage.jsx`, `SubmitPaymentProofModal.jsx`, `TenantInvoiceModal.jsx`)**:
+  - Replaced legacy `mailto:` contact links with high-trust official bank account details (HDFC Bank, BKC Mumbai, A/C No: `50200088921134`, IFSC: `HDFC0000240` with 1-click copy) and instant UPI QR transfer credentials.
+  - Interactive payment proof (UTR) submission dialog (`SubmitPaymentProofModal`) with live verification status tracking ("Payment Verification In Progress" banner with pulsing indicator).
+  - Self-service **"My Tax Invoices & Receipts"** portal tab rendering Rule 46 compliant B2B tax invoices with printable PDF export for tenant Input Tax Credit (ITC) in GSTR-2B.
+
 ---
 
 ### 📁 Specific File Modifications & Creations
@@ -189,6 +210,19 @@ For full release notes with implementation details, see [GitHub Releases](https:
 | `admin/backend/services/*` | Added | Core domain services for feature overrides, cryptographic audit logging, and support sessions. |
 | `admin/backend/types/*` | Added | Strict TypeScript definitions, DTOs, and interface boundaries. |
 | `admin/backend/utils/*` | Added | HMAC-SHA256 cursor crypto and filter context signature generators. |
+| `admin/backend/models/PlatformSequence.ts` | Added | Atomic gapless sequence counter for statutory B2B GST tax invoices. |
+| `admin/backend/services/manualSubscriptionService.ts` | Added | Transactional service for plan allocation, renewals, co-terminous stacking, and payment verification. |
+| `backend/saas/models/PlatformInvoice.ts` | Added | Statutory Section 31 CGST Act 2017 & Rule 46 compliant B2B tax invoice model with SAC 998313. |
+| `backend/saas/models/SubscriptionManualRequest.ts` | Added | Tenant payment proof verification workflow model with UTR tracking. |
+| `backend/saas/services/platformTaxInvoiceService.ts` | Added | Place of supply evaluator, sequence generator, and Indian currency words converter. |
+| `admin/frontend/src/components/subscriptions/AllocateSubscriptionModal.tsx` | Added | Super Admin modal for direct subscription provisioning with offline payment capture. |
+| `admin/frontend/src/components/subscriptions/RecordSubscriptionPaymentModal.tsx` | Added | Contextual subscription renewal, tenure extension, and plan upgrade modal. |
+| `admin/frontend/src/components/subscriptions/TaxInvoiceDrawer.tsx` | Added | Slide-over inspection drawer for statutory B2B GST tax invoices. |
+| `admin/frontend/src/pages/SubscriptionsPage.tsx` | Modified | Upgraded to Tri-Tab SaaS Revenue Hub with pending proof review queue and tax invoice ledger. |
+| `admin/frontend/src/pages/TenantsPage.tsx` | Modified | Added quick action shortcuts for direct plan allocation and offline payment recording. |
+| `frontend/src/pages/Subscription/SubscriptionPage.jsx` | Modified | Upgraded to Dual-Tab Billing Center with platform bank details, instant UPI QR code, and pending review alerts. |
+| `frontend/src/pages/Subscription/SubmitPaymentProofModal.jsx` | Added | Tenant modal for submitting UTR references, payment receipts, and settlement dates. |
+| `frontend/src/pages/Subscription/TenantInvoiceModal.jsx` | Added | Self-service Rule 46 compliant tax invoice viewer with printable PDF export. |
 | `admin/frontend/src/*` | Added | Standalone React 19 + TypeScript + Vite + Tailwind CSS v4 Super Admin Console. |
 
 ## [v2.11.0](https://github.com/subhankar-das-phantom/Billing-Software/releases/tag/v2.11.0) — 2026-10-28 — Enterprise Security Hardening & Session Protection
