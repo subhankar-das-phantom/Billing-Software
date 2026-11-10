@@ -40,6 +40,26 @@ export const subscriptionService = {
     return data;
   },
 
+  async submitManualPaymentRequest(requestData) {
+    const { data } = await api.post('/saas/subscription/manual-request', requestData);
+    return data;
+  },
+
+  async getPendingPaymentRequest() {
+    const { data } = await api.get('/saas/subscription/pending-request');
+    return data;
+  },
+
+  async getSubscriptionInvoices() {
+    const { data } = await api.get('/saas/subscription/invoices');
+    return data;
+  },
+
+  async getSubscriptionInvoiceById(id) {
+    const { data } = await api.get(`/saas/subscription/invoices/${id}`);
+    return data;
+  },
+
   // ─── Referral ──────────────────────────────────────────────────
   async getReferralCode() {
     const { data } = await api.get('/saas/referral/code');

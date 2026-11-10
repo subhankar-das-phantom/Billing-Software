@@ -146,6 +146,51 @@ export const demoMockAdapter = async (config) => {
         return Promise.reject(err);
       }
     }
+    if (path === '/saas/subscription/manual-request') {
+      let body = {};
+      try {
+        body = typeof config.data === 'string' ? JSON.parse(config.data || '{}') : (config.data || {});
+      } catch {
+        body = {};
+      }
+      const mockPayment = {
+        _id: 'demo_sub_pay_' + Date.now(),
+        planId: body.planId || 'plan_professional_003',
+        durationMonths: Number(body.durationMonths || 1),
+        baseAmount: Number(body.amountPaid || 1499),
+        discountAmount: 0,
+        finalAmount: Number(body.amountPaid || 1499),
+        paymentGateway: 'manual',
+        paymentStatus: 'pending',
+        billingMode: 'manual',
+        gatewayPaymentId: `MANUAL_${(body.utrNumber || 'UPI12345678').toUpperCase()}_${Date.now()}`,
+        metadata: {
+          paymentMode: String(body.paymentMode || 'UPI').toUpperCase(),
+          utrNumber: String(body.utrNumber || 'UPI/DEMO88921134').trim().toUpperCase(),
+          paymentDate: body.paymentDate || new Date().toISOString(),
+          amountPaid: Number(body.amountPaid || 1499),
+          bankName: String(body.bankName || 'HDFC Bank').trim(),
+          notes: String(body.notes || '').trim(),
+          promoCode: String(body.promoCode || '').trim().toUpperCase(),
+          submittedAt: new Date().toISOString(),
+        },
+        createdAt: new Date().toISOString(),
+      };
+      try {
+        sessionStorage.setItem('demo_pending_payment', JSON.stringify(mockPayment));
+      } catch {}
+      return {
+        data: {
+          success: true,
+          message: 'Payment request submitted successfully! Your UTR is being verified by admin.',
+          payment: mockPayment,
+        },
+        status: 200,
+        statusText: 'OK',
+        headers: { 'content-type': 'application/json' },
+        config,
+      };
+    }
 
     const message =
       'Demo Mode is read-only. Sign up for a free 14-day trial to perform live operations!';
@@ -182,6 +227,12 @@ export const demoMockAdapter = async (config) => {
 
   // 2. Subscription & SaaS Plans
   else if (path === '/saas/subscription' || path === '/subscription/current' || path === '/subscription') {
+    let pendingPayment = null;
+    try {
+      const stored = sessionStorage.getItem('demo_pending_payment');
+      if (stored) pendingPayment = JSON.parse(stored);
+    } catch {}
+
     responseData = {
       success: true,
       subscription: {
@@ -189,6 +240,223 @@ export const demoMockAdapter = async (config) => {
         planId: DEMO_PLANS[2]._id,
       },
       info: DEMO_SUBSCRIPTION,
+      pendingPayment,
+    };
+  } else if (path === '/saas/subscription/pending-request') {
+    let pendingRequest = null;
+    try {
+      const stored = sessionStorage.getItem('demo_pending_payment');
+      if (stored) pendingRequest = JSON.parse(stored);
+    } catch {}
+
+    responseData = {
+      success: true,
+      pendingRequest,
+    };
+  } else if (path === '/saas/subscription/invoices') {
+    const demoInvoices = [
+      {
+        _id: 'sub_inv_003',
+        invoiceNumber: 'BE/26-27/00003',
+        invoiceDate: '2026-10-15T11:30:00.000Z',
+        planName: 'Professional Plan',
+        planCode: 'professional',
+        description: 'Bharat Enterprise SaaS — Professional Subscription (12 Months)',
+        sacCode: '998313',
+        sacDescription: 'Information Technology Software as a Service (SaaS)',
+        durationMonths: 12,
+        taxableAmount: 5693.22,
+        gstRate: 18,
+        cgstRate: 9,
+        cgstAmount: 512.39,
+        sgstRate: 9,
+        sgstAmount: 512.39,
+        igstRate: 0,
+        igstAmount: 0,
+        totalTax: 1024.78,
+        totalAmount: 6718.00,
+        roundOff: 0.00,
+        status: 'ISSUED',
+        paymentMode: 'BANK_TRANSFER (NEFT)',
+        utrNumber: 'HDFC000892184912',
+        paidDate: '2026-10-15T11:28:14.000Z',
+        seller: {
+          companyName: 'Bharat Enterprise Technologies Pvt. Ltd.',
+          address: 'BKC Tech Park, Bandra Kurla Complex, Bandra East, Mumbai - 400051',
+          state: 'Maharashtra (27)',
+          stateCode: '27',
+          gstin: '27AABCB9823Q1Z2',
+          pan: 'AABCB9823Q',
+          cin: 'U72900MH2024PTC123456',
+          supportEmail: 'support.bharatenterprise@gmail.com',
+          website: 'www.bharatenterprise.com',
+        },
+        buyer: {
+          firmName: 'Shree Ganesh Medical & Healthcare',
+          contactPerson: 'Rajesh Sharma',
+          email: 'rajesh.sharma@example.com',
+          phone: '+91 98200 12345',
+          address: 'Shop 4, Market Yard, Pune - 411037',
+          gstin: '27AADCS1234F1Z5',
+          placeOfSupply: 'Maharashtra (27)',
+        },
+      },
+      {
+        _id: 'sub_inv_002',
+        invoiceNumber: 'BE/26-27/00002',
+        invoiceDate: '2026-04-12T14:15:00.000Z',
+        planName: 'Professional Plan',
+        planCode: 'professional',
+        description: 'Bharat Enterprise SaaS — Professional Subscription (6 Months)',
+        sacCode: '998313',
+        sacDescription: 'Information Technology Software as a Service (SaaS)',
+        durationMonths: 6,
+        taxableAmount: 3198.31,
+        gstRate: 18,
+        cgstRate: 9,
+        cgstAmount: 287.85,
+        sgstRate: 9,
+        sgstAmount: 287.85,
+        igstRate: 0,
+        igstAmount: 0,
+        totalTax: 575.69,
+        totalAmount: 3774.00,
+        roundOff: 0.00,
+        status: 'ISSUED',
+        paymentMode: 'UPI',
+        utrNumber: 'UPI/260412891234',
+        paidDate: '2026-04-12T14:10:00.000Z',
+        seller: {
+          companyName: 'Bharat Enterprise Technologies Pvt. Ltd.',
+          address: 'BKC Tech Park, Bandra Kurla Complex, Bandra East, Mumbai - 400051',
+          state: 'Maharashtra (27)',
+          stateCode: '27',
+          gstin: '27AABCB9823Q1Z2',
+          pan: 'AABCB9823Q',
+          cin: 'U72900MH2024PTC123456',
+          supportEmail: 'support.bharatenterprise@gmail.com',
+          website: 'www.bharatenterprise.com',
+        },
+        buyer: {
+          firmName: 'Shree Ganesh Medical & Healthcare',
+          contactPerson: 'Rajesh Sharma',
+          email: 'rajesh.sharma@example.com',
+          phone: '+91 98200 12345',
+          address: 'Shop 4, Market Yard, Pune - 411037',
+          gstin: '27AADCS1234F1Z5',
+          placeOfSupply: 'Maharashtra (27)',
+        },
+      },
+      {
+        _id: 'sub_inv_001',
+        invoiceNumber: 'BE/25-26/00098',
+        invoiceDate: '2025-10-10T10:00:00.000Z',
+        planName: 'Business Plan',
+        planCode: 'business',
+        description: 'Bharat Enterprise SaaS — Business Subscription (6 Months)',
+        sacCode: '998313',
+        sacDescription: 'Information Technology Software as a Service (SaaS)',
+        durationMonths: 6,
+        taxableAmount: 2283.05,
+        gstRate: 18,
+        cgstRate: 9,
+        cgstAmount: 205.47,
+        sgstRate: 9,
+        sgstAmount: 205.47,
+        igstRate: 0,
+        igstAmount: 0,
+        totalTax: 410.95,
+        totalAmount: 2694.00,
+        roundOff: 0.00,
+        status: 'ISSUED',
+        paymentMode: 'BANK_TRANSFER (IMPS)',
+        utrNumber: 'IMPS528912839210',
+        paidDate: '2025-10-10T09:55:00.000Z',
+        seller: {
+          companyName: 'Bharat Enterprise Technologies Pvt. Ltd.',
+          address: 'BKC Tech Park, Bandra Kurla Complex, Bandra East, Mumbai - 400051',
+          state: 'Maharashtra (27)',
+          stateCode: '27',
+          gstin: '27AABCB9823Q1Z2',
+          pan: 'AABCB9823Q',
+          cin: 'U72900MH2024PTC123456',
+          supportEmail: 'support.bharatenterprise@gmail.com',
+          website: 'www.bharatenterprise.com',
+        },
+        buyer: {
+          firmName: 'Shree Ganesh Medical & Healthcare',
+          contactPerson: 'Rajesh Sharma',
+          email: 'rajesh.sharma@example.com',
+          phone: '+91 98200 12345',
+          address: 'Shop 4, Market Yard, Pune - 411037',
+          gstin: '27AADCS1234F1Z5',
+          placeOfSupply: 'Maharashtra (27)',
+        },
+      },
+    ];
+
+    const totalSpend = demoInvoices.reduce((sum, inv) => sum + inv.totalAmount, 0);
+    const totalITC = demoInvoices.reduce((sum, inv) => sum + inv.totalTax, 0);
+
+    responseData = {
+      success: true,
+      invoices: demoInvoices,
+      summary: {
+        totalInvoices: demoInvoices.length,
+        totalSpend,
+        totalITC,
+      },
+    };
+  } else if (path.startsWith('/saas/subscription/invoices/')) {
+    const invId = path.split('/').pop();
+    responseData = {
+      success: true,
+      invoice: {
+        _id: invId || 'sub_inv_003',
+        invoiceNumber: 'BE/26-27/00003',
+        invoiceDate: '2026-10-15T11:30:00.000Z',
+        planName: 'Professional Plan',
+        planCode: 'professional',
+        description: 'Bharat Enterprise SaaS — Professional Subscription (12 Months)',
+        sacCode: '998313',
+        sacDescription: 'Information Technology Software as a Service (SaaS)',
+        durationMonths: 12,
+        taxableAmount: 5693.22,
+        gstRate: 18,
+        cgstRate: 9,
+        cgstAmount: 512.39,
+        sgstRate: 9,
+        sgstAmount: 512.39,
+        igstRate: 0,
+        igstAmount: 0,
+        totalTax: 1024.78,
+        totalAmount: 6718.00,
+        roundOff: 0.00,
+        status: 'ISSUED',
+        paymentMode: 'BANK_TRANSFER (NEFT)',
+        utrNumber: 'HDFC000892184912',
+        paidDate: '2026-10-15T11:28:14.000Z',
+        seller: {
+          companyName: 'Bharat Enterprise Technologies Pvt. Ltd.',
+          address: 'BKC Tech Park, Bandra Kurla Complex, Bandra East, Mumbai - 400051',
+          state: 'Maharashtra (27)',
+          stateCode: '27',
+          gstin: '27AABCB9823Q1Z2',
+          pan: 'AABCB9823Q',
+          cin: 'U72900MH2024PTC123456',
+          supportEmail: 'support.bharatenterprise@gmail.com',
+          website: 'www.bharatenterprise.com',
+        },
+        buyer: {
+          firmName: 'Shree Ganesh Medical & Healthcare',
+          contactPerson: 'Rajesh Sharma',
+          email: 'rajesh.sharma@example.com',
+          phone: '+91 98200 12345',
+          address: 'Shop 4, Market Yard, Pune - 411037',
+          gstin: '27AADCS1234F1Z5',
+          placeOfSupply: 'Maharashtra (27)',
+        },
+      },
     };
   } else if (path === '/saas/plans' || path === '/subscription/plans') {
     responseData = {
