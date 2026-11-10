@@ -107,12 +107,12 @@ export const NAV_ITEMS: readonly NavItem[] = [
 ];
 
 const ROLE_BADGE_STYLE: Record<PlatformRole, string> = {
-  [PlatformRole.PLATFORM_OWNER]: 'bg-rose-950/80 text-rose-300 border-rose-800/80',
-  [PlatformRole.PLATFORM_ADMIN]: 'bg-purple-950/80 text-purple-300 border-purple-800/80',
-  [PlatformRole.SUPPORT_ADMIN]: 'bg-blue-950/80 text-blue-300 border-blue-800/80',
-  [PlatformRole.SUPPORT_AGENT]: 'bg-emerald-950/80 text-emerald-300 border-emerald-800/80',
-  [PlatformRole.TELESUPPORT]: 'bg-amber-950/80 text-amber-300 border-amber-800/80',
-  [PlatformRole.READ_ONLY]: 'bg-slate-800 text-slate-300 border-slate-700',
+  [PlatformRole.PLATFORM_OWNER]: 'bg-rose-500/15 text-rose-400 border-rose-500/30',
+  [PlatformRole.PLATFORM_ADMIN]: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+  [PlatformRole.SUPPORT_ADMIN]: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
+  [PlatformRole.SUPPORT_AGENT]: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+  [PlatformRole.TELESUPPORT]: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+  [PlatformRole.READ_ONLY]: 'bg-slate-500/15 text-slate-400 border-slate-500/30',
 };
 
 export interface SidebarProps {
@@ -325,7 +325,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {isCollapsed && isDesktop ? (
           <div className="flex flex-col items-center gap-2">
             <div
-              className="w-8 h-8 rounded-full bg-blue-950/80 border border-blue-500/40 flex items-center justify-center text-blue-300 font-bold text-xs uppercase cursor-pointer"
+              className="w-8 h-8 rounded-full bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold text-xs uppercase cursor-pointer"
               title={`${user?.fullName || 'Operator'} (${user?.role || 'Control Plane'})`}
             >
               {user?.fullName?.charAt(0) || 'U'}
@@ -343,7 +343,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         ) : (
           <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-slate-900/80 border border-slate-800/80 min-h-[44px]">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-full bg-blue-950/80 border border-blue-500/40 flex items-center justify-center text-blue-300 font-bold text-xs uppercase shrink-0">
+              <div className="w-8 h-8 rounded-full bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold text-xs uppercase shrink-0">
                 {user?.fullName?.charAt(0) || 'U'}
               </div>
               <div className="min-w-0 flex flex-col select-none">

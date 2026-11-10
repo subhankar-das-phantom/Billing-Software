@@ -38,12 +38,12 @@ export interface PlatformHeaderProps {
 }
 
 const ROLE_BADGE_STYLE: Record<PlatformRole, string> = {
-  [PlatformRole.PLATFORM_OWNER]: 'bg-rose-950/80 text-rose-300 border-rose-800/80',
-  [PlatformRole.PLATFORM_ADMIN]: 'bg-purple-950/80 text-purple-300 border-purple-800/80',
-  [PlatformRole.SUPPORT_ADMIN]: 'bg-blue-950/80 text-blue-300 border-blue-800/80',
-  [PlatformRole.SUPPORT_AGENT]: 'bg-emerald-950/80 text-emerald-300 border-emerald-800/80',
-  [PlatformRole.TELESUPPORT]: 'bg-amber-950/80 text-amber-300 border-amber-800/80',
-  [PlatformRole.READ_ONLY]: 'bg-slate-800 text-slate-300 border-slate-700',
+  [PlatformRole.PLATFORM_OWNER]: 'bg-rose-500/15 text-rose-400 border-rose-500/30',
+  [PlatformRole.PLATFORM_ADMIN]: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+  [PlatformRole.SUPPORT_ADMIN]: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
+  [PlatformRole.SUPPORT_AGENT]: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+  [PlatformRole.TELESUPPORT]: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+  [PlatformRole.READ_ONLY]: 'bg-slate-500/15 text-slate-400 border-slate-500/30',
 };
 
 const ROUTE_NAME_MAP: Record<string, string> = {
@@ -304,7 +304,7 @@ export const PlatformHeader: React.FC<PlatformHeaderProps> = ({
             }`}
           >
             {/* Operator Avatar with Initial */}
-            <div className="w-7 h-7 rounded-full bg-blue-950/80 border border-blue-500/40 flex items-center justify-center text-blue-300 font-bold text-xs uppercase shrink-0 pointer-events-none">
+            <div className="w-7 h-7 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-400 font-bold flex items-center justify-center text-xs uppercase shrink-0 pointer-events-none">
               {user?.fullName?.charAt(0) || 'U'}
             </div>
 
@@ -341,7 +341,7 @@ export const PlatformHeader: React.FC<PlatformHeaderProps> = ({
                 {/* Header Profile Summary */}
                 <div className="p-3 bg-slate-950/80 border-b border-slate-800/80">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-full bg-blue-950 border border-blue-500/40 flex items-center justify-center text-blue-300 font-bold text-sm uppercase shrink-0">
+                    <div className="w-9 h-9 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-400 font-bold flex items-center justify-center text-sm uppercase shrink-0">
                       {user?.fullName?.charAt(0) || 'U'}
                     </div>
                     <div className="min-w-0 flex-1">

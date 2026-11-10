@@ -186,14 +186,14 @@ export const DashboardHero: React.FC<DashboardHeroProps> = ({
             type="button"
             onClick={onOpenDiagnosticModal}
             disabled={!canStartDiagnostic}
-            className={`inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold shadow-xs transition-all cursor-pointer min-h-[44px] sm:min-h-[38px] ${
+            className={`inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer min-h-[44px] sm:min-h-[38px] ${
               canStartDiagnostic
-                ? 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/40 hover:border-amber-500/60 shadow-amber-950/20 active:scale-[0.98]'
+                ? 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/30 hover:border-amber-500/50 shadow-xs active:scale-[0.98]'
                 : 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed opacity-60'
             }`}
             title={canStartDiagnostic ? 'Launch audited diagnostic support session' : 'Requires SUPPORT_START permission'}
           >
-            <Headphones className="w-4 h-4 text-amber-400 shrink-0" />
+            <Headphones className="w-4 h-4 text-amber-700 dark:text-amber-400 shrink-0" />
             <span>Start Diagnostic</span>
           </button>
         </div>
@@ -217,7 +217,7 @@ export const DashboardHero: React.FC<DashboardHeroProps> = ({
                     onClick={() => onTimeHorizonChange(horizon)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-all cursor-pointer shrink-0 min-h-[38px] sm:min-h-[32px] flex items-center justify-center ${
                       isActive
-                        ? 'bg-blue-950/80 border border-blue-500/70 text-blue-300 font-semibold shadow-xs'
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-xs dark:bg-blue-950/80 dark:border-blue-500/70 dark:text-blue-300 font-semibold'
                         : 'bg-slate-950/60 hover:bg-slate-800/80 border border-slate-800 text-slate-400 hover:text-slate-200'
                     }`}
                   >
