@@ -124,6 +124,19 @@ For full release notes with implementation details, see [GitHub Releases](https:
 - **Accessible Light Mode Inversion (`html.light`)**:
   - Remapped Tailwind v4 slate variables in light mode (`#f1f5f9` canvas, `#ffffff` surfaces, `#e2e8f0` borders).
   - Remapped semantic amber and yellow tokens to deep golden amber (`#b45309`, `#92400e`) and rich ochre (`#a16207`, `#854d0e`), providing > 5:1 contrast (WCAG AA/AAA compliance) across all badges and alerts.
+- **Complete Light-Mode Accent Token Inversions & Button Ergonomics (`admin/frontend/src/index.css`)**:
+  - Implemented exhaustive `html.light` token inversions across all accent families (`blue`, `emerald`, `rose`, `amber`, `sky`, `purple`, `teal`, `indigo`):
+    - Surface Tints (`*-950`, `*-900`): Remapped to soft 50/100-level pastel surfaces (`#eff6ff`, `#ecfdf5`, `#fff1f2`, `#fffbeb`, `#faf5ff`, `#f0f9ff`, `#f0fdfa`, `#eef2ff`).
+    - Crisp Muted Borders (`*-800`, `*-700`): Remapped to soft 200/300-level borders (`#bfdbfe`, `#a7f3d0`, `#fecdd3`, `#fde68a`, `#bae6fd`, `#e9d5ff`).
+    - High-Contrast Text & Icons (`*-400`, `*-300`): Remapped to accessible 700/800-level shades achieving > 5:1 – 7:1 WCAG AA/AAA contrast on light cards.
+  - Normalized `--color-amber-500` to vibrant amber (`#f59e0b`), eliminating muddy dark-brown button tints.
+  - Added dedicated light mode `.btn-secondary` and `:hover` contrast rules (`#ffffff` card background with `#1e293b` text and `#f1f5f9` hover).
+- **Control Plane Button, Pill & Badge Contrast Polish**:
+  - `DashboardHero.tsx`: Upgraded active Time Horizon pill (`Today`) to signature electric blue (`bg-blue-600 text-white border-blue-600 shadow-xs`), eliminating unreadable dark-on-dark pill states. Polished Start Diagnostic CTA to crisp amber with accessible dark amber text in light mode.
+  - `Sidebar.tsx` & `PlatformHeader.tsx`: Converted dark maroon `PLATFORM_OWNER` role banners to canonical `bg-rose-500/15 text-rose-400 border-rose-500/30`. Updated operator avatar monogram circles to `bg-blue-500/15 border-blue-500/30 text-blue-400 font-bold`.
+  - `DashboardKPIGrid.tsx`: Modernized all 5 KPI card icon boxes and the `+8.4%` MRR growth pill to canonical `bg-{color}-500/15 border border-{color}-500/30 text-{color}-400`.
+  - `DashboardPage.tsx`: Converted the 4 Quick Action icon containers and cache telemetry status badge (`CACHE HIT` / `DIRECT DB SCAN`) to high-contrast enterprise badges.
+  - `StatusBadge.tsx`: Hardened global `VARIANT_STYLES` across `emerald`, `amber`, `rose`, `sky`, and `slate` to use `bg-{color}-500/15 text-{color}-400 border-{color}-500/30` with `dotBg: bg-{color}-500`.
 - **Operator Theme Mode Preference & Sync (`PlatformAuthContext.tsx`, `PlatformHeader.tsx`)**:
   - Added theme switching (`'dark' | 'light' | 'system'`) with synchronous Frame-0 pre-seeding from `localStorage` (`platform_theme`).
   - Added accessible 3-way segmented control inside the GPU profile dropdown with `<Sun />`, `<Moon />`, and `<Laptop />` icons.
