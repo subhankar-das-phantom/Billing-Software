@@ -23,6 +23,8 @@ import {
   Phone,
   Calendar,
   CreditCard,
+  Plus,
+  Receipt,
 } from 'lucide-react';
 import SearchInput from '../components/common/SearchInput';
 import StatusBadge from '../components/common/StatusBadge';
@@ -31,6 +33,8 @@ import Toast, { type ToastMessage } from '../components/common/Toast';
 import CollapsibleMobileCard from '../components/common/CollapsibleMobileCard';
 import TenantDetailsModal from '../components/tenants/TenantDetailsModal';
 import DiagnosticSessionModal from '../components/tenants/DiagnosticSessionModal';
+import AllocateSubscriptionModal from '../components/subscriptions/AllocateSubscriptionModal';
+import RecordSubscriptionPaymentModal from '../components/subscriptions/RecordSubscriptionPaymentModal';
 import AnimatedCounter from '../components/common/AnimatedCounter';
 import api from '../services/api';
 import { usePlatformAuth } from '../contexts/PlatformAuthContext';
@@ -117,6 +121,56 @@ export const TenantsPage: React.FC = () => {
 
   // Toast feedback state
   const [toast, setToast] = useState<ToastMessage | null>(null);
+
+  // ─── Subscription Allocation & Payment Recording State ────────────
+  const [allocateState, setAllocateState] = useState<{
+    isOpen: boolean;
+    tenant: TenantListItemDTO | null;
+  }>({
+    isOpen: false,
+    tenant: null,
+  });
+
+  const [recordPaymentState, setRecordPaymentState] = useState<{
+    isOpen: boolean;
+    subscription: any | null;
+  }>({
+    isOpen: false,
+    subscription: null,
+  });
+
+  const handleAllocatePlan = (tenant: TenantListItemDTO) => {
+    setAllocateState({
+      isOpen: true,
+      tenant,
+    });
+  };
+
+  const handleRecordPayment = (tenant: TenantListItemDTO) => {
+    setRecordPaymentState({
+      isOpen: true,
+      subscription: {
+        _id: tenant.tenantId,
+        tenantId: tenant.tenantId,
+        planId: tenant.subscription?.planCode || '',
+        status: tenant.subscription?.status || 'active',
+        expiresAt: tenant.subscription?.expiresAt || '',
+        tenant: {
+          _id: tenant.tenantId,
+          firmName: tenant.firmName,
+          email: tenant.email,
+          firmGSTIN: tenant.firmGSTIN,
+          firmPhone: tenant.phone,
+        },
+        plan: {
+          _id: tenant.subscription?.planCode || '',
+          name: tenant.subscription?.planName || 'Active Tier',
+          code: tenant.subscription?.planCode || 'standard',
+          baseMonthlyPrice: 1499,
+        },
+      },
+    });
+  };
 
   // ─── Query: Keyset Paginated Tenants ──────────────────────────────
   const {
@@ -598,6 +652,28 @@ export const TenantsPage: React.FC = () => {
                       {/* 6. Actions */}
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          {/* Allocate Plan */}
+                          <button
+                            type="button"
+                            onClick={() => handleAllocatePlan(tenant)}
+                            className="p-1.5 rounded-lg border border-slate-800 hover:border-blue-600/60 bg-slate-950/60 hover:bg-blue-950/40 text-blue-400 hover:text-blue-300 transition-colors cursor-pointer"
+                            title="Allocate SaaS Plan to Tenant"
+                            aria-label={`Allocate Plan for ${tenant.firmName}`}
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
+
+                          {/* Record Payment */}
+                          <button
+                            type="button"
+                            onClick={() => handleRecordPayment(tenant)}
+                            className="p-1.5 rounded-lg border border-slate-800 hover:border-emerald-600/60 bg-slate-950/60 hover:bg-emerald-950/40 text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer"
+                            title="Record Offline Payment / Renewal"
+                            aria-label={`Record Payment for ${tenant.firmName}`}
+                          >
+                            <Receipt className="w-3.5 h-3.5" />
+                          </button>
+
                           {/* Inspect Tenant */}
                           <button
                             type="button"
@@ -802,9 +878,31 @@ export const TenantsPage: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Structured 2x2 Action Grid with min-h-[44px] touch targets */}
+                    {/* Structured Action Grid with min-h-[44px] touch targets */}
                     <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800/60">
-                      {/* Action 1: Inspect */}
+                      {/* Action 1: Allocate Plan */}
+                      <button
+                        type="button"
+                        onClick={() => handleAllocatePlan(tenant)}
+                        className="min-h-[44px] px-3 py-2 rounded-lg bg-blue-950/40 hover:bg-blue-900/50 active:bg-blue-900/60 text-blue-300 border border-blue-800/60 flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer transition-colors"
+                        aria-label={`Allocate plan for ${tenant.firmName}`}
+                      >
+                        <Plus className="w-4 h-4 text-blue-400" />
+                        <span>Allocate Plan</span>
+                      </button>
+
+                      {/* Action 2: Record Payment */}
+                      <button
+                        type="button"
+                        onClick={() => handleRecordPayment(tenant)}
+                        className="min-h-[44px] px-3 py-2 rounded-lg bg-emerald-950/40 hover:bg-emerald-900/50 active:bg-emerald-900/60 text-emerald-300 border border-emerald-800/60 flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer transition-colors"
+                        aria-label={`Record payment for ${tenant.firmName}`}
+                      >
+                        <Receipt className="w-4 h-4 text-emerald-400" />
+                        <span>Record Pay</span>
+                      </button>
+
+                      {/* Action 3: Inspect */}
                       <button
                         type="button"
                         onClick={() => handleInspect(tenant.tenantId)}
@@ -815,7 +913,7 @@ export const TenantsPage: React.FC = () => {
                         <span>Inspect</span>
                       </button>
 
-                      {/* Action 2: Diagnostic */}
+                      {/* Action 4: Diagnostic */}
                       <button
                         type="button"
                         onClick={() => handleStartDiagnostic(tenant.tenantId, tenant.firmName)}
@@ -827,7 +925,7 @@ export const TenantsPage: React.FC = () => {
                         <span>Diagnostic</span>
                       </button>
 
-                      {/* Action 3: Adjust */}
+                      {/* Action 5: Adjust */}
                       <button
                         type="button"
                         onClick={() => handleAdjustTenant(tenant)}
@@ -838,7 +936,7 @@ export const TenantsPage: React.FC = () => {
                         <span>Adjust</span>
                       </button>
 
-                      {/* Action 4: Suspend / Reactivate */}
+                      {/* Action 6: Suspend / Reactivate */}
                       <button
                         type="button"
                         onClick={() =>
@@ -968,7 +1066,50 @@ export const TenantsPage: React.FC = () => {
         onSuccess={handleDiagnosticSuccess}
       />
 
-      {/* D. Global Toast Notifications */}
+      {/* D. Allocate Subscription Plan Modal */}
+      <AllocateSubscriptionModal
+        isOpen={allocateState.isOpen}
+        onClose={() => setAllocateState({ isOpen: false, tenant: null })}
+        preselectedTenant={
+          allocateState.tenant
+            ? {
+                _id: allocateState.tenant.tenantId,
+                tenantId: allocateState.tenant.tenantId,
+                firmName: allocateState.tenant.firmName,
+                email: allocateState.tenant.email,
+                firmGSTIN: allocateState.tenant.firmGSTIN,
+                firmPhone: allocateState.tenant.phone,
+              }
+            : null
+        }
+        onSuccess={() => {
+          refetch();
+          setToast({
+            id: String(Date.now()),
+            type: 'success',
+            title: 'Plan Allocated',
+            message: 'Subscription plan successfully provisioned for tenant.',
+          });
+        }}
+      />
+
+      {/* E. Record Subscription Payment Modal */}
+      <RecordSubscriptionPaymentModal
+        isOpen={recordPaymentState.isOpen}
+        onClose={() => setRecordPaymentState({ isOpen: false, subscription: null })}
+        subscription={recordPaymentState.subscription}
+        onSuccess={() => {
+          refetch();
+          setToast({
+            id: String(Date.now()),
+            type: 'success',
+            title: 'Payment Recorded',
+            message: 'Offline payment and renewal processed successfully.',
+          });
+        }}
+      />
+
+      {/* F. Global Toast Notifications */}
       <Toast toast={toast} onDismiss={() => setToast(null)} />
     </div>
   );

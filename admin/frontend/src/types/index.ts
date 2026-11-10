@@ -467,4 +467,158 @@ export interface PlatformOfferCampaign {
   updatedAt?: string;
 }
 
+// ─── SaaS Subscription Allocation & Payment Governance Contracts ───
+export type PlatformPaymentMode =
+  | 'NEFT'
+  | 'RTGS'
+  | 'IMPS'
+  | 'UPI'
+  | 'CASH'
+  | 'CHEQUE'
+  | 'COMPLIMENTARY';
+
+export type SubscriptionLifecycleStatus =
+  | 'active'
+  | 'trial'
+  | 'grace'
+  | 'expired'
+  | 'suspended';
+
+export interface AllocateSubscriptionPayload {
+  tenantId: string;
+  planId: string;
+  durationMonths?: number;
+  customExpiresAt?: string;
+  status: SubscriptionLifecycleStatus;
+  recordPayment: boolean;
+  paymentMode?: PlatformPaymentMode;
+  utrNumber?: string;
+  bankName?: string;
+  depositedAccount?: string;
+  paidAmount?: number;
+  paidDate?: string;
+  generateInvoice?: boolean;
+  reason: string;
+}
+
+export interface RecordPaymentPayload {
+  subscriptionId?: string;
+  tenantId: string;
+  mode: 'renew' | 'switch';
+  targetPlanId?: string;
+  durationMonths?: number;
+  customExpiresAt?: string;
+  baseAmount: number;
+  discountAmount?: number;
+  netTaxable: number;
+  gstAmount: number;
+  totalAmount: number;
+  paymentMode: PlatformPaymentMode;
+  utrNumber?: string;
+  bankName?: string;
+  depositedAccount?: string;
+  paidDate: string;
+  generateInvoice: boolean;
+  reason: string;
+}
+
+export interface ManualPaymentRequestDTO {
+  _id: string;
+  tenantId: string;
+  tenant?: {
+    _id: string;
+    firmName: string;
+    email: string;
+    phone?: string;
+    firmGSTIN?: string;
+  } | null;
+  targetPlanId: string;
+  targetPlan?: {
+    _id: string;
+    name: string;
+    code: string;
+    baseMonthlyPrice: number;
+  } | null;
+  durationMonths: number;
+  declaredAmount: number;
+  expectedAmount: number;
+  paymentMode: string;
+  utrNumber: string;
+  bankName?: string;
+  depositedAccount?: string;
+  paidDate: string;
+  receiptUrl?: string;
+  notes?: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  rejectionReason?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface PlatformTaxInvoiceItem {
+  description: string;
+  sacCode: string;
+  durationMonths: number;
+  unitPrice: number;
+  discount: number;
+  taxableAmount: number;
+  cgstRate?: number;
+  cgstAmount?: number;
+  sgstRate?: number;
+  sgstAmount?: number;
+  igstRate?: number;
+  igstAmount?: number;
+  total: number;
+}
+
+export interface PlatformTaxInvoiceDTO {
+  _id: string;
+  invoiceNumber: string;
+  invoiceDate: string;
+  financialYear: string;
+  status: 'ISSUED' | 'CANCELLED';
+  supplier: {
+    legalName: string;
+    tradeName: string;
+    gstin: string;
+    stateCode: string;
+    stateName: string;
+    address: string;
+    email: string;
+    phone?: string;
+  };
+  recipient: {
+    tenantId: string;
+    firmName: string;
+    gstin?: string;
+    stateCode?: string;
+    stateName?: string;
+    address?: string;
+    email: string;
+    phone?: string;
+  };
+  items: PlatformTaxInvoiceItem[];
+  subtotal: number;
+  cgst: number;
+  sgst: number;
+  igst: number;
+  roundOff: number;
+  grandTotal: number;
+  amountInWords: string;
+  payment: {
+    mode: string;
+    utrNumber?: string;
+    bankName?: string;
+    depositedAccount?: string;
+    paidDate?: string;
+    clearingDate?: string;
+  };
+  pdfUrl?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+
 
